@@ -7,21 +7,21 @@ import json
 import aiohttp
 import torch
 import random
-from volcenginesdkarkruntime import Ark
-from volcenginesdkarkruntime.types.responses.response_completed_event import ResponseCompletedEvent
-from volcenginesdkarkruntime.types.responses.response_reasoning_summary_text_delta_event import ResponseReasoningSummaryTextDeltaEvent
-from volcenginesdkarkruntime.types.responses.response_output_item_added_event import ResponseOutputItemAddedEvent
-from volcenginesdkarkruntime.types.responses.response_text_delta_event import ResponseTextDeltaEvent
-from volcenginesdkarkruntime.types.responses.response_text_done_event import ResponseTextDoneEvent
+from byteplussdkarkruntime import Ark
+from byteplussdkarkruntime.types.responses.response_completed_event import ResponseCompletedEvent
+from byteplussdkarkruntime.types.responses.response_reasoning_summary_text_delta_event import ResponseReasoningSummaryTextDeltaEvent
+from byteplussdkarkruntime.types.responses.response_output_item_added_event import ResponseOutputItemAddedEvent
+from byteplussdkarkruntime.types.responses.response_text_delta_event import ResponseTextDeltaEvent
+from byteplussdkarkruntime.types.responses.response_text_done_event import ResponseTextDoneEvent
 try:
-    from volcenginesdkarkruntime.types.responses.response_reasoning_text_delta_event import ResponseReasoningTextDeltaEvent
+    from byteplussdkarkruntime.types.responses.response_reasoning_text_delta_event import ResponseReasoningTextDeltaEvent
 except ImportError:
     ResponseReasoningTextDeltaEvent = None
 
 import comfy.model_management
 from server import PromptServer
-from .nodes_shared import log_msg, format_api_error, get_text, JimengException, create_white_image_tensor, create_white_video_file, safe_cat_tensors
-from .constants import JIMENG_API_BASE_URL, SEEDANCE_REQUEST_MAX_BYTES
+from .nodes_shared import log_msg, format_api_error, get_text, BytePlusException, create_white_image_tensor, create_white_video_file, safe_cat_tensors
+from .constants import SEEDANCE_REQUEST_MAX_BYTES
 from .models_config import VIDEO_MODEL_MAP, VIDEO_2_UI_OPTIONS
 from .utils_download import b64_image_to_tensor_async
 
@@ -60,7 +60,7 @@ def compact_json_size_bytes(payload) -> int:
 def validate_seedance_request_size(payload, max_bytes=SEEDANCE_REQUEST_MAX_BYTES):
     request_bytes = compact_json_size_bytes(payload)
     if request_bytes > max_bytes:
-        raise JimengException(
+        raise BytePlusException(
             get_text("err_request_body_too_large").format(
                 max_bytes=max_bytes, current_bytes=request_bytes
             )
@@ -118,8 +118,8 @@ async def _get_api_estimated_time_async(
     ark_client, model_name: str, duration: int, resolution: str, content=None
 ) -> (int, str):
     """
-    异步获取 API 预估耗时。
-    通过分析历史任务数据，使用均值、线性回归或近期负载调整来估算任务完成时间。
+    Estimate task duration from recent task history (mean, linear regression,
+    or recent-load adjustment), falling back to defaults.
     """
     fallback_per_sec = DEFAULT_FALLBACK_PER_SEC
     model_name_lc = str(model_name).lower()
@@ -129,7 +129,7 @@ async def _get_api_estimated_time_async(
         if m in VIDEO_MODEL_MAP:
             v2_model_ids.add(VIDEO_MODEL_MAP[m])
 
-    is_seedance2 = model_name in v2_model_ids or "doubao-seedance-2-" in model_name_lc
+    is_seedance2 = model_name in v2_model_ids or "seedance-2-" in model_name_lc
     request_has_ref_video = _contains_reference_video(content) if is_seedance2 else False
     seedance2_expected_with_video_per_sec = None
     seedance2_expected_without_video_per_sec = None
@@ -202,7 +202,7 @@ async def _get_api_estimated_time_async(
             if task_time <= 0 or item_duration <= 0:
                 continue
 
-            # API 历史任务不区分是否带参考视频，2.0 系列按耗时区间推断后再筛样本。
+            # Task history does not say whether a reference video was used; for 2.x, infer it from the per-second time before filtering samples.
             if is_seedance2:
                 observed_per_sec = float(task_time) / float(item_duration)
                 delta_with_video = abs(observed_per_sec - seedance2_expected_with_video_per_sec)
@@ -277,12 +277,11 @@ async def _get_api_estimated_time_async(
     except Exception:
         return (fallback_time, "est_fallback")
 
-class JimengGenerationExecutor:
+class BytePlusGenerationExecutor:
     """
-    统一的 Jimeng 生成任务执行器。
-    支持：
-    1. 异步任务模式 (Async Task): 适用于视频生成 (提交 -> 轮询 -> 结果)
-    2. 并行直接模式 (Parallel Direct): 适用于图像生成 (并发请求 -> 结果)
+    Runs generation requests.
+    1. Async tasks for video (submit -> poll -> results)
+    2. Parallel direct requests for images (concurrent requests -> results)
     """
     def __init__(self, client, node_id=None, ignore_errors=False):
         self.client = client
@@ -301,7 +300,7 @@ class JimengGenerationExecutor:
 
     def _should_skip_failure_log_before_raise(self, successful_tasks, failed_tasks_info):
         """
-        单个最终失败会继续抛给前端弹窗，避免同一条信息再打印一次控制台日志。
+        A single final failure is raised to the UI popup; it is not logged again to the console.
         """
         return (
             (not self.ignore_errors)
@@ -311,10 +310,10 @@ class JimengGenerationExecutor:
 
     def _create_failure_json(self, error_message, task_id=None):
         """
-        创建并抛出失败异常信息。
+        Raise a failure exception with a readable message.
         """
         clean_msg = error_message
-        prefix = "[JimengAI]"
+        prefix = "[BytePlus]"
         if clean_msg.strip().startswith(prefix):
             clean_msg = clean_msg.strip()[len(prefix) :].strip()
         if clean_msg.startswith("Error:"):
@@ -329,20 +328,20 @@ class JimengGenerationExecutor:
         
         if self.ignore_errors:
             clean_display_msg = display_msg
-            if clean_display_msg.startswith("[JimengAI] "):
+            if clean_display_msg.startswith("[BytePlus] "):
                 clean_display_msg = clean_display_msg[11:].strip()
             
-            if clean_display_msg.startswith("[JimengAI] "):
+            if clean_display_msg.startswith("[BytePlus] "):
                 clean_display_msg = clean_display_msg[11:].strip()
 
             log_msg("err_task_fail_ignored", node_id=self.node_id or "N/A", msg=clean_display_msg)
             return
             
-        raise JimengException(display_msg)
+        raise BytePlusException(display_msg)
 
     def _create_pending_json(self, status, task_id=None, task_count=0):
         """
-        创建并抛出等待中状态异常，用于非阻塞模式下的 UI 提示。
+        Raise a pending-status exception, shown in the UI in non-blocking mode.
         """
         if task_count > 0:
             msg = get_text("popup_batch_pending").format(count=task_count)
@@ -350,10 +349,10 @@ class JimengGenerationExecutor:
             msg = get_text("popup_task_pending").format(task_id=task_id, status=status)
         
         if self.ignore_errors:
-            print(f"[JimengAI] Pending (Ignored for multi-node): {msg}")
+            print(f"[BytePlus] Pending (Ignored for multi-node): {msg}")
             return
 
-        raise JimengException(msg)
+        raise BytePlusException(msg)
 
     async def run_batch_tasks(
         self,
@@ -372,8 +371,7 @@ class JimengGenerationExecutor:
         on_tasks_created=None,
     ):
         """
-        执行批量生成任务 (Video 模式)。
-        包含任务创建、状态轮询、进度估算和异常处理。
+        Run a batch of video tasks: create, poll with progress estimates, handle errors.
         """
         ark_client = self.ark_client
         ps_instance = self.ps_instance
@@ -460,7 +458,7 @@ class JimengGenerationExecutor:
             except Exception as e:
                 if isinstance(e, comfy.model_management.InterruptProcessingException):
                     raise e
-                if str(e).startswith("[JimengAI]"):
+                if str(e).startswith("[BytePlus]"):
                     raise e
                 del non_blocking_cache_dict[node_id]
                 log_msg("err_check_status_batch", e=e)
@@ -524,7 +522,7 @@ class JimengGenerationExecutor:
             if isinstance(res, Exception):
                 creation_errors.append(res)
                 err_text = format_api_error(res)
-                if err_text.startswith("[JimengAI] "):
+                if err_text.startswith("[BytePlus] "):
                     err_text = err_text[11:]
 
                 raw_err_text = str(res)
@@ -813,7 +811,7 @@ class JimengGenerationExecutor:
                 except Exception as ex:
                     err_msg = format_api_error(ex)
 
-                    clean_msg = err_msg.replace("[JimengAI] ", "").strip()
+                    clean_msg = err_msg.replace("[BytePlus] ", "").strip()
                     return False, clean_msg
 
             cancel_coroutines = [_cancel_task_safe(tid) for tid in tasks_to_poll_ids]
@@ -886,8 +884,7 @@ class JimengGenerationExecutor:
         **kwargs
     ):
         """
-        执行并发请求 (Image 模式)。
-        并发调用 request_func，并处理结果。
+        Run image requests concurrently via request_func and collect results.
         
         request_func: async function(index, session) -> (result_tensor, result_metadata)
         """
@@ -905,7 +902,7 @@ class JimengGenerationExecutor:
                     raise res
 
                 msg = str(res)
-                prefix = "[JimengAI] "
+                prefix = "[BytePlus] "
                 if msg.startswith(prefix):
                     msg = msg[len(prefix) :]
 
@@ -936,7 +933,7 @@ class JimengGenerationExecutor:
                 log_msg("err_batch_fail_all")
             if first_exception:
                 raise first_exception
-            raise JimengException(get_text("err_batch_fail_all"))
+            raise BytePlusException(get_text("err_batch_fail_all"))
 
         valid_results.sort(key=lambda x: x[1].get("batch_index", 0))
         
@@ -955,7 +952,7 @@ class JimengGenerationExecutor:
         generation_count,
     ):
         """
-        处理流式 API 请求和响应 (Image 模式)。
+        Handle a streaming image request and its events.
         """
         queue = asyncio.Queue()
         loop = asyncio.get_running_loop()
@@ -1000,7 +997,7 @@ class JimengGenerationExecutor:
                             and hasattr(event.error, "code")
                             and event.error.code == "InternalServiceError"
                         ):
-                            raise JimengException(
+                            raise BytePlusException(
                                 f"Critical API Error: {event.error.message}"
                             )
 
@@ -1041,7 +1038,7 @@ class JimengGenerationExecutor:
                 if item["type"] == "done":
                     break
                 elif item["type"] == "error":
-                    raise JimengException(format_api_error(item["error"]))
+                    raise BytePlusException(format_api_error(item["error"]))
                 elif item["type"] == "log":
                     if enable_group_generation and generation_count == 1:
                         key = item.get("key")
@@ -1073,13 +1070,13 @@ class JimengGenerationExecutor:
                         final_metadata["created"] = item["created"]
 
             if not decode_tasks:
-                raise JimengException(get_text("err_batch_fail_all"))
+                raise BytePlusException(get_text("err_batch_fail_all"))
 
             results = await asyncio.gather(*decode_tasks)
             valid_results = [r for r in results if r[1] is not None]
 
             if not valid_results:
-                raise JimengException(get_text("err_download_img"))
+                raise BytePlusException(get_text("err_download_img"))
 
             valid_results.sort(key=lambda x: x[0])
 
@@ -1095,12 +1092,12 @@ class JimengGenerationExecutor:
         except Exception as e:
             if isinstance(e, comfy.model_management.InterruptProcessingException):
                 raise e
-            raise JimengException(str(e))
+            raise BytePlusException(str(e))
 
 
-class JimengVisualExecutor:
+class BytePlusVisualExecutor:
     """
-    视觉理解任务执行器.
+    Runs visual understanding requests (Responses API).
     """
     def __init__(self, client):
         self.client = client
@@ -1110,7 +1107,7 @@ class JimengVisualExecutor:
 
     async def create_response_task(self, payload):
         """
-        调用 SDK create 方法 (非流式) 以创建任务。
+        Create a response (non-streaming).
         """
         payload["stream"] = False
         
@@ -1139,11 +1136,11 @@ class JimengVisualExecutor:
                 msg=formatted_error,
                 raw_api_response=str(e),
             )
-            raise JimengException(formatted_error)
+            raise BytePlusException(formatted_error)
 
     async def poll_response_result(self, task_id):
         """
-        获取任务结果。
+        Fetch the response result.
         """
         try:
             if task_id in self._results_cache:
@@ -1153,7 +1150,7 @@ class JimengVisualExecutor:
                 else:
                     return response.dict()
             
-            raise JimengException(f"Task result not found for ID: {task_id}")
+            raise BytePlusException(f"Task result not found for ID: {task_id}")
         except Exception as e:
             if isinstance(e, comfy.model_management.InterruptProcessingException):
                 raise e
@@ -1164,11 +1161,11 @@ class JimengVisualExecutor:
                 msg=formatted_error,
                 raw_api_response=str(e),
             )
-            raise JimengException(formatted_error)
+            raise BytePlusException(formatted_error)
 
     async def stream_response_task(self, payload, is_single_node=True):
         """
-        调用 SDK create 方法 (流式) 并处理事件。
+        Create a streaming response and handle its events.
         """
         payload["stream"] = True
         
@@ -1177,7 +1174,7 @@ class JimengVisualExecutor:
         full_content = ""
         final_json = {}
         
-        # 简单的任务标识符，用于控制台区分
+        # Short task label to tell concurrent streams apart in the console
         task_short_id = "Main"
         if "previous_response_id" in payload:
              task_short_id = str(payload["previous_response_id"])[-4:]
@@ -1195,7 +1192,7 @@ class JimengVisualExecutor:
             line_buffer += text
             if "\n" in line_buffer:
                 lines = line_buffer.split("\n")
-                # 打印除最后一部分外的所有行
+                # Print all complete lines; keep the trailing partial line
                 for line in lines[:-1]:
                     print(f"\033[94m[Visual-{task_short_id}]\033[0m {line}")
                 line_buffer = lines[-1]
@@ -1248,7 +1245,7 @@ class JimengVisualExecutor:
                     msg=formatted_error,
                     raw_api_response=str(e),
                 )
-                raise JimengException(formatted_error)
+                raise BytePlusException(formatted_error)
                 
         await asyncio.to_thread(_run_stream)
         

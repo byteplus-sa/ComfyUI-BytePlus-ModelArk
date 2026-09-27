@@ -6,7 +6,7 @@
   "nodes": [
     {
       "id": 1,
-      "type": "JimengAPIClient",
+      "type": "BytePlusAPIClient",
       "pos": [20, 80],
       "size": [300, 130],
       "flags": {},
@@ -15,11 +15,12 @@
       "inputs": [
         {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
         {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
-        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null}
+        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null},
+        {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
       ],
-      "outputs": [{"name": "client", "type": "JIMENG_CLIENT", "links": [1, 2]}],
-      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengAPIClient"},
-      "widgets_values": ["", "", "Custom"]
+      "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1, 2]}],
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusAPIClient"},
+      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
       "id": 2,
@@ -42,14 +43,14 @@
     },
     {
       "id": 3,
-      "type": "JimengSeedance1",
+      "type": "BytePlusSeedance1",
       "pos": [390, 80],
       "size": [440, 560],
       "flags": {},
       "order": 2,
       "mode": 0,
       "inputs": [
-        {"name": "client", "type": "JIMENG_CLIENT", "link": 1},
+        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 1},
         {"name": "model_version", "type": "COMBO", "widget": {"name": "model_version"}, "link": null},
         {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
         {"name": "enable_random_seed", "type": "BOOLEAN", "widget": {"name": "enable_random_seed"}, "link": null},
@@ -71,8 +72,8 @@
         {"name": "last_frame", "type": "IMAGE", "links": null},
         {"name": "response", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengSeedance1"},
-      "widgets_values": ["doubao-seedance-1-0-pro", "", true, 0, "randomize", "720p", "adaptive", 5, true, false, 1, "Jimeng/Video/Batch/Seedance", false, false]
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusSeedance1"},
+      "widgets_values": ["seedance-1-0-pro", "", true, 0, "randomize", "720p", "adaptive", 5, true, false, 1, "BytePlus/Video/Batch/Seedance", false, false]
     },
     {
       "id": 4,
@@ -90,18 +91,18 @@
       ],
       "outputs": [],
       "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveVideo"},
-      "widgets_values": ["Jimeng/Video/Seedance1", "auto", "auto"]
+      "widgets_values": ["BytePlus/Video/Seedance1", "auto", "auto"]
     },
     {
       "id": 5,
-      "type": "JimengSeedance1_5",
+      "type": "BytePlusSeedance1_5",
       "pos": [390, 720],
       "size": [440, 700],
       "flags": {},
       "order": 4,
       "mode": 4,
       "inputs": [
-        {"name": "client", "type": "JIMENG_CLIENT", "link": 2},
+        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 2},
         {"name": "model_version", "type": "COMBO", "widget": {"name": "model_version"}, "link": null},
         {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
         {"name": "enable_random_seed", "type": "BOOLEAN", "widget": {"name": "enable_random_seed"}, "link": null},
@@ -128,8 +129,8 @@
         {"name": "last_frame", "type": "IMAGE", "links": null},
         {"name": "response", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengSeedance1_5"},
-      "widgets_values": ["doubao-seedance-1.5-pro", "", true, 0, "randomize", "720p", "adaptive", false, 5, true, false, false, "", true, false, 1, "Jimeng/Video/Batch/Seedance", false, false]
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusSeedance1_5"},
+      "widgets_values": ["seedance-1-5-pro", "", true, 0, "randomize", "720p", "adaptive", false, 5, true, false, false, "", true, false, 1, "BytePlus/Video/Batch/Seedance", false, false]
     },
     {
       "id": 6,
@@ -147,18 +148,18 @@
       ],
       "outputs": [],
       "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveVideo"},
-      "widgets_values": ["Jimeng/Video/Seedance1_5", "auto", "auto"]
+      "widgets_values": ["BytePlus/Video/Seedance1_5", "auto", "auto"]
     },
     {
       "id": 7,
-      "type": "JimengVideoQueryTasks",
+      "type": "BytePlusVideoQueryTasks",
       "pos": [900, 980],
       "size": [350, 300],
       "flags": {},
       "order": 6,
       "mode": 4,
       "inputs": [
-        {"name": "client", "type": "JIMENG_CLIENT", "link": null},
+        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": null},
         {"name": "page_num", "type": "INT", "widget": {"name": "page_num"}, "link": null},
         {"name": "page_size", "type": "INT", "widget": {"name": "page_size"}, "link": null},
         {"name": "status", "type": "COMBO", "widget": {"name": "status"}, "link": null},
@@ -171,13 +172,13 @@
         {"name": "task_list_json", "type": "STRING", "links": null},
         {"name": "total_tasks", "type": "INT", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengVideoQueryTasks"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusVideoQueryTasks"},
       "widgets_values": [1, 10, "all", "default", "", "all", 0, "randomize"]
     }
   ],
   "links": [
-    [1, 1, 0, 3, 0, "JIMENG_CLIENT"],
-    [2, 1, 0, 5, 0, "JIMENG_CLIENT"],
+    [1, 1, 0, 3, 0, "BYTEPLUS_CLIENT"],
+    [2, 1, 0, 5, 0, "BYTEPLUS_CLIENT"],
     [3, 2, 0, 3, 14, "IMAGE"],
     [4, 2, 0, 5, 19, "IMAGE"],
     [5, 3, 0, 4, 0, "VIDEO"],
@@ -185,7 +186,7 @@
   ],
   "groups": [
     {"id": 1, "title": "Seedance 1.0", "bounding": [360, 20, 880, 650], "color": "#3f789e", "font_size": 22, "flags": {}},
-    {"id": 2, "title": "Seedance 1.5 Pro（按需启用）", "bounding": [360, 660, 920, 790], "color": "#3f789e", "font_size": 22, "flags": {}}
+    {"id": 2, "title": "Seedance 1.5 Pro (enable as needed)", "bounding": [360, 660, 920, 790], "color": "#3f789e", "font_size": 22, "flags": {}}
   ],
   "config": {},
   "extra": {"ds": {"scale": 0.78, "offset": [90, 50]}},

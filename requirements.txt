@@ -1,1 +1,4 @@
-volcengine-python-sdk[ark]>=5.0.41
+byteplus-python-sdk-v2[ark]>=3.0.61
+# Imported by byteplussdkarkruntime but not declared by the SDK package.
+httpx
+sniffio

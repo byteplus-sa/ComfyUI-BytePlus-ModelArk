@@ -23,6 +23,29 @@ def _image_bytes_to_tensor(image_data: bytes) -> torch.Tensor:
     return torch.from_numpy(image)[None,]
 
 
+def _image_bytes_to_rgba_tensor(image_data: bytes) -> torch.Tensor:
+    """Decode image bytes to a (1, H, W, 4) RGBA tensor in [0, 1]."""
+    image = PIL.Image.open(io.BytesIO(image_data)).convert("RGBA")
+    array = numpy.array(image).astype(numpy.float32) / 255.0
+    return torch.from_numpy(array)[None,]
+
+
+async def download_url_to_rgba_tensor_async(
+    session: aiohttp.ClientSession, url: str
+) -> torch.Tensor | None:
+    """
+    Download an image and convert it to a (1, H, W, 4) RGBA tensor.
+    """
+    if not url:
+        return None
+    try:
+        image_data = await _fetch_data_from_url_async(session, url)
+        return await asyncio.to_thread(_image_bytes_to_rgba_tensor, image_data)
+    except Exception as e:
+        log_msg("err_download_url", url=url, e=e)
+        return None
+
+
 async def image_bytes_to_tensor_async(image_data: bytes) -> torch.Tensor | None:
     if not image_data:
         return None
@@ -51,7 +74,7 @@ async def _fetch_data_from_url_async(
     retries: int = DEFAULT_DOWNLOAD_RETRIES,
 ) -> bytes:
     """
-    异步从 URL 获取数据，支持重试机制。
+    Fetch a URL asynchronously, with retries.
     """
     for attempt in range(1, retries + 2):
         try:
@@ -61,7 +84,7 @@ async def _fetch_data_from_url_async(
                 response.raise_for_status()
                 data = await response.read()
                 # t1 = time.time()
-                # print(f"[JimengAI Debug] Downloaded {len(data)} bytes from {url} in {t1 - t0:.2f}s")
+                # print(f"[BytePlus Debug] Downloaded {len(data)} bytes from {url} in {t1 - t0:.2f}s")
                 return data
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             if attempt > retries:
@@ -82,7 +105,7 @@ async def download_url_to_image_tensor_async(
     session: aiohttp.ClientSession, url: str
 ) -> torch.Tensor | None:
     """
-    下载图片并转换为 PyTorch Tensor 格式 (Batch, Height, Width, Channel)。
+    Download an image and convert it to a (B, H, W, C) tensor.
     """
     if not url:
         return None
@@ -103,7 +126,7 @@ async def _download_to_temp_base(
     file_ext: str,
 ) -> tuple[str | None, bytes | None]:
     """
-    下载文件的基础函数，将文件保存到临时目录。
+    Download a file into the temp directory.
     """
     if not url:
         return (None, None)
@@ -130,7 +153,7 @@ async def _download_to_temp_base(
         with open(final_path, "wb") as f:
             f.write(data)
         # t2 = time.time()
-        # print(f"[JimengAI Debug] Saved to {final_path}. Fetch: {t1 - t0:.2f}s, Write: {t2 - t1:.2f}s")
+        # print(f"[BytePlus Debug] Saved to {final_path}. Fetch: {t1 - t0:.2f}s, Write: {t2 - t1:.2f}s")
         return (final_path, data)
     except Exception as e:
         log_msg("err_download_url", url=url, e=e)
@@ -145,7 +168,7 @@ async def _download_to_file_stream_async(
     retries: int = DEFAULT_DOWNLOAD_RETRIES,
 ) -> bool:
     """
-    流式下载并写入文件
+    Stream a download to a file.
     """
     for attempt in range(1, retries + 2):
         try:
@@ -160,7 +183,7 @@ async def _download_to_file_stream_async(
                             break
                         f.write(chunk)
                 # t1 = time.time()
-                # print(f"[JimengAI Debug] Stream downloaded to {file_path} in {t1 - t0:.2f}s")
+                # print(f"[BytePlus Debug] Stream downloaded to {file_path} in {t1 - t0:.2f}s")
                 return True
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             if attempt > retries:
@@ -184,7 +207,7 @@ async def download_video_to_temp(
     save_path_name: str,
 ) -> str | None:
     """
-    下载视频到临时目录，返回文件路径。
+    Download a video into the temp directory and return its path.
     """
     if not url:
         return None
@@ -223,7 +246,7 @@ async def download_image_to_temp(
     save_path_name: str,
 ) -> tuple[torch.Tensor | None, str | None]:
     """
-    下载图片到临时目录，并返回 Tensor 和文件路径。
+    Download an image into the temp directory; return its tensor and path.
     """
     if not url:
         return (None, None)
@@ -242,7 +265,7 @@ async def download_image_to_temp(
 
 def save_to_output(src_path: str, filename_prefix: str):
     """
-    将临时文件保存到 ComfyUI 的输出目录。
+    Copy a temp file into the ComfyUI output directory.
     """
     if not src_path or not os.path.exists(src_path):
         return

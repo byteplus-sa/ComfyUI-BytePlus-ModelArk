@@ -16,37 +16,37 @@ except ImportError:
 
 from .nodes_shared import (
     GLOBAL_CATEGORY,
-    JimengClientType,
-    JimengException,
+    BytePlusClientType,
+    BytePlusException,
     _tensor2images,
     log_msg,
     format_api_error,
     upload_file_to_ark,
     get_node_count_in_workflow,
 )
-from .executor import JimengVisualExecutor
-from .constants import DEFAULT_VISUAL_SYSTEM_PROMPT
+from .executor import BytePlusVisualExecutor
+from .constants import DEFAULT_VISUAL_SYSTEM_PROMPT, DEFAULT_VISUAL_USER_PROMPT
 from .models_config import VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
 
 LAST_RESPONSE_ID = None
 
-class JimengVisualUnderstanding(comfy_io.ComfyNode):
+class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
-            node_id="JimengVisualUnderstanding",
-            display_name="Jimeng Visual Understanding",
+            node_id="BytePlusVisualUnderstanding",
+            display_name="BytePlus Visual Understanding",
             category=GLOBAL_CATEGORY,
             description=(
-                "Understand images and video with Seed 2.1 Pro by default, while "
-                "retaining Seed 2.0 models for existing workflows."
+                "Understand images and video with Dola Seed 2.1 Turbo by default, "
+                "or Seed 2.0 Pro / Lite / Mini."
             ),
             is_experimental=True,
             inputs=[
-                JimengClientType.Input("client"),
+                BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input("model", options=VISUAL_UI_OPTIONS, default=VISUAL_UI_OPTIONS[0]),
                 comfy_io.String.Input("system_prompt", multiline=True, default=DEFAULT_VISUAL_SYSTEM_PROMPT),
-                comfy_io.String.Input("user_prompt", multiline=True, default="请描述这张图片或视频的内容。"),
+                comfy_io.String.Input("user_prompt", multiline=True, default=DEFAULT_VISUAL_USER_PROMPT),
                 comfy_io.Combo.Input("detail", options=["low", "high"], default="high"),
                 comfy_io.Float.Input("fps", default=1.0, min=0.2, max=5.0, step=0.1),
                 comfy_io.Combo.Input("reasoning_mode", options=["auto", "enabled", "disabled"], default="auto"),
@@ -127,9 +127,9 @@ class JimengVisualUnderstanding(comfy_io.ComfyNode):
                     image_bytes = image_buffer.getvalue()
                     image_hash = hashlib.sha256(image_bytes).hexdigest()
                     input_dir = folder_paths.get_input_directory()
-                    cache_dir = os.path.join(input_dir, "JimengVisualCache")
+                    cache_dir = os.path.join(input_dir, "BytePlusVisualCache")
                     os.makedirs(cache_dir, exist_ok=True)
-                    file_path = os.path.join(cache_dir, f"jimeng_visual_cache_{image_hash}.jpg")
+                    file_path = os.path.join(cache_dir, f"byteplus_visual_cache_{image_hash}.jpg")
                     if not os.path.exists(file_path):
                         with open(file_path, "wb") as f:
                             f.write(image_bytes)
@@ -248,10 +248,10 @@ class JimengVisualUnderstanding(comfy_io.ComfyNode):
             
         current_response_json = {}
         
-        executor = JimengVisualExecutor(client)
+        executor = BytePlusVisualExecutor(client)
 
         if stream:
-            node_count = get_node_count_in_workflow("JimengVisualUnderstanding", prompt=cls.hidden.prompt)
+            node_count = get_node_count_in_workflow("BytePlusVisualUnderstanding", prompt=cls.hidden.prompt)
             is_single_node = node_count <= 1
             full_content, final_json_str = await executor.stream_response_task(payload, is_single_node=is_single_node)
             try:
