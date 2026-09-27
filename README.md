@@ -73,7 +73,7 @@ Seedance 1.5 Pro and the Seedance 2.5 models can render a quick 480p draft befor
 
 `draft_task_id` is ignored when `draft_mode` is off or `reuse_last_draft_task` is on.
 
-Final videos from a Seedance 2.5 draft are 1080p; from a 2.5 Premium draft, 1080p or 4K. Draft task IDs are valid for 7 days.
+Final videos from a Seedance 2.5 draft are 1080p; from a 2.5 Premium draft, 4K. Draft task IDs are valid for 7 days.
 
 ## Development
 

@@ -1037,6 +1037,17 @@ class SeedanceDraftModeTests(unittest.IsolatedAsyncioTestCase):
         args, kwargs = captured["prebuilt"]
         self.assertEqual(args[2], "dreamina-seedance-2-5-premium-260915")
         self.assertEqual(kwargs["extra_api_params"]["resolution"], "4k")
+        # Premium finals are 4K only (the live API rejects 1080p).
+        with self.assertRaises(Exception) as ctx:
+            await self._run(
+                {
+                    "model_version": "dreamina-seedance-2-5-premium",
+                    "draft_mode": True,
+                    "draft_task_id": "cgt-draft-1",
+                    "resolution": "1080p",
+                }
+            )
+        self.assertIn("support only 4k", str(ctx.exception))
 
     async def test_reuse_last_draft(self):
         _result, captured = await self._run(

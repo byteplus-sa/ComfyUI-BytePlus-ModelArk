@@ -34,3 +34,4 @@ api_keys.json
 files_upload_cache.json
 ARCHITECTURE.md
 .artifacts/
+.claude/launch.json

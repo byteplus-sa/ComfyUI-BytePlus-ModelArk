@@ -92,11 +92,12 @@ VIDEO_2_MODEL_REFERENCE_LIMITS = {
 }
 
 # Draft mode: the draft is always 480p; the final video generated from a draft
-# task supports only these resolutions.
+# task supports only these resolutions (verified against the live API: a
+# Premium final at 1080p is rejected with InvalidResolutionParameter).
 SEEDANCE_DRAFT_RESOLUTION = "480p"
 SEEDANCE_DRAFT_FINAL_RESOLUTIONS = {
     "dreamina-seedance-2-5": ["1080p"],
-    "dreamina-seedance-2-5-premium": ["1080p", "4k"],
+    "dreamina-seedance-2-5-premium": ["4k"],
 }
 
 # Seedance 2.5 omni reference task types (omni_reference_task_type)
