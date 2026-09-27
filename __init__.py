@@ -109,6 +109,7 @@ def check_and_update_dependencies():
     distribution_name = "byteplus-python-sdk-v2"
     minimum_version = "3.0.61"
     requirements_file = Path(__file__).with_name("requirements.txt")
+    upgrading_loaded_sdk = False
 
     try:
         import byteplussdkarkruntime
@@ -130,6 +131,7 @@ def check_and_update_dependencies():
                 "init_sdk_ver_low", current=current_version, min=minimum_version
             )
         )
+        upgrading_loaded_sdk = True
     except ModuleNotFoundError:
         print(get_init_text("init_sdk_not_found", pkg=package_name))
     except Exception as e:
@@ -148,6 +150,11 @@ def check_and_update_dependencies():
                 str(requirements_file),
             ]
         )
+        if upgrading_loaded_sdk:
+            # The old SDK is already imported in this process; the new one is
+            # only picked up after a restart, so don't register nodes against it.
+            print(get_init_text("init_sdk_update_ok"))
+            return False
         import byteplussdkarkruntime
         print(get_init_text("init_sdk_install_ok"))
         return True

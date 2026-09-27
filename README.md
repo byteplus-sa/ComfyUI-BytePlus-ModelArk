@@ -69,7 +69,9 @@ Seedance accepts reference videos only as URLs. The `Seedance 2 / 2.5` node hand
 Seedance 1.5 Pro and the Seedance 2.5 models can render a quick 480p draft before the full-quality video:
 
 1. Enable `draft_mode` and run. The draft task ID is shown in the response and remembered by the node.
-2. To render the final video, either enable `reuse_last_draft_task` or paste the draft task ID(s) into `draft_task_id`, set the final `resolution`, and run again. The final video reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting.
+2. To render the final video, keep `draft_mode` on and either enable `reuse_last_draft_task` (uses the draft this node made, until ComfyUI restarts) or paste the draft task ID(s) into `draft_task_id`. Set the final `resolution` and run again. The final video reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting.
+
+`draft_task_id` is ignored when `draft_mode` is off or `reuse_last_draft_task` is on.
 
 Final videos from a Seedance 2.5 draft are 1080p; from a 2.5 Premium draft, 1080p or 4K. Draft task IDs are valid for 7 days.
 

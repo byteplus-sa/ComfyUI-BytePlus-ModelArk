@@ -720,26 +720,27 @@ class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
     async def test_pro_reference_limit_is_ten(self):
         import torch
 
-        fake_client = SimpleNamespace(ark=SimpleNamespace())
-        old_hidden = getattr(nodes_image.BytePlusSeedream5, "hidden", None)
-        nodes_image.BytePlusSeedream5.hidden = SimpleNamespace(
-            unique_id="test-node", prompt={}
+        calls, _result = await self._run_pro({}, images=torch.zeros((10, 8, 8, 3)))
+        self.assertEqual(len(calls[0]["image"]), 10)
+        with self.assertRaises(Exception) as ctx:
+            await self._run_pro({}, images=torch.zeros((11, 8, 8, 3)))
+        self.assertIn("cannot exceed 10", str(ctx.exception))
+
+    async def test_transparent_without_mask_sends_opaque_alpha(self):
+        import base64
+        import io
+        import PIL.Image
+        import torch
+
+        calls, _result = await self._run_pro(
+            {"background": "transparent", "output_format": "png"},
+            images=torch.ones((1, 8, 8, 3)),
         )
-        try:
-            with self.assertRaises(Exception):
-                await nodes_image.BytePlusSeedream5.execute(
-                    fake_client,
-                    {
-                        "model_version": "dola-seedream-5-0-pro",
-                        "prompt": "edit",
-                    },
-                    images=torch.zeros((11, 8, 8, 3)),
-                )
-        finally:
-            if old_hidden is None:
-                delattr(nodes_image.BytePlusSeedream5, "hidden")
-            else:
-                nodes_image.BytePlusSeedream5.hidden = old_hidden
+        png = PIL.Image.open(
+            io.BytesIO(base64.b64decode(calls[0]["image"].split(",", 1)[1]))
+        )
+        self.assertEqual(png.mode, "RGBA")
+        self.assertEqual(png.getpixel((0, 0))[3], 255)
 
 
 @requires_comfyui
@@ -806,24 +807,26 @@ class Seedance25ExecutionTests(unittest.IsolatedAsyncioTestCase):
             unique_id="seedance25-test", prompt={}
         )
         try:
-            with self.assertRaises(Exception):
+            with self.assertRaises(Exception) as ctx:
                 await nodes_video.BytePlusSeedance2.execute(
                     SimpleNamespace(),
                     {
                         "model_version": "dreamina-seedance-2-5",
                         "prompt": "edit",
+                        "task_type": "edit",
                         "duration": 5,
                         "auto_duration": False,
                         "resolution": "720p",
                         "aspect_ratio": "16:9",
                     },
-                    ref_videos=[object()],
+                    ref_video_urls="https://example.invalid/clip.mp4",
                 )
         finally:
             if old_hidden is None:
                 delattr(nodes_video.BytePlusSeedance2, "hidden")
             else:
                 nodes_video.BytePlusSeedance2.hidden = old_hidden
+        self.assertIn("task_type edit", str(ctx.exception))
 
 
 @requires_comfyui
@@ -834,13 +837,13 @@ class Seedance25TaskTypeTests(unittest.IsolatedAsyncioTestCase):
         validate("extend", True, "adaptive", False)
         validate("edit", True, "adaptive", True)
         validate("auto", False, "16:9", False)
+        validate("auto", True, "16:9", False)
         for args in (
             ("edit", False, "adaptive", True),
             ("extend", False, "adaptive", True),
             ("edit", True, "adaptive", False),
             ("edit", True, "16:9", True),
             ("extend", True, "16:9", True),
-            ("auto", True, "16:9", True),
         ):
             with self.subTest(args=args), self.assertRaises(Exception):
                 validate(*args)
@@ -893,6 +896,25 @@ class Seedance25TaskTypeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(extra["output_format"], "mov")
         self.assertEqual(captured["args"][3], "1080p")
         self.assertEqual(captured["args"][4], "16:9")
+
+    async def test_auto_task_type_accepts_reference_video_with_fixed_ratio(self):
+        captured = await self._run_seedance25(
+            {"aspect_ratio": "16:9"},
+            ref_video_urls="https://example.invalid/clip.mp4",
+        )
+        self.assertEqual(captured["args"][4], "16:9")
+        self.assertNotIn("omni_reference_task_type", captured["kwargs"]["extra_api_params"])
+
+    async def test_first_frame_conflicts_with_reference_video_urls(self):
+        import torch
+
+        with self.assertRaises(Exception) as ctx:
+            await self._run_seedance25(
+                {"aspect_ratio": "adaptive"},
+                first_frame_image=torch.zeros((1, 720, 1280, 3)),
+                ref_video_urls="https://example.invalid/clip.mp4",
+            )
+        self.assertIn("First/last frame mode cannot be used together", str(ctx.exception))
 
     async def test_default_task_type_and_format_are_not_sent(self):
         captured = await self._run_seedance25({"aspect_ratio": "16:9"})
@@ -968,7 +990,12 @@ class SeedanceDraftModeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_final_from_draft_task_id_sends_only_draft_reference(self):
         result, captured = await self._run(
-            {"draft_task_id": "cgt-draft-1", "resolution": "1080p", "output_format": "mov"}
+            {
+                "draft_mode": True,
+                "draft_task_id": "cgt-draft-1",
+                "resolution": "1080p",
+                "output_format": "mov",
+            }
         )
         self.assertEqual(result, "final")
         args, kwargs = captured["prebuilt"]
@@ -977,11 +1004,15 @@ class SeedanceDraftModeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kwargs["extra_api_params"], {"resolution": "1080p", "output_format": "mov"})
 
     async def test_final_resolution_limits(self):
-        with self.assertRaises(Exception):
-            await self._run({"draft_task_id": "cgt-draft-1", "resolution": "720p"})
+        with self.assertRaises(Exception) as ctx:
+            await self._run(
+                {"draft_mode": True, "draft_task_id": "cgt-draft-1", "resolution": "720p"}
+            )
+        self.assertIn("support only 1080p", str(ctx.exception))
         _result, captured = await self._run(
             {
                 "model_version": "dreamina-seedance-2-5-premium",
+                "draft_mode": True,
                 "draft_task_id": "cgt-draft-1",
                 "resolution": "4k",
             }
@@ -1009,6 +1040,193 @@ class SeedanceDraftModeTests(unittest.IsolatedAsyncioTestCase):
             ],
         )
         self.assertEqual(kwargs["generation_count"], 2)
+
+    async def test_hidden_draft_task_id_is_ignored(self):
+        # Draft mode off: draft_task_id is hidden in the UI and must not be used.
+        result, captured = await self._run(
+            {"draft_mode": False, "draft_task_id": "cgt-old", "resolution": "720p"}
+        )
+        self.assertEqual(result, "draft")
+        self.assertNotIn("prebuilt", captured)
+        self.assertNotIn("draft", captured["common"][1]["extra_api_params"])
+        # Reuse on: the remembered draft wins over a hidden leftover ID.
+        nodes_video.LAST_SEEDANCE_2_DRAFT_TASKS["hidden-node"] = {
+            "model": "dreamina-seedance-2-5", "ids": ["cgt-new"],
+        }
+        _result, captured = await self._run(
+            {
+                "draft_mode": True,
+                "reuse_last_draft_task": True,
+                "draft_task_id": "cgt-old",
+                "resolution": "1080p",
+            },
+            node_id="hidden-node",
+        )
+        self.assertEqual(
+            captured["prebuilt"][0][3], [{"type": "draft_task", "draft_task": {"id": "cgt-new"}}]
+        )
+
+    async def test_reuse_without_remembered_draft_raises(self):
+        nodes_video.LAST_SEEDANCE_2_DRAFT_TASKS.pop("empty-node", None)
+        with self.assertRaises(Exception) as ctx:
+            await self._run(
+                {"draft_mode": True, "reuse_last_draft_task": True, "resolution": "1080p"},
+                node_id="empty-node",
+            )
+        self.assertIn("no draft to reuse", str(ctx.exception))
+        # A draft remembered for another model is not reused either.
+        nodes_video.LAST_SEEDANCE_2_DRAFT_TASKS["empty-node"] = {
+            "model": "dreamina-seedance-2-5-premium", "ids": ["cgt-premium"],
+        }
+        with self.assertRaises(Exception):
+            await self._run(
+                {"draft_mode": True, "reuse_last_draft_task": True, "resolution": "1080p"},
+                node_id="empty-node",
+            )
+
+
+@requires_comfyui
+class SeedanceDraftRequestTests(unittest.IsolatedAsyncioTestCase):
+    """End to end through the real executor: assert the request that is sent."""
+
+    async def _submit(self, node_cls, model_config=None, **inputs):
+        submitted = []
+        quota_checks = []
+
+        class Tasks:
+            @staticmethod
+            def create(**kwargs):
+                submitted.append(kwargs)
+                return SimpleNamespace(id=f"cgt-{len(submitted)}")
+
+            @staticmethod
+            def list(**_kwargs):
+                return SimpleNamespace(items=[])
+
+        client = SimpleNamespace(
+            ark=SimpleNamespace(content_generation=SimpleNamespace(tasks=Tasks())),
+            check_quota=lambda model, cost: quota_checks.append((model, cost)),
+            update_usage=lambda *_args: None,
+        )
+        old_server = getattr(executor.PromptServer, "instance", None)
+        old_hidden = getattr(node_cls, "hidden", None)
+        executor.PromptServer.instance = SimpleNamespace(
+            send_progress_text=lambda *_a, **_k: None, send_sync=lambda *_a, **_k: None
+        )
+        node_cls.hidden = SimpleNamespace(unique_id=f"req-{id(inputs)}", prompt={})
+        try:
+            if model_config is not None:
+                await node_cls.execute(client, model_config, **inputs)
+            else:
+                await node_cls.execute(client, **inputs)
+        finally:
+            if old_server is None:
+                delattr(executor.PromptServer, "instance")
+            else:
+                executor.PromptServer.instance = old_server
+            if old_hidden is None:
+                delattr(node_cls, "hidden")
+            else:
+                node_cls.hidden = old_hidden
+        return submitted, quota_checks
+
+    SEEDANCE25 = {
+        "model_version": "dreamina-seedance-2-5",
+        "prompt": "a fox in the snow",
+        "duration": 5,
+        "auto_duration": False,
+        "aspect_ratio": "16:9",
+        "non_blocking": True,
+    }
+
+    async def test_draft_request(self):
+        submitted, quota_checks = await self._submit(
+            nodes_video.BytePlusSeedance2,
+            {**self.SEEDANCE25, "draft_mode": True, "resolution": "1080p"},
+        )
+        request = submitted[0]
+        self.assertTrue(request["draft"])
+        self.assertEqual(request["resolution"], "480p")
+        self.assertFalse(request["return_last_frame"])
+        self.assertEqual(request["content"][0], {"type": "text", "text": "a fox in the snow"})
+        self.assertGreater(quota_checks[0][1], 0)
+
+    async def test_final_from_draft_request(self):
+        submitted, quota_checks = await self._submit(
+            nodes_video.BytePlusSeedance2,
+            {
+                **self.SEEDANCE25,
+                "draft_mode": True,
+                "draft_task_id": "cgt-draft-1",
+                "resolution": "1080p",
+                "output_format": "mov",
+            },
+        )
+        request = submitted[0]
+        self.assertEqual(request["model"], "dreamina-seedance-2-5-260628")
+        self.assertEqual(
+            request["content"], [{"type": "draft_task", "draft_task": {"id": "cgt-draft-1"}}]
+        )
+        self.assertEqual(request["resolution"], "1080p")
+        self.assertEqual(request["output_format"], "mov")
+        for reused in (
+            "ratio", "duration", "frames", "seed", "generate_audio",
+            "omni_reference_task_type", "draft", "service_tier",
+            "execution_expires_after",
+        ):
+            self.assertNotIn(reused, request)
+        # Final renders are checked against the quota too.
+        self.assertEqual(quota_checks[0][0], "dreamina-seedance-2-5-260628")
+        self.assertGreater(quota_checks[0][1], 0)
+
+    async def test_seedance15_ignores_hidden_draft_task_id(self):
+        submitted, _quota = await self._submit(
+            nodes_video.BytePlusSeedance1_5,
+            model_version="seedance-1-5-pro",
+            prompt="a fox",
+            generate_audio=True,
+            auto_duration=False,
+            duration=5,
+            resolution="720p",
+            aspect_ratio="16:9",
+            camerafixed=False,
+            enable_random_seed=False,
+            seed=1,
+            generation_count=1,
+            filename_prefix="test",
+            save_last_frame_batch=False,
+            enable_offline_inference=False,
+            non_blocking=True,
+            draft_mode=False,
+            reuse_last_draft_task=False,
+            draft_task_id="cgt-old",
+        )
+        self.assertEqual(submitted[0]["content"][0], {"type": "text", "text": "a fox"})
+
+    async def test_seedance15_reuse_without_draft_raises(self):
+        with self.assertRaises(Exception) as ctx:
+            await self._submit(
+                nodes_video.BytePlusSeedance1_5,
+                model_version="seedance-1-5-pro",
+                prompt="a fox",
+                generate_audio=True,
+                auto_duration=False,
+                duration=5,
+                resolution="720p",
+                aspect_ratio="16:9",
+                camerafixed=False,
+                enable_random_seed=False,
+                seed=1,
+                generation_count=1,
+                filename_prefix="test",
+                save_last_frame_batch=False,
+                enable_offline_inference=False,
+                non_blocking=True,
+                draft_mode=True,
+                reuse_last_draft_task=True,
+                draft_task_id="",
+            )
+        self.assertIn("no draft to reuse", str(ctx.exception))
 
 
 @requires_comfyui
@@ -1096,12 +1314,21 @@ class SeedreamLayerDecompositionTests(unittest.IsolatedAsyncioTestCase):
     async def test_input_pixel_limit(self):
         import torch
 
-        with self.assertRaises(Exception):
+        calls = []
+        client = SimpleNamespace(
+            ark=SimpleNamespace(images=SimpleNamespace(generate=lambda **kw: calls.append(kw))),
+            check_quota=lambda *_a: None,
+            update_usage=lambda *_a: None,
+        )
+        with self.assertRaises(Exception) as ctx:
             await nodes_image.BytePlusSeedreamLayers.execute(
-                SimpleNamespace(check_quota=lambda *_a: None),
-                "dola-seedream-5-0-pro",
-                torch.ones((1, 100, 100, 3)),
+                client, "dola-seedream-5-0-pro", torch.ones((1, 100, 100, 3))
             )
+        self.assertIn("Layer decomposition input must be between", str(ctx.exception))
+        self.assertEqual(calls, [])
+
+    def test_runs_as_output_node(self):
+        self.assertTrue(nodes_image.BytePlusSeedreamLayers.define_schema().is_output_node)
 
 
 @requires_comfyui

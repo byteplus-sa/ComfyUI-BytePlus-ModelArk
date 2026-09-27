@@ -124,6 +124,32 @@ def _parse_draft_task_ids(text) -> list[str]:
     return [line.strip() for line in str(text or "").replace(",", "\n").splitlines() if line.strip()]
 
 
+def select_draft_task_ids(draft_mode, reuse_last_draft_task, draft_task_id, cached_ids):
+    """
+    Draft task IDs to render as final videos, or [] to generate normally.
+
+    Mirrors what the UI shows: draft_task_id is only visible (and only used)
+    in draft mode with reuse off, so a hidden leftover ID never hijacks a run.
+    Reuse without a remembered draft raises instead of silently billing a new
+    draft.
+    """
+    if not draft_mode:
+        return []
+    if reuse_last_draft_task:
+        if not cached_ids:
+            raise BytePlusException(get_text("err_no_draft_to_reuse"))
+        return list(cached_ids)
+    return _parse_draft_task_ids(draft_task_id)
+
+
+def build_draft_final_content(draft_ids, generation_count):
+    """Content and task count for final videos rendered from draft tasks."""
+    drafts = [[{"type": "draft_task", "draft_task": {"id": tid}}] for tid in draft_ids]
+    if len(drafts) == 1:
+        return drafts[0], generation_count
+    return drafts, len(drafts)
+
+
 def validate_seedance25_task_type(task_type, has_reference_video, aspect_ratio, auto_duration):
     """
     Check Seedance 2.5 omni-reference task constraints before submitting, so
@@ -137,12 +163,8 @@ def validate_seedance25_task_type(task_type, has_reference_video, aspect_ratio, 
         raise BytePlusException(get_text("err_seedance25_editing_params"))
     if task_type == "extend" and aspect_ratio != "adaptive":
         raise BytePlusException(get_text("err_seedance25_extend_params"))
-    # With auto, the model decides; keep the stricter editing rule so a
-    # reference video is not rejected asynchronously.
-    if task_type == "auto" and has_reference_video and (
-        aspect_ratio != "adaptive" or not auto_duration
-    ):
-        raise BytePlusException(get_text("err_seedance25_editing_params"))
+    # With auto the model decides the task type; any conflict is reported by
+    # the API (InvalidParameter.TaskTypeConstraint).
 
 
 def _raise_if_text_params(prompt: str, text_params: list[str]) -> None:
@@ -290,6 +312,8 @@ from .constants import (
     REF_AUDIO_MAX_TOTAL_REQUEST_MB,
     REF_MEDIA_MAX_DURATION_SEEDANCE_2_5,
     DEFAULT_FILENAME_PREFIX,
+    VIDEO_FRAME_RATE,
+    VIDEO_RESOLUTION_PIXELS,
 )
 
 class BytePlusVideoBase:
@@ -889,6 +913,35 @@ class BytePlusVideoBase:
             first_video, first_frame, json.dumps(all_responses, indent=2)
         )
 
+    @staticmethod
+    def _estimate_video_tokens(model_name, resolution, duration, has_audio=False, is_draft=False):
+        from .quota import QuotaManager
+
+        return QuotaManager.instance().estimate_video_tokens(
+            model_name,
+            width=1,
+            height=VIDEO_RESOLUTION_PIXELS.get(resolution, 1280 * 720),
+            duration=duration,
+            fps=VIDEO_FRAME_RATE,
+            has_audio=has_audio,
+            is_draft=is_draft,
+        )
+
+    @staticmethod
+    def _record_usage(client, model_name, ret_results):
+        """Add the completion tokens reported by finished tasks to the quota."""
+        if not ret_results or not ret_results[2]:
+            return
+        try:
+            total_tokens = 0
+            for item in json.loads(ret_results[2]):
+                if isinstance(item, dict) and item.get("usage") and "completion_tokens" in item["usage"]:
+                    total_tokens += item["usage"]["completion_tokens"]
+            if total_tokens > 0:
+                client.update_usage(model_name, total_tokens)
+        except Exception as e:
+            log_msg("quota_update_failed", e=e)
+
     async def _run_prebuilt_content(
         self,
         client,
@@ -910,6 +963,11 @@ class BytePlusVideoBase:
         Submit tasks whose content is already built (e.g. a draft_task
         reference for a final video) and collect the results.
         """
+        client.check_quota(
+            model_name,
+            self._estimate_video_tokens(model_name, resolution, estimation_duration)
+            * generation_count,
+        )
         runner = BytePlusGenerationExecutor(client, node_id, ignore_errors=ignore_errors)
         successful_tasks = await runner.run_batch_tasks(
             model_name=model_name,
@@ -949,6 +1007,7 @@ class BytePlusVideoBase:
                 session,
             )
             await asyncio.sleep(0.25)
+        self._record_usage(client, model_name, ret_results)
         return ret_results
 
     async def _common_generation_logic(
@@ -980,9 +1039,6 @@ class BytePlusVideoBase:
         """
         Shared video generation flow: build parameters, submit, poll and collect results.
         """
-        from .quota import QuotaManager
-        from .constants import VIDEO_FRAME_RATE, VIDEO_RESOLUTION_PIXELS
-
         try:
             _raise_if_text_params(prompt, forbidden_params)
 
@@ -1008,17 +1064,12 @@ class BytePlusVideoBase:
                 extra_api_params[key] = val
                 estimation_duration = est
             
-            est_pixels = VIDEO_RESOLUTION_PIXELS.get(resolution, 1280 * 720)
-            is_draft = extra_api_params.get("draft", False)
-            has_audio = extra_api_params.get("generate_audio", False)
-            
-            est_tokens_per_video = QuotaManager.instance().estimate_video_tokens(
+            est_tokens_per_video = self._estimate_video_tokens(
                 model_name,
-                width=1, height=est_pixels,
-                duration=estimation_duration,
-                fps=VIDEO_FRAME_RATE,
-                has_audio=has_audio,
-                is_draft=is_draft
+                resolution,
+                estimation_duration,
+                has_audio=extra_api_params.get("generate_audio", False),
+                is_draft=extra_api_params.get("draft", False),
             )
             client.check_quota(model_name, est_tokens_per_video * generation_count)
 
@@ -1077,19 +1128,7 @@ class BytePlusVideoBase:
                 )
                 await asyncio.sleep(0.25)
             
-            if ret_results and ret_results[2]:
-                try:
-                    resp_list = json.loads(ret_results[2])
-                    total_tokens = 0
-                    for item in resp_list:
-                        if "usage" in item and item["usage"] and "completion_tokens" in item["usage"]:
-                            total_tokens += item["usage"]["completion_tokens"]
-                    
-                    if total_tokens > 0:
-                        client.update_usage(model_name, total_tokens)
-                except Exception as e:
-                    log_msg("quota_update_failed", e=e)
-
+            self._record_usage(client, model_name, ret_results)
             return ret_results
 
         except Exception as e:
@@ -1307,39 +1346,17 @@ class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
         global LAST_SEEDANCE_1_5_DRAFT_TASK_ID
 
         content_for_reuse = None
-
-        if draft_task_id and draft_task_id.strip():
-            content_for_reuse = [
-                {"type": "draft_task", "draft_task": {"id": draft_task_id.strip()}}
-            ]
-
-        elif reuse_last_draft_task and draft_mode:
-            cached = LAST_SEEDANCE_1_5_DRAFT_TASK_ID.get(node_id)
-            if cached:
-                if generation_count == 1:
-                    tid = None
-                    if isinstance(cached, list) and len(cached) > 0:
-                        tid = cached[0]
-                    elif isinstance(cached, str):
-                        tid = cached
-
-                    if tid:
-                        content_for_reuse = [
-                            {"type": "draft_task", "draft_task": {"id": tid}}
-                        ]
-                else:
-                    ids_to_use = []
-                    if isinstance(cached, list):
-                        ids_to_use = cached
-                    elif isinstance(cached, str):
-                        ids_to_use = [cached]
-
-                    if ids_to_use:
-                        content_for_reuse = []
-                        for tid in ids_to_use:
-                            content_for_reuse.append(
-                                [{"type": "draft_task", "draft_task": {"id": tid}}]
-                            )
+        reuse_count = generation_count
+        draft_ids = select_draft_task_ids(
+            draft_mode,
+            reuse_last_draft_task,
+            draft_task_id,
+            LAST_SEEDANCE_1_5_DRAFT_TASK_ID.get(node_id),
+        )
+        if draft_ids:
+            content_for_reuse, reuse_count = build_draft_final_content(
+                draft_ids, generation_count
+            )
 
         final_model_name = resolve_model_id(model_version)
 
@@ -1365,7 +1382,7 @@ class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
                 content_for_reuse,
                 estimation_duration=5 if auto_duration else float(duration),
                 resolution=resolution,
-                generation_count=generation_count,
+                generation_count=reuse_count,
                 filename_prefix=filename_prefix,
                 save_last_frame_batch=save_last_frame_batch,
                 non_blocking=non_blocking,
@@ -1412,12 +1429,7 @@ class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
                 try:
                     global LAST_SEEDANCE_1_5_DRAFT_TASK_ID
                     if tasks and len(tasks) > 0:
-                        if generation_count == 1:
-                            LAST_SEEDANCE_1_5_DRAFT_TASK_ID[node_id] = tasks[0].id
-                        else:
-                            LAST_SEEDANCE_1_5_DRAFT_TASK_ID[node_id] = [
-                                t.id for t in tasks
-                            ]
+                        LAST_SEEDANCE_1_5_DRAFT_TASK_ID[node_id] = [t.id for t in tasks]
                 except Exception as e:
                     print(f"[BytePlus] Failed to record draft task ID: {e}")
 
@@ -1660,11 +1672,13 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
         helper.NON_BLOCKING_TASK_CACHE = cls.NON_BLOCKING_TASK_CACHE
 
         if is_seedance_2_5:
-            draft_ids = _parse_draft_task_ids(draft_task_id)
-            if not draft_ids and draft_mode and reuse_last_draft_task:
-                cached = LAST_SEEDANCE_2_DRAFT_TASKS.get(node_id) or {}
-                if cached.get("model") == model_version:
-                    draft_ids = list(cached.get("ids") or [])
+            cached = LAST_SEEDANCE_2_DRAFT_TASKS.get(node_id) or {}
+            draft_ids = select_draft_task_ids(
+                draft_mode,
+                reuse_last_draft_task,
+                draft_task_id,
+                cached.get("ids") if cached.get("model") == model_version else None,
+            )
             if draft_ids:
                 return await cls._render_final_from_drafts(
                     helper,
@@ -1725,7 +1739,7 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
                 content, last_frame_image, "last_frame"
             )
 
-        has_any_reference_inputs = bool(ref_images or ref_videos or ref_audios)
+        has_any_reference_inputs = bool(ref_images or ref_videos or linked_video_urls or ref_audios)
 
         if (first_frame_image is not None or last_frame_image is not None) and has_any_reference_inputs:
             raise BytePlusException(get_text("popup_first_last_conflict_with_refs"))
@@ -1917,9 +1931,7 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
                     supported=", ".join(final_resolutions),
                 )
             )
-        drafts = [[{"type": "draft_task", "draft_task": {"id": tid}}] for tid in draft_ids]
-        content = drafts[0] if len(drafts) == 1 else drafts
-        count = generation_count if len(drafts) == 1 else len(drafts)
+        content, count = build_draft_final_content(draft_ids, generation_count)
         extra_api_params = {"resolution": resolution}
         if output_format != "mp4":
             extra_api_params["output_format"] = output_format

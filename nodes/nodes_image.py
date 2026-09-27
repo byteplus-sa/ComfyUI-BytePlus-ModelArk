@@ -61,6 +61,7 @@ from .constants import (
     MAX_ASPECT_RATIO,
     MIN_LAYER_INPUT_PIXELS,
     MAX_LAYER_INPUT_PIXELS,
+    REF_IMAGE_MAX_SIZE_MB,
 )
 from .nodes_image_schema import (
     RECOMMENDED_SIZES_V4,
@@ -92,16 +93,29 @@ def _mask_to_alpha(mask, height, width):
     return 1.0 - mask[0].clamp(0.0, 1.0).cpu().numpy()
 
 
-def _image_to_png_data_uri(image, mask=None):
-    """Encode one image (and optional ComfyUI mask as alpha) as a PNG data URI."""
+def _image_to_png_data_uri(image, mask=None, with_alpha=False):
+    """
+    Encode one image as a PNG data URI. With a ComfyUI mask, or with_alpha,
+    the PNG gets an alpha channel (fully opaque when there is no mask).
+    """
     rgb = numpy.clip(image[0].cpu().numpy() * 255.0, 0, 255).astype(numpy.uint8)
     pil_image = PIL.Image.fromarray(rgb, "RGB")
     if mask is not None:
         alpha = _mask_to_alpha(mask, rgb.shape[0], rgb.shape[1])
         pil_image.putalpha(PIL.Image.fromarray((alpha * 255.0).astype(numpy.uint8), "L"))
+    elif with_alpha:
+        pil_image.putalpha(255)
     buffer = io.BytesIO()
     pil_image.save(buffer, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8")
+    data_uri = "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8")
+    size_mb = len(data_uri) / (1024.0 * 1024.0)
+    if size_mb > REF_IMAGE_MAX_SIZE_MB:
+        raise BytePlusException(
+            get_text("popup_ref_image_size_exceeded").format(
+                max_mb=REF_IMAGE_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}"
+            )
+        )
+    return data_uri
 
 
 def _split_rgba(tensor):
@@ -523,8 +537,10 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
                 )
             if output_format != "png":
                 raise BytePlusException(get_text("err_transparent_needs_png"))
+            # The API needs an input with an alpha channel; without a mask
+            # the image is sent fully opaque.
             image_param = _image_to_png_data_uri(
-                _collect_image_tensors(images, **kwargs)[0], reference_mask
+                _collect_image_tensors(images, **kwargs)[0], reference_mask, with_alpha=True
             )
 
         if sequential_param == "auto":
@@ -719,6 +735,8 @@ class BytePlusSeedreamLayers(comfy_io.ComfyNode):
             node_id="BytePlusSeedreamLayers",
             display_name="BytePlus Seedream Layer Decomposition",
             category=GLOBAL_CATEGORY,
+            # Runs even with nothing connected, so save_layers alone is useful.
+            is_output_node=True,
             description=(
                 "Split an image into a base image and up to 16 editable layers with "
                 "Seedream 5.0 Pro. Layers are returned placed on the base image canvas, "

@@ -72,7 +72,7 @@ DEFAULT_FILENAME_PREFIX = "BytePlus/Video/Batch/Seedance"
 
 MESSAGES = {
     "init_sdk_ver_low": "Current SDK version {current} is too low. Auto-updating to >= {min}...",
-    "init_sdk_update_ok": "SDK update completed.",
+    "init_sdk_update_ok": "SDK update completed. Restart ComfyUI to load the BytePlus nodes with the new SDK.",
     "init_sdk_not_found": "Package {pkg} not found. Installing automatically...",
     "init_sdk_install_ok": "SDK installation completed.",
     "init_sdk_install_fail": "Auto-install failed. Please install manually: {e}",
@@ -114,6 +114,9 @@ MESSAGES = {
     "batch_handling": "Handling {count} successful tasks. Sorting by seed and downloading...",
     "batch_copying": "Copying files to output directory: {path}",
     "err_download_url": "Async download failed, URL: {url}, Error: {e}",
+    "check_status": "Checking status of {count} pending task(s)...",
+    "err_create_dummy_video": "Failed to create placeholder video: {e}",
+    "err_on_tasks_created": "Failed to record created task IDs: {e}",
     "err_task_create": "Task creation failed: {e}",
     "err_task_check": "Failed to check status for {tid}: {e}",
     "err_task_fail_msg": "Task {tid} failed: {msg}",
@@ -168,7 +171,8 @@ MESSAGES = {
     "err_model_not_supported": "This node does not support model {model}.",
     "err_seedance2_resolution_unsupported": "Model {model} does not support {resolution}. Supported resolutions: {supported}.",
     "err_seedance2_duration_unsupported": "Model {model} requires a duration between {min} and {max} seconds. Current: {duration}",
-    "err_seedance25_editing_params": "Seedance 2.5 video editing or extension requires the adaptive aspect ratio and auto duration.",
+    "err_seedance25_editing_params": "Seedance 2.5 video editing (task_type edit) requires the adaptive aspect ratio and auto duration.",
+    "err_no_draft_to_reuse": "reuse_last_draft_task is on, but this node has no draft to reuse (drafts are remembered per node and model until ComfyUI restarts). Turn off reuse and paste the draft task ID into draft_task_id, or generate a draft first.",
     "err_draft_final_resolution": "Final videos rendered from a {model} draft support only {supported}. Current resolution: {resolution}.",
     "err_seedance25_first_frame_ratio": "Seedance 2.5 image-to-video keeps the first frame's aspect ratio. Set aspect_ratio to adaptive.",
     "err_seedance25_task_type_needs_video": "Seedance 2.5 task_type '{task_type}' needs at least one reference video.",
