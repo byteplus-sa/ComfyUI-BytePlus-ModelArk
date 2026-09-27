@@ -48,12 +48,16 @@ Restart ComfyUI.
 
 Never commit `api_keys.json` or share workflows that contain keys.
 
+### Reference Videos
+
+Seedance accepts reference videos only as a URL, so local videos are uploaded to Comfy.org storage first. This requires being **logged in to a Comfy.org account** in ComfyUI. Uploaded files are deleted automatically after 24 hours. You can also pass a video URL you already host.
+
 ## Roadmap
 
 - [ ] Region selection (`ap-southeast-1` default, `eu-west-1`)
 - [ ] BytePlus model IDs (`dreamina-seedance-*`, `dola-seedream-*`, `seed-*`)
 - [ ] BytePlus capability limits (for example Seedance 2.5 at 1080p, mp4/mov)
-- [ ] Reference video upload via your own object storage (presigned URL) instead of third-party storage
+- [ ] Optional reference video upload via your own object storage (TOS or S3, presigned URL)
 - [ ] `asset://` support for ModelArk asset library (virtual and verified real-person assets)
 - [ ] English UI strings and BytePlus console links in error messages
 
