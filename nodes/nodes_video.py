@@ -20,11 +20,6 @@ import torch
 import PIL.Image
 import numpy
 
-try:
-    import cv2
-except ImportError:
-    cv2 = None
-
 from comfy_api.latest import io as comfy_io
 from comfy_api.input_impl import VideoFromFile
 
@@ -38,7 +33,9 @@ from .nodes_shared import (
     BytePlusException,
     get_node_count_in_workflow,
     create_white_image_tensor,
-    create_white_video_file,
+    create_white_video,
+    probe_video_file,
+    extract_last_frame_tensor,
 )
 from .nodes_video_schema import (
     get_common_video_seed_inputs,
@@ -180,18 +177,6 @@ def _get_dynamic_input_order(name: str) -> int:
     return 999
 
 
-def _create_autogrow_input(name, input_template, prefix, min_slots, max_slots):
-    return comfy_io.Autogrow.Input(
-        name,
-        template=comfy_io.Autogrow.TemplatePrefix(
-            input=input_template,
-            prefix=prefix,
-            min=min_slots,
-            max=max_slots,
-        ),
-    )
-
-
 def _create_named_autogrow_input(name, input_template, names, min_slots):
     return comfy_io.Autogrow.Input(
         name,
@@ -322,32 +307,6 @@ class BytePlusVideoBase:
     Shared task submission, result handling and reference-media helpers.
     """
     NON_BLOCKING_TASK_CACHE = NON_BLOCKING_TASK_CACHE
-
-    def _log_batch_task_failure(self, error_message, task_id=None):
-        log_msg("err_task_fail_msg", tid=task_id or "N/A", msg=error_message)
-
-    def _create_failure_json(self, error_message, task_id=None):
-        clean_msg = error_message
-        prefix = "[BytePlus]"
-        if clean_msg.strip().startswith(prefix):
-            clean_msg = clean_msg.strip()[len(prefix) :].strip()
-        if clean_msg.startswith("Error:"):
-            clean_msg = clean_msg[6:].strip()
-        # print(f"[BytePlus] {clean_msg}")
-        if task_id:
-            display_msg = get_text("popup_task_failed").format(
-                task_id=task_id, msg=clean_msg
-            )
-        else:
-            display_msg = get_text("popup_req_failed").format(msg=clean_msg)
-        raise BytePlusException(display_msg)
-
-    def _create_pending_json(self, status, task_id=None, task_count=0):
-        if task_count > 0:
-            msg = get_text("popup_batch_pending").format(count=task_count)
-        else:
-            msg = get_text("popup_task_pending").format(task_id=task_id, status=status)
-        raise BytePlusException(msg)
 
     def _get_service_options(self, enable_offline, timeout_seconds):
         service_tier = "flex" if enable_offline else "default"
@@ -540,16 +499,12 @@ class BytePlusVideoBase:
         if fps and frame_count:
             return frame_count / fps
 
-        if cv2 is not None and isinstance(stream_source, str) and os.path.exists(stream_source):
-            cap = cv2.VideoCapture(stream_source)
-            try:
-                if cap.isOpened():
-                    cap_fps = float(cap.get(cv2.CAP_PROP_FPS) or 0.0)
-                    cap_frames = float(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0.0)
-                    if cap_fps > 0 and cap_frames > 0:
-                        return cap_frames / cap_fps
-            finally:
-                cap.release()
+        if isinstance(stream_source, str) and os.path.exists(stream_source):
+            probed = probe_video_file(stream_source)
+            if probed.get("fps") and probed.get("frame_count"):
+                return probed["frame_count"] / probed["fps"]
+            if probed.get("duration"):
+                return probed["duration"]
 
         if duration_fallback is not None and duration_fallback > 0:
             return duration_fallback
@@ -581,21 +536,14 @@ class BytePlusVideoBase:
             video, ("get_audio_codec", "get_audio_codec_name")
         )
 
-        if cv2 is not None and isinstance(stream_source, str) and os.path.exists(stream_source):
-            cap = cv2.VideoCapture(stream_source)
-            try:
-                if fps is None:
-                    detected_fps = float(cap.get(cv2.CAP_PROP_FPS) or 0)
-                    if detected_fps > 0:
-                        fps = detected_fps
-                if video_codec is None:
-                    fourcc = int(cap.get(cv2.CAP_PROP_FOURCC) or 0)
-                    if fourcc:
-                        video_codec = "".join(
-                            chr((fourcc >> (8 * idx)) & 0xFF) for idx in range(4)
-                        ).strip("\x00 ")
-            finally:
-                cap.release()
+        if isinstance(stream_source, str) and os.path.exists(stream_source):
+            probed = probe_video_file(stream_source)
+            if fps is None:
+                fps = probed.get("fps")
+            if video_codec is None:
+                video_codec = probed.get("video_codec")
+            if audio_codec is None:
+                audio_codec = probed.get("audio_codec")
 
         try:
             fps = float(fps) if fps is not None else None
@@ -872,24 +820,7 @@ class BytePlusVideoBase:
 
         for res in valid_results:
             if res["frame_tensor"] is None and res["video_path"]:
-                try:
-                    import cv2
-
-                    cap = cv2.VideoCapture(res["video_path"])
-                    if cap.isOpened():
-                        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                        if frame_count > 0:
-                            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count - 1)
-                            ret, frame = cap.read()
-                            if ret:
-                                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                                image = frame.astype(numpy.float32) / 255.0
-                                res["frame_tensor"] = torch.from_numpy(image)[None,]
-                    cap.release()
-                except Exception as e:
-                    print(
-                        f"[BytePlus] Warning: Failed to extract last frame locally: {e}"
-                    )
+                res["frame_tensor"] = extract_last_frame_tensor(res["video_path"])
 
             all_responses.append(res["response"])
             v_path = res["video_path"]
@@ -989,10 +920,7 @@ class BytePlusVideoBase:
             )
 
         if not successful_tasks and ignore_errors:
-            dummy_video = None
-            dummy_video_path = create_white_video_file(filename_prefix, 1024, 1024)
-            if dummy_video_path and os.path.exists(dummy_video_path):
-                dummy_video = VideoFromFile(dummy_video_path)
+            dummy_video = create_white_video(1024, 1024)
             dummy_frame = create_white_image_tensor(1024, 1024)
             return comfy_io.NodeOutput(dummy_video, dummy_frame, json.dumps({"error": "All tasks failed but ignored. Returning dummy video/image."}))
 
@@ -1109,11 +1037,7 @@ class BytePlusVideoBase:
                 )
 
             if not successful_tasks and ignore_errors:
-                 dummy_video = None
-                 dummy_video_path = create_white_video_file(filename_prefix, 1024, 1024)
-                 if dummy_video_path and os.path.exists(dummy_video_path):
-                     dummy_video = VideoFromFile(dummy_video_path)
-                 
+                 dummy_video = create_white_video(1024, 1024)
                  dummy_frame = create_white_image_tensor(1024, 1024)
                  return comfy_io.NodeOutput(dummy_video, dummy_frame, json.dumps({"error": "All tasks failed but ignored. Returning dummy video/image."}))
 

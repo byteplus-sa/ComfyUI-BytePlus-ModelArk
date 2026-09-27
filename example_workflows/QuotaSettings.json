@@ -37,7 +37,10 @@
         {"name": "video_model", "type": "COMBO", "widget": {"name": "video_model"}, "link": null},
         {"name": "video_limit", "type": "INT", "widget": {"name": "video_limit"}, "link": null}
       ],
-      "outputs": [{"name": "status", "type": "STRING", "links": null}],
+      "outputs": [
+        {"name": "status", "type": "STRING", "links": null},
+        {"name": "client", "type": "BYTEPLUS_CLIENT", "links": null}
+      ],
       "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusQuotaSettings"},
       "widgets_values": ["None", 0, "None", 0]
     }

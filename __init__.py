@@ -1,7 +1,6 @@
 import sys
 import traceback
 import logging
-import subprocess
 from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
 from .nodes.constants import MESSAGES
@@ -100,69 +99,46 @@ def get_init_text(key, **kwargs):
         return msg
 
 
-def check_and_update_dependencies():
+def check_dependencies():
     """
-    Install requirements.txt when the BytePlus SDK is missing or older than
-    the minimum version.
+    Check that the BytePlus SDK is installed and recent enough. The plugin never
+    installs packages itself (Comfy Registry standard): ComfyUI-Manager installs
+    requirements.txt, and a manual install prints the exact command to run.
     """
-    package_name = "byteplus-python-sdk-v2[ark]"
     distribution_name = "byteplus-python-sdk-v2"
     minimum_version = "3.0.61"
-    requirements_file = Path(__file__).with_name("requirements.txt")
-    upgrading_loaded_sdk = False
+    install_cmd = f'"{sys.executable}" -m pip install -r "{Path(__file__).with_name("requirements.txt")}"'
+
+    def _numeric_version(value):
+        parts = []
+        for item in str(value).split("."):
+            digits = "".join(char for char in item if char.isdigit())
+            parts.append(int(digits or 0))
+        return tuple((parts + [0, 0, 0])[:3])
 
     try:
-        import byteplussdkarkruntime
-        try:
-            current_version = package_version(distribution_name)
-        except PackageNotFoundError:
-            current_version = "0"
-        def _numeric_version(value):
-            parts = []
-            for item in str(value).split("."):
-                digits = "".join(char for char in item if char.isdigit())
-                parts.append(int(digits or 0))
-            return tuple((parts + [0, 0, 0])[:3])
-
-        if _numeric_version(current_version) >= _numeric_version(minimum_version):
-            return True
-        print(
-            get_init_text(
-                "init_sdk_ver_low", current=current_version, min=minimum_version
-            )
-        )
-        upgrading_loaded_sdk = True
-    except ModuleNotFoundError:
-        print(get_init_text("init_sdk_not_found", pkg=package_name))
+        import byteplussdkarkruntime  # noqa: F401
+    except ImportError:
+        print(get_init_text("init_sdk_not_found", cmd=install_cmd))
+        return False
     except Exception as e:
         print(get_init_text("init_dep_check_err", e=e))
         return False
 
     try:
-        subprocess.check_call(
-            [
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "--disable-pip-version-check",
-                "-r",
-                str(requirements_file),
-            ]
+        current_version = package_version(distribution_name)
+    except PackageNotFoundError:
+        current_version = "0"
+    if _numeric_version(current_version) < _numeric_version(minimum_version):
+        print(
+            get_init_text(
+                "init_sdk_ver_low", current=current_version, min=minimum_version, cmd=install_cmd
+            )
         )
-        if upgrading_loaded_sdk:
-            # The old SDK is already imported in this process; the new one is
-            # only picked up after a restart, so don't register nodes against it.
-            print(get_init_text("init_sdk_update_ok"))
-            return False
-        import byteplussdkarkruntime
-        print(get_init_text("init_sdk_install_ok"))
-        return True
-    except Exception as e:
-        print(get_init_text("init_sdk_install_fail", e=e))
         return False
+    return True
 
-_dependencies_ready = check_and_update_dependencies()
+_dependencies_ready = check_dependencies()
 
 if _dependencies_ready:
     from .nodes.nodes_shared import BytePlusAPIClient

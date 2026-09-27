@@ -45,17 +45,17 @@ git clone https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk
 pip install -r ComfyUI-BytePlus-ModelArk/requirements.txt
 ```
 
-Restart ComfyUI. If the BytePlus SDK (`byteplus-python-sdk-v2`) is missing, the plugin installs `requirements.txt` on first load.
+Run `pip` with the same Python that runs ComfyUI, then restart ComfyUI. ComfyUI-Manager installs `requirements.txt` for you. If the BytePlus SDK (`byteplus-python-sdk-v2`) is missing or too old, the BytePlus nodes are not loaded and the console prints the exact install command.
 
 ## Configure Your API Key
 
 1. Create an API key in the [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) and activate the models you plan to use. Keys and model activation are per region.
 2. Either:
    - Copy `api_keys.json.example` to `api_keys.json` and add your key, or
-   - Add the `API Client` node, choose **Custom** in `key_name`, and paste your key. Set `new_key_name` to save it for later (refresh the browser to see it in the list).
+   - Add the `API Client` node, choose **Custom** in `key_name`, paste your key and set `new_key_name`. After the first run the key is saved to `api_keys.json`, the node switches to the saved name, and the pasted key is cleared.
 3. In the `API Client` node, set `region` to the region the key belongs to.
 
-Never commit `api_keys.json` or share workflows that contain keys.
+While `key_name` is **Custom**, the raw key is part of the workflow and of the prompt metadata that ComfyUI embeds in saved images and videos. Save the key under a name (or use `api_keys.json`) before sharing workflows or outputs. Never commit `api_keys.json`.
 
 ### Reference Videos
 

@@ -33,5 +33,4 @@ venv.bak/
 api_keys.json
 files_upload_cache.json
 ARCHITECTURE.md
-/web/docs/
-V3 迁移指南.md
+.artifacts/

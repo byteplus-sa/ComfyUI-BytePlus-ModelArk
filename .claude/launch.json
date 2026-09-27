@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "comfyui-byteplus-test",
+      "runtimeExecutable": "/private/tmp/claude-501/-Users-bytedance-Repositories-ComfyUI-BytePlus-ModelArk/4cb829d8-fd48-42e9-99e1-81ad34a9580a/scratchpad/venv/bin/python",
+      "runtimeArgs": [
+        "/Users/bytedance/ComfyUI-Installs/ComfyUI/ComfyUI/main.py",
+        "--base-directory",
+        "/private/tmp/claude-501/-Users-bytedance-Repositories-ComfyUI-BytePlus-ModelArk/4cb829d8-fd48-42e9-99e1-81ad34a9580a/scratchpad/comfybase",
+        "--port",
+        "8199",
+        "--cpu",
+        "--disable-auto-launch"
+      ],
+      "port": 8199
+    }
+  ]
+}

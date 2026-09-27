@@ -71,12 +71,12 @@ VIDEO_RESOLUTION_PIXELS = {
 DEFAULT_FILENAME_PREFIX = "BytePlus/Video/Batch/Seedance"
 
 MESSAGES = {
-    "init_sdk_ver_low": "Current SDK version {current} is too low. Auto-updating to >= {min}...",
-    "init_sdk_update_ok": "SDK update completed. Restart ComfyUI to load the BytePlus nodes with the new SDK.",
-    "init_sdk_not_found": "Package {pkg} not found. Installing automatically...",
-    "init_sdk_install_ok": "SDK installation completed.",
-    "init_sdk_install_fail": "Auto-install failed. Please install manually: {e}",
-    "init_dep_check_err": "Dependency check error: {e}",
+    "init_sdk_ver_low": "BytePlus SDK {current} is older than the required {min}; the BytePlus nodes are disabled. Update it, then restart ComfyUI:\n  {cmd}",
+    "init_sdk_not_found": "BytePlus SDK is not installed; the BytePlus nodes are disabled. Install the requirements, then restart ComfyUI:\n  {cmd}",
+    "init_dep_check_err": "Dependency check error; the BytePlus nodes are disabled: {e}",
+    "err_file_processing_failed": "ModelArk could not process file {id}: {reason}",
+    "err_file_processing_timeout": "File {id} was not ready after {seconds} s. Try again, or use a smaller file.",
+    "err_file_status_check": "Could not check the status of file {id}: {e}",
     "api_file_not_found": "Info: API keys file not found. Please rename 'api_keys.json.example' to 'api_keys.json' and fill in your keys.",
     "api_file_empty": "Warning: 'api_keys.json' is empty or not formatted correctly.",
     "api_load_error": "Error: Failed to load 'api_keys.json': {e}",
@@ -204,7 +204,7 @@ MESSAGES = {
     "visual_uploaded": "Uploaded file_id: {id}, Status: {status}",
     "visual_wait_active": "Waiting for file {id} to be active...",
     "visual_file_status": "File {id} status: {status}",
-    "visual_new_conv": "Starting new conversation (turns=1).",
+    "visual_new_conv": "Starting new conversation.",
     "visual_cont_conv": "Continuing conversation {id}...",
     "visual_cached_id": "Cached response_id for next turn: {id}",
     "visual_stream_start": "Starting Streaming Response...",

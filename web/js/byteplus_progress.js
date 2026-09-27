@@ -1,15 +1,23 @@
-import { app } from "/scripts/app.js";
-import { api } from "/scripts/api.js";
+import { app } from "../../../scripts/app.js";
+import { api } from "../../../scripts/api.js";
 
 function isVueNodesEnabled() {
-    const settings = app?.ui?.settings;
-    const getter = settings?.getSettingValue;
-    if (typeof getter !== "function") return false;
     try {
-        return getter.call(settings, "Comfy.VueNodes.Enabled", false) === true;
+        const setting = app?.extensionManager?.setting;
+        if (typeof setting?.get === "function") {
+            return setting.get("Comfy.VueNodes.Enabled") === true;
+        }
+        const settings = app?.ui?.settings;
+        return settings?.getSettingValue?.("Comfy.VueNodes.Enabled", false) === true;
     } catch {
         return false;
     }
+}
+
+function getGraph() {
+    if ("rootGraphOrUndefined" in app) return app.rootGraphOrUndefined;
+    if (app.isGraphReady === false) return undefined;
+    return app.rootGraph ?? app.graph;
 }
 
 const VUE_NODES_ENABLED = isVueNodesEnabled();
@@ -20,26 +28,26 @@ app.registerExtension({
     async setup() {
         api.addEventListener("progress", ({ detail }) => {
             const { value, max, node } = detail;
-            const graphNode = app.graph.getNodeById(node);
+            const graphNode = getGraph()?.getNodeById(node);
             
             if (graphNode && graphNode.comfyClass.startsWith("BytePlus")) {
                 const ratio = value / max;
                 graphNode.byteplus_progress_ratio = ratio;
                 graphNode.byteplus_progress_text = `${value}s / ${max}s`;
                 
-                app.graph.setDirtyCanvas(true, false);
+                getGraph()?.setDirtyCanvas(true, false);
             }
         });
 
         api.addEventListener("executed", ({ detail }) => {
-             const graphNode = app.graph.getNodeById(detail.node);
+             const graphNode = getGraph()?.getNodeById(detail.node);
              if (graphNode && graphNode.comfyClass.startsWith("BytePlus")) {
                  graphNode.byteplus_progress_ratio = 0;
                  graphNode.byteplus_progress_text = "";
                  graphNode.byteplus_progress_mode = null;
                  graphNode.byteplus_progress_startTime = 0;
                  graphNode.byteplus_progress_duration = 0;
-                 app.graph.setDirtyCanvas(true, false);
+                 getGraph()?.setDirtyCanvas(true, false);
              }
         });
     },

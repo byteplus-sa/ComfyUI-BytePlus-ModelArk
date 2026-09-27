@@ -128,6 +128,8 @@ from .models_config import SEEDREAM_4_MODEL_MAP, VIDEO_MODEL_MAP, SEEDREAM_5_MOD
 class BytePlusQuotaSettings(comfy_io.ComfyNode):
     """
     Quota settings node: caps image count and video tokens per API key and model.
+    Connect generation nodes to its client output so the quota is set before
+    they run.
     """
     
     IMAGE_MODELS = ["None"] + list(SEEDREAM_5_MODEL_MAP.keys()) + list(SEEDREAM_4_MODEL_MAP.keys())
@@ -139,6 +141,10 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
             node_id="BytePlusQuotaSettings",
             display_name="BytePlus Quota Settings",
             category=GLOBAL_CATEGORY,
+            description=(
+                "Cap image count and video tokens per model for this API key. Connect "
+                "generation nodes to the client output so the quota applies before they run."
+            ),
             inputs=[
                 BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input("image_model", options=cls.IMAGE_MODELS, default="None"),
@@ -148,6 +154,10 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
             ],
             outputs=[
                 comfy_io.String.Output(display_name="status"),
+                BytePlusClientType.Output(
+                    display_name="client",
+                    tooltip="The same client, passed through after the quota is set.",
+                ),
             ],
         )
 
@@ -164,7 +174,7 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
         api_key = getattr(client, "api_key", None)
         
         if not api_key:
-            return comfy_io.NodeOutput("Error: Client has no API Key bound.")
+            return comfy_io.NodeOutput("Error: Client has no API Key bound.", client)
 
         manager = QuotaManager.instance()
         
@@ -177,4 +187,4 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
             manager.set_quota(api_key, real_video_model, video_limit, "video")
 
         status = manager.get_status(api_key)
-        return comfy_io.NodeOutput(status)
+        return comfy_io.NodeOutput(status, client)

@@ -21,8 +21,8 @@ if COMFY_ROOT:
     if COMFY_ROOT not in sys.path:
         sys.path.insert(0, COMFY_ROOT)
 
-    # ComfyUI owns the top-level ``utils`` package. Preloading it prevents the
-    # plugin's nodes/utils.py from shadowing ComfyUI when tests run from this repo.
+    # ComfyUI owns the top-level ``utils`` package. Preload it from ComfyUI so a
+    # ``utils`` module elsewhere on sys.path cannot shadow it.
     import utils  # noqa: F401, E402
 
     PACKAGE_NAME = "byteplus_plugin_test"
@@ -37,6 +37,21 @@ if COMFY_ROOT:
     nodes_image = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_image")
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
+
+
+def assert_matches_sdk(method, kwargs):
+    """
+    Bind request kwargs to the real BytePlus SDK method signature, so a wrong
+    parameter name (e.g. expire_at vs expires_at) fails here and not only
+    against the live API. Fakes alone accept anything.
+    """
+    import inspect
+
+    fn = inspect.unwrap(method)
+    for cell in fn.__closure__ or ():
+        if inspect.isfunction(cell.cell_contents) and cell.cell_contents.__name__ == fn.__name__:
+            fn = cell.cell_contents
+    inspect.signature(fn).bind(None, **kwargs)
 
 
 @requires_comfyui
@@ -610,12 +625,14 @@ class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
 
     async def _run_pro(self, model_config, images=None, reference_mask=None, rgba=False):
         import torch
+        from byteplussdkarkruntime.resources.images.images import Images as SdkImages
 
         calls = []
 
         class Images:
             @staticmethod
             def generate(**kwargs):
+                assert_matches_sdk(SdkImages.generate, kwargs)
                 calls.append(kwargs)
                 return SimpleNamespace(
                     model=kwargs["model"],
@@ -1093,14 +1110,18 @@ class SeedanceDraftRequestTests(unittest.IsolatedAsyncioTestCase):
         submitted = []
         quota_checks = []
 
+        from byteplussdkarkruntime.resources.content_generation.tasks import Tasks as SdkTasks
+
         class Tasks:
             @staticmethod
             def create(**kwargs):
+                assert_matches_sdk(SdkTasks.create, kwargs)
                 submitted.append(kwargs)
                 return SimpleNamespace(id=f"cgt-{len(submitted)}")
 
             @staticmethod
-            def list(**_kwargs):
+            def list(**kwargs):
+                assert_matches_sdk(SdkTasks.list, kwargs)
                 return SimpleNamespace(items=[])
 
         client = SimpleNamespace(
@@ -1256,9 +1277,12 @@ class SeedreamLayerDecompositionTests(unittest.IsolatedAsyncioTestCase):
             size="4x4",
         )
 
+        from byteplussdkarkruntime.resources.images.images import Images as SdkImages
+
         class Images:
             @staticmethod
             def generate(**kwargs):
+                assert_matches_sdk(SdkImages.generate, kwargs)
                 calls.append(kwargs)
                 return SimpleNamespace(model=kwargs["model"], data=[layer, base])
 
@@ -1329,6 +1353,55 @@ class SeedreamLayerDecompositionTests(unittest.IsolatedAsyncioTestCase):
 
     def test_runs_as_output_node(self):
         self.assertTrue(nodes_image.BytePlusSeedreamLayers.define_schema().is_output_node)
+
+
+@requires_comfyui
+class SdkContractTests(unittest.IsolatedAsyncioTestCase):
+    async def test_files_upload_matches_sdk(self):
+        import tempfile
+        import time
+        from byteplussdkarkruntime.resources.files import Files as SdkFiles
+
+        created = []
+
+        class Files:
+            @staticmethod
+            def create(**kwargs):
+                assert_matches_sdk(SdkFiles.create, kwargs)
+                created.append(kwargs)
+                return SimpleNamespace(id="file-1", status="active")
+
+            @staticmethod
+            def retrieve(**kwargs):
+                assert_matches_sdk(SdkFiles.retrieve, kwargs)
+                return SimpleNamespace(status="active", expire_at=int(time.time()) + 86400)
+
+        client = SimpleNamespace(ark=SimpleNamespace(files=Files()))
+        old_save = nodes_shared.save_files_upload_cache
+        nodes_shared.save_files_upload_cache = lambda: None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".jpg") as tmp:
+                tmp.write(os.urandom(64))
+                tmp.flush()
+                file_id = await nodes_shared.upload_file_to_ark(client, tmp.name)
+        finally:
+            nodes_shared.save_files_upload_cache = old_save
+        self.assertEqual(file_id, "file-1")
+        self.assertIn("expires_at", created[0])
+
+
+@requires_comfyui
+class QuotaSettingsTests(unittest.TestCase):
+    def test_client_passthrough(self):
+        quota = importlib.import_module(f"{PACKAGE_NAME}.nodes.quota")
+        outputs = quota.BytePlusQuotaSettings.define_schema().outputs
+        self.assertEqual([o.display_name for o in outputs], ["status", "client"])
+        client = SimpleNamespace(api_key="test-key")
+        result = quota.BytePlusQuotaSettings.execute(client, "seedream-4-0", 3, "None", 0)
+        self.assertIs(result[1], client)
+        self.assertIn("seedream-4-0-250828: 0/3 images", result[0])
+        with self.assertRaises(Exception):
+            quota.QuotaManager.instance().check_quota("test-key", "seedream-4-0-250828", 4)
 
 
 @requires_comfyui
@@ -1431,6 +1504,169 @@ class ReferenceVideoTests(unittest.TestCase):
             helper._validate_single_reference_video(long_video, max_duration=30.2),
             25,
         )
+
+
+@requires_comfyui
+class FileActiveWaitTests(unittest.IsolatedAsyncioTestCase):
+    def _client(self, statuses):
+        calls = []
+
+        def retrieve(file_id):
+            status = statuses[min(len(calls), len(statuses) - 1)]
+            calls.append(file_id)
+            if isinstance(status, Exception):
+                raise status
+            return SimpleNamespace(status=status, error=SimpleNamespace(message="bad codec"))
+
+        return SimpleNamespace(ark=SimpleNamespace(files=SimpleNamespace(retrieve=retrieve))), calls
+
+    async def asyncSetUp(self):
+        self.old_poll = nodes_shared.FILE_ACTIVE_POLL_SECONDS
+        nodes_shared.FILE_ACTIVE_POLL_SECONDS = 0
+
+    async def asyncTearDown(self):
+        nodes_shared.FILE_ACTIVE_POLL_SECONDS = self.old_poll
+
+    async def test_failed_file_raises_with_reason(self):
+        client, _ = self._client(["processing", "failed"])
+        with self.assertRaises(nodes_shared.BytePlusException) as ctx:
+            await nodes_shared.wait_for_file_active(client, "file-1")
+        self.assertIn("bad codec", str(ctx.exception))
+
+    async def test_times_out(self):
+        client, _ = self._client(["processing"])
+        with self.assertRaises(nodes_shared.BytePlusException) as ctx:
+            await nodes_shared.wait_for_file_active(client, "file-1", max_wait_seconds=0)
+        self.assertIn("not ready", str(ctx.exception))
+
+    async def test_transient_errors_then_active(self):
+        client, calls = self._client([RuntimeError("503"), RuntimeError("503"), "active"])
+        self.assertTrue(await nodes_shared.wait_for_file_active(client, "file-1"))
+        self.assertEqual(len(calls), 3)
+
+    async def test_repeated_errors_give_up(self):
+        client, calls = self._client([RuntimeError("503")])
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await nodes_shared.wait_for_file_active(client, "file-1")
+        self.assertEqual(len(calls), nodes_shared.FILE_ACTIVE_MAX_RETRIEVE_ERRORS)
+
+    async def test_interrupt_stops_waiting(self):
+        import comfy.model_management as mm
+
+        client, _ = self._client(["processing"])
+        mm.interrupt_current_processing(True)
+        try:
+            with self.assertRaises(mm.InterruptProcessingException):
+                await nodes_shared.wait_for_file_active(client, "file-1")
+        finally:
+            mm.interrupt_current_processing(False)
+
+
+@requires_comfyui
+class VisualMultiTurnTests(unittest.IsolatedAsyncioTestCase):
+    async def test_previous_response_is_per_node_and_key(self):
+        nodes_visual = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_visual")
+        payloads = []
+        counter = iter(range(100))
+
+        class FakeExecutor:
+            def __init__(self, client):
+                pass
+
+            async def create_response_task(self, payload):
+                payloads.append(payload)
+                return "task"
+
+            async def poll_response_result(self, task_id):
+                return {"id": f"resp-{next(counter)}", "output": []}
+
+        async def run(node_id, api_key, turns):
+            nodes_visual.BytePlusVisualUnderstanding.hidden = SimpleNamespace(unique_id=node_id, prompt={})
+            client = SimpleNamespace(api_key=api_key, ark=None)
+            await nodes_visual.BytePlusVisualUnderstanding.execute(
+                client, "dola-seed-2-1-turbo", "", "hi", 0, False, 86400, "auto", 1.0, turns=turns
+            )
+            return payloads[-1].get("previous_response_id")
+
+        old_executor = nodes_visual.BytePlusVisualExecutor
+        old_hidden = getattr(nodes_visual.BytePlusVisualUnderstanding, "hidden", None)
+        nodes_visual.BytePlusVisualExecutor = FakeExecutor
+        nodes_visual.LAST_RESPONSES.clear()
+        try:
+            self.assertIsNone(await run("a", "key-1", 2))      # first turn: nothing to continue
+            self.assertIsNone(await run("b", "key-1", 2))      # other node: own conversation
+            self.assertEqual(await run("a", "key-1", 2), "resp-0")
+            self.assertIsNone(await run("a", "key-2", 2))      # other account: start over
+            self.assertIsNone(await run("b", "key-1", 1))      # turns=1: always new
+        finally:
+            nodes_visual.BytePlusVisualExecutor = old_executor
+            nodes_visual.LAST_RESPONSES.clear()
+            if old_hidden is None:
+                delattr(nodes_visual.BytePlusVisualUnderstanding, "hidden")
+            else:
+                nodes_visual.BytePlusVisualUnderstanding.hidden = old_hidden
+
+
+@requires_comfyui
+class ApiKeySavedEventTests(unittest.TestCase):
+    def test_saving_custom_key_notifies_frontend(self):
+        sent = []
+        server = importlib.import_module("server")
+        old_instance = getattr(server.PromptServer, "instance", None)
+        server.PromptServer.instance = SimpleNamespace(send_sync=lambda event, data, sid=None: sent.append((event, data)))
+        saved = {}
+        patches = {
+            "validate_api_key": lambda key, url: True,
+            "save_api_key": lambda name, key: saved.update({name: key}),
+            "Ark": lambda **kwargs: SimpleNamespace(**kwargs),
+        }
+        old = {name: getattr(nodes_shared, name) for name in patches}
+        for name, value in patches.items():
+            setattr(nodes_shared, name, value)
+        nodes_shared.BytePlusAPIClient.hidden = SimpleNamespace(unique_id="7")
+        try:
+            nodes_shared.BytePlusAPIClient.execute("Custom", "sk-123", "work")
+        finally:
+            for name, value in old.items():
+                setattr(nodes_shared, name, value)
+            server.PromptServer.instance = old_instance
+            delattr(nodes_shared.BytePlusAPIClient, "hidden")
+        self.assertEqual(saved, {"work": "sk-123"})
+        self.assertEqual(sent, [(nodes_shared.API_KEY_SAVED_EVENT, {"node": "7", "key_name": "work"})])
+        hidden = nodes_shared.BytePlusAPIClient.define_schema().hidden
+        self.assertIn(nodes_shared.comfy_io.Hidden.unique_id, hidden)
+
+
+@requires_comfyui
+class LocalVideoHelperTests(unittest.TestCase):
+    def test_probe_last_frame_and_placeholder_without_opencv(self):
+        import tempfile
+
+        import av
+        import numpy as np
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "clip.mp4")
+            with av.open(path, "w") as container:
+                stream = container.add_stream("h264", rate=24)
+                stream.width, stream.height, stream.pix_fmt = 64, 48, "yuv420p"
+                for i in range(72):
+                    frame = np.zeros((48, 64, 3), np.uint8)
+                    frame[..., 0] = i * 3
+                    for packet in stream.encode(av.VideoFrame.from_ndarray(frame, format="rgb24")):
+                        container.mux(packet)
+                for packet in stream.encode():
+                    container.mux(packet)
+
+            info = nodes_shared.probe_video_file(path)
+            self.assertEqual((info["fps"], info["frame_count"], info["video_codec"]), (24.0, 72, "h264"))
+            last = nodes_shared.extract_last_frame_tensor(path)
+            self.assertEqual(tuple(last.shape), (1, 48, 64, 3))
+            self.assertAlmostEqual(float(last[0, ..., 0].mean()) * 255, 213, delta=4)
+
+        self.assertEqual(nodes_shared.probe_video_file("/missing.mp4"), {})
+        self.assertIsNone(nodes_shared.extract_last_frame_tensor("/missing.mp4"))
+        self.assertEqual(nodes_shared.create_white_video(32, 16).get_dimensions(), (32, 16))
 
 
 if __name__ == "__main__":

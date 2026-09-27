@@ -20,7 +20,7 @@ except ImportError:
 
 import comfy.model_management
 from server import PromptServer
-from .nodes_shared import log_msg, format_api_error, get_text, BytePlusException, create_white_image_tensor, create_white_video_file, safe_cat_tensors
+from .nodes_shared import log_msg, format_api_error, get_text, BytePlusException, create_white_image_tensor, safe_cat_tensors
 from .constants import SEEDANCE_REQUEST_MAX_BYTES
 from .models_config import VIDEO_MODEL_MAP, VIDEO_2_UI_OPTIONS
 from .utils_download import b64_image_to_tensor_async

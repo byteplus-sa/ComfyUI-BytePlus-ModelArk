@@ -13,6 +13,7 @@ import torch.nn.functional as F
 import requests
 import asyncio
 import threading
+import comfy.model_management
 from byteplussdkarkruntime import Ark
 
 from comfy_api.latest import io as comfy_io
@@ -534,7 +535,8 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
                 upload_kwargs = {
                     "file": f,
                     "purpose": "user_data",
-                    "expire_at": expire_at
+                    # BytePlus SDK name (the returned file object uses expire_at)
+                    "expires_at": expire_at
                 }
                 
                 if fps is not None:
@@ -577,31 +579,45 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
         raise BytePlusException(f"File upload failed: {e}")
 
 
-async def wait_for_file_active(client, file_id):
+FILE_ACTIVE_POLL_SECONDS = 1
+FILE_ACTIVE_MAX_WAIT_SECONDS = 600
+FILE_ACTIVE_MAX_RETRIEVE_ERRORS = 5
+
+
+async def wait_for_file_active(client, file_id, max_wait_seconds=FILE_ACTIVE_MAX_WAIT_SECONDS):
     """
-    Poll the file until its status is "active".
+    Poll the Files API until the file is "active". Raises on "failed", on a
+    timeout, after repeated retrieve errors, or when the user interrupts.
     """
     log_msg("visual_wait_active", id=file_id)
-    
+    deadline = time.monotonic() + max_wait_seconds
+    retrieve_errors = 0
+
     while True:
+        comfy.model_management.throw_exception_if_processing_interrupted()
         try:
-            file_info = await asyncio.to_thread(
-                client.ark.files.retrieve,
-                file_id=file_id
-            )
-            
+            file_info = await asyncio.to_thread(client.ark.files.retrieve, file_id=file_id)
+        except Exception as e:
+            retrieve_errors += 1
+            logger.error(f"Error checking file status: {e}")
+            if retrieve_errors >= FILE_ACTIVE_MAX_RETRIEVE_ERRORS:
+                raise BytePlusException(get_text("err_file_status_check", id=file_id, e=format_api_error(e)))
+        else:
+            retrieve_errors = 0
             status = getattr(file_info, "status", "unknown")
             log_msg("visual_file_status", id=file_id, status=status)
-            
             if status == "active":
                 return True
-            elif status == "error":
-                raise BytePlusException(f"File processing failed: {file_id}")
-            
-            await asyncio.sleep(1)
-        except Exception as e:
-            logger.error(f"Error checking file status: {e}")
-            await asyncio.sleep(1)
+            if status == "failed":
+                error = getattr(file_info, "error", None)
+                reason = getattr(error, "message", None) or error or "unknown error"
+                raise BytePlusException(get_text("err_file_processing_failed", id=file_id, reason=reason))
+
+        if time.monotonic() >= deadline:
+            raise BytePlusException(
+                get_text("err_file_processing_timeout", id=file_id, seconds=max_wait_seconds)
+            )
+        await asyncio.sleep(FILE_ACTIVE_POLL_SECONDS)
 
 
 def _tensor2images(tensor: torch.Tensor) -> list:
@@ -664,46 +680,72 @@ def safe_cat_tensors(tensors, dim=0):
     return torch.cat(processed_tensors, dim=dim)
 
 
-def create_white_video_file(filename_prefix, width=1024, height=1024):
+def create_white_video(width=1024, height=1024, fps=24):
     """
-    Create a one-frame white MP4 of the given size.
-    Returns the absolute path of the file.
+    One-frame white VIDEO (placeholder output when failures are ignored).
+    Built with ComfyUI's own video types, so no OpenCV is needed.
     """
-    import tempfile
     try:
-        import cv2
-    except ImportError:
-        return None
+        from fractions import Fraction
+        from comfy_api.latest import InputImpl, Types
 
-    try:
-        temp_dir = folder_paths.get_temp_directory()
-        timestamp = int(time.time() * 1000)
-        
-        flat_prefix = filename_prefix.replace("/", "_").replace("\\", "_")
-        filename = f"{flat_prefix}_dummy_{timestamp}.mp4"
-        
-        filepath = os.path.join(temp_dir, filename)
-
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        fps = 24.0
-        out = cv2.VideoWriter(filepath, fourcc, fps, (width, height))
-        
-        if not out.isOpened():
-            log_msg("err_create_dummy_video", e="Failed to open VideoWriter with mp4v")
-            return None
-
-        white_frame = numpy.ones((height, width, 3), dtype=numpy.uint8) * 255
-        
-        out.write(white_frame)
-        out.release()
-        
-        if not os.path.exists(filepath):
-             log_msg("err_create_dummy_video", e="File was not created on disk")
-             return None
-        
-        return filepath
+        frames = torch.ones((1, height, width, 3), dtype=torch.float32)
+        return InputImpl.VideoFromComponents(
+            Types.VideoComponents(images=frames, frame_rate=Fraction(fps))
+        )
     except Exception as e:
         log_msg("err_create_dummy_video", e=e)
+        return None
+
+
+def probe_video_file(path):
+    """
+    Read fps, frame count, duration and codecs of a local video with PyAV
+    (shipped with ComfyUI). Returns {} when the file cannot be read.
+    """
+    try:
+        import av
+
+        with av.open(path) as container:
+            video_stream = next((s for s in container.streams if s.type == "video"), None)
+            audio_stream = next((s for s in container.streams if s.type == "audio"), None)
+            info = {}
+            if video_stream is not None:
+                if video_stream.average_rate:
+                    info["fps"] = float(video_stream.average_rate)
+                if video_stream.frames:
+                    info["frame_count"] = int(video_stream.frames)
+                info["video_codec"] = video_stream.codec_context.name
+            if audio_stream is not None:
+                info["audio_codec"] = audio_stream.codec_context.name
+            if container.duration:
+                info["duration"] = float(container.duration) / av.time_base
+            return info
+    except Exception:
+        return {}
+
+
+def extract_last_frame_tensor(path):
+    """
+    Decode the last frame of a local video as an IMAGE tensor [1, H, W, 3],
+    or None. Seeks close to the end first so long videos are not fully decoded.
+    """
+    try:
+        import av
+
+        with av.open(path) as container:
+            stream = container.streams.video[0]
+            if container.duration and container.duration > 2 * av.time_base:
+                container.seek(int(container.duration - 2 * av.time_base), backward=True, any_frame=False)
+            last = None
+            for frame in container.decode(stream):
+                last = frame
+            if last is None:
+                return None
+            image = last.to_ndarray(format="rgb24").astype(numpy.float32) / 255.0
+            return torch.from_numpy(image)[None,]
+    except Exception as e:
+        logger.warning(f"Failed to extract the last frame locally: {e}")
         return None
 
 
@@ -739,6 +781,25 @@ class BytePlusClients:
         QuotaManager.instance().update_usage(self.api_key, model, actual_cost)
 
 
+API_KEY_SAVED_EVENT = "byteplus.api_key_saved"
+
+
+def _notify_api_key_saved(node_id, key_name):
+    """
+    Tell the frontend a Custom key was saved, so the node switches to the saved
+    name and clears the raw key. Otherwise the key stays in the workflow and in
+    the prompt metadata embedded in every saved image or video.
+    """
+    if not node_id:
+        return
+    try:
+        from server import PromptServer
+
+        PromptServer.instance.send_sync(API_KEY_SAVED_EVENT, {"node": str(node_id), "key_name": key_name})
+    except Exception as e:
+        logger.warning(f"Could not notify the frontend that the API key was saved: {e}")
+
+
 class BytePlusAPIClient(comfy_io.ComfyNode):
     """
     BytePlus ModelArk API client node.
@@ -766,6 +827,7 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
                 ),
             ],
             outputs=[BytePlusClientType.Output(display_name="client")],
+            hidden=[comfy_io.Hidden.unique_id],
         )
 
     @classmethod
@@ -787,6 +849,7 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
             if new_key_name and new_key_name.strip():
                 save_api_key(new_key_name.strip(), api_key)
                 print(get_text("info_new_key_saved", name=new_key_name.strip()))
+                _notify_api_key_saved(cls.hidden.unique_id, new_key_name.strip())
 
         else:
             api_key = API_KEY_STORE.find_api_key(key_name)

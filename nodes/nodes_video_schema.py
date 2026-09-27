@@ -60,15 +60,6 @@ def _calculate_duration_and_frames_args(duration: float):
         final_frames = int(max(VIDEO_MIN_FRAMES, min(VIDEO_MAX_FRAMES, VIDEO_BASE_FRAMES + VIDEO_FRAME_STEP * n)))
         return ("frames", final_frames, int(round(final_frames / VIDEO_FRAME_RATE)))
 
-def get_common_video_inputs():
-    """
-    Shared video inputs: random seed, generation count, filename prefix, etc.
-    """
-    return (
-        get_common_video_seed_inputs()
-        + get_common_video_runtime_inputs(include_offline=True)
-    )
-
 def get_common_video_seed_inputs():
     return [
         comfy_io.Boolean.Input(

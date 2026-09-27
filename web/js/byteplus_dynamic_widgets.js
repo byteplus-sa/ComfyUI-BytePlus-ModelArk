@@ -1,14 +1,30 @@
-import { app } from "/scripts/app.js";
+import { app } from "../../../scripts/app.js";
+import { api } from "../../../scripts/api.js";
 
 function isVueNodesEnabled() {
-    const settings = app?.ui?.settings;
-    const getter = settings?.getSettingValue;
-    if (typeof getter !== "function") return false;
     try {
-        return getter.call(settings, "Comfy.VueNodes.Enabled", false) === true;
+        const setting = app?.extensionManager?.setting;
+        if (typeof setting?.get === "function") {
+            return setting.get("Comfy.VueNodes.Enabled") === true;
+        }
+        const settings = app?.ui?.settings;
+        return settings?.getSettingValue?.("Comfy.VueNodes.Enabled", false) === true;
     } catch {
         return false;
     }
+}
+
+// Root graph without triggering the "accessed before initialization" error
+// that app.rootGraph logs while the app is still starting.
+function getRootGraph() {
+    if ("rootGraphOrUndefined" in app) return app.rootGraphOrUndefined;
+    if (app.isGraphReady === false) return undefined;
+    return app.rootGraph ?? app.graph;
+}
+
+function markDirty(node) {
+    const graph = node?.graph ?? getRootGraph();
+    graph?.setDirtyCanvas?.(true, true);
 }
 
 const VUE_NODES_ENABLED = isVueNodesEnabled();
@@ -22,7 +38,6 @@ const TARGET_WIDGETS = [
     'size',
     'enable_group_generation',
     'generation_count',
-    'enable_timeout_setting',
     'enable_random_seed',
     'auto_duration',
     'draft_mode',
@@ -66,7 +81,29 @@ function isWidgetLinked(node, name) {
 }
 
 /**
- * Show or hide a widget
+ * Whether this frontend has the widget visibility API (a `hidden` setter that
+ * hides the widget on the canvas, in Vue nodes and in the side panel).
+ * @param {object} widget - widget
+ * @returns {boolean}
+ */
+function hasVisibilityApi(widget) {
+    let proto = Object.getPrototypeOf(widget);
+    while (proto) {
+        const descriptor = Object.getOwnPropertyDescriptor(proto, "hidden");
+        if (descriptor) return typeof descriptor.set === "function";
+        proto = Object.getPrototypeOf(proto);
+    }
+    return false;
+}
+
+function isHiddenWidget(widget) {
+    return widget?.hidden === true || widget?.type === "hidden";
+}
+
+/**
+ * Show or hide a widget. Uses `widget.hidden`, which the canvas honours on all
+ * supported frontends. Vue nodes only honour it on frontends with the
+ * visibility API; on older ones the widget is disabled instead.
  * @param {object} node - node instance
  * @param {object} widget - target widget
  * @param {boolean} show - whether to show it
@@ -75,44 +112,23 @@ function isWidgetLinked(node, name) {
 function toggleWidget(node, widget, show) {
     if (!widget) return false;
 
-    if (VUE_NODES_ENABLED) {
+    // Never hide a widget whose input is linked
+    if (!show && isWidgetLinked(node, widget.name)) return false;
+
+    if (VUE_NODES_ENABLED && !hasVisibilityApi(widget)) {
         const disabled = !show;
         const changed = widget.disabled !== disabled || widget.options?.disabled !== disabled;
         widget.disabled = disabled;
         widget.options = widget.options || {};
         widget.options.disabled = disabled;
         if (widget.inputEl) widget.inputEl.disabled = disabled;
-        if (changed) app.graph.setDirtyCanvas(true, true);
+        if (changed) markDirty(node);
         return changed;
     }
 
-    // Never hide a widget that was converted to a linked input
-    if (isWidgetLinked(node, widget.name)) return false;
-
-    // Remember the original type and size function
-    if (!widget.origType && widget.type !== "hidden") {
-        widget.origType = widget.type;
-        widget.origComputeSize = widget.computeSize;
-    }
-
-    // Hidden without a cached original state: cannot restore, treat as unchanged
-    if (!widget.origType && widget.type === "hidden") {
-        return false;
-    }
-
-    // Nothing to do if already in the target state
-    const isCurrentlyHidden = widget.type === "hidden";
-    if (show !== isCurrentlyHidden) return false;
-
-    // Apply the change
-    if (show) {
-        widget.type = widget.origType;
-        widget.computeSize = widget.origComputeSize;
-    } else {
-        widget.type = "hidden";
-        widget.computeSize = () => [0, -4];
-    }
-
+    const hidden = !show;
+    if ((widget.hidden === true) === hidden) return false;
+    widget.hidden = hidden;
     return true;
 }
 
@@ -132,7 +148,7 @@ function updateNodeHeight(node, extraHeight = 0) {
     const targetHeight = size[1] + extraHeight;
 
     node.setSize([node.size[0], targetHeight]);
-    app.graph.setDirtyCanvas(true, true);
+    markDirty(node);
 }
 
 /**
@@ -147,7 +163,7 @@ function applyBottomPadding(node) {
     // 1. Find the last visible widget
     let lastWidget = null;
     for (let i = node.widgets.length - 1; i >= 0; i--) {
-        if (node.widgets[i].type !== "hidden") {
+        if (!isHiddenWidget(node.widgets[i])) {
             lastWidget = node.widgets[i];
             break;
         }
@@ -253,7 +269,7 @@ function applyAutogrowInputLabels(node) {
 
 function refreshAutogrowInputLabels(node) {
     if (applyAutogrowInputLabels(node)) {
-        app.graph.setDirtyCanvas(true, true);
+        markDirty(node);
     }
 }
 
@@ -292,10 +308,12 @@ function refreshAfterConfigure(node, data) {
     setTimeout(() => {
         restoreValues();
         installWidgetWatchers(node);
+        applyAllWidgetRules(node);
     }, 0);
     setTimeout(() => {
         restoreValues();
         installWidgetWatchers(node);
+        applyAllWidgetRules(node);
         if (Array.isArray(data?.size) && data.size.length >= 2) {
             node.setSize?.([data.size[0], data.size[1]]);
         }
@@ -462,55 +480,78 @@ function widgetLogic(node, widget) {
     }
 }
 
-function installWidgetWatchers(node) {
-    const widgetsToWatch = node.widgets?.filter(w =>
-        TARGET_WIDGETS.includes(getWidgetBaseName(w))
-    );
-    if (!widgetsToWatch || widgetsToWatch.length === 0) return;
+function getWatchedWidgets(node) {
+    return (node.widgets || []).filter(w => TARGET_WIDGETS.includes(getWidgetBaseName(w)));
+}
 
-    widgetsToWatch.forEach(w => {
-        if (w._byteplusValueWatcherInstalled) return;
-        w._byteplusValueWatcherInstalled = true;
+/**
+ * Re-evaluate every visibility rule, e.g. after values were set by code
+ * (workflow load, DynamicCombo restore), which does not fire widget callbacks.
+ */
+function applyAllWidgetRules(node) {
+    getWatchedWidgets(node).forEach(w => widgetLogic(node, w));
+}
+
+/**
+ * Re-run the visibility rules when a watched widget changes. Chains
+ * widget.callback, which both the canvas and Vue nodes call on user edits.
+ * (Redefining widget.value would bypass the frontend's widget value store.)
+ */
+function installWidgetWatchers(node) {
+    getWatchedWidgets(node).forEach(w => {
+        if (w._byteplusWatcherInstalled) return;
+        w._byteplusWatcherInstalled = true;
         widgetLogic(node, w);
 
-        if (getWidgetBaseName(w) === 'model_version') {
-            const originalCallback = w.callback;
-            w.callback = function (...args) {
-                const result = originalCallback?.apply(this, args);
-                widgetLogic(node, w);
+        const isModelVersion = getWidgetBaseName(w) === 'model_version';
+        const originalCallback = w.callback;
+        w.callback = function (...args) {
+            const result = originalCallback?.apply(this, args);
+            widgetLogic(node, w);
+            if (isModelVersion) {
+                // DynamicCombo replaces the child widgets after the change
                 queueMicrotask(() => installWidgetWatchers(node));
                 setTimeout(() => installWidgetWatchers(node), 0);
                 setTimeout(() => installWidgetWatchers(node), 120);
-                return result;
-            };
-            return;
-        }
-
-        let widgetValue = w.value;
-        try {
-            Object.defineProperty(w, 'value', {
-                configurable: true,
-                enumerable: true,
-                get() {
-                    return widgetValue;
-                },
-                set(newVal) {
-                    if (newVal !== widgetValue) {
-                        widgetValue = newVal;
-                        widgetLogic(node, w);
-                    }
-                }
-            });
-        } catch {
-            delete w._byteplusValueWatcherInstalled;
-        }
+            }
+            return result;
+        };
     });
+}
+
+const API_KEY_SAVED_EVENT = "byteplus.api_key_saved";
+
+/**
+ * After a Custom key is saved under new_key_name, switch the API Client to the
+ * saved name and clear the raw key, so it is not kept in the workflow or in
+ * the prompt metadata of later outputs.
+ */
+function onApiKeySaved({ detail }) {
+    const node = getRootGraph()?.getNodeById?.(detail?.node);
+    if (!node || node.comfyClass !== "BytePlusAPIClient" || !detail.key_name) return;
+
+    const keyNameWidget = findWidgetByName(node, 'key_name');
+    if (keyNameWidget) {
+        const values = keyNameWidget.options?.values;
+        if (Array.isArray(values) && !values.includes(detail.key_name)) {
+            const customIndex = values.indexOf("Custom");
+            values.splice(customIndex >= 0 ? customIndex : values.length, 0, detail.key_name);
+        }
+        keyNameWidget.value = detail.key_name;
+    }
+    for (const name of ['new_api_key', 'new_key_name']) {
+        const widget = findWidgetByName(node, name);
+        if (widget) widget.value = "";
+    }
+    if (keyNameWidget) widgetLogic(node, keyNameWidget);
+    markDirty(node);
 }
 
 app.registerExtension({
     name: "ComfyUI.BytePlus.DynamicWidgets",
 
     async setup() {
+        api.addEventListener(API_KEY_SAVED_EVENT, onApiKeySaved);
         const mode = VUE_NODES_ENABLED ? "Node2.0(Vue)" : "Legacy(Canvas)";
         console.log(`%c[BytePlus] Dynamic Widgets Extension Loaded (${mode})`, "color:green; font-weight:bold;");
     },

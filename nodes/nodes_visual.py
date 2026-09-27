@@ -28,7 +28,10 @@ from .executor import BytePlusVisualExecutor
 from .constants import DEFAULT_VISUAL_SYSTEM_PROMPT, DEFAULT_VISUAL_USER_PROMPT
 from .models_config import VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
 
-LAST_RESPONSE_ID = None
+# Last response per Visual node, for multi-turn (previous_response_id).
+# Keyed by node id so parallel nodes keep separate conversations; the API key
+# is stored too because a response ID only exists in the account that made it.
+LAST_RESPONSES = {}
 
 class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
     @classmethod
@@ -188,17 +191,18 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
                 
                 inputs_content.append(content_item)
 
-        global LAST_RESPONSE_ID
-        
+        node_id = cls.hidden.unique_id
+        api_key = getattr(client, "api_key", None)
+
         full_content = ""
         final_json_str = "{}"
         
         previous_response_id = None
         
-        if turns > 1:
-            if LAST_RESPONSE_ID:
-                previous_response_id = LAST_RESPONSE_ID
-                log_msg("visual_cont_conv", id=previous_response_id)
+        last = LAST_RESPONSES.get(node_id)
+        if turns > 1 and last and last["api_key"] == api_key:
+            previous_response_id = last["id"]
+            log_msg("visual_cont_conv", id=previous_response_id)
         else:
             log_msg("visual_new_conv")
         
@@ -272,7 +276,7 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
             final_json_str = json.dumps(current_response_json, indent=2, ensure_ascii=False)
         
         if "id" in current_response_json:
-            LAST_RESPONSE_ID = current_response_json["id"]
-            log_msg("visual_cached_id", id=LAST_RESPONSE_ID)
+            LAST_RESPONSES[node_id] = {"id": current_response_json["id"], "api_key": api_key}
+            log_msg("visual_cached_id", id=current_response_json["id"])
         
         return comfy_io.NodeOutput(full_content, final_json_str)

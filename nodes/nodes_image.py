@@ -484,7 +484,7 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
         prompt="",
         enable_group_generation=False,
         max_images=1,
-        size="2K (Adaptive)",
+        size="2K (adaptive)",
         width=2048,
         height=2048,
         seed=0,
