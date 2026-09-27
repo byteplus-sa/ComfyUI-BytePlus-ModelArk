@@ -1,0 +1,13 @@
+[project]
+name = "ComfyUI-BytePlus-ModelArk"
+description = "ComfyUI nodes for BytePlus ModelArk: Seedance video, Seedream image, and Seed multimodal understanding, billed to your own ModelArk account."
+version = "0.1.0"
+license = {file = "LICENSE"}
+dependencies = ["volcengine-python-sdk[ark]>=5.0.41"]
+
+[project.urls]
+Repository = "https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk"
+
+[tool.comfy]
+PublisherId = "byteplus-sa"
+DisplayName = "ComfyUI BytePlus ModelArk"

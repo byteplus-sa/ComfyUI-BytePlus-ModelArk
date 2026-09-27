@@ -1,0 +1,875 @@
+{
+  "JimengAPIClient": {
+    "display_name": "火山方舟 API 客户端",
+    "description": "加载 `api_keys.json` 文件中指定的 API 密钥，并创建一个可供其他节点使用的客户端实例。",
+    "inputs": {
+      "key_name": {
+        "name": "密钥",
+        "tooltip": "在 api_keys.json 中配置的密钥。"
+      },
+      "new_api_key": {
+        "name": "API Key",
+        "tooltip": "在此处粘贴您在火山方舟创建的 API Key。"
+      },
+      "new_key_name": {
+        "name": "保存名称 (可选)",
+        "tooltip": "若填写此项，API Key 将被保存到 api_keys.json 中。注意：保存后需刷新浏览器页面，新密钥才会显示在下拉列表中。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端实例。"
+      }
+    }
+  },
+  "JimengSeedream3": {
+    "display_name": "图像生成（Seedream 3）",
+    "description": "使用 Seedream 3 模型生成图像。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "prompt": {
+        "name": "提示词",
+        "tooltip": "用于图像生成的文本提示词。"
+      },
+      "size": {
+        "name": "尺寸",
+        "tooltip": "预设的图像尺寸。如果选择 'Custom'，将使用 '宽度' 和 '高度'。"
+      },
+      "width": {
+        "name": "宽度",
+        "tooltip": "自定义宽度（仅当尺寸为 'Custom' 时生效）。"
+      },
+      "height": {
+        "name": "高度",
+        "tooltip": "自定义高度（仅当尺寸为 'Custom' 时生效）。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "用于控制生成内容的随机性，相同的请求下，模型收到相同的seed值，会生成类似的结果，但不保证完全一致。"
+      },
+      "guidance_scale": {
+        "name": "引导系数",
+        "tooltip": "提示词的引导强度。"
+      },
+      "generation_count": {
+        "name": "生成数量",
+        "tooltip": "一次性并发生成的批次数量。"
+      },
+      "watermark": {
+        "name": "水印",
+        "tooltip": "是否在生成的图像上添加水印。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "生成的图像。"
+      },
+      "1": {
+        "name": "响应",
+        "tooltip": "API 的 JSON 格式响应。"
+      }
+    }
+  },
+  "JimengSeedream4": {
+    "display_name": "图像生成（Seedream 4）",
+    "description": "使用 Seedream 4 模型生成图像，支持单图或组图（自动）模式。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "model_version": {
+        "name": "模型版本",
+        "tooltip": "选择要使用的 Seedream4 模型版本。"
+      },
+      "prompt": {
+        "name": "提示词",
+        "tooltip": "用于图像生成的文本提示词。"
+      },
+      "enable_group_generation": {
+        "name": "启用组图生成",
+        "tooltip": "基于输入的内容，生成的一组内容关联的图像。"
+      },
+      "max_images": {
+        "name": "最大图像数",
+        "tooltip": "在组图模式下生成的最大图像数量。"
+      },
+      "size": {
+        "name": "尺寸",
+        "tooltip": "预设的图像尺寸。选择adaptive时，模型会根据用户提示词，智能选择最合适的宽高比。",
+        "options": {
+          "Custom": "自定义"
+        }
+      },
+      "width": {
+        "name": "宽度",
+        "tooltip": "自定义宽度（仅当尺寸为 'Custom' 时生效）。"
+      },
+      "height": {
+        "name": "高度",
+        "tooltip": "自定义高度（仅当尺寸为 'Custom' 时生效）。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "Seedream4 模型不支持该参数，此功能仅用于刷新ComfyUI缓存"
+      },
+      "generation_count": {
+        "name": "生成数量",
+        "tooltip": "一次性并发生成的批次数量。"
+      },
+      "watermark": {
+        "name": "水印",
+        "tooltip": "是否在生成的图像上添加水印。"
+      },
+      "thinking": {
+        "name": "提示词优化",
+        "tooltip": "开启后会在生成前优化提示词。仅 Seedream 4.0 支持；Seedream 4.5 不发送此参数。"
+      },
+      "images": {
+        "name": "图像 1",
+        "tooltip": "用于图生图的参考图像。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "生成的图像。"
+      },
+      "1": {
+        "name": "响应",
+        "tooltip": "API 的 JSON 格式响应。"
+      }
+    }
+  },
+  "JimengSeedream5": {
+    "display_name": "图像生成（Seedream 5）",
+    "description": "使用 Seedream 5 Pro 或 Lite 生成图像；Pro 支持提示词优化，Lite 支持组图与联网搜索。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "model_version": {
+        "name": "模型版本",
+        "tooltip": "选择要使用的 Seedream5 模型版本。"
+      },
+      "model_version_prompt": {
+        "name": "提示词"
+      },
+      "model_version_size": {
+        "name": "尺寸"
+      },
+      "model_version_width": {
+        "name": "宽度"
+      },
+      "model_version_height": {
+        "name": "高度"
+      },
+      "model_version_seed": {
+        "name": "种子"
+      },
+      "model_version_enable_group_generation": {
+        "name": "启用组图生成"
+      },
+      "model_version_max_images": {
+        "name": "最大图像数"
+      },
+      "model_version_enable_web_search": {
+        "name": "启用联网搜索"
+      },
+      "model_version_thinking": {
+        "name": "提示词优化",
+        "tooltip": "开启后会在生成前优化提示词；Seedream 5 Pro 使用参考图时必须开启。"
+      },
+      "model_version_generation_count": {
+        "name": "生成数量"
+      },
+      "model_version_watermark": {
+        "name": "水印"
+      },
+      "prompt": {
+        "name": "提示词",
+        "tooltip": "用于图像生成的文本提示词。"
+      },
+      "enable_group_generation": {
+        "name": "启用组图生成",
+        "tooltip": "基于输入的内容，生成的一组内容关联的图像。"
+      },
+      "enable_web_search": {
+        "name": "启用联网搜索",
+        "tooltip": "开启后，模型会根据用户的提示词自主判断是否搜索互联网内容（如商品、天气等），提升生成图像的时效性，但也会增加一定的时延。"
+      },
+      "max_images": {
+        "name": "最大图像数",
+        "tooltip": "在组图模式下生成的最大图像数量。"
+      },
+      "size": {
+        "name": "尺寸",
+        "tooltip": "预设的图像尺寸。选择adaptive时，模型会根据用户提示词，智能选择最合适的宽高比。",
+        "options": {
+          "Custom": "自定义"
+        }
+      },
+      "width": {
+        "name": "宽度",
+        "tooltip": "自定义宽度（仅当尺寸为 'Custom' 时生效）。"
+      },
+      "height": {
+        "name": "高度",
+        "tooltip": "自定义高度（仅当尺寸为 'Custom' 时生效）。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "用于控制生成内容的随机性；相同请求和种子通常得到相近结果。"
+      },
+      "thinking": {
+        "name": "提示词优化",
+        "tooltip": "生成前优化提示词。Seedream 5 Pro 使用参考图时必须开启。"
+      },
+      "generation_count": {
+        "name": "生成数量",
+        "tooltip": "一次性并发生成的批次数量。"
+      },
+      "watermark": {
+        "name": "水印",
+        "tooltip": "是否在生成的图像上添加水印。"
+      },
+      "images": {
+        "name": "图像 1",
+        "tooltip": "用于图生图的参考图像。Seedream 5 Pro 最多接收 10 张。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "生成的图像。"
+      },
+      "1": {
+        "name": "响应",
+        "tooltip": "API 的 JSON 格式响应。"
+      }
+    }
+  },
+  "JimengSeedance1": {
+    "display_name": "视频生成（Seedance 1.0）",
+    "description": "使用 Seedance 1.0 模型生成视频。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "model_version": {
+        "name": "模型版本",
+        "tooltip": "选择要使用的视频生成模型。"
+      },
+      "prompt": {
+        "name": "提示词",
+        "tooltip": "用于视频生成的文本提示词。"
+      },
+      "enable_random_seed": {
+        "name": "使用随机种子",
+        "tooltip": "启用后将直接使用 API 服务端生成的随机种子，此时本地设置的种子数值将被忽略。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "用于控制生成内容的随机性，相同的请求下，模型收到相同的seed值，会生成类似的结果，但不保证完全一致。"
+      },
+      "resolution": {
+        "name": "分辨率",
+        "tooltip": "视频的分辨率。"
+      },
+      "aspect_ratio": {
+        "name": "宽高比",
+        "tooltip": "视频的宽高比。"
+      },
+      "duration": {
+        "name": "时长 (秒)",
+        "tooltip": "视频的期望时长。"
+      },
+      "enable_offline_inference": {
+        "name": "离线推理模式",
+        "tooltip": "启用后将使用 'flex' 服务等级，推理成本更低，但等待时间可能较长。"
+      },
+      "generation_count": {
+        "name": "生成数量",
+        "tooltip": "一次性并发生成的任务数量。如果大于1，将激活批量保存功能。"
+      },
+      "filename_prefix": {
+        "name": "文件名前缀",
+        "tooltip": "生成数量大于1时，要保存文件的前缀。可以包含格式化信息，如 %date:yyyy-MM-dd% 或 %EmptyLatentImage.width%，以包含来自节点的值。"
+      },
+      "save_last_frame_batch": {
+        "name": "保存尾帧",
+        "tooltip": "生成数量大于1时，是否同时保存所有视频的最后一帧。"
+      },
+      "non_blocking": {
+        "name": "非阻塞模式",
+        "tooltip": "启用后，任务将提交到后台执行，工作流将暂停。再次运行时会检查任务状态。"
+      },
+      "camerafixed": {
+        "name": "固定镜头",
+        "tooltip": "是否固定镜头。"
+      },
+      "image": {
+        "name": "首帧图像",
+        "tooltip": "用于图生视频的可选起始图像。"
+      },
+      "last_frame_image": {
+        "name": "尾帧图像",
+        "tooltip": "用于图生视频的可选结束图像。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "视频",
+        "tooltip": "生成的视频文件（批量生成时为按种子排序的第一个）。"
+      },
+      "1": {
+        "name": "最后一帧",
+        "tooltip": "生成的视频的最后一帧图像（批量生成时为按种子排序的第一个）。"
+      },
+      "2": {
+        "name": "响应",
+        "tooltip": "API 的 JSON 格式响应（批量生成时为列表）。"
+      }
+    }
+  },
+  "JimengSeedance1_5": {
+    "display_name": "视频生成（Seedance 1.5 Pro）",
+    "description": "使用 Seedance 1.5 Pro 模型生成视频，支持音频生成。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "model_version": {
+        "name": "模型版本",
+        "tooltip": "选择要使用的视频生成模型。"
+      },
+      "prompt": {
+        "name": "提示词",
+        "tooltip": "用于视频生成的文本提示词。"
+      },
+      "enable_random_seed": {
+        "name": "使用随机种子",
+        "tooltip": "启用后将直接使用 API 服务端生成的随机种子，此时本地设置的种子数值将被忽略。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "用于控制生成内容的随机性，相同的请求下，模型收到相同的seed值，会生成类似的结果，但不保证完全一致。"
+      },
+      "resolution": {
+        "name": "分辨率",
+        "tooltip": "视频的分辨率。"
+      },
+      "aspect_ratio": {
+        "name": "宽高比",
+        "tooltip": "视频的宽高比。选择adaptive时，模型会根据用户提示词，智能选择最合适的宽高比。"
+      },
+      "auto_duration": {
+        "name": "智能时长",
+        "tooltip": "启用后，将忽略下方时长设置，由 API 自主选择合适的视频长度。"
+      },
+      "duration": {
+        "name": "时长 (秒)",
+        "tooltip": "视频的期望时长。"
+      },
+      "generate_audio": {
+        "name": "生成音频",
+        "tooltip": "开启后，模型输出的视频将包含同步音频。"
+      },
+      "draft_mode": {
+        "name": "启用 Draft 样片模式",
+        "tooltip": "启用后将生成低成本的 480p 预览视频，用于快速验证生成视频是否符合预期。此模式不支持离线推理功能。"
+      },
+      "reuse_last_draft_task": {
+        "name": "复用上次样片任务 ID",
+        "tooltip": "启用后，将自动填入上一次生成的样片任务 ID (需手动关闭此功能才能发起新的样片任务)。"
+      },
+      "draft_task_id": {
+        "name": "样片任务 ID",
+        "tooltip": "填入样片任务 ID，以生成正式视频。填入此项时，提示词和参考图像将被忽略，但分辨率等参数生效。"
+      },
+      "enable_offline_inference": {
+        "name": "离线推理模式",
+        "tooltip": "启用后将使用 'flex' 服务等级，推理成本更低，但等待时间可能较长。"
+      },
+      "generation_count": {
+        "name": "生成数量",
+        "tooltip": "一次性并发生成的任务数量。如果大于1，将激活批量保存功能。"
+      },
+      "filename_prefix": {
+        "name": "文件名前缀",
+        "tooltip": "生成数量大于1时，要保存文件的前缀。可以包含格式化信息，如 %date:yyyy-MM-dd% 或 %EmptyLatentImage.width%，以包含来自节点的值。"
+      },
+      "save_last_frame_batch": {
+        "name": "保存尾帧",
+        "tooltip": "生成数量大于1时，是否同时保存所有视频的最后一帧。"
+      },
+      "non_blocking": {
+        "name": "非阻塞模式",
+        "tooltip": "启用后，任务将提交到后台执行，工作流将暂停。再次运行时会检查任务状态。"
+      },
+      "camerafixed": {
+        "name": "固定镜头",
+        "tooltip": "是否固定镜头。"
+      },
+      "image": {
+        "name": "首帧图像",
+        "tooltip": "用于图生视频的可选起始图像。"
+      },
+      "last_frame_image": {
+        "name": "尾帧图像",
+        "tooltip": "用于图生视频的可选结束图像。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "视频",
+        "tooltip": "生成的视频文件（批量生成时为按种子排序的第一个）。"
+      },
+      "1": {
+        "name": "最后一帧",
+        "tooltip": "生成的视频的最后一帧图像（批量生成时为按种子排序的第一个）。"
+      },
+      "2": {
+        "name": "响应",
+        "tooltip": "API 的 JSON 格式响应（批量生成时为列表）。"
+      }
+    }
+  },
+  "JimengSeedance2": {
+    "display_name": "视频生成（Seedance 2 / 2.5）",
+    "description": "使用 Seedance 2.0、Fast、Mini 或 2.5 生成和编辑视频；2.5 支持最长 30 秒及更多参考素材。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "model_version": {
+        "name": "模型版本",
+        "tooltip": "选择要使用的 Seedance 2.0 或 2.5 模型版本。"
+      },
+      "model_version_prompt": {
+        "name": "提示词"
+      },
+      "model_version_enable_random_seed": {
+        "name": "使用随机种子"
+      },
+      "model_version_seed": {
+        "name": "种子"
+      },
+      "model_version_resolution": {
+        "name": "分辨率",
+        "tooltip": "Seedance 2.5 支持 480p、720p；Seedance 2.0 标准版最高支持 4K。"
+      },
+      "model_version_aspect_ratio": {
+        "name": "宽高比"
+      },
+      "model_version_auto_duration": {
+        "name": "智能时长"
+      },
+      "model_version_duration": {
+        "name": "时长 (秒)",
+        "tooltip": "Seedance 2.5 支持 4–30 秒；Seedance 2.0 系列支持 4–15 秒。"
+      },
+      "model_version_generate_audio": {
+        "name": "生成音频"
+      },
+      "model_version_enable_web_search": {
+        "name": "联网搜索"
+      },
+      "model_version_generation_count": {
+        "name": "生成数量"
+      },
+      "model_version_filename_prefix": {
+        "name": "文件名前缀"
+      },
+      "model_version_save_last_frame_batch": {
+        "name": "保存尾帧"
+      },
+      "model_version_non_blocking": {
+        "name": "非阻塞模式"
+      },
+      "prompt": {
+        "name": "提示词",
+        "tooltip": "用于视频生成的文本提示词。"
+      },
+      "enable_random_seed": {
+        "name": "使用随机种子",
+        "tooltip": "启用后将直接使用 API 服务端生成的随机种子，此时本地设置的种子数值将被忽略。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "用于控制生成内容的随机性，相同请求下使用相同 seed 往往会得到相近结果，但不保证完全一致。"
+      },
+      "resolution": {
+        "name": "分辨率",
+        "tooltip": "Seedance 2.0 标准版支持 480p、720p、1080p、4K；Fast、Mini 和 Seedance 2.5 支持 480p、720p。"
+      },
+      "aspect_ratio": {
+        "name": "宽高比",
+        "tooltip": "视频的宽高比。选择adaptive时，模型会根据用户提示词，智能选择最合适的宽高比。"
+      },
+      "auto_duration": {
+        "name": "智能时长",
+        "tooltip": "启用后，将忽略下方时长设置，由 API 自主选择合适的视频长度。"
+      },
+      "duration": {
+        "name": "时长 (秒)",
+        "tooltip": "视频的期望时长。Seedance 2.5 支持 4–30 秒，Seedance 2.0 系列支持 4–15 秒。"
+      },
+      "generate_audio": {
+        "name": "生成音频",
+        "tooltip": "开启后，模型输出的视频将包含同步音频。"
+      },
+      "enable_web_search": {
+        "name": "联网搜索",
+        "tooltip": "开启联网搜索后，模型会根据用户的提示词自主判断是否搜索互联网内容（如商品、天气等）。可提升生成视频的时效性，但也会增加一定的时延。"
+      },
+      "generation_count": {
+        "name": "生成数量",
+        "tooltip": "一次性并发生成的任务数量。如果大于1，将激活批量保存功能。"
+      },
+      "filename_prefix": {
+        "name": "文件名前缀",
+        "tooltip": "生成数量大于1时，要保存文件的前缀。可以包含格式化信息，如 %date:yyyy-MM-dd% 或 %EmptyLatentImage.width%，以包含来自节点的值。"
+      },
+      "save_last_frame_batch": {
+        "name": "保存尾帧",
+        "tooltip": "生成数量大于1时，是否同时保存所有视频的最后一帧。"
+      },
+      "non_blocking": {
+        "name": "非阻塞模式",
+        "tooltip": "启用后，任务将提交到后台执行，工作流将暂停。再次运行时会检查任务状态。"
+      },
+      "first_frame_image": {
+        "name": "首帧图像",
+        "tooltip": "用于图生视频的可选起始图像。"
+      },
+      "last_frame_image": {
+        "name": "尾帧图像",
+        "tooltip": "用于图生视频的可选结束图像。"
+      },
+      "ref_image_1": {
+        "name": "参考图像 1",
+        "tooltip": "用于多模态参考的图像。Seedance 2.5 最多支持 30 张，Seedance 2.0 系列最多支持 9 张。"
+      },
+      "ref_image_2": {
+        "name": "参考图像 2",
+        "tooltip": "用于多模态参考的图像。"
+      },
+      "ref_image_3": {
+        "name": "参考图像 3",
+        "tooltip": "用于多模态参考的图像。"
+      },
+      "ref_image_4": {
+        "name": "参考图像 4",
+        "tooltip": "用于多模态参考的图像。"
+      },
+      "ref_image_5": {
+        "name": "参考图像 5",
+        "tooltip": "用于多模态参考的图像。"
+      },
+      "ref_image_6": {
+        "name": "参考图像 6",
+        "tooltip": "用于多模态参考的图像。"
+      },
+      "ref_image_7": {
+        "name": "参考图像 7",
+        "tooltip": "用于多模态参考的图像。"
+      },
+      "ref_image_8": {
+        "name": "参考图像 8",
+        "tooltip": "用于多模态参考的图像。"
+      },
+      "ref_image_9": {
+        "name": "参考图像 9",
+        "tooltip": "用于多模态参考的图像。"
+      },
+      "ref_video_1": {
+        "name": "参考视频 1",
+        "tooltip": "用于多模态参考的视频。Seedance 2.5 最多支持 10 个，Seedance 2.0 系列最多支持 3 个。"
+      },
+      "ref_video_2": {
+        "name": "参考视频 2",
+        "tooltip": "用于多模态参考的视频。"
+      },
+      "ref_video_3": {
+        "name": "参考视频 3",
+        "tooltip": "用于多模态参考的视频。"
+      },
+      "ref_audio_1": {
+        "name": "参考音频 1",
+        "tooltip": "用于多模态参考的音频。Seedance 2.5 最多支持 10 个并允许纯音频参考；Seedance 2.0 系列最多支持 3 个且需搭配图片或视频。"
+      },
+      "ref_audio_2": {
+        "name": "参考音频 2",
+        "tooltip": "用于多模态参考的音频。"
+      },
+      "ref_audio_3": {
+        "name": "参考音频 3",
+        "tooltip": "用于多模态参考的音频。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "视频",
+        "tooltip": "生成的视频文件（批量生成时为按种子排序的第一个）。"
+      },
+      "1": {
+        "name": "最后一帧",
+        "tooltip": "生成的视频最后一帧图像（批量生成时为按种子排序的第一个）。"
+      },
+      "2": {
+        "name": "响应",
+        "tooltip": "API 的 JSON 格式响应（批量生成时为列表）。"
+      }
+    }
+  },
+  "JimengReferenceImage2Video": {
+    "display_name": "视频生成（参考图生视频）",
+    "description": "使用 Seedance 1.0 lite 模型生成视频，根据输入的提示词和一张或多张参考图像来生成视频。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "prompt": {
+        "name": "提示词",
+        "tooltip": "用于视频生成的文本提示词。"
+      },
+      "enable_random_seed": {
+        "name": "使用随机种子",
+        "tooltip": "启用后将直接使用 API 服务端生成的随机种子，此时本地设置的种子数值将被忽略。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "用于控制生成内容的随机性，相同的请求下，模型收到相同的seed值，会生成类似的结果，但不保证完全一致。"
+      },
+      "resolution": {
+        "name": "分辨率",
+        "tooltip": "视频的分辨率。"
+      },
+      "aspect_ratio": {
+        "name": "宽高比",
+        "tooltip": "视频的宽高比。"
+      },
+      "duration": {
+        "name": "时长 (秒)",
+        "tooltip": "视频的期望时长。"
+      },
+      "enable_offline_inference": {
+        "name": "离线推理模式",
+        "tooltip": "启用后将使用 'flex' 服务等级，推理成本更低，但等待时间可能较长。"
+      },
+      "generation_count": {
+        "name": "生成数量",
+        "tooltip": "一次性并发生成的任务数量。如果大于1，将激活批量保存功能。"
+      },
+      "filename_prefix": {
+        "name": "文件名前缀",
+        "tooltip": "生成数量大于1时，要保存文件的前缀。可以包含格式化信息，如 %date:yyyy-MM-dd% 或 %EmptyLatentImage.width%，以包含来自节点的值。"
+      },
+      "save_last_frame_batch": {
+        "name": "保存尾帧",
+        "tooltip": "生成数量大于1时，是否同时保存所有视频的最后一帧。"
+      },
+      "non_blocking": {
+        "name": "非阻塞模式",
+        "tooltip": "启用后，任务将提交到后台执行，工作流将暂停。再次运行时会检查任务状态。"
+      },
+      "ref_image_1": {
+        "name": "参考图 1",
+        "tooltip": "参考图像。"
+      },
+      "ref_image_2": {
+        "name": "参考图 2",
+        "tooltip": "可选的参考图像。"
+      },
+      "ref_image_3": {
+        "name": "参考图 3",
+        "tooltip": "可选的参考图像。"
+      },
+      "ref_image_4": {
+        "name": "参考图 4",
+        "tooltip": "可选的参考图像。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "视频",
+        "tooltip": "生成的视频文件（批量生成时为按种子排序的第一个）。"
+      },
+      "1": {
+        "name": "最后一帧",
+        "tooltip": "生成的视频的最后一帧图像（批量生成时为按种子排序的第一个）。"
+      },
+      "2": {
+        "name": "响应",
+        "tooltip": "API 的 JSON 格式响应（批量生成时为列表）"
+      }
+    }
+  },
+  "JimengVideoQueryTasks": {
+    "display_name": "视频生成任务列表查询",
+    "description": "查询符合条件的视频生成任务列表。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "page_num": {
+        "name": "页码",
+        "tooltip": "查询的页码。"
+      },
+      "page_size": {
+        "name": "每页数量",
+        "tooltip": "每页返回的任务数量。"
+      },
+      "status": {
+        "name": "任务状态",
+        "tooltip": "要过滤的任务状态。"
+      },
+      "service_tier": {
+        "name": "服务等级",
+        "tooltip": "按服务等级过滤任务。"
+      },
+      "task_ids": {
+        "name": "任务ID",
+        "tooltip": "要查询的特定任务ID。"
+      },
+      "model_version": {
+        "name": "模型选择",
+        "tooltip": "按特定模型过滤。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "无实际意义，此功能仅用于刷新ComfyUI缓存"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "查询结果",
+        "tooltip": "查询到的任务列表（JSON 字符串）。"
+      },
+      "1": {
+        "name": "任务数量",
+        "tooltip": "符合条件的总任务数量。"
+      }
+    }
+  },
+  "JimengQuotaSettings": {
+    "display_name": "配额设置",
+    "description": "设置火山方舟 API 的使用配额限制。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "image_model": {
+        "name": "图像模型",
+        "tooltip": "选择要设置配额的图像模型。"
+      },
+      "image_limit": {
+        "name": "图像限额 (张)",
+        "tooltip": "最大允许生成的图像数量。设为 0 表示不限制。"
+      },
+      "video_model": {
+        "name": "视频模型",
+        "tooltip": "选择要设置配额的视频模型。"
+      },
+      "video_limit": {
+        "name": "视频限额 (Tokens)",
+        "tooltip": "最大允许消耗的 Token 数量。设为 0 表示不限制。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "状态",
+        "tooltip": "当前的配额使用状态。"
+      }
+    }
+  },
+  "JimengVisualUnderstanding": {
+    "display_name": "视觉理解（Seed 2.1 / 2.0）",
+    "description": "默认使用 Seed 2.1 Pro 进行视觉理解，并保留 Seed 2.0 系列兼容旧工作流。",
+    "inputs": {
+      "client": {
+        "name": "客户端",
+        "tooltip": "火山方舟 API 客户端。"
+      },
+      "model": {
+        "name": "模型",
+        "tooltip": "选择要使用的视觉理解模型。"
+      },
+      "system_prompt": {
+        "name": "系统提示词",
+        "tooltip": "系统级别的指令，用于定义助手的行为、角色和回答风格。"
+      },
+      "user_prompt": {
+        "name": "用户提示词",
+        "tooltip": "用户的输入文本，描述您想了解的内容或向模型提出的问题。"
+      },
+      "detail": {
+        "name": "图像理解程度",
+        "tooltip": "图像理解的精细度。'low': 低精度模式，消耗 Token 较少；'high': 高精度模式，提供更详细的分析。"
+      },
+      "fps": {
+        "name": "视频采样帧率",
+        "tooltip": "每秒钟从视频中抽取指定数量的图像。取值越高，对于视频中画面变化理解越精细；取值越低，对于视频中画面变化感知减弱，但是使用的token花费少，速度也更快。"
+      },
+      "reasoning_mode": {
+        "name": "思考模式",
+        "tooltip": "控制模型是否开启深度思考模式。'auto': 自动判断是否需要思考；'enabled': 强制开启思考；'disabled': 关闭思考，直接回答。"
+      },
+      "reasoning_effort": {
+        "name": "思考深度",
+        "tooltip": "限制深度思考的工作量。'medium': 均衡模式(兼顾速度与深度)；'minimal': 关闭思考(直接回答)；'low': 轻量思考(侧重快速响应)；'high': 深度分析(处理复杂问题)。"
+      },
+      "turns": {
+        "name": "对话轮数",
+        "tooltip": "多轮对话控制。设置为 1 表示开始新对话；大于 1 时，节点会尝试使用上一轮的 ID 维持上下文，实现连续对话。"
+      },
+      "stream": {
+        "name": "流式响应",
+        "tooltip": "响应内容是否流式返回。开启后，将在 ComfyUI 控制台实时打印生成的文本和推理内容，并在生成完成后一次性输出结果。"
+      },
+      "file_expire_seconds": {
+        "name": "文件过期时间（秒）",
+        "tooltip": "上传到 File API 的文件保留时长（秒）。默认 604800 秒（7天），最小 86400 秒（1天），最大 2592000 秒（30天）。"
+      },
+      "seed": {
+        "name": "种子",
+        "tooltip": "此功能仅用于刷新ComfyUI缓存。"
+      },
+      "visual_input_1": {
+        "name": "视觉输入 1",
+        "tooltip": "输入模型的图像或视频文件。"
+      },
+      "visual_input_2": {
+        "name": "视觉输入 2",
+        "tooltip": "可选的图像或视频输入。"
+      },
+      "visual_input_3": {
+        "name": "视觉输入 3",
+        "tooltip": "可选的图像或视频输入。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "内容",
+        "tooltip": "模型生成的文本回答。"
+      },
+      "1": {
+        "name": "完整响应",
+        "tooltip": "包含完整元数据的 JSON 响应。"
+      }
+    }
+  }
+}

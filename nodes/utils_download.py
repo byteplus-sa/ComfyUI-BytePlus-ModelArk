@@ -1,0 +1,264 @@
+import os
+import io
+import time
+import base64
+import asyncio
+import aiohttp
+import torch
+import numpy
+import PIL.Image
+import folder_paths
+import random
+import shutil
+from .nodes_shared import log_msg
+
+DEFAULT_DOWNLOAD_TIMEOUT = 60
+DEFAULT_DOWNLOAD_RETRIES = 3
+
+
+def _image_bytes_to_tensor(image_data: bytes) -> torch.Tensor:
+    i = PIL.Image.open(io.BytesIO(image_data))
+    image = i.convert("RGB")
+    image = numpy.array(image).astype(numpy.float32) / 255.0
+    return torch.from_numpy(image)[None,]
+
+
+async def image_bytes_to_tensor_async(image_data: bytes) -> torch.Tensor | None:
+    if not image_data:
+        return None
+    try:
+        return await asyncio.to_thread(_image_bytes_to_tensor, image_data)
+    except Exception as e:
+        log_msg("err_convert_tensor", e=e)
+        return None
+
+
+async def b64_image_to_tensor_async(b64_data: str) -> torch.Tensor | None:
+    if not b64_data:
+        return None
+    try:
+        image_data = base64.b64decode(b64_data)
+    except Exception as e:
+        log_msg("err_convert_tensor", e=e)
+        return None
+    return await image_bytes_to_tensor_async(image_data)
+
+
+async def _fetch_data_from_url_async(
+    session: aiohttp.ClientSession,
+    url: str,
+    timeout: int = DEFAULT_DOWNLOAD_TIMEOUT,
+    retries: int = DEFAULT_DOWNLOAD_RETRIES,
+) -> bytes:
+    """
+    异步从 URL 获取数据，支持重试机制。
+    """
+    for attempt in range(1, retries + 2):
+        try:
+            client_timeout = aiohttp.ClientTimeout(total=timeout)
+            # t0 = time.time()
+            async with session.get(url, timeout=client_timeout) as response:
+                response.raise_for_status()
+                data = await response.read()
+                # t1 = time.time()
+                # print(f"[JimengAI Debug] Downloaded {len(data)} bytes from {url} in {t1 - t0:.2f}s")
+                return data
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            if attempt > retries:
+                raise e
+            retry_delay = 2
+            log_msg(
+                "download_retry",
+                attempt=attempt,
+                total=retries + 1,
+                delay=retry_delay,
+                e=e,
+            )
+            await asyncio.sleep(retry_delay)
+    return b""
+
+
+async def download_url_to_image_tensor_async(
+    session: aiohttp.ClientSession, url: str
+) -> torch.Tensor | None:
+    """
+    下载图片并转换为 PyTorch Tensor 格式 (Batch, Height, Width, Channel)。
+    """
+    if not url:
+        return None
+    try:
+        image_data = await _fetch_data_from_url_async(session, url)
+        return await image_bytes_to_tensor_async(image_data)
+    except Exception as e:
+        log_msg("err_download_url", url=url, e=e)
+        return None
+
+
+async def _download_to_temp_base(
+    session: aiohttp.ClientSession,
+    url: str,
+    prefix: str,
+    seed: int | None,
+    save_path_name: str,
+    file_ext: str,
+) -> tuple[str | None, bytes | None]:
+    """
+    下载文件的基础函数，将文件保存到临时目录。
+    """
+    if not url:
+        return (None, None)
+
+    if seed is not None:
+        prefix = f"{prefix}_seed_{seed}"
+
+    output_dir = folder_paths.get_temp_directory()
+    if save_path_name:
+        output_dir = os.path.join(output_dir, save_path_name)
+
+    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(
+        prefix, output_dir
+    )
+    os.makedirs(full_output_folder, exist_ok=True)
+
+    final_filename = f"{filename}_{random.randint(1, 10000)}.{file_ext}"
+    final_path = os.path.join(full_output_folder, final_filename)
+
+    try:
+        # t0 = time.time()
+        data = await _fetch_data_from_url_async(session, url)
+        # t1 = time.time()
+        with open(final_path, "wb") as f:
+            f.write(data)
+        # t2 = time.time()
+        # print(f"[JimengAI Debug] Saved to {final_path}. Fetch: {t1 - t0:.2f}s, Write: {t2 - t1:.2f}s")
+        return (final_path, data)
+    except Exception as e:
+        log_msg("err_download_url", url=url, e=e)
+        return (None, None)
+
+
+async def _download_to_file_stream_async(
+    session: aiohttp.ClientSession,
+    url: str,
+    file_path: str,
+    timeout: int = DEFAULT_DOWNLOAD_TIMEOUT,
+    retries: int = DEFAULT_DOWNLOAD_RETRIES,
+) -> bool:
+    """
+    流式下载并写入文件
+    """
+    for attempt in range(1, retries + 2):
+        try:
+            client_timeout = aiohttp.ClientTimeout(total=timeout)
+            # t0 = time.time()
+            async with session.get(url, timeout=client_timeout) as response:
+                response.raise_for_status()
+                with open(file_path, "wb") as f:
+                    while True:
+                        chunk = await response.content.read(1024 * 1024)  # 1MB chunk
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                # t1 = time.time()
+                # print(f"[JimengAI Debug] Stream downloaded to {file_path} in {t1 - t0:.2f}s")
+                return True
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            if attempt > retries:
+                raise e
+            retry_delay = 2
+            log_msg(
+                "download_retry",
+                attempt=attempt,
+                total=retries + 1,
+                delay=retry_delay,
+                e=e,
+            )
+            await asyncio.sleep(retry_delay)
+    return False
+
+async def download_video_to_temp(
+    session: aiohttp.ClientSession,
+    url: str,
+    prefix: str,
+    seed: int | None,
+    save_path_name: str,
+) -> str | None:
+    """
+    下载视频到临时目录，返回文件路径。
+    """
+    if not url:
+        return None
+    file_ext = url.split(".")[-1].split("?")[0] or "mp4"
+
+    if seed is not None:
+        prefix = f"{prefix}_seed_{seed}"
+
+    output_dir = folder_paths.get_temp_directory()
+    if save_path_name:
+        output_dir = os.path.join(output_dir, save_path_name)
+
+    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(
+        prefix, output_dir
+    )
+    os.makedirs(full_output_folder, exist_ok=True)
+
+    final_filename = f"{filename}_{random.randint(1, 10000)}.{file_ext}"
+    final_path = os.path.join(full_output_folder, final_filename)
+
+    try:
+        success = await _download_to_file_stream_async(session, url, final_path)
+        if success:
+            return final_path
+        return None
+    except Exception as e:
+        log_msg("err_download_url", url=url, e=e)
+        return None
+
+
+async def download_image_to_temp(
+    session: aiohttp.ClientSession,
+    url: str,
+    prefix: str,
+    seed: int | None,
+    save_path_name: str,
+) -> tuple[torch.Tensor | None, str | None]:
+    """
+    下载图片到临时目录，并返回 Tensor 和文件路径。
+    """
+    if not url:
+        return (None, None)
+
+    file_ext = url.split(".")[-1].split("?")[0] or "jpg"
+    (path, data) = await _download_to_temp_base(
+        session, url, prefix, seed, save_path_name, file_ext
+    )
+
+    tensor = None
+    if path and data:
+        tensor = await image_bytes_to_tensor_async(data)
+
+    return (tensor, path)
+
+
+def save_to_output(src_path: str, filename_prefix: str):
+    """
+    将临时文件保存到 ComfyUI 的输出目录。
+    """
+    if not src_path or not os.path.exists(src_path):
+        return
+
+    try:
+        output_dir = folder_paths.get_output_directory()
+        
+        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, output_dir)
+        
+        ext = os.path.splitext(src_path)[1]
+        if not ext:
+            ext = ".mp4"
+
+        dest_filename = f"{filename}_{counter:05}_{ext}"
+        dest_path = os.path.join(full_output_folder, dest_filename)
+
+        shutil.copy2(src_path, dest_path)
+    except Exception as e:
+        log_msg("err_copy_fail", path=src_path, e=e)

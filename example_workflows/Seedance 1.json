@@ -1,0 +1,193 @@
+{
+  "id": "7f1f70c4-4e61-49be-96d1-2e3f1c490006",
+  "revision": 0,
+  "last_node_id": 7,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "JimengAPIClient",
+      "pos": [20, 80],
+      "size": [300, 130],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
+        {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
+        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null}
+      ],
+      "outputs": [{"name": "client", "type": "JIMENG_CLIENT", "links": [1, 2]}],
+      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengAPIClient"},
+      "widgets_values": ["", "", "Custom"]
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [20, 300],
+      "size": [300, 320],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {"name": "image", "type": "COMBO", "widget": {"name": "image"}, "link": null},
+        {"name": "upload", "type": "IMAGEUPLOAD", "widget": {"name": "upload"}, "link": null}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [3, 4]},
+        {"name": "MASK", "type": "MASK", "links": null}
+      ],
+      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "LoadImage"},
+      "widgets_values": ["comfyui_logo.png", "image"]
+    },
+    {
+      "id": 3,
+      "type": "JimengSeedance1",
+      "pos": [390, 80],
+      "size": [440, 560],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {"name": "client", "type": "JIMENG_CLIENT", "link": 1},
+        {"name": "model_version", "type": "COMBO", "widget": {"name": "model_version"}, "link": null},
+        {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
+        {"name": "enable_random_seed", "type": "BOOLEAN", "widget": {"name": "enable_random_seed"}, "link": null},
+        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "link": null},
+        {"name": "resolution", "type": "COMBO", "widget": {"name": "resolution"}, "link": null},
+        {"name": "aspect_ratio", "type": "COMBO", "widget": {"name": "aspect_ratio"}, "link": null},
+        {"name": "duration", "type": "FLOAT", "widget": {"name": "duration"}, "link": null},
+        {"name": "camerafixed", "type": "BOOLEAN", "widget": {"name": "camerafixed"}, "link": null},
+        {"name": "enable_offline_inference", "type": "BOOLEAN", "widget": {"name": "enable_offline_inference"}, "link": null},
+        {"name": "generation_count", "type": "INT", "widget": {"name": "generation_count"}, "link": null},
+        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "link": null},
+        {"name": "save_last_frame_batch", "type": "BOOLEAN", "widget": {"name": "save_last_frame_batch"}, "link": null},
+        {"name": "non_blocking", "type": "BOOLEAN", "widget": {"name": "non_blocking"}, "link": null},
+        {"name": "image", "type": "IMAGE", "shape": 7, "link": 3},
+        {"name": "last_frame_image", "type": "IMAGE", "shape": 7, "link": null}
+      ],
+      "outputs": [
+        {"name": "video", "type": "VIDEO", "links": [5]},
+        {"name": "last_frame", "type": "IMAGE", "links": null},
+        {"name": "response", "type": "STRING", "links": null}
+      ],
+      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengSeedance1"},
+      "widgets_values": ["doubao-seedance-1-0-pro", "", true, 0, "randomize", "720p", "adaptive", 5, true, false, 1, "Jimeng/Video/Batch/Seedance", false, false]
+    },
+    {
+      "id": 4,
+      "type": "SaveVideo",
+      "pos": [900, 80],
+      "size": [300, 130],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {"name": "video", "type": "VIDEO", "link": 5},
+        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "link": null},
+        {"name": "format", "type": "COMBO", "widget": {"name": "format"}, "link": null},
+        {"name": "codec", "type": "COMBO", "widget": {"name": "codec"}, "link": null}
+      ],
+      "outputs": [],
+      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveVideo"},
+      "widgets_values": ["Jimeng/Video/Seedance1", "auto", "auto"]
+    },
+    {
+      "id": 5,
+      "type": "JimengSeedance1_5",
+      "pos": [390, 720],
+      "size": [440, 700],
+      "flags": {},
+      "order": 4,
+      "mode": 4,
+      "inputs": [
+        {"name": "client", "type": "JIMENG_CLIENT", "link": 2},
+        {"name": "model_version", "type": "COMBO", "widget": {"name": "model_version"}, "link": null},
+        {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
+        {"name": "enable_random_seed", "type": "BOOLEAN", "widget": {"name": "enable_random_seed"}, "link": null},
+        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "link": null},
+        {"name": "resolution", "type": "COMBO", "widget": {"name": "resolution"}, "link": null},
+        {"name": "aspect_ratio", "type": "COMBO", "widget": {"name": "aspect_ratio"}, "link": null},
+        {"name": "auto_duration", "type": "BOOLEAN", "widget": {"name": "auto_duration"}, "link": null},
+        {"name": "duration", "type": "INT", "widget": {"name": "duration"}, "link": null},
+        {"name": "generate_audio", "type": "BOOLEAN", "widget": {"name": "generate_audio"}, "link": null},
+        {"name": "draft_mode", "type": "BOOLEAN", "widget": {"name": "draft_mode"}, "link": null},
+        {"name": "reuse_last_draft_task", "type": "BOOLEAN", "widget": {"name": "reuse_last_draft_task"}, "link": null},
+        {"name": "draft_task_id", "type": "STRING", "widget": {"name": "draft_task_id"}, "link": null},
+        {"name": "camerafixed", "type": "BOOLEAN", "widget": {"name": "camerafixed"}, "link": null},
+        {"name": "enable_offline_inference", "type": "BOOLEAN", "widget": {"name": "enable_offline_inference"}, "link": null},
+        {"name": "generation_count", "type": "INT", "widget": {"name": "generation_count"}, "link": null},
+        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "link": null},
+        {"name": "save_last_frame_batch", "type": "BOOLEAN", "widget": {"name": "save_last_frame_batch"}, "link": null},
+        {"name": "non_blocking", "type": "BOOLEAN", "widget": {"name": "non_blocking"}, "link": null},
+        {"name": "image", "type": "IMAGE", "shape": 7, "link": 4},
+        {"name": "last_frame_image", "type": "IMAGE", "shape": 7, "link": null}
+      ],
+      "outputs": [
+        {"name": "video", "type": "VIDEO", "links": [6]},
+        {"name": "last_frame", "type": "IMAGE", "links": null},
+        {"name": "response", "type": "STRING", "links": null}
+      ],
+      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengSeedance1_5"},
+      "widgets_values": ["doubao-seedance-1.5-pro", "", true, 0, "randomize", "720p", "adaptive", false, 5, true, false, false, "", true, false, 1, "Jimeng/Video/Batch/Seedance", false, false]
+    },
+    {
+      "id": 6,
+      "type": "SaveVideo",
+      "pos": [900, 720],
+      "size": [300, 130],
+      "flags": {},
+      "order": 5,
+      "mode": 4,
+      "inputs": [
+        {"name": "video", "type": "VIDEO", "link": 6},
+        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "link": null},
+        {"name": "format", "type": "COMBO", "widget": {"name": "format"}, "link": null},
+        {"name": "codec", "type": "COMBO", "widget": {"name": "codec"}, "link": null}
+      ],
+      "outputs": [],
+      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveVideo"},
+      "widgets_values": ["Jimeng/Video/Seedance1_5", "auto", "auto"]
+    },
+    {
+      "id": 7,
+      "type": "JimengVideoQueryTasks",
+      "pos": [900, 980],
+      "size": [350, 300],
+      "flags": {},
+      "order": 6,
+      "mode": 4,
+      "inputs": [
+        {"name": "client", "type": "JIMENG_CLIENT", "link": null},
+        {"name": "page_num", "type": "INT", "widget": {"name": "page_num"}, "link": null},
+        {"name": "page_size", "type": "INT", "widget": {"name": "page_size"}, "link": null},
+        {"name": "status", "type": "COMBO", "widget": {"name": "status"}, "link": null},
+        {"name": "service_tier", "type": "COMBO", "widget": {"name": "service_tier"}, "link": null},
+        {"name": "task_ids", "type": "STRING", "widget": {"name": "task_ids"}, "link": null},
+        {"name": "model_version", "type": "COMBO", "widget": {"name": "model_version"}, "link": null},
+        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "link": null}
+      ],
+      "outputs": [
+        {"name": "task_list_json", "type": "STRING", "links": null},
+        {"name": "total_tasks", "type": "INT", "links": null}
+      ],
+      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengVideoQueryTasks"},
+      "widgets_values": [1, 10, "all", "default", "", "all", 0, "randomize"]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 3, 0, "JIMENG_CLIENT"],
+    [2, 1, 0, 5, 0, "JIMENG_CLIENT"],
+    [3, 2, 0, 3, 14, "IMAGE"],
+    [4, 2, 0, 5, 19, "IMAGE"],
+    [5, 3, 0, 4, 0, "VIDEO"],
+    [6, 5, 0, 6, 0, "VIDEO"]
+  ],
+  "groups": [
+    {"id": 1, "title": "Seedance 1.0", "bounding": [360, 20, 880, 650], "color": "#3f789e", "font_size": 22, "flags": {}},
+    {"id": 2, "title": "Seedance 1.5 Pro（按需启用）", "bounding": [360, 660, 920, 790], "color": "#3f789e", "font_size": 22, "flags": {}}
+  ],
+  "config": {},
+  "extra": {"ds": {"scale": 0.78, "offset": [90, 50]}},
+  "version": 0.4
+}

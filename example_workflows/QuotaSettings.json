@@ -1,0 +1,49 @@
+{
+  "id": "7f1f70c4-4e61-49be-96d1-2e3f1c490001",
+  "revision": 0,
+  "last_node_id": 2,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "JimengAPIClient",
+      "pos": [40, 80],
+      "size": [300, 130],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
+        {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
+        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null}
+      ],
+      "outputs": [{"name": "client", "type": "JIMENG_CLIENT", "links": [1]}],
+      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengAPIClient"},
+      "widgets_values": ["", "", "Custom"]
+    },
+    {
+      "id": 2,
+      "type": "JimengQuotaSettings",
+      "pos": [410, 80],
+      "size": [340, 220],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {"name": "client", "type": "JIMENG_CLIENT", "link": 1},
+        {"name": "image_model", "type": "COMBO", "widget": {"name": "image_model"}, "link": null},
+        {"name": "image_limit", "type": "INT", "widget": {"name": "image_limit"}, "link": null},
+        {"name": "video_model", "type": "COMBO", "widget": {"name": "video_model"}, "link": null},
+        {"name": "video_limit", "type": "INT", "widget": {"name": "video_limit"}, "link": null}
+      ],
+      "outputs": [{"name": "status", "type": "STRING", "links": null}],
+      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengQuotaSettings"},
+      "widgets_values": ["None", 0, "None", 0]
+    }
+  ],
+  "links": [[1, 1, 0, 2, 0, "JIMENG_CLIENT"]],
+  "groups": [],
+  "config": {},
+  "extra": {"ds": {"scale": 1, "offset": [40, 40]}},
+  "version": 0.4
+}
