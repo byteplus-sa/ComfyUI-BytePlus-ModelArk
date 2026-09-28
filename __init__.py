@@ -146,6 +146,7 @@ if _dependencies_ready:
     from .nodes.nodes_video import BytePlusSeedance1, BytePlusSeedance1_5, BytePlusSeedance2, BytePlusVideoQueryTasks, BytePlusProgressTest
     from .nodes.nodes_visual import BytePlusVisualUnderstanding
     from .nodes.quota import BytePlusQuotaSettings
+    from .nodes.nodes_assets import BytePlusVirtualPortraitAsset, BytePlusAssetLibrary
 
     _registered_nodes = [
         BytePlusAPIClient,
@@ -159,6 +160,8 @@ if _dependencies_ready:
         BytePlusProgressTest,
         BytePlusVisualUnderstanding,
         BytePlusQuotaSettings,
+        BytePlusVirtualPortraitAsset,
+        BytePlusAssetLibrary,
     ]
 else:
     _registered_nodes = []

@@ -30,6 +30,9 @@ Generation calls go directly to ModelArk with **your own ModelArk API key**, so 
   - `Seedance 1.5 Pro`: `seedance-1-5-pro`, with audio and draft mode.
   - `Seedance 2 / 2.5`: `dreamina-seedance-2-0` (up to 4K), `-2-0-fast`, `-2-0-mini`, `dreamina-seedance-2-5` (up to 1080p and 30 s), and `dreamina-seedance-2-5-premium` (up to 4K and 30 s; whitelist-only). Multimodal reference (image, video, audio), video editing and extension. The 2.5 models add `task_type` (auto / reference / edit / extend), `output_format` (mp4 / mov) and [draft mode](#draft-mode).
   - `Video Query Tasks`: query generation task history.
+- **Asset library** (Dreamina Seedance Advanced Creation Rights; see [Virtual Portraits](#virtual-portraits))
+  - `Virtual Portrait Asset`: adds an authorized portrait to your private asset library and outputs its `asset://` URI.
+  - `Asset Library`: lists your assets (virtual portraits or verified real people) as `asset://` URIs.
 - **Understanding**
   - `Visual Understanding`: image and video Q&A with `dola-seed-2-1-turbo`, `seed-2-0-pro` / `lite` / `mini`, `seed-1-8`, `seed-1-6` or `seed-1-6-flash`, multi-turn and deep thinking.
 
@@ -64,6 +67,25 @@ Seedance accepts reference videos only as URLs. The `Seedance 2 / 2.5` node hand
 - **Local videos** connected to `ref_video` inputs are uploaded to Comfy.org storage first. This requires being **logged in to a Comfy.org account** (or a Comfy.org API key) in ComfyUI, and does not work when ComfyUI runs with `--disable-api-nodes`. Uploaded files are deleted after about 24 hours; the plugin reuses an upload for up to 12 hours.
 - **Links**: put public `mp4`/`mov` URLs or `asset://<ASSET_ID>` references from the ModelArk asset library in `ref_video_urls`, one per line. Nothing is uploaded.
 
+Reference images and audio can also be given as links: `ref_image_urls` and `ref_audio_urls` take HTTPS URLs or `asset://<ASSET_ID>`, one per line.
+
+### Virtual Portraits
+
+With **Dreamina Seedance Advanced Creation Rights**, you can generate Seedance 2.5 videos featuring a real person from an authorized portrait kept in your private asset library:
+
+1. `API Client` → `Virtual Portrait Asset`: connect the portrait image (or set `image_url` to a public HTTPS URL) and set `group_name` (one virtual-portrait group per person; created if missing) or an existing `group_id`. The node registers the image with `CreateAsset`, waits until it is **Active**, and outputs `asset://<asset_id>`. Running it again with the same image reuses the asset instead of creating a duplicate.
+2. Connect `asset_uri` to `ref_image_urls` on `Seedance 2 / 2.5` and refer to it in the prompt by position, for example *"Image 1 is Neon. …"*.
+
+Already have assets? Use `Asset Library` to list them (virtual portraits, or `LivenessFace` groups for people verified in the ModelArk console) and feed `asset_uris` into `ref_image_urls`. Seedance only needs the API key to use an existing `asset://` reference.
+
+Managing assets uses the signed ModelArk OpenAPI, which needs **IAM AK/SK** with asset-library permission, not the API key. Add them to the key's entry in `api_keys.json`, or set `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` (and `BYTEPLUS_SESSION_TOKEN` for STS keys) before starting ComfyUI:
+
+```json
+{"customName": "My key", "apiKey": "…", "accessKey": "AKLT…", "secretKey": "…"}
+```
+
+`CreateAsset` needs an HTTPS URL, so a connected image is uploaded to Comfy.org storage first (Comfy.org login required, like reference videos). CreateAsset is rate-limited by your Advanced Creation Rights tier (Entry 3, Advanced 120, Premium 300 requests per minute). Only use portraits you are authorized to use.
+
 ### Draft Mode
 
 Seedance 1.5 Pro and the Seedance 2.5 models can render a quick 480p draft before the full-quality video:
@@ -96,7 +118,7 @@ COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates
 - [ ] Optional reference video upload via your own object storage (TOS or S3, presigned URL)
 - [x] Seedance 2.5 / 2.5 Premium draft mode
 - [x] Seedream 5.0 Pro layer decomposition and transparent backgrounds
-- [ ] `asset://` inputs for reference images and audio (videos already accept `asset://` links)
+- [x] `asset://` references for images, videos and audio; Virtual Portrait asset library nodes
 - [ ] Seedream 5.0 Flash (not yet in the ModelArk catalog for this account)
 
 ## Compatibility

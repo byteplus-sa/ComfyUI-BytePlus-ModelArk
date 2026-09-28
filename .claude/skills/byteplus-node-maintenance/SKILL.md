@@ -9,7 +9,9 @@ Read `CLAUDE.md` first (layout, rules, checklists). This skill adds the mechanic
 
 ## Request lifecycle
 
-**Client.** `BytePlusAPIClient.execute` (`nodes_shared.py`) picks a key (`api_keys.json` entry, or `Custom` + `new_api_key`, validated by a GET on the base URL) and a region from `constants.REGION_BASE_URLS` (`ap-southeast-1` default, `eu-west-1`), builds `Ark(api_key=…, base_url=…)` from `byteplussdkarkruntime`, and returns `BytePlusClients` on the custom socket type `BYTEPLUS_CLIENT`. Every other node takes that socket. No env vars are read.
+**Client.** `BytePlusAPIClient.execute` (`nodes_shared.py`) picks a key (`api_keys.json` entry, or `Custom` + `new_api_key`, validated by a GET on the base URL) and a region from `constants.REGION_BASE_URLS` (`ap-southeast-1` default, `eu-west-1`), builds `Ark(api_key=…, base_url=…)` from `byteplussdkarkruntime`, and returns `BytePlusClients` on the custom socket type `BYTEPLUS_CLIENT`. Every other node takes that socket. The only env vars read are `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` / `BYTEPLUS_SESSION_TOKEN`, as a fallback for asset-library credentials when the `api_keys.json` entry has no `accessKey`/`secretKey`.
+
+**Asset library (`nodes_assets.py`).** Signed ModelArk OpenAPI via `byteplussdkcore.universal.UniversalApi` (IAM AK/SK, host `ark.<region>.byteplusapi.com`, returns `Result`; errors are `ApiException` with a `ResponseMetadata.Error` JSON body, formatted by `_format_asset_error`). Actions: `ListAssetGroups`, `CreateAssetGroup` (GroupType `AIGC`), `CreateAsset` (needs an HTTPS URL → local images go through `upload_image_to_comfyapi`), `GetAsset` (`Processing` → `Active` | `Failed`), `ListAssets` (Filter.GroupType required: `AIGC` or `LivenessFace`). Seedance uses Active assets as `asset://<id>` in `ref_image_urls` / `ref_video_urls` / `ref_audio_urls` — that part needs only the API key.
 
 **Video (Seedance).** Node `execute` → `BytePlusVideoBase._common_generation_logic` (`nodes_video.py`):
 1. `_raise_if_text_params(prompt, forbidden_params)` — rejects `--resolution/--ratio/--dur/...` flags in the prompt (parameters are sent as JSON fields, not prompt flags).

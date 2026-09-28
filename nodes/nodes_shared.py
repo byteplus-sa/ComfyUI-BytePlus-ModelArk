@@ -128,6 +128,21 @@ class ApiKeyStore:
                     return item["apiKey"]
         return None
 
+    def find_asset_credentials(self, key_name):
+        """
+        Optional IAM AK/SK stored with a key entry ("accessKey", "secretKey",
+        "sessionToken"); needed only for the asset library OpenAPI.
+        """
+        with self._lock:
+            for item in self._items:
+                if item["customName"] == key_name and item.get("accessKey") and item.get("secretKey"):
+                    return {
+                        "access_key": item["accessKey"],
+                        "secret_key": item["secretKey"],
+                        "session_token": item.get("sessionToken") or "",
+                    }
+        return None
+
 
 API_KEY_STORE = ApiKeyStore(API_KEYS_FILE)
 
@@ -761,12 +776,14 @@ class BytePlusException(Exception):
 
 class BytePlusClients:
     """
-    Wraps the Ark client together with its API key and region.
+    Wraps the Ark client together with its API key, region and (optional)
+    asset-library IAM credentials. Never serialized into outputs.
     """
-    def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION):
+    def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION, asset_credentials=None):
         self.ark = ark_client
         self.api_key = api_key
         self.region = region
+        self.asset_credentials = asset_credentials
 
     def check_quota(self, model: str, estimated_cost: int):
         if not self.api_key:
@@ -835,6 +852,7 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
         cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_REGION
     ) -> comfy_io.NodeOutput:
         api_key = None
+        asset_credentials = None
         base_url = REGION_BASE_URLS.get(region, REGION_BASE_URLS[DEFAULT_REGION])
 
         if key_name == "Custom":
@@ -853,6 +871,7 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
 
         else:
             api_key = API_KEY_STORE.find_api_key(key_name)
+            asset_credentials = API_KEY_STORE.find_asset_credentials(key_name)
 
         if not api_key:
             log_msg("api_key_not_found", key_name=key_name)
@@ -860,4 +879,6 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
 
         ark_client = Ark(api_key=api_key, base_url=base_url)
 
-        return comfy_io.NodeOutput(BytePlusClients(ark_client, api_key, region))
+        return comfy_io.NodeOutput(
+            BytePlusClients(ark_client, api_key, region, asset_credentials)
+        )

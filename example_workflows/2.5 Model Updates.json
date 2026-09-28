@@ -87,7 +87,9 @@
         {"name": "ref_images.ref_image_1", "type": "IMAGE", "shape": 7, "link": null},
         {"name": "ref_videos.ref_video_1", "type": "VIDEO", "shape": 7, "link": null},
         {"name": "ref_audios.ref_audio_1", "type": "AUDIO", "shape": 7, "link": null},
-        {"name": "ref_video_urls", "type": "STRING", "widget": {"name": "ref_video_urls"}, "shape": 7, "link": null}
+        {"name": "ref_video_urls", "type": "STRING", "widget": {"name": "ref_video_urls"}, "shape": 7, "link": null},
+        {"name": "ref_image_urls", "type": "STRING", "widget": {"name": "ref_image_urls"}, "shape": 7, "link": null},
+        {"name": "ref_audio_urls", "type": "STRING", "widget": {"name": "ref_audio_urls"}, "shape": 7, "link": null}
       ],
       "outputs": [
         {"name": "video", "type": "VIDEO", "links": null},
@@ -95,7 +97,7 @@
         {"name": "response", "type": "STRING", "links": null}
       ],
       "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusSeedance2"},
-      "widgets_values": ["dreamina-seedance-2-5", "", true, 0, "randomize", "720p", "adaptive", false, 30, true, "auto", "mp4", false, false, "", 1, "BytePlus/Video/Batch/Seedance", false, false, ""]
+      "widgets_values": ["dreamina-seedance-2-5", "", true, 0, "randomize", "720p", "adaptive", false, 30, true, "auto", "mp4", false, false, "", 1, "BytePlus/Video/Batch/Seedance", false, false, "", "", ""]
     },
     {
       "id": 4,

@@ -117,6 +117,16 @@ def _parse_video_urls(text) -> list[str]:
     return [line.strip() for line in str(text or "").splitlines() if line.strip()]
 
 
+def _parse_reference_urls(text) -> list[str]:
+    """https:// URLs or asset://<asset_id> references, one per line."""
+    urls = _parse_video_urls(text)
+    for url in urls:
+        lowered = url.lower()
+        if not (lowered.startswith(("https://", "http://")) or (lowered.startswith("asset://") and len(url) > len("asset://"))):
+            raise BytePlusException(get_text("err_asset_uri_invalid", value=url))
+    return urls
+
+
 def _parse_draft_task_ids(text) -> list[str]:
     return [line.strip() for line in str(text or "").replace(",", "\n").splitlines() if line.strip()]
 
@@ -1473,7 +1483,9 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
                 "2.5 Premium (4K). Seedance 2.5 supports up to 30-second output, more "
                 "references and a 480p draft mode. "
                 "Local reference videos are uploaded to Comfy.org storage (requires "
-                "a Comfy.org login); or pass public video links in ref_video_urls."
+                "a Comfy.org login); or pass public video links in ref_video_urls. "
+                "ref_image_urls / ref_audio_urls take links or asset:// IDs, e.g. "
+                "Virtual Portraits from the asset library."
             ),
             is_output_node=True,
             is_experimental=True,
@@ -1518,6 +1530,24 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
                         "as reference videos without uploading to Comfy.org."
                     ),
                 ),
+                comfy_io.String.Input(
+                    "ref_image_urls",
+                    multiline=True,
+                    default="",
+                    optional=True,
+                    tooltip=(
+                        "Reference images as HTTPS links or asset:// IDs (e.g. a Virtual "
+                        "Portrait from the asset library), one per line. In the prompt, refer "
+                        "to them by position after connected ref images (Image 1, Image 2, ...)."
+                    ),
+                ),
+                comfy_io.String.Input(
+                    "ref_audio_urls",
+                    multiline=True,
+                    default="",
+                    optional=True,
+                    tooltip="Reference audio as HTTPS links or asset:// IDs, one per line.",
+                ),
             ],
             hidden=[
                 comfy_io.Hidden.auth_token_comfy_org,
@@ -1560,6 +1590,8 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
         ref_videos=None,
         ref_audios=None,
         ref_video_urls="",
+        ref_image_urls="",
+        ref_audio_urls="",
         **kwargs,
     ) -> comfy_io.NodeOutput:
         node_id = cls.hidden.unique_id
@@ -1632,8 +1664,13 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
         ref_videos = _collect_dynamic_inputs(ref_videos, kwargs, "ref_video_")
         ref_audios = _collect_dynamic_inputs(ref_audios, kwargs, "ref_audio_")
         linked_video_urls = _parse_video_urls(ref_video_urls)
+        linked_image_urls = _parse_reference_urls(ref_image_urls)
+        linked_audio_urls = _parse_reference_urls(ref_audio_urls)
         validate_seedance2_reference_counts(
-            model_version, ref_images, ref_videos + linked_video_urls, ref_audios
+            model_version,
+            ref_images + linked_image_urls,
+            ref_videos + linked_video_urls,
+            ref_audios + linked_audio_urls,
         )
         if is_seedance_2_5:
             validate_seedance25_task_type(
@@ -1663,7 +1700,10 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
                 content, last_frame_image, "last_frame"
             )
 
-        has_any_reference_inputs = bool(ref_images or ref_videos or linked_video_urls or ref_audios)
+        has_any_reference_inputs = bool(
+            ref_images or linked_image_urls or ref_videos or linked_video_urls
+            or ref_audios or linked_audio_urls
+        )
 
         if (first_frame_image is not None or last_frame_image is not None) and has_any_reference_inputs:
             raise BytePlusException(get_text("popup_first_last_conflict_with_refs"))
@@ -1679,6 +1719,8 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
             total_image_request_bytes += helper._append_image_content(
                 content, img, "reference_image"
             )
+        for image_url in linked_image_urls:
+            helper._append_media_url_content(content, image_url, "image_url", "reference_image")
 
         total_image_request_mb = float(total_image_request_bytes) / (1024.0 * 1024.0)
         if total_image_request_mb > REF_IMAGE_MAX_TOTAL_REQUEST_MB:
@@ -1727,6 +1769,9 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
             total_audio_duration += audio_duration
             total_audio_request_bytes += request_bytes
 
+        for audio_url in linked_audio_urls:
+            helper._append_media_url_content(content, audio_url, "audio_url", "reference_audio")
+
         max_total_audio_duration = (
             REF_MEDIA_MAX_DURATION_SEEDANCE_2_5
             if is_seedance_2_5
@@ -1750,12 +1795,12 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
 
         has_image_reference = any(
             img is not None for img in [first_frame_image, last_frame_image]
-        ) or bool(ref_images)
+        ) or bool(ref_images or linked_image_urls)
         has_video_reference = any(
             (url or "").strip()
             for url in final_video_urls
         )
-        has_audio_reference = bool(ref_audios)
+        has_audio_reference = bool(ref_audios or linked_audio_urls)
         prompt = (prompt or "").strip()
 
         if not prompt and not content:

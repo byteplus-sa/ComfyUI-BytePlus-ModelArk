@@ -7,6 +7,17 @@ REGION_BASE_URLS = {
 }
 DEFAULT_REGION = "ap-southeast-1"
 
+# Asset library (virtual portraits / verified real people): signed OpenAPI,
+# service "ark", separate host per region, IAM AK/SK instead of the API key.
+ASSET_API_HOSTS = {
+    "ap-southeast-1": "ark.ap-southeast-1.byteplusapi.com",
+    "eu-west-1": "ark.eu-west-1.byteplusapi.com",
+}
+ASSET_API_VERSION = "2024-01-01"
+ASSET_URI_PREFIX = "asset://"
+ASSET_POLL_SECONDS = 3
+ASSET_ACTIVE_TIMEOUT_SECONDS = 600
+
 # General
 MAX_SEED = 2147483647
 MIN_SEED = -1
@@ -177,6 +188,23 @@ MESSAGES = {
     "err_seedance25_first_frame_ratio": "Seedance 2.5 image-to-video keeps the first frame's aspect ratio. Set aspect_ratio to adaptive.",
     "err_seedance25_task_type_needs_video": "Seedance 2.5 task_type '{task_type}' needs at least one reference video.",
     "err_seedance25_extend_params": "Seedance 2.5 video extension requires the adaptive aspect ratio.",
+    "err_asset_credentials_missing": "The asset library needs IAM AK/SK with asset-library permission (plus Dreamina Seedance Advanced Creation Rights on the account). Add \"accessKey\" and \"secretKey\" (and \"sessionToken\" for STS keys) to the selected entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY, then restart ComfyUI.",
+    "err_asset_api": "Asset library {action} failed: {code}: {message}{hint}",
+    "hint_asset_auth": " Check the AK/SK in api_keys.json or the BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY environment variables.",
+    "hint_asset_denied": " The IAM user needs asset-library permission in this project, and the account needs Dreamina Seedance Advanced Creation Rights.",
+    "hint_asset_throttled": " CreateAsset is rate-limited by your Advanced Creation Rights tier (Entry 3, Advanced 120, Premium 300 per minute); wait and retry.",
+    "err_asset_source_missing": "Connect an image or set image_url (a public HTTPS URL) for the asset.",
+    "err_asset_url_invalid": "image_url must be an HTTPS URL. Current: {url}",
+    "err_asset_group_ambiguous": "{count} asset groups are named '{name}'. Set group_id to choose one.",
+    "err_asset_failed": "Asset {asset_id} failed processing or review (status {status}). Check the material and try another image.",
+    "err_asset_timeout": "Asset {asset_id} is still {status} after {seconds}s. It may still become Active; list it with Asset Library before creating it again.",
+    "err_asset_uri_invalid": "Not a valid reference: '{value}'. Use an https:// URL or asset://<asset_id>, one per line.",
+    "err_comfy_image_upload_unavailable": "Local images are uploaded through Comfy.org storage to get the HTTPS URL CreateAsset needs, which is unavailable in this ComfyUI ({e}). Pass a public image_url instead.",
+    "err_comfy_image_upload_failed": "Uploading the image to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or pass a public image_url instead.",
+    "asset_group_created": "Created asset group {group_id} ('{name}').",
+    "asset_created": "Created asset {asset_id}; waiting for it to become Active...",
+    "asset_status": "Asset {asset_id}: {status}",
+    "asset_reused": "Reusing asset {asset_id} created for the same image in this session.",
     "err_comfy_upload_unavailable": "Reference videos are uploaded through Comfy.org storage, which is unavailable in this ComfyUI ({e}). Update ComfyUI, remove --disable-api-nodes, or pass a public mp4/mov link in ref_video_urls instead.",
     "err_comfy_upload_failed": "Uploading the reference video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or pass a public mp4/mov link in ref_video_urls instead.",
     "err_request_body_too_large": "The final request body exceeds the 64 MiB limit (maximum {max_bytes} bytes; current {current_bytes} bytes). Reduce reference media.",

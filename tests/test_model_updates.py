@@ -1416,6 +1416,232 @@ class QuotaSettingsTests(unittest.TestCase):
 
 
 @requires_comfyui
+class AssetLibraryTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
+        self.calls = []
+        self.statuses = ["Processing", "Active"]
+        self.groups = []
+        test = self
+
+        class FakeLibrary:
+            def __init__(self, client):
+                test.assets.resolve_asset_credentials(client)
+                self.client = client
+
+            def call(self, action, body):
+                test.calls.append((action, body))
+                if action == "ListAssetGroups":
+                    return {"Items": list(test.groups)}
+                if action == "CreateAssetGroup":
+                    return {"Id": "group-new"}
+                if action == "CreateAsset":
+                    return {"Id": f"asset-{len([c for c in test.calls if c[0] == 'CreateAsset'])}"}
+                if action == "GetAsset":
+                    status = test.statuses.pop(0) if len(test.statuses) > 1 else test.statuses[0]
+                    return {"Id": body["Id"], "Status": status, "GroupId": "group-new", "AssetType": "Image"}
+                if action == "ListAssets":
+                    return {"Items": [{"Id": "asset-a", "Status": "Active"}, {"Id": "asset-b", "Status": "Active"}]}
+                raise AssertionError(action)
+
+        async def fake_upload(_cls, _image):
+            return "https://storage.example/portrait.png"
+
+        self._old = (self.assets.AssetLibrary, self.assets.upload_image_to_comfy_storage, self.assets.ASSET_POLL_SECONDS)
+        self.assets.AssetLibrary = FakeLibrary
+        self.assets.upload_image_to_comfy_storage = fake_upload
+        self.assets.ASSET_POLL_SECONDS = 0
+        self.assets.ASSET_UPLOAD_CACHE.clear()
+        self.client = SimpleNamespace(
+            region="ap-southeast-1",
+            asset_credentials={"access_key": "AK", "secret_key": "SK", "session_token": ""},
+        )
+
+    def tearDown(self):
+        (self.assets.AssetLibrary, self.assets.upload_image_to_comfy_storage, self.assets.ASSET_POLL_SECONDS) = self._old
+
+    async def _create(self, **kwargs):
+        import torch
+
+        defaults = {"image": torch.ones((1, 16, 16, 3))}
+        return await self.assets.BytePlusVirtualPortraitAsset.execute(self.client, **{**defaults, **kwargs})
+
+    async def test_creates_group_and_asset_and_waits_until_active(self):
+        result = await self._create(group_name="Neon Demo", asset_name="Neon portrait", project_name="default")
+        actions = [a for a, _ in self.calls]
+        self.assertEqual(actions, ["ListAssetGroups", "CreateAssetGroup", "CreateAsset", "GetAsset", "GetAsset"])
+        self.assertEqual(self.calls[0][1]["Filter"], {"Name": "Neon Demo", "GroupType": "AIGC"})
+        self.assertEqual(self.calls[1][1]["GroupType"], "AIGC")
+        create = self.calls[2][1]
+        self.assertEqual(create["GroupId"], "group-new")
+        self.assertEqual(create["URL"], "https://storage.example/portrait.png")
+        self.assertEqual(create["AssetType"], "Image")
+        self.assertEqual(result[0], "asset://asset-1")
+        self.assertEqual(result[2], "group-new")
+        self.assertEqual(json.loads(result[3])["status"], "Active")
+
+    async def test_reuses_existing_group_and_asset_on_rerun(self):
+        self.groups = [{"Id": "group-7", "Name": "Neon Demo"}, {"Id": "group-8", "Name": "Neon Demo 2"}]
+        first = await self._create(group_name="Neon Demo")
+        second = await self._create(group_name="Neon Demo")
+        self.assertEqual(first[0], second[0])
+        self.assertEqual([a for a, _ in self.calls].count("CreateAsset"), 1)
+        self.assertNotIn("CreateAssetGroup", [a for a, _ in self.calls])
+        self.assertEqual(self.calls[1][1]["GroupId"], "group-7")
+
+    async def test_ambiguous_group_name_and_group_id_override(self):
+        self.groups = [{"Id": "g1", "Name": "Same"}, {"Id": "g2", "Name": "Same"}]
+        with self.assertRaises(Exception) as ctx:
+            await self._create(group_name="Same")
+        self.assertIn("Set group_id", str(ctx.exception))
+        self.calls.clear()
+        await self._create(group_name="Same", group_id="group-liveness-1")
+        self.assertEqual(self.calls[0][0], "CreateAsset")
+        self.assertEqual(self.calls[0][1]["GroupId"], "group-liveness-1")
+
+    async def test_failed_asset_and_url_validation(self):
+        self.statuses = ["Failed"]
+        with self.assertRaises(Exception) as ctx:
+            await self._create()
+        self.assertIn("failed processing or review", str(ctx.exception))
+        with self.assertRaises(Exception) as ctx:
+            await self._create(image=None, image_url="http://insecure.example/a.png")
+        self.assertIn("HTTPS", str(ctx.exception))
+        with self.assertRaises(Exception) as ctx:
+            await self._create(image=None, image_url="")
+        self.assertIn("Connect an image", str(ctx.exception))
+
+    async def test_url_source_keeps_asset_type(self):
+        self.calls.clear()
+        await self._create(image=None, image_url="https://cdn.example/voice.mp3", asset_type="Audio", wait_until_active=False)
+        create = next(body for action, body in self.calls if action == "CreateAsset")
+        self.assertEqual(create["AssetType"], "Audio")
+        self.assertEqual(create["URL"], "https://cdn.example/voice.mp3")
+        self.assertNotIn("GetAsset", [a for a, _ in self.calls])
+
+    async def test_list_assets(self):
+        uris, raw = await self.assets.BytePlusAssetLibrary.execute(
+            self.client, group_type="AIGC", group_id="group-7", status="Active", name="", max_results=5
+        )
+        self.assertEqual(uris, "asset://asset-a\nasset://asset-b")
+        body = self.calls[0][1]
+        self.assertEqual(body["Filter"], {"GroupType": "AIGC", "GroupIds": ["group-7"], "Statuses": ["Active"]})
+        self.assertEqual(body["MaxResults"], 5)
+
+    def test_credentials_resolution(self):
+        store = nodes_shared.ApiKeyStore("/nonexistent")
+        store._items = [
+            {"customName": "with-ak", "apiKey": "k", "accessKey": "AK1", "secretKey": "SK1"},
+            {"customName": "no-ak", "apiKey": "k"},
+        ]
+        self.assertEqual(store.find_asset_credentials("with-ak")["access_key"], "AK1")
+        self.assertIsNone(store.find_asset_credentials("no-ak"))
+        old_env = {k: os.environ.pop(k, None) for k in ("BYTEPLUS_ACCESS_KEY", "BYTEPLUS_SECRET_KEY", "BYTEPLUS_ACCESSKEY", "BYTEPLUS_SECRETKEY")}
+        try:
+            with self.assertRaises(Exception) as ctx:
+                self.assets.resolve_asset_credentials(SimpleNamespace(asset_credentials=None))
+            self.assertIn("accessKey", str(ctx.exception))
+            os.environ["BYTEPLUS_ACCESS_KEY"], os.environ["BYTEPLUS_SECRET_KEY"] = "AKENV", "SKENV"
+            creds = self.assets.resolve_asset_credentials(SimpleNamespace(asset_credentials=None))
+            self.assertEqual((creds["access_key"], creds["secret_key"]), ("AKENV", "SKENV"))
+        finally:
+            for k in ("BYTEPLUS_ACCESS_KEY", "BYTEPLUS_SECRET_KEY"):
+                os.environ.pop(k, None)
+            for k, v in old_env.items():
+                if v is not None:
+                    os.environ[k] = v
+
+    def test_real_library_uses_region_host_and_formats_errors(self):
+        from byteplussdkcore.rest import ApiException
+
+        library = self._old[0](SimpleNamespace(region="eu-west-1", asset_credentials={"access_key": "AK", "secret_key": "SK"}))
+        self.assertEqual(library._api.api_client.configuration.host, "ark.eu-west-1.byteplusapi.com")
+        error = ApiException(status=403)
+        error.body = json.dumps({"ResponseMetadata": {"Error": {"Code": "AccessDenied", "Message": "no permission"}}})
+        message = self.assets._format_asset_error("CreateAsset", error)
+        self.assertIn("AccessDenied: no permission", message)
+        self.assertIn("Advanced Creation Rights", message)
+
+    def test_comfy_image_upload_call_matches_comfyui(self):
+        import inspect
+        import torch
+
+        try:
+            from comfy_api_nodes.util import upload_image_to_comfyapi
+        except Exception as e:  # pragma: no cover - depends on the ComfyUI checkout
+            self.skipTest(f"comfy_api_nodes unavailable: {e}")
+        inspect.signature(upload_image_to_comfyapi).bind(
+            object, torch.ones((1, 4, 4, 3)), mime_type="image/png", wait_label=None, total_pixels=None
+        )
+
+
+@requires_comfyui
+class SeedanceAssetReferenceTests(unittest.IsolatedAsyncioTestCase):
+    async def _run(self, model_config, **inputs):
+        captured = {}
+
+        async def fake_common(_self, *args, **kwargs):
+            captured["kwargs"] = kwargs
+            return "ok"
+
+        old_common = nodes_video.BytePlusVideoBase._common_generation_logic
+        old_hidden = getattr(nodes_video.BytePlusSeedance2, "hidden", None)
+        nodes_video.BytePlusVideoBase._common_generation_logic = fake_common
+        nodes_video.BytePlusSeedance2.hidden = SimpleNamespace(unique_id="asset-ref", prompt={})
+        try:
+            await nodes_video.BytePlusSeedance2.execute(
+                SimpleNamespace(),
+                {"model_version": "dreamina-seedance-2-5", "prompt": "Image 1 is Neon. He waves.",
+                 "duration": 5, "auto_duration": False, "resolution": "720p", "aspect_ratio": "1:1",
+                 **model_config},
+                **inputs,
+            )
+        finally:
+            nodes_video.BytePlusVideoBase._common_generation_logic = old_common
+            if old_hidden is None:
+                delattr(nodes_video.BytePlusSeedance2, "hidden")
+            else:
+                nodes_video.BytePlusSeedance2.hidden = old_hidden
+        return captured
+
+    async def test_asset_image_and_audio_references(self):
+        captured = await self._run(
+            {}, ref_image_urls="asset://asset-20260924083944-c6vqr\n", ref_audio_urls="https://cdn.example/voice.mp3"
+        )
+        content = captured["kwargs"]["content"]
+        self.assertIn(
+            {"type": "image_url", "image_url": {"url": "asset://asset-20260924083944-c6vqr"}, "role": "reference_image"},
+            content,
+        )
+        self.assertIn(
+            {"type": "audio_url", "audio_url": {"url": "https://cdn.example/voice.mp3"}, "role": "reference_audio"},
+            content,
+        )
+
+    async def test_invalid_reference_and_count_limits(self):
+        with self.assertRaises(Exception) as ctx:
+            await self._run({}, ref_image_urls="portrait.png")
+        self.assertIn("asset://<asset_id>", str(ctx.exception))
+        with self.assertRaises(Exception) as ctx:
+            await self._run(
+                {"model_version": "dreamina-seedance-2-0", "duration": 5},
+                ref_image_urls="\n".join(f"asset://asset-{i}" for i in range(10)),
+            )
+        self.assertIn("at most 9", str(ctx.exception))
+
+    async def test_first_frame_conflicts_with_asset_images(self):
+        import torch
+
+        with self.assertRaises(Exception) as ctx:
+            await self._run(
+                {"aspect_ratio": "adaptive"},
+                first_frame_image=torch.zeros((1, 720, 1280, 3)),
+                ref_image_urls="asset://asset-1",
+            )
+        self.assertIn("First/last frame mode cannot be used together", str(ctx.exception))
+
+
+@requires_comfyui
 class ComfyStorageUploadTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_api_nodes_explains_alternatives(self):
         old_module = sys.modules.get("comfy_api_nodes.util", ...)

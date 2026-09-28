@@ -34,6 +34,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         "model_version.save_last_frame_batch", "model_version.non_blocking",
         "first_frame_image", "last_frame_image", "ref_images.ref_image_1",
         "ref_videos.ref_video_1", "ref_audios.ref_audio_1", "ref_video_urls",
+        "ref_image_urls", "ref_audio_urls",
     ]
     SEEDANCE2_INPUT_ORDERS = {
         "dreamina-seedance-2-0": SEEDANCE2_INPUTS_BEFORE_REFS + SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS,

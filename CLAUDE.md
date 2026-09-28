@@ -25,6 +25,7 @@ ComfyUI custom node pack that calls **BytePlus ModelArk** directly with the user
 | `nodes/nodes_image.py` | Seedream 4, Seedream 5 (DynamicCombo), Seedream Layer Decomposition. |
 | `nodes/nodes_video.py` | Seedance 1.0 / 1.5 / 2 & 2.5 (DynamicCombo), Video Query Tasks, dev-only Progress Test; Seedance validation helpers; Comfy.org reference-video upload. |
 | `nodes/nodes_visual.py` | Visual Understanding. |
+| `nodes/nodes_assets.py` | Private asset library (Advanced Creation Rights): `BytePlusVirtualPortraitAsset` (find/create AIGC group → Comfy.org image upload → `CreateAsset` → poll `GetAsset` until Active → `asset://` URI) and `BytePlusAssetLibrary` (`ListAssets`). Signed OpenAPI via the SDK's `UniversalApi` (service `ark`, version `2024-01-01`, host `ASSET_API_HOSTS[region]`) with IAM AK/SK from the `api_keys.json` entry (`accessKey`/`secretKey`/`sessionToken`) or `BYTEPLUS_ACCESS_KEY`/`BYTEPLUS_SECRET_KEY`. |
 | `nodes/nodes_*_schema.py` | Input-builder helpers (not validators). |
 | `nodes/quota.py` | In-memory per-key/per-model quota guard + `BytePlusQuotaSettings` node. |
 | `nodes/utils_download.py` | aiohttp download helpers, `save_to_output`. |
@@ -51,7 +52,8 @@ Tests use stdlib `unittest` (pytest is not a dependency). `test_model_updates` f
 - **BytePlus naming everywhere.** Classes, node IDs and JS keys start with `BytePlus` (the JS matches on `comfyClass.startsWith("BytePlus")`). Never reintroduce `Jimeng`, `doubao-*` model IDs, Volcengine SDK imports or Chinese strings — tests assert this.
 - **English only.** There is no `locales/` directory; user-facing text lives in `constants.MESSAGES` and in `display_name`/`tooltip` strings. Use `get_text(key, **kw)` / `log_msg(key, **kw)`; a missing key silently yields `""`, so add the key when you add a call.
 - **BytePlus models only.** No models without a BytePlus ModelArk equivalent.
-- **Reference videos:** local videos go through Comfy.org storage (`comfy_api_nodes.util.upload_video_to_comfyapi`, needs Comfy.org login); `ref_video_urls` (public URLs or `asset://`) is the bypass.
+- **Reference videos:** local videos go through Comfy.org storage (`comfy_api_nodes.util.upload_video_to_comfyapi`, needs Comfy.org login); `ref_video_urls` (public URLs or `asset://`) is the bypass. `ref_image_urls` / `ref_audio_urls` take links or `asset://` IDs the same way (Virtual Portraits).
+- **Asset library credentials** (IAM AK/SK) never go into widgets, outputs or logs; they live only on `BytePlusClients.asset_credentials`.
 - **Errors:** raise `BytePlusException` with a `[BytePlus]`-prefixed message; always re-raise `InterruptProcessingException`; format API errors via `format_api_error`.
 - Node IDs are part of saved workflows — renaming one breaks users' workflows.
 
