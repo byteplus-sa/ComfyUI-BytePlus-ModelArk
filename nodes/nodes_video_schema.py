@@ -1,5 +1,5 @@
 from comfy_api.latest import io as comfy_io
-from .nodes_shared import JimengClientType, get_text, JimengException
+from .nodes_shared import BytePlusClientType, get_text, BytePlusException
 from .models_config import (
     VIDEO_MODEL_MAP,
     VIDEO_1_UI_OPTIONS,
@@ -7,7 +7,6 @@ from .models_config import (
     VIDEO_2_UI_OPTIONS,
     VIDEO_2_MODEL_RESOLUTIONS,
     QUERY_TASKS_MODEL_LIST,
-    REF_IMG_2_VIDEO_MODEL_ID,
 )
 from .constants import (
     VIDEO_MAX_SEED,
@@ -25,33 +24,22 @@ from .constants import (
 
 ASPECT_RATIOS = ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]
 
-def resolve_model_id(model_version: str, image_input=None) -> str:
+def resolve_model_id(model_version: str) -> str:
     """
-    根据 UI 选择的模型版本和输入 (文生视频/图生视频) 解析实际的模型 ID。
+    Map the model name selected in the UI to its dated ModelArk model ID.
     """
     if model_version in VIDEO_MODEL_MAP:
         return VIDEO_MODEL_MAP[model_version]
 
-    suffix = "-i2v" if image_input is not None else "-t2v"
-    try_key = f"{model_version}{suffix}"
-    
-    if try_key in VIDEO_MODEL_MAP:
-        return VIDEO_MODEL_MAP[try_key]
-        
-    raise JimengException(f"Model ID not found for selection: {model_version}")
+    raise BytePlusException(f"Model ID not found for selection: {model_version}")
 
 def resolve_query_models(model_version: str) -> list:
     """
-    解析查询任务时使用的模型 ID 列表。
+    Model IDs to query in the task list node; [None] means all models.
     """
     target_models = []
     if model_version == "all":
         target_models = [None]
-    elif model_version == "doubao-seedance-1-0-lite":
-        if "doubao-seedance-1-0-lite-t2v" in VIDEO_MODEL_MAP:
-            target_models.append(VIDEO_MODEL_MAP["doubao-seedance-1-0-lite-t2v"])
-        if "doubao-seedance-1-0-lite-i2v" in VIDEO_MODEL_MAP:
-            target_models.append(VIDEO_MODEL_MAP["doubao-seedance-1-0-lite-i2v"])
     elif model_version in VIDEO_MODEL_MAP:
         target_models.append(VIDEO_MODEL_MAP[model_version])
     else:
@@ -61,8 +49,8 @@ def resolve_query_models(model_version: str) -> list:
 
 def _calculate_duration_and_frames_args(duration: float):
     """
-    根据持续时间计算 API 所需的 duration 或 frames 参数。
-    如果是整数秒，直接使用 duration；否则根据帧率计算 frames。
+    Choose the API duration or frames argument.
+    Whole seconds use duration; fractional seconds are converted to frames.
     """
     if duration == int(duration):
         return ("duration", int(duration), int(duration))
@@ -71,16 +59,6 @@ def _calculate_duration_and_frames_args(duration: float):
         n = round((target_frames - VIDEO_BASE_FRAMES) / VIDEO_FRAME_STEP)
         final_frames = int(max(VIDEO_MIN_FRAMES, min(VIDEO_MAX_FRAMES, VIDEO_BASE_FRAMES + VIDEO_FRAME_STEP * n)))
         return ("frames", final_frames, int(round(final_frames / VIDEO_FRAME_RATE)))
-
-def get_common_video_inputs():
-    """
-    获取通用的视频生成输入参数定义。
-    包含随机种子、生成数量、文件前缀、超时设置等。
-    """
-    return (
-        get_common_video_seed_inputs()
-        + get_common_video_runtime_inputs(include_offline=True)
-    )
 
 def get_common_video_seed_inputs():
     return [
@@ -108,7 +86,7 @@ def get_common_video_runtime_inputs(include_offline=True):
 
 def get_duration_input(default=5.0, min_val=1.2, max_val=12.0, step=0.2, is_int=False):
     """
-    获取视频时长输入参数定义。
+    Duration input definition.
     """
     if is_int:
         return comfy_io.Int.Input(
@@ -130,7 +108,7 @@ def get_duration_input(default=5.0, min_val=1.2, max_val=12.0, step=0.2, is_int=
 
 def get_resolution_input(default="720p", support_1080p=True, support_4k=False, options=None):
     """
-    获取分辨率输入参数定义。
+    Resolution input definition.
     """
     if options is None:
         options = ["480p", "720p"]
@@ -152,7 +130,7 @@ def get_seedance2_resolutions(model_version: str) -> list[str]:
 
 def get_aspect_ratio_input(default="adaptive", include_adaptive=True):
     """
-    获取宽高比输入参数定义。
+    Aspect ratio input definition.
     """
     options = list(ASPECT_RATIOS)
     if not include_adaptive:

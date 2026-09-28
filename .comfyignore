@@ -1,0 +1,7 @@
+# Excluded from the Comfy Registry package (gitignore syntax).
+# `comfy node publish` packs git-tracked files only; these are dev-only.
+.github/
+.claude/
+tests/
+CLAUDE.md
+AGENTS.md

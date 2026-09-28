@@ -1,23 +1,11 @@
 from comfy_api.latest import io as comfy_io
-from .nodes_shared import JimengClientType
+from .nodes_shared import BytePlusClientType
 from .models_config import SEEDREAM_4_MODEL_MAP
 from .constants import (
     MAX_SEED,
     MIN_SEED,
     MAX_GENERATION_COUNT,
 )
-
-RECOMMENDED_SIZES_V3 = [
-    "1024x1024 (1:1)",
-    "864x1152 (3:4)",
-    "1152x864 (4:3)",
-    "1280x720 (16:9)",
-    "720x1280 (9:16)",
-    "832x1248 (2:3)",
-    "1248x832 (3:2)",
-    "1512x648 (21:9)",
-    "Custom",
-]
 
 RECOMMENDED_SIZES_V4 = [
     "2K (adaptive)",
@@ -44,6 +32,7 @@ RECOMMENDED_SIZES_V4 = [
 RECOMMENDED_SIZES_V5 = [
     "2K (adaptive)",
     "3K (adaptive)",
+    "4K (adaptive)",
     "2048x2048 (1:1)",
     "2304x1728 (4:3)",
     "1728x2304 (3:4)",
@@ -63,22 +52,32 @@ RECOMMENDED_SIZES_V5 = [
     "Custom",
 ]
 
+# Seedream 5.0 Pro: resolution levels and the documented width x height per level
 RECOMMENDED_SIZES_V5_PRO = [
     "1K (adaptive)",
+    "1.5K (adaptive)",
     "2K (adaptive)",
     "1024x1024 (1:1)",
     "1152x864 (4:3)",
     "864x1152 (3:4)",
-    "1312x736 (16:9)",
-    "736x1312 (9:16)",
+    "1424x800 (16:9)",
+    "800x1424 (9:16)",
     "1248x832 (3:2)",
     "832x1248 (2:3)",
     "1568x672 (21:9)",
+    "1536x1536 (1:1)",
+    "1792x1344 (4:3)",
+    "1344x1792 (3:4)",
+    "2048x1152 (16:9)",
+    "1152x2048 (9:16)",
+    "1872x1248 (3:2)",
+    "1248x1872 (2:3)",
+    "2352x1008 (21:9)",
     "2048x2048 (1:1)",
-    "2304x1728 (4:3)",
-    "1728x2304 (3:4)",
-    "2848x1600 (16:9)",
-    "1600x2848 (9:16)",
+    "2368x1776 (4:3)",
+    "1776x2368 (3:4)",
+    "2816x1584 (16:9)",
+    "1584x2816 (9:16)",
     "2496x1664 (3:2)",
     "1664x2496 (2:3)",
     "3136x1344 (21:9)",
@@ -91,11 +90,10 @@ def get_image_generation_inputs(
     default_width=1024,
     default_height=1024,
     enable_group_generation=False,
-    enable_web_search=False,
 ):
     """
-    获取图片生成相关的输入定义。
-    包含预设尺寸选择、自定义宽度和高度、种子、生成数量和水印开关。
+    Shared image generation inputs: size preset, custom width/height, seed,
+    generation count and watermark.
     """
     inputs = [
         comfy_io.Combo.Input("size", options=recommended_sizes),
@@ -114,15 +112,6 @@ def get_image_generation_inputs(
                 ),
                 comfy_io.Int.Input("max_images", default=1, min=1, max=15),
             ]
-        )
-
-    if enable_web_search:
-        inputs.append(
-            comfy_io.Boolean.Input(
-                "enable_web_search",
-                default=False,
-                tooltip="Enable internet search capabilities",
-            )
         )
 
     inputs.extend(

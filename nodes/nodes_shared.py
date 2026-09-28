@@ -2,7 +2,6 @@ import os
 import io
 import base64
 import hashlib
-import locale
 import json
 import re
 import folder_paths
@@ -12,45 +11,43 @@ import PIL.Image
 import torch
 import torch.nn.functional as F
 import requests
-import cv2
 import asyncio
 import threading
-from volcenginesdkarkruntime import Ark
+import comfy.model_management
+from byteplussdkarkruntime import Ark
 
 from comfy_api.latest import io as comfy_io
 
 import logging
 
-from .constants import LOG_TRANSLATIONS, ERROR_TEXT_MATCH_RULES, JIMENG_API_BASE_URL
+from .constants import MESSAGES, ERROR_TEXT_MATCH_RULES, REGION_BASE_URLS, DEFAULT_REGION
 
-LOG_PREFIX = "[JimengAI] "
+LOG_PREFIX = "[BytePlus] "
 
-def patch_log_translations():
+def patch_log_messages():
     """
-    自动为日志消息添加前缀。
+    Prefix console messages with LOG_PREFIX.
     """
     ignore_keys = {"api_errors"}
-    
-    for lang in LOG_TRANSLATIONS:
-        trans_map = LOG_TRANSLATIONS[lang]
-        for key, value in trans_map.items():
-            if key in ignore_keys or key.startswith("est_"):
+
+    for key, value in MESSAGES.items():
+        if key in ignore_keys or key.startswith("est_"):
+            continue
+
+        if isinstance(value, str):
+            if value.strip().startswith("-"):
                 continue
-            
-            if isinstance(value, str):
-                if value.strip().startswith("-"):
-                    continue
-                
-                if value.startswith("\n"):
-                    if LOG_PREFIX.strip() not in value:
-                        trans_map[key] = "\n" + LOG_PREFIX + value[1:]
-                else:
-                    if not value.startswith(LOG_PREFIX):
-                        trans_map[key] = LOG_PREFIX + value
 
-patch_log_translations()
+            if value.startswith("\n"):
+                if LOG_PREFIX.strip() not in value:
+                    MESSAGES[key] = "\n" + LOG_PREFIX + value[1:]
+            else:
+                if not value.startswith(LOG_PREFIX):
+                    MESSAGES[key] = LOG_PREFIX + value
 
-logger = logging.getLogger("JimengAI")
+patch_log_messages()
+
+logger = logging.getLogger("BytePlus")
 if not logger.handlers:
     handler = logging.StreamHandler()
     formatter = logging.Formatter('%(message)s')
@@ -59,51 +56,13 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
     logger.propagate = False
 
-GLOBAL_CATEGORY = "JimengAI"
+GLOBAL_CATEGORY = "BytePlus ModelArk"
 
-jimeng_api_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-API_KEYS_FILE = os.path.join(jimeng_api_dir, "api_keys.json")
-FILES_UPLOAD_CACHE_FILE = os.path.join(jimeng_api_dir, "files_upload_cache.json")
+byteplus_api_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+API_KEYS_FILE = os.path.join(byteplus_api_dir, "api_keys.json")
+FILES_UPLOAD_CACHE_FILE = os.path.join(byteplus_api_dir, "files_upload_cache.json")
 
-JimengClientType = comfy_io.Custom("JIMENG_CLIENT")
-
-
-def detect_system_language():
-    """
-    检测系统语言，如果是中文环境则返回 'zh'，否则返回 'en'。
-    """
-    try:
-        lang_code, _ = locale.getdefaultlocale()
-        if lang_code and lang_code.startswith("zh"):
-            return "zh"
-    except:
-        pass
-    return "en"
-
-
-class LocalizationState:
-    def __init__(self, default_lang="en"):
-        self._lock = threading.RLock()
-        self._lang = "en"
-        self.set_language(default_lang)
-
-    def set_language(self, lang):
-        normalized_lang = lang if lang in LOG_TRANSLATIONS else "en"
-        with self._lock:
-            self._lang = normalized_lang
-
-    def refresh_from_system(self):
-        self.set_language(detect_system_language())
-
-    def get_language(self):
-        with self._lock:
-            return self._lang
-
-    def get_mapping(self):
-        return LOG_TRANSLATIONS.get(self.get_language(), LOG_TRANSLATIONS["en"])
-
-
-LOCALIZATION_STATE = LocalizationState(detect_system_language())
+BytePlusClientType = comfy_io.Custom("BYTEPLUS_CLIENT")
 
 
 class ApiKeyStore:
@@ -114,7 +73,6 @@ class ApiKeyStore:
 
     def load(self):
         loaded_items = []
-        LOCALIZATION_STATE.refresh_from_system()
 
         try:
             if os.path.exists(self.config_file):
@@ -170,16 +128,30 @@ class ApiKeyStore:
                     return item["apiKey"]
         return None
 
+    def find_asset_credentials(self, key_name):
+        """
+        Optional IAM AK/SK stored with a key entry ("accessKey", "secretKey",
+        "sessionToken"); needed only for the asset library OpenAPI.
+        """
+        with self._lock:
+            for item in self._items:
+                if item["customName"] == key_name and item.get("accessKey") and item.get("secretKey"):
+                    return {
+                        "access_key": item["accessKey"],
+                        "secret_key": item["secretKey"],
+                        "session_token": item.get("sessionToken") or "",
+                    }
+        return None
+
 
 API_KEY_STORE = ApiKeyStore(API_KEYS_FILE)
 
 
 def get_text(key, **kwargs):
     """
-    获取指定 key 的本地化文本。
+    Return the message for key, formatted with kwargs when given.
     """
-    mapping = LOCALIZATION_STATE.get_mapping()
-    msg = mapping.get(key, LOG_TRANSLATIONS["en"].get(key, key))
+    msg = MESSAGES.get(key, key)
     if kwargs:
         try:
             return msg.format(**kwargs)
@@ -190,12 +162,9 @@ def get_text(key, **kwargs):
 
 def log_msg(key, default_msg="", **kwargs):
     """
-    记录本地化日志信息。
+    Log the message for key.
     """
-    mapping = LOCALIZATION_STATE.get_mapping()
-    msg = mapping.get(key, None)
-    if not msg:
-        msg = LOG_TRANSLATIONS["en"].get(key, default_msg)
+    msg = MESSAGES.get(key, default_msg)
     if msg:
         raw_api_response = kwargs.pop("raw_api_response", None)
         rendered_msg = msg
@@ -215,7 +184,7 @@ def log_msg(key, default_msg="", **kwargs):
 
 def get_node_count_in_workflow(class_type, prompt=None):
     """
-    获取当前工作流中指定类型节点的数量。
+    Count nodes of the given class in the current workflow.
     """
     try:
         if prompt is None:
@@ -236,12 +205,10 @@ def get_node_count_in_workflow(class_type, prompt=None):
 
 def format_api_error(e):
     """
-    格式化 API 错误信息。
-    尝试解析错误代码并返回对应的本地化错误描述。
+    Format an API error.
+    Extracts the error code and returns the matching readable description.
     """
-    mapping = LOCALIZATION_STATE.get_mapping()
-    error_map = mapping.get("api_errors", {})
-    fallback_map = LOG_TRANSLATIONS["en"].get("api_errors", {})
+    error_map = MESSAGES.get("api_errors", {})
 
     err_code = None
     err_msg = str(e)
@@ -270,19 +237,12 @@ def format_api_error(e):
 
         if final_code in error_map:
             matched_msg = error_map[final_code]
-        elif final_code in fallback_map:
-            matched_msg = fallback_map[final_code]
 
         if not matched_msg:
             for key in error_map:
                 if final_code.startswith(key):
                     matched_msg = error_map[key]
                     break
-            if not matched_msg:
-                for key in fallback_map:
-                    if final_code.startswith(key):
-                        matched_msg = fallback_map[key]
-                        break
 
         if matched_msg:
             if "%s" in matched_msg:
@@ -315,25 +275,25 @@ def format_api_error(e):
 
 def load_api_keys():
     """
-    加载 API 密钥配置文件 (api_keys.json)。
+    Load the API key file (api_keys.json).
     """
     API_KEY_STORE.load()
 
 
 def save_api_key(name, key):
     """
-    保存新的 API Key 到配置文件。
+    Save a new API key to api_keys.json.
     """
     if API_KEY_STORE.upsert(name, key):
         logger.info(f"Saved API Key: {name}")
 
 
-def validate_api_key(api_key: str) -> bool:
+def validate_api_key(api_key: str, base_url: str) -> bool:
     """
-    验证 API Key 是否有效。
+    Check that the API key is accepted by the region's endpoint.
     """
     try:
-        url = JIMENG_API_BASE_URL
+        url = base_url
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
@@ -481,7 +441,7 @@ load_files_upload_cache()
 
 async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, return_meta=False):
     """
-    使用 client.ark.files.create 上传文件。
+    Upload a file with client.ark.files.create (cached by content).
     """
     expire_seconds = _normalize_expire_seconds(expire_seconds)
     if fps is None:
@@ -590,7 +550,8 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
                 upload_kwargs = {
                     "file": f,
                     "purpose": "user_data",
-                    "expire_at": expire_at
+                    # BytePlus SDK name (the returned file object uses expire_at)
+                    "expires_at": expire_at
                 }
                 
                 if fps is not None:
@@ -624,45 +585,59 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
                         }
                     return file_id
                 else:
-                    raise JimengException("Upload failed: No file ID returned.")
+                    raise BytePlusException("Upload failed: No file ID returned.")
         else:
-             raise JimengException("SDK does not support files.create.")
+             raise BytePlusException("SDK does not support files.create.")
              
     except Exception as e:
         logger.error(f"Upload failed for {file_path}: {e}")
-        raise JimengException(f"File upload failed: {e}")
+        raise BytePlusException(f"File upload failed: {e}")
 
 
-async def wait_for_file_active(client, file_id):
+FILE_ACTIVE_POLL_SECONDS = 1
+FILE_ACTIVE_MAX_WAIT_SECONDS = 600
+FILE_ACTIVE_MAX_RETRIEVE_ERRORS = 5
+
+
+async def wait_for_file_active(client, file_id, max_wait_seconds=FILE_ACTIVE_MAX_WAIT_SECONDS):
     """
-    轮询文件状态，直到其变为“active”状态。
+    Poll the Files API until the file is "active". Raises on "failed", on a
+    timeout, after repeated retrieve errors, or when the user interrupts.
     """
     log_msg("visual_wait_active", id=file_id)
-    
+    deadline = time.monotonic() + max_wait_seconds
+    retrieve_errors = 0
+
     while True:
+        comfy.model_management.throw_exception_if_processing_interrupted()
         try:
-            file_info = await asyncio.to_thread(
-                client.ark.files.retrieve,
-                file_id=file_id
-            )
-            
+            file_info = await asyncio.to_thread(client.ark.files.retrieve, file_id=file_id)
+        except Exception as e:
+            retrieve_errors += 1
+            logger.error(f"Error checking file status: {e}")
+            if retrieve_errors >= FILE_ACTIVE_MAX_RETRIEVE_ERRORS:
+                raise BytePlusException(get_text("err_file_status_check", id=file_id, e=format_api_error(e)))
+        else:
+            retrieve_errors = 0
             status = getattr(file_info, "status", "unknown")
             log_msg("visual_file_status", id=file_id, status=status)
-            
             if status == "active":
                 return True
-            elif status == "error":
-                raise JimengException(f"File processing failed: {file_id}")
-            
-            await asyncio.sleep(1)
-        except Exception as e:
-            logger.error(f"Error checking file status: {e}")
-            await asyncio.sleep(1)
+            if status == "failed":
+                error = getattr(file_info, "error", None)
+                reason = getattr(error, "message", None) or error or "unknown error"
+                raise BytePlusException(get_text("err_file_processing_failed", id=file_id, reason=reason))
+
+        if time.monotonic() >= deadline:
+            raise BytePlusException(
+                get_text("err_file_processing_timeout", id=file_id, seconds=max_wait_seconds)
+            )
+        await asyncio.sleep(FILE_ACTIVE_POLL_SECONDS)
 
 
 def _tensor2images(tensor: torch.Tensor) -> list:
     """
-    将 PyTorch Tensor 转换为 PIL Image 列表。
+    Convert a PyTorch tensor to a list of PIL images.
     """
     np_imgs = numpy.clip(tensor.cpu().numpy() * 255.0, 0, 255.0).astype(numpy.uint8)
     return [PIL.Image.fromarray(np_img) for np_img in np_imgs]
@@ -670,7 +645,7 @@ def _tensor2images(tensor: torch.Tensor) -> list:
 
 def _image_to_base64(image: torch.Tensor) -> str:
     """
-    将单张图片 Tensor 转换为 Base64 编码字符串 (JPEG 格式)。
+    Encode a single image tensor as a Base64 JPEG string.
     """
     if image is None:
         return None
@@ -682,7 +657,7 @@ def _image_to_base64(image: torch.Tensor) -> str:
 
 def create_white_image_tensor(width=1024, height=1024):
     """
-    创建一个指定大小的纯白图片 Tensor。
+    Create a plain white image tensor of the given size.
     Shape: [1, height, width, 3]
     """
     return torch.ones((1, height, width, 3), dtype=torch.float32)
@@ -690,8 +665,8 @@ def create_white_image_tensor(width=1024, height=1024):
 
 def safe_cat_tensors(tensors, dim=0):
     """
-    安全地将多个 Tensor 拼接在一起。
-    主要用于处理 Adaptive Size 返回不同尺寸图片的情况。
+    Concatenate tensors, resizing any that differ from the first.
+    Adaptive sizes can return images of different dimensions.
     """
     if not tensors:
         return None
@@ -720,66 +695,95 @@ def safe_cat_tensors(tensors, dim=0):
     return torch.cat(processed_tensors, dim=dim)
 
 
-def create_white_video_file(filename_prefix, width=1024, height=1024):
+def create_white_video(width=1024, height=1024, fps=24):
     """
-    创建一个指定大小的 1 帧纯白视频文件 (H.264 MP4)。
-    返回视频文件的绝对路径。
+    One-frame white VIDEO (placeholder output when failures are ignored).
+    Built with ComfyUI's own video types, so no OpenCV is needed.
     """
-    import tempfile
     try:
-        import cv2
-    except ImportError:
-        return None
+        from fractions import Fraction
+        from comfy_api.latest import InputImpl, Types
 
-    try:
-        temp_dir = folder_paths.get_temp_directory()
-        timestamp = int(time.time() * 1000)
-        
-        flat_prefix = filename_prefix.replace("/", "_").replace("\\", "_")
-        filename = f"{flat_prefix}_dummy_{timestamp}.mp4"
-        
-        filepath = os.path.join(temp_dir, filename)
-
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        fps = 24.0
-        out = cv2.VideoWriter(filepath, fourcc, fps, (width, height))
-        
-        if not out.isOpened():
-            log_msg("err_create_dummy_video", e="Failed to open VideoWriter with mp4v")
-            return None
-
-        white_frame = numpy.ones((height, width, 3), dtype=numpy.uint8) * 255
-        
-        out.write(white_frame)
-        out.release()
-        
-        if not os.path.exists(filepath):
-             log_msg("err_create_dummy_video", e="File was not created on disk")
-             return None
-        
-        return filepath
+        frames = torch.ones((1, height, width, 3), dtype=torch.float32)
+        return InputImpl.VideoFromComponents(
+            Types.VideoComponents(images=frames, frame_rate=Fraction(fps))
+        )
     except Exception as e:
         log_msg("err_create_dummy_video", e=e)
         return None
 
 
-class JimengException(Exception):
+def probe_video_file(path):
     """
-    Jimeng 自定义异常类。
-    设置 jimeng_suppress_traceback = True 以在打印时抑制堆栈跟踪。
+    Read fps, frame count, duration and codecs of a local video with PyAV
+    (shipped with ComfyUI). Returns {} when the file cannot be read.
+    """
+    try:
+        import av
+
+        with av.open(path) as container:
+            video_stream = next((s for s in container.streams if s.type == "video"), None)
+            audio_stream = next((s for s in container.streams if s.type == "audio"), None)
+            info = {}
+            if video_stream is not None:
+                if video_stream.average_rate:
+                    info["fps"] = float(video_stream.average_rate)
+                if video_stream.frames:
+                    info["frame_count"] = int(video_stream.frames)
+                info["video_codec"] = video_stream.codec_context.name
+            if audio_stream is not None:
+                info["audio_codec"] = audio_stream.codec_context.name
+            if container.duration:
+                info["duration"] = float(container.duration) / av.time_base
+            return info
+    except Exception:
+        return {}
+
+
+def extract_last_frame_tensor(path):
+    """
+    Decode the last frame of a local video as an IMAGE tensor [1, H, W, 3],
+    or None. Seeks close to the end first so long videos are not fully decoded.
+    """
+    try:
+        import av
+
+        with av.open(path) as container:
+            stream = container.streams.video[0]
+            if container.duration and container.duration > 2 * av.time_base:
+                container.seek(int(container.duration - 2 * av.time_base), backward=True, any_frame=False)
+            last = None
+            for frame in container.decode(stream):
+                last = frame
+            if last is None:
+                return None
+            image = last.to_ndarray(format="rgb24").astype(numpy.float32) / 255.0
+            return torch.from_numpy(image)[None,]
+    except Exception as e:
+        logger.warning(f"Failed to extract the last frame locally: {e}")
+        return None
+
+
+class BytePlusException(Exception):
+    """
+    Plugin exception whose traceback is suppressed in the console
+    (byteplus_suppress_traceback = True); only the message is shown.
     """
     def __init__(self, message):
         super().__init__(message)
-        self.jimeng_suppress_traceback = True
+        self.byteplus_suppress_traceback = True
 
 
-class JimengClients:
+class BytePlusClients:
     """
-    包装 Ark 客户端的容器类。
+    Wraps the Ark client together with its API key, region and (optional)
+    asset-library IAM credentials. Never serialized into outputs.
     """
-    def __init__(self, ark_client, api_key=None):
+    def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION, asset_credentials=None):
         self.ark = ark_client
         self.api_key = api_key
+        self.region = region
+        self.asset_credentials = asset_credentials
 
     def check_quota(self, model: str, estimated_cost: int):
         if not self.api_key:
@@ -794,10 +798,29 @@ class JimengClients:
         QuotaManager.instance().update_usage(self.api_key, model, actual_cost)
 
 
-class JimengAPIClient(comfy_io.ComfyNode):
+API_KEY_SAVED_EVENT = "byteplus.api_key_saved"
+
+
+def _notify_api_key_saved(node_id, key_name):
     """
-    Jimeng API 客户端节点。
-    负责加载 API 密钥并初始化 Ark 客户端。
+    Tell the frontend a Custom key was saved, so the node switches to the saved
+    name and clears the raw key. Otherwise the key stays in the workflow and in
+    the prompt metadata embedded in every saved image or video.
+    """
+    if not node_id:
+        return
+    try:
+        from server import PromptServer
+
+        PromptServer.instance.send_sync(API_KEY_SAVED_EVENT, {"node": str(node_id), "key_name": key_name})
+    except Exception as e:
+        logger.warning(f"Could not notify the frontend that the API key was saved: {e}")
+
+
+class BytePlusAPIClient(comfy_io.ComfyNode):
+    """
+    BytePlus ModelArk API client node.
+    Loads the API key and creates the Ark client for the selected region.
     """
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
@@ -806,45 +829,56 @@ class JimengAPIClient(comfy_io.ComfyNode):
         key_names.append("Custom")
 
         return comfy_io.Schema(
-            node_id="JimengAPIClient",
-            display_name="Jimeng API Client",
+            node_id="BytePlusAPIClient",
+            display_name="BytePlus API Client",
             category=GLOBAL_CATEGORY,
             inputs=[
                 comfy_io.String.Input("new_api_key", default=""),
                 comfy_io.String.Input("new_key_name", default=""),
                 comfy_io.Combo.Input("key_name", options=key_names),
+                comfy_io.Combo.Input(
+                    "region",
+                    options=list(REGION_BASE_URLS.keys()),
+                    default=DEFAULT_REGION,
+                    tooltip="ModelArk region. API keys and model activation are per region.",
+                ),
             ],
-            outputs=[JimengClientType.Output(display_name="client")],
+            outputs=[BytePlusClientType.Output(display_name="client")],
+            hidden=[comfy_io.Hidden.unique_id],
         )
 
     @classmethod
     def execute(
-        cls, key_name, new_api_key="", new_key_name=""
+        cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_REGION
     ) -> comfy_io.NodeOutput:
         api_key = None
+        asset_credentials = None
+        base_url = REGION_BASE_URLS.get(region, REGION_BASE_URLS[DEFAULT_REGION])
 
         if key_name == "Custom":
             if not new_api_key or not new_api_key.strip():
-                raise JimengException(get_text("err_new_key_empty"))
+                raise BytePlusException(get_text("err_new_key_empty"))
             
             api_key = new_api_key.strip()
             
-            if not validate_api_key(api_key):
-                raise JimengException(get_text("err_new_key_invalid"))
+            if not validate_api_key(api_key, base_url):
+                raise BytePlusException(get_text("err_new_key_invalid"))
             
             if new_key_name and new_key_name.strip():
                 save_api_key(new_key_name.strip(), api_key)
                 print(get_text("info_new_key_saved", name=new_key_name.strip()))
+                _notify_api_key_saved(cls.hidden.unique_id, new_key_name.strip())
 
         else:
             api_key = API_KEY_STORE.find_api_key(key_name)
+            asset_credentials = API_KEY_STORE.find_asset_credentials(key_name)
 
         if not api_key:
             log_msg("api_key_not_found", key_name=key_name)
-            raise JimengException(get_text("popup_key_valid_err").format(key=key_name))
+            raise BytePlusException(get_text("popup_key_valid_err").format(key=key_name))
 
-        ark_client = Ark(
-            api_key=api_key, base_url=JIMENG_API_BASE_URL
+        ark_client = Ark(api_key=api_key, base_url=base_url)
+
+        return comfy_io.NodeOutput(
+            BytePlusClients(ark_client, api_key, region, asset_credentials)
         )
-
-        return comfy_io.NodeOutput(JimengClients(ark_client, api_key))

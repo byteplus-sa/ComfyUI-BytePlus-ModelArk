@@ -6,7 +6,7 @@
   "nodes": [
     {
       "id": 1,
-      "type": "JimengAPIClient",
+      "type": "BytePlusAPIClient",
       "pos": [20, 80],
       "size": [300, 130],
       "flags": {},
@@ -15,11 +15,12 @@
       "inputs": [
         {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
         {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
-        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null}
+        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null},
+        {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
       ],
-      "outputs": [{"name": "client", "type": "JIMENG_CLIENT", "links": [1]}],
-      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengAPIClient"},
-      "widgets_values": ["", "", "Custom"]
+      "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1]}],
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusAPIClient"},
+      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
       "id": 2,
@@ -58,14 +59,14 @@
     },
     {
       "id": 4,
-      "type": "JimengVisualUnderstanding",
+      "type": "BytePlusVisualUnderstanding",
       "pos": [400, 80],
       "size": [470, 620],
       "flags": {},
       "order": 3,
       "mode": 0,
       "inputs": [
-        {"name": "client", "type": "JIMENG_CLIENT", "link": 1},
+        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 1},
         {"name": "model", "type": "COMBO", "widget": {"name": "model"}, "link": null},
         {"name": "system_prompt", "type": "STRING", "widget": {"name": "system_prompt"}, "link": null},
         {"name": "user_prompt", "type": "STRING", "widget": {"name": "user_prompt"}, "link": null},
@@ -85,16 +86,16 @@
         {"name": "content", "type": "STRING", "links": null},
         {"name": "raw_json", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengVisualUnderstanding"},
-      "widgets_values": ["doubao-seed-2-1-pro", "你叫豆包，是由字节跳动开发的AI。", "请描述这张图片或视频的内容。", "high", 1.0, "auto", "medium", 1, false, 604800, 0, "randomize"]
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusVisualUnderstanding"},
+      "widgets_values": ["dola-seed-2-1-turbo", "You are a helpful assistant that describes and analyzes images and videos accurately.", "Describe the content of this image or video.", "high", 1.0, "auto", "medium", 1, false, 604800, 0, "randomize"]
     }
   ],
   "links": [
-    [1, 1, 0, 4, 0, "JIMENG_CLIENT"],
+    [1, 1, 0, 4, 0, "BYTEPLUS_CLIENT"],
     [2, 2, 0, 4, 12, "IMAGE"]
   ],
   "groups": [
-    {"id": 1, "title": "视觉输入", "bounding": [0, 240, 340, 780], "color": "#3f789e", "font_size": 22, "flags": {}}
+    {"id": 1, "title": "Visual inputs", "bounding": [0, 240, 340, 780], "color": "#3f789e", "font_size": 22, "flags": {}}
   ],
   "config": {},
   "extra": {"ds": {"scale": 0.95, "offset": [60, 40]}},

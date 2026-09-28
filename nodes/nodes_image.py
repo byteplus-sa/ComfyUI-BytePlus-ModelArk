@@ -3,15 +3,20 @@ import asyncio
 import aiohttp
 import torch
 import comfy.model_management
+import base64
+import io
 import json
+import os
 import time
-import re
+
+import numpy
+import PIL.Image
+import folder_paths
 
 from comfy_api.latest import io as comfy_io
 
-from volcenginesdkarkruntime.types.images.images import (
+from byteplussdkarkruntime.types.images.images import (
     SequentialImageGenerationOptions,
-    ContentGenerationTool,
     OptimizePromptOptions,
 )
 
@@ -21,27 +26,31 @@ from .nodes_shared import (
     get_text,
     log_msg,
     format_api_error,
-    JimengClientType,
-    JimengException,
+    BytePlusClientType,
+    BytePlusException,
     get_node_count_in_workflow,
     create_white_image_tensor,
     safe_cat_tensors,
 )
-from .utils_download import download_url_to_image_tensor_async
-from .executor import JimengGenerationExecutor
+from .utils_download import (
+    download_url_to_image_tensor_async,
+    download_url_to_rgba_tensor_async,
+)
+from .executor import BytePlusGenerationExecutor
 
 from .models_config import (
     SEEDREAM_4_MODEL_MAP,
+    SEEDREAM_4_0_UI_MODEL,
     SEEDREAM_5_MODEL_MAP,
     SEEDREAM_5_PRO_UI_MODEL,
-    SEEDREAM_3_MODELS,
+    SEEDREAM_LAYER_MODEL_MAP,
+    SEEDREAM_LAYER_SIZES,
+    PROMPT_OPTIMIZATION_MODES,
 )
 from .constants import (
     MAX_SEED,
     MIN_SEED,
     MAX_GENERATION_COUNT,
-    MIN_IMAGE_PIXELS_DEFAULT,
-    MAX_IMAGE_PIXELS_DEFAULT,
     MIN_IMAGE_PIXELS_V4_5,
     MAX_IMAGE_PIXELS_V4,
     MIN_IMAGE_PIXELS_V5,
@@ -50,59 +59,79 @@ from .constants import (
     MAX_IMAGE_PIXELS_V5_PRO,
     MIN_ASPECT_RATIO,
     MAX_ASPECT_RATIO,
+    MIN_LAYER_INPUT_PIXELS,
+    MAX_LAYER_INPUT_PIXELS,
+    REF_IMAGE_MAX_SIZE_MB,
 )
 from .nodes_image_schema import (
-    RECOMMENDED_SIZES_V3,
     RECOMMENDED_SIZES_V4,
     RECOMMENDED_SIZES_V5,
     RECOMMENDED_SIZES_V5_PRO,
     get_image_generation_inputs,
 )
 
-SEEDREAM_5_PRO_SIZE_OVERRIDES = {
-    "2848x1600": ("2K", "16:9"),
-    "1600x2848": ("2K", "9:16"),
-    "3136x1344": ("2K", "21:9"),
-}
-
-
-def _prompt_declares_aspect_ratio(prompt: str) -> bool:
-    text = prompt or ""
-    return bool(
-        re.search(r"(?<!\d)\d+\s*[:：]\s*\d+(?!\d)", text, re.IGNORECASE)
-    )
-
-
-def prepare_seedream5_pro_size(prompt: str, size: str, width: int, height: int):
+def resolve_seedream5_pro_size(size: str, width: int, height: int) -> str:
+    """
+    Seedream 5.0 Pro accepts a resolution level (1K / 1.5K / 2K) or WxH
+    within [1280x720, 2048x2048x1.1025] total pixels.
+    """
     if size == "Custom":
-        if width % 16 != 0 or height % 16 != 0:
-            raise JimengException(get_text("err_size_multiple_16"))
-        size_value = validate_custom_size(
-            width,
-            height,
-            MIN_IMAGE_PIXELS_V5_PRO,
-            MAX_IMAGE_PIXELS_V5_PRO,
+        return validate_custom_size(
+            width, height, MIN_IMAGE_PIXELS_V5_PRO, MAX_IMAGE_PIXELS_V5_PRO
         )
-        return prompt, size_value
+    return (size or "2K").split(" ")[0]
 
-    size_value = (size or "").split(" ")[0]
-    override = SEEDREAM_5_PRO_SIZE_OVERRIDES.get(size_value)
-    if not override:
-        return prompt, size_value
 
-    api_size, aspect_ratio = override
-    final_prompt = prompt or ""
-    if not _prompt_declares_aspect_ratio(final_prompt):
-        final_prompt = f"{final_prompt.rstrip()}\nAspect Ratio: {aspect_ratio}".strip()
-    return final_prompt, api_size
+def _mask_to_alpha(mask, height, width):
+    """ComfyUI MASK (1 = transparent) -> alpha array (1 = opaque) of the image size."""
+    mask = mask if mask.ndim == 3 else mask.unsqueeze(0)
+    mask = mask[:1].float()
+    if mask.shape[-2:] != (height, width):
+        mask = torch.nn.functional.interpolate(
+            mask.unsqueeze(1), size=(height, width), mode="bilinear", align_corners=False
+        ).squeeze(1)
+    return 1.0 - mask[0].clamp(0.0, 1.0).cpu().numpy()
+
+
+def _image_to_png_data_uri(image, mask=None, with_alpha=False):
+    """
+    Encode one image as a PNG data URI. With a ComfyUI mask, or with_alpha,
+    the PNG gets an alpha channel (fully opaque when there is no mask).
+    """
+    rgb = numpy.clip(image[0].cpu().numpy() * 255.0, 0, 255).astype(numpy.uint8)
+    pil_image = PIL.Image.fromarray(rgb, "RGB")
+    if mask is not None:
+        alpha = _mask_to_alpha(mask, rgb.shape[0], rgb.shape[1])
+        pil_image.putalpha(PIL.Image.fromarray((alpha * 255.0).astype(numpy.uint8), "L"))
+    elif with_alpha:
+        pil_image.putalpha(255)
+    buffer = io.BytesIO()
+    pil_image.save(buffer, format="PNG")
+    data_uri = "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8")
+    size_mb = len(data_uri) / (1024.0 * 1024.0)
+    if size_mb > REF_IMAGE_MAX_SIZE_MB:
+        raise BytePlusException(
+            get_text("popup_ref_image_size_exceeded").format(
+                max_mb=REF_IMAGE_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}"
+            )
+        )
+    return data_uri
+
+
+def _split_rgba(tensor):
+    """(B, H, W, 3|4) -> RGB image and ComfyUI mask (1 = transparent)."""
+    if tensor.shape[-1] == 4:
+        return tensor[..., :3].contiguous(), 1.0 - tensor[..., 3].contiguous()
+    return tensor, torch.zeros(tensor.shape[:3], dtype=tensor.dtype)
+
 
 def validate_custom_size(width, height, min_pixels, max_pixels):
     """
-    验证自定义宽高是否符合模型的像素限制和宽高比限制。
+    Check a custom width/height against the model's pixel and aspect-ratio limits.
     """
     total_pixels = width * height
     if not (min_pixels <= total_pixels <= max_pixels):
-        raise JimengException(
+        raise BytePlusException(
             get_text("err_pixels_range").format(
                 min=min_pixels,
                 max=max_pixels,
@@ -112,7 +141,7 @@ def validate_custom_size(width, height, min_pixels, max_pixels):
 
     aspect_ratio = width / height
     if not (MIN_ASPECT_RATIO <= aspect_ratio <= MAX_ASPECT_RATIO):
-        raise JimengException(
+        raise BytePlusException(
             get_text("err_aspect_ratio").format(
                 min="1/16", max="16", current=aspect_ratio
             )
@@ -141,6 +170,21 @@ def _create_seedream_autogrow_input():
             min=1,
         ),
     )
+
+
+def _collect_image_tensors(images=None, **kwargs):
+    """Connected reference images as a list of (1, H, W, 3) tensors, in input order."""
+    tensors = []
+    if isinstance(images, dict):
+        for _, tensor in sorted(images.items(), key=lambda item: _get_dynamic_input_order(item[0])):
+            if isinstance(tensor, torch.Tensor):
+                tensors.append(tensor)
+    elif isinstance(images, torch.Tensor):
+        tensors.append(images)
+    for key in sorted([k for k in kwargs if k.startswith("image_")], key=_get_dynamic_input_order):
+        if isinstance(kwargs[key], torch.Tensor):
+            tensors.append(kwargs[key])
+    return [tensor[i : i + 1] for tensor in tensors for i in range(tensor.shape[0])]
 
 
 def _prepare_multi_image_inputs(images=None, **kwargs):
@@ -179,135 +223,10 @@ def _prepare_multi_image_inputs(images=None, **kwargs):
     return n_input_images, image_param
 
 
-class JimengSeedream3(comfy_io.ComfyNode):
+class BytePlusSeedream4(comfy_io.ComfyNode):
     """
-    Jimeng Seedream 3 图像生成节点。
-    支持文生图。
-    """
-    RECOMMENDED_SIZES = RECOMMENDED_SIZES_V3
-
-    @classmethod
-    def define_schema(cls) -> comfy_io.Schema:
-        return comfy_io.Schema(
-            node_id="JimengSeedream3",
-            display_name="Jimeng Seedream 3",
-            category=GLOBAL_CATEGORY,
-            is_deprecated=True,
-            inputs=[
-                JimengClientType.Input("client"),
-                comfy_io.String.Input("prompt", multiline=True, default=""),
-                comfy_io.Float.Input(
-                    "guidance_scale", default=5.0, min=1.0, max=10.0, step=0.1
-                ),
-            ] + get_image_generation_inputs(cls.RECOMMENDED_SIZES),
-            hidden=[comfy_io.Hidden.unique_id, comfy_io.Hidden.prompt],
-            outputs=[
-                comfy_io.Image.Output(display_name="image"),
-                comfy_io.String.Output(display_name="response"),
-            ],
-        )
-
-    @classmethod
-    async def execute(
-        cls,
-        client,
-        prompt,
-        size,
-        width,
-        height,
-        seed,
-        generation_count,
-        watermark,
-        guidance_scale,
-    ) -> comfy_io.NodeOutput:
-        node_id = cls.hidden.unique_id
-        ark_client = client.ark
-
-        if size == "Custom":
-            size_param = validate_custom_size(
-                width,
-                height,
-                MIN_IMAGE_PIXELS_DEFAULT,
-                MAX_IMAGE_PIXELS_DEFAULT,
-            )
-        else:
-            size_param = size.split(" ")[0]
-
-        model_id = SEEDREAM_3_MODELS["t2i"]
-
-        client.check_quota(model_id, generation_count)
-
-        if generation_count > 1:
-            log_msg("batch_submit_start", count=generation_count, model=model_id)
-
-        async def _generate_single(idx, session):
-            current_seed = random.randint(0, MAX_SEED) if seed == -1 else seed + idx
-
-            def _call_api():
-                kwargs = {
-                    "model": model_id,
-                    "prompt": prompt,
-                    "size": size_param,
-                    "response_format": "url",
-                    "watermark": watermark,
-                    "seed": current_seed,
-                    "guidance_scale": guidance_scale,
-                }
-
-                return ark_client.images.generate(**kwargs)
-
-            try:
-                comfy.model_management.throw_exception_if_processing_interrupted()
-                resp = await asyncio.to_thread(_call_api)
-                comfy.model_management.throw_exception_if_processing_interrupted()
-
-                image_tensor = await download_url_to_image_tensor_async(
-                    session, resp.data[0].url
-                )
-
-                if image_tensor is None:
-                    raise JimengException(get_text("err_download_img"))
-
-                output_response = {
-                    "batch_index": idx,
-                    "model": resp.model,
-                    "created": resp.created,
-                    "url": resp.data[0].url,
-                    "revised_prompt": getattr(resp.data[0], "revised_prompt", None),
-                }
-                return image_tensor, output_response
-            except Exception as e:
-                if isinstance(e, comfy.model_management.InterruptProcessingException):
-                    raise e
-                raise JimengException(format_api_error(e))
-        
-        node_count = get_node_count_in_workflow("JimengSeedream3", prompt=cls.hidden.prompt)
-        # log_msg("debug_node_count", count=node_count, type="JimengSeedream3")
-        ignore_errors = node_count > 1
-        
-        executor = JimengGenerationExecutor(client, node_id, ignore_errors=ignore_errors)
-        tensors, metadata = await executor.run_parallel_requests(generation_count, _generate_single)
-        
-        if tensors:
-            try:
-                count = tensors[0].shape[0] if isinstance(tensors, list) else tensors.shape[0]
-                client.update_usage(model_id, count)
-            except:
-                pass
-        
-        if not tensors:
-             return comfy_io.NodeOutput(create_white_image_tensor(), "[]")
-
-        output_tensor = safe_cat_tensors(tensors)
-        
-        return comfy_io.NodeOutput(
-            output_tensor, json.dumps(metadata, indent=2)
-        )
-
-class JimengSeedream4(comfy_io.ComfyNode):
-    """
-    Jimeng Seedream 4 图像生成节点。
-    支持文生图、组图生成，并使用流式 API 接收结果。
+    Seedream 4.0 / 4.5 image generation node.
+    Text-to-image, image editing and group generation, received via streaming.
     """
     RECOMMENDED_SIZES = RECOMMENDED_SIZES_V4
 
@@ -321,21 +240,22 @@ class JimengSeedream4(comfy_io.ComfyNode):
         )
         generation_inputs.insert(
             len(generation_inputs) - 1,
-            comfy_io.Boolean.Input(
-                "thinking",
-                default=True,
+            comfy_io.Combo.Input(
+                "prompt_optimization",
+                options=PROMPT_OPTIMIZATION_MODES,
+                default="standard",
                 tooltip=(
-                    "Optimize the prompt before generation. Supported by "
-                    "Seedream 4.0 only."
+                    "Prompt optimization mode for Seedream 4.0: standard (higher "
+                    "quality) or fast (lower latency). Seedream 4.5 always uses standard."
                 ),
             ),
         )
         return comfy_io.Schema(
-            node_id="JimengSeedream4",
-            display_name="Jimeng Seedream 4",
+            node_id="BytePlusSeedream4",
+            display_name="BytePlus Seedream 4",
             category=GLOBAL_CATEGORY,
             inputs=[
-                JimengClientType.Input("client"),
+                BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input(
                     "model_version", options=list(SEEDREAM_4_MODEL_MAP.keys())
                 ),
@@ -364,7 +284,7 @@ class JimengSeedream4(comfy_io.ComfyNode):
         seed,
         generation_count,
         watermark,
-        thinking=True,
+        prompt_optimization="standard",
         images=None,
         **kwargs,
     ) -> comfy_io.NodeOutput:
@@ -381,7 +301,7 @@ class JimengSeedream4(comfy_io.ComfyNode):
         if sequential_param == "auto":
             total_count = n_input_images + max_images
             if total_count > 15:
-                raise JimengException(
+                raise BytePlusException(
                     get_text("err_img_limit_group_15").format(
                         n=n_input_images, max=max_images, total=total_count
                     )
@@ -390,7 +310,7 @@ class JimengSeedream4(comfy_io.ComfyNode):
         if size == "Custom":
             min_pixels = 1280 * 720
 
-            if "4.5" in model_version:
+            if model_version != SEEDREAM_4_0_UI_MODEL:
                 min_pixels = MIN_IMAGE_PIXELS_V4_5
 
             size_str = validate_custom_size(
@@ -411,11 +331,11 @@ class JimengSeedream4(comfy_io.ComfyNode):
         if generation_count > 1:
             log_msg("batch_submit_start", count=generation_count, model=model_id)
 
-        node_count = get_node_count_in_workflow("JimengSeedream4", prompt=cls.hidden.prompt)
-        # log_msg("debug_node_count", count=node_count, type="JimengSeedream4")
+        node_count = get_node_count_in_workflow("BytePlusSeedream4", prompt=cls.hidden.prompt)
+        # log_msg("debug_node_count", count=node_count, type="BytePlusSeedream4")
         ignore_errors = node_count > 1
 
-        executor = JimengGenerationExecutor(client, node_id, ignore_errors=ignore_errors)
+        executor = BytePlusGenerationExecutor(client, node_id, ignore_errors=ignore_errors)
 
         async def _generate_single(idx, session):
             current_seed = random.randint(0, MAX_SEED) if seed == -1 else seed + idx
@@ -433,12 +353,9 @@ class JimengSeedream4(comfy_io.ComfyNode):
                 kwargs["image"] = image_param
             if seq_options:
                 kwargs["sequential_image_generation_options"] = seq_options
-            if (
-                model_version == "doubao-seedream-4.0"
-                and thinking
-            ):
+            if model_version == SEEDREAM_4_0_UI_MODEL:
                 kwargs["optimize_prompt_options"] = OptimizePromptOptions(
-                    mode="standard"
+                    mode=prompt_optimization
                 )
                 
             return await executor.stream_generation_helper(
@@ -463,10 +380,10 @@ class JimengSeedream4(comfy_io.ComfyNode):
             output_tensor, json.dumps(metadata, indent=2)
         )
 
-class JimengSeedream5(comfy_io.ComfyNode):
+class BytePlusSeedream5(comfy_io.ComfyNode):
     """
-    Jimeng Seedream 5 图像生成节点。
-    支持文生图、组图生成，并使用流式 API 接收结果。
+    Seedream 5.0 Pro / Lite image generation node.
+    Pro returns URLs; Lite supports group generation and web search via streaming.
     """
     RECOMMENDED_SIZES = RECOMMENDED_SIZES_V5
 
@@ -483,12 +400,21 @@ class JimengSeedream5(comfy_io.ComfyNode):
                 comfy_io.Int.Input(
                     "generation_count", default=1, min=1, max=MAX_GENERATION_COUNT
                 ),
-                comfy_io.Boolean.Input(
-                    "thinking",
-                    default=True,
+                comfy_io.Combo.Input(
+                    "prompt_optimization",
+                    options=PROMPT_OPTIMIZATION_MODES,
+                    default="standard",
+                    tooltip="standard: higher quality. fast: lower latency.",
+                ),
+                comfy_io.Combo.Input("output_format", options=["jpeg", "png"], default="jpeg"),
+                comfy_io.Combo.Input(
+                    "background",
+                    options=["opaque", "transparent"],
+                    default="opaque",
                     tooltip=(
-                        "Optimize the prompt before generation. Required when "
-                        "Seedream 5 Pro uses reference images."
+                        "transparent: edit one reference image that has an alpha "
+                        "channel (connect its mask to reference_mask) and return a "
+                        "PNG with transparency. Needs output_format png."
                     ),
                 ),
                 comfy_io.Boolean.Input("watermark", default=False),
@@ -501,22 +427,22 @@ class JimengSeedream5(comfy_io.ComfyNode):
                 default_width=2048,
                 default_height=2048,
                 enable_group_generation=True,
-                enable_web_search=True,
             ),
         ]
 
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
-            node_id="JimengSeedream5",
-            display_name="Jimeng Seedream 5",
+            node_id="BytePlusSeedream5",
+            display_name="BytePlus Seedream 5",
             category=GLOBAL_CATEGORY,
             description=(
-                "Generate images with Seedream 5 Pro or Lite. Pro supports prompt "
-                "optimization; Lite supports grouped generation and web search."
+                "Generate images with Seedream 5.0 Pro or Lite. Pro supports prompt "
+                "optimization modes, PNG output and transparent backgrounds; Lite "
+                "supports grouped generation."
             ),
             inputs=[
-                JimengClientType.Input("client"),
+                BytePlusClientType.Input("client"),
                 comfy_io.DynamicCombo.Input(
                     "model_version",
                     options=[
@@ -527,11 +453,26 @@ class JimengSeedream5(comfy_io.ComfyNode):
                     ],
                 ),
                 _create_seedream_autogrow_input(),
+                comfy_io.Mask.Input(
+                    "reference_mask",
+                    optional=True,
+                    tooltip=(
+                        "Alpha of the reference image for transparent background "
+                        "(connect the MASK output of Load Image)."
+                    ),
+                ),
             ],
             hidden=[comfy_io.Hidden.unique_id, comfy_io.Hidden.prompt],
             outputs=[
                 comfy_io.Image.Output(display_name="images"),
                 comfy_io.String.Output(display_name="response"),
+                comfy_io.Mask.Output(
+                    display_name="mask",
+                    tooltip=(
+                        "Transparency of the output (1 = transparent, like Load "
+                        "Image). Empty unless background is transparent."
+                    ),
+                ),
             ],
         )
 
@@ -542,16 +483,18 @@ class JimengSeedream5(comfy_io.ComfyNode):
         model_version,
         prompt="",
         enable_group_generation=False,
-        enable_web_search=False,
         max_images=1,
-        size="2K (Adaptive)",
+        size="2K (adaptive)",
         width=2048,
         height=2048,
         seed=0,
         generation_count=1,
         watermark=False,
-        thinking=True,
+        prompt_optimization="standard",
+        output_format="jpeg",
+        background="opaque",
         images=None,
+        reference_mask=None,
         **kwargs,
     ) -> comfy_io.NodeOutput:
         node_id = cls.hidden.unique_id
@@ -564,7 +507,6 @@ class JimengSeedream5(comfy_io.ComfyNode):
             enable_group_generation = model_config.get(
                 "enable_group_generation", enable_group_generation
             )
-            enable_web_search = model_config.get("enable_web_search", enable_web_search)
             max_images = model_config.get("max_images", max_images)
             size = model_config.get("size", size)
             width = model_config.get("width", width)
@@ -572,11 +514,13 @@ class JimengSeedream5(comfy_io.ComfyNode):
             seed = model_config.get("seed", seed)
             generation_count = model_config.get("generation_count", generation_count)
             watermark = model_config.get("watermark", watermark)
-            thinking = model_config.get("thinking", thinking)
+            prompt_optimization = model_config.get("prompt_optimization", prompt_optimization)
+            output_format = model_config.get("output_format", output_format)
+            background = model_config.get("background", background)
 
         model_id = SEEDREAM_5_MODEL_MAP.get(model_version)
         if not model_id:
-            raise JimengException(get_text("err_model_not_supported").format(model=model_version))
+            raise BytePlusException(get_text("err_model_not_supported").format(model=model_version))
 
         is_pro = model_version == SEEDREAM_5_PRO_UI_MODEL
 
@@ -584,21 +528,32 @@ class JimengSeedream5(comfy_io.ComfyNode):
         n_input_images, image_param = _prepare_multi_image_inputs(images, **kwargs)
 
         if is_pro and n_input_images > 10:
-            raise JimengException(get_text("err_img_limit_10"))
-        if is_pro and n_input_images and not thinking:
-            raise JimengException(get_text("err_seedream5_pro_thinking_required"))
+            raise BytePlusException(get_text("err_img_limit_10"))
+        transparent = is_pro and background == "transparent"
+        if transparent:
+            if n_input_images != 1:
+                raise BytePlusException(
+                    get_text("err_transparent_needs_one_image", n=n_input_images)
+                )
+            if output_format != "png":
+                raise BytePlusException(get_text("err_transparent_needs_png"))
+            # The API needs an input with an alpha channel; without a mask
+            # the image is sent fully opaque.
+            image_param = _image_to_png_data_uri(
+                _collect_image_tensors(images, **kwargs)[0], reference_mask, with_alpha=True
+            )
 
         if sequential_param == "auto":
             total_count = n_input_images + max_images
             if total_count > 15:
-                raise JimengException(
+                raise BytePlusException(
                     get_text("err_img_limit_group_15").format(
                         n=n_input_images, max=max_images, total=total_count
                     )
                 )
 
         if is_pro:
-            prompt, size_str = prepare_seedream5_pro_size(prompt, size, width, height)
+            size_str = resolve_seedream5_pro_size(size, width, height)
         elif size == "Custom":
             min_pixels = MIN_IMAGE_PIXELS_V5
 
@@ -625,11 +580,11 @@ class JimengSeedream5(comfy_io.ComfyNode):
         if generation_count > 1:
             log_msg("batch_submit_start", count=generation_count, model=model_id)
         
-        node_count = get_node_count_in_workflow("JimengSeedream5", prompt=cls.hidden.prompt)
-        # log_msg("debug_node_count", count=node_count, type="JimengSeedream5")
+        node_count = get_node_count_in_workflow("BytePlusSeedream5", prompt=cls.hidden.prompt)
+        # log_msg("debug_node_count", count=node_count, type="BytePlusSeedream5")
         ignore_errors = node_count > 1
 
-        executor = JimengGenerationExecutor(client, node_id, ignore_errors=ignore_errors)
+        executor = BytePlusGenerationExecutor(client, node_id, ignore_errors=ignore_errors)
 
         async def _generate_single(idx, session):
             current_seed = random.randint(0, MAX_SEED) if seed == -1 else seed + idx
@@ -642,12 +597,20 @@ class JimengSeedream5(comfy_io.ComfyNode):
                     "response_format": "url",
                     "watermark": watermark,
                     "seed": current_seed,
+                    "output_format": output_format,
                     "optimize_prompt_options": OptimizePromptOptions(
-                        thinking="enabled" if thinking else "disabled"
+                        mode=prompt_optimization
                     ),
                 }
                 if image_param:
                     request_kwargs["image"] = image_param
+                if transparent:
+                    request_kwargs["extra_body"] = {"background": "transparent"}
+                download = (
+                    download_url_to_rgba_tensor_async
+                    if transparent
+                    else download_url_to_image_tensor_async
+                )
 
                 try:
                     comfy.model_management.throw_exception_if_processing_interrupted()
@@ -662,17 +625,14 @@ class JimengSeedream5(comfy_io.ComfyNode):
                     ]
                     urls = [url for url in urls if url]
                     if not urls:
-                        raise JimengException(get_text("err_download_img"))
+                        raise BytePlusException(get_text("err_download_img"))
 
                     downloaded = await asyncio.gather(
-                        *[
-                            download_url_to_image_tensor_async(session, url)
-                            for url in urls
-                        ]
+                        *[download(session, url) for url in urls]
                     )
                     downloaded = [tensor for tensor in downloaded if tensor is not None]
                     if not downloaded:
-                        raise JimengException(get_text("err_download_img"))
+                        raise BytePlusException(get_text("err_download_img"))
 
                     metadata = {
                         "batch_index": idx,
@@ -684,9 +644,9 @@ class JimengSeedream5(comfy_io.ComfyNode):
                 except comfy.model_management.InterruptProcessingException:
                     raise
                 except Exception as exc:
-                    if isinstance(exc, JimengException):
+                    if isinstance(exc, BytePlusException):
                         raise
-                    raise JimengException(format_api_error(exc))
+                    raise BytePlusException(format_api_error(exc))
             
             request_kwargs = {
                 "model": model_id,
@@ -697,9 +657,6 @@ class JimengSeedream5(comfy_io.ComfyNode):
                 "seed": current_seed,
                 "sequential_image_generation": sequential_param,
             }
-            if enable_web_search:
-                request_kwargs["tools"] = [ContentGenerationTool(type="web_search")]
-
             if image_param:
                 request_kwargs["image"] = image_param
             if seq_options:
@@ -724,10 +681,247 @@ class JimengSeedream5(comfy_io.ComfyNode):
                 pass
         
         if not tensors:
-             return comfy_io.NodeOutput(create_white_image_tensor(), "[]")
-             
-        output_tensor = safe_cat_tensors(tensors)
-        
+            empty = create_white_image_tensor()
+            return comfy_io.NodeOutput(empty, "[]", torch.zeros(empty.shape[:3]))
+
+        output_tensor, output_mask = _split_rgba(safe_cat_tensors(tensors))
+
         return comfy_io.NodeOutput(
-            output_tensor, json.dumps(metadata, indent=2)
+            output_tensor, json.dumps(metadata, indent=2), output_mask
         )
+
+
+def _b64_to_rgba_image(b64_data):
+    return PIL.Image.open(io.BytesIO(base64.b64decode(b64_data))).convert("RGBA")
+
+
+def _rgba_images_to_tensors(rgba_images):
+    """List of same-size PIL RGBA images -> (N, H, W, 3) image and (N, H, W) ComfyUI mask."""
+    stacked = numpy.stack(
+        [numpy.array(img).astype(numpy.float32) / 255.0 for img in rgba_images]
+    )
+    tensor = torch.from_numpy(stacked)
+    return tensor[..., :3].contiguous(), 1.0 - tensor[..., 3].contiguous()
+
+
+def place_layer_on_canvas(layer, bounding_box, canvas_size):
+    """
+    Scale a layer to its bounding box and place it on a transparent canvas the
+    size of the base image, as described by bounding_box.absolute.
+    """
+    canvas = PIL.Image.new("RGBA", canvas_size, (0, 0, 0, 0))
+    absolute = (bounding_box or {}).get("absolute")
+    if absolute and len(absolute) == 4:
+        left, top, right, bottom = [int(v) for v in absolute]
+        size = (max(1, right - left), max(1, bottom - top))
+        position = (left, top)
+    else:
+        size, position = canvas_size, (0, 0)
+    # Plain paste copies RGBA as-is (clipped to the canvas); a masked paste
+    # would blend the alpha channel with the empty canvas.
+    canvas.paste(layer.resize(size, PIL.Image.LANCZOS), position)
+    return canvas
+
+
+class BytePlusSeedreamLayers(comfy_io.ComfyNode):
+    """
+    Seedream 5.0 Pro layer decomposition: splits one image into a base image
+    and up to 16 transparent layers (subjects, background, text, ...).
+    """
+
+    @classmethod
+    def define_schema(cls) -> comfy_io.Schema:
+        return comfy_io.Schema(
+            node_id="BytePlusSeedreamLayers",
+            display_name="BytePlus Seedream Layer Decomposition",
+            category=GLOBAL_CATEGORY,
+            # Runs even with nothing connected, so save_layers alone is useful.
+            is_output_node=True,
+            description=(
+                "Split an image into a base image and up to 16 editable layers with "
+                "Seedream 5.0 Pro. Layers are returned placed on the base image canvas, "
+                "with their masks; the original layer PNGs can be saved to the output folder."
+            ),
+            inputs=[
+                BytePlusClientType.Input("client"),
+                comfy_io.Combo.Input("model", options=list(SEEDREAM_LAYER_MODEL_MAP.keys())),
+                comfy_io.Image.Input("image"),
+                comfy_io.String.Input(
+                    "prompt",
+                    multiline=True,
+                    default="",
+                    tooltip="Optional guidance, e.g. which elements to separate.",
+                ),
+                comfy_io.Combo.Input(
+                    "size",
+                    options=SEEDREAM_LAYER_SIZES,
+                    default="auto",
+                    tooltip="Base image resolution. auto keeps the input's dimensions within 1K-2K.",
+                ),
+                comfy_io.Combo.Input(
+                    "output_format",
+                    options=["png", "jpeg"],
+                    default="png",
+                    tooltip="Format of the base image. Layers are always PNG.",
+                ),
+                comfy_io.Int.Input("seed", default=0, min=MIN_SEED, max=MAX_SEED),
+                comfy_io.Boolean.Input("watermark", default=False),
+                comfy_io.Boolean.Input(
+                    "save_layers",
+                    default=True,
+                    tooltip="Save the base image and original layer PNGs to the output folder.",
+                ),
+                comfy_io.String.Input("filename_prefix", default="BytePlus/Layers/Seedream"),
+            ],
+            hidden=[comfy_io.Hidden.unique_id],
+            outputs=[
+                comfy_io.Image.Output(display_name="base_image"),
+                comfy_io.Image.Output(
+                    display_name="layers",
+                    tooltip="One image per layer, placed on the base image canvas, in z order.",
+                ),
+                comfy_io.Mask.Output(
+                    display_name="layer_masks",
+                    tooltip="Per-layer transparency (1 = transparent, like Load Image).",
+                ),
+                comfy_io.String.Output(
+                    display_name="layers_json",
+                    tooltip="z_index, name, description and bounding box of each layer.",
+                ),
+            ],
+        )
+
+    @classmethod
+    async def execute(
+        cls,
+        client,
+        model,
+        image,
+        prompt="",
+        size="auto",
+        output_format="png",
+        seed=0,
+        watermark=False,
+        save_layers=True,
+        filename_prefix="BytePlus/Layers/Seedream",
+    ) -> comfy_io.NodeOutput:
+        model_id = SEEDREAM_LAYER_MODEL_MAP.get(model)
+        if not model_id:
+            raise BytePlusException(get_text("err_model_not_supported").format(model=model))
+
+        height, width = int(image.shape[1]), int(image.shape[2])
+        if not (MIN_LAYER_INPUT_PIXELS <= width * height <= MAX_LAYER_INPUT_PIXELS):
+            raise BytePlusException(
+                get_text(
+                    "err_layer_input_pixels",
+                    min=MIN_LAYER_INPUT_PIXELS,
+                    max=MAX_LAYER_INPUT_PIXELS,
+                    current=width * height,
+                )
+            )
+
+        client.check_quota(model_id, 1)
+        request_kwargs = {
+            "model": model_id,
+            "prompt": prompt or "",
+            "image": _image_to_png_data_uri(image[:1]),
+            "layer_decomposition": True,
+            "size": size,
+            "output_format": output_format,
+            "response_format": "b64_json",
+            "watermark": watermark,
+            "seed": seed,
+        }
+        try:
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            response = await asyncio.to_thread(client.ark.images.generate, **request_kwargs)
+        except comfy.model_management.InterruptProcessingException:
+            raise
+        except Exception as exc:
+            if isinstance(exc, BytePlusException):
+                raise
+            raise BytePlusException(format_api_error(exc))
+
+        items = [item for item in (getattr(response, "data", None) or []) if getattr(item, "b64_json", None)]
+        if not items:
+            raise BytePlusException(get_text("err_layer_decomposition_empty"))
+        items.sort(key=lambda item: getattr(item, "z_index", None) or 0)
+
+        base_item, layer_items = items[0], items[1:]
+        base = _b64_to_rgba_image(base_item.b64_json)
+        layers = [_b64_to_rgba_image(item.b64_json) for item in layer_items]
+        placed = [
+            place_layer_on_canvas(layer, _bbox_dict(item), base.size)
+            for layer, item in zip(layers, layer_items)
+        ]
+
+        saved = {}
+        if save_layers:
+            saved = await asyncio.to_thread(
+                _save_layer_pngs, filename_prefix, base, layers, layer_items, output_format
+            )
+
+        layers_info = []
+        for item in items:
+            z_index = getattr(item, "z_index", None) or 0
+            layers_info.append(
+                {
+                    "z_index": z_index,
+                    "name": getattr(item, "name", None) or ("base" if item is base_item else None),
+                    "description": getattr(item, "description", None),
+                    "size": getattr(item, "size", None),
+                    "bounding_box": _bbox_dict(item),
+                    "file": saved.get(z_index),
+                }
+            )
+
+        client.update_usage(model_id, 1)
+        base_image, _ = _rgba_images_to_tensors([base])
+        if placed:
+            layer_images, layer_masks = _rgba_images_to_tensors(placed)
+        else:
+            layer_images = base_image
+            layer_masks = torch.ones(base_image.shape[:3])
+        return comfy_io.NodeOutput(
+            base_image,
+            layer_images,
+            layer_masks,
+            json.dumps(
+                {"model": getattr(response, "model", model_id), "layers": layers_info},
+                indent=2,
+                ensure_ascii=False,
+            ),
+        )
+
+
+def _bbox_dict(item):
+    bounding_box = getattr(item, "bounding_box", None)
+    if bounding_box is None:
+        return None
+    if isinstance(bounding_box, dict):
+        return bounding_box
+    return {
+        "absolute": getattr(bounding_box, "absolute", None),
+        "normalized": getattr(bounding_box, "normalized", None),
+    }
+
+
+def _save_layer_pngs(filename_prefix, base, layers, layer_items, output_format):
+    """Save the base image and the original layer PNGs; return {z_index: relative path}."""
+    output_dir = folder_paths.get_output_directory()
+    full_folder, filename, counter, subfolder, _ = folder_paths.get_save_image_path(
+        filename_prefix, output_dir, base.width, base.height
+    )
+    os.makedirs(full_folder, exist_ok=True)
+    saved = {}
+    stem = f"{filename}_{counter:05}"
+    base_ext = "png" if output_format == "png" else "jpg"
+    base_name = f"{stem}_base.{base_ext}"
+    (base if base_ext == "png" else base.convert("RGB")).save(os.path.join(full_folder, base_name))
+    saved[0] = os.path.join(subfolder, base_name)
+    for layer, item in zip(layers, layer_items):
+        z_index = getattr(item, "z_index", None) or 0
+        layer_name = f"{stem}_layer{z_index:02d}.png"
+        layer.save(os.path.join(full_folder, layer_name))
+        saved[z_index] = os.path.join(subfolder, layer_name)
+    return saved

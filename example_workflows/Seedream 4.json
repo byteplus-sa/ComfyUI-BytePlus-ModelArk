@@ -6,7 +6,7 @@
   "nodes": [
     {
       "id": 1,
-      "type": "JimengAPIClient",
+      "type": "BytePlusAPIClient",
       "pos": [20, 100],
       "size": [300, 130],
       "flags": {},
@@ -15,11 +15,12 @@
       "inputs": [
         {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
         {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
-        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null}
+        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null},
+        {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
       ],
-      "outputs": [{"name": "client", "type": "JIMENG_CLIENT", "links": [1]}],
-      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengAPIClient"},
-      "widgets_values": ["", "", "Custom"]
+      "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1]}],
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusAPIClient"},
+      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
       "id": 2,
@@ -42,14 +43,14 @@
     },
     {
       "id": 3,
-      "type": "JimengSeedream4",
+      "type": "BytePlusSeedream4",
       "pos": [390, 100],
       "size": [430, 560],
       "flags": {},
       "order": 2,
       "mode": 0,
       "inputs": [
-        {"name": "client", "type": "JIMENG_CLIENT", "link": 1},
+        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 1},
         {"name": "model_version", "type": "COMBO", "widget": {"name": "model_version"}, "link": null},
         {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
         {"name": "size", "type": "COMBO", "widget": {"name": "size"}, "link": null},
@@ -59,7 +60,7 @@
         {"name": "enable_group_generation", "type": "BOOLEAN", "widget": {"name": "enable_group_generation"}, "link": null},
         {"name": "max_images", "type": "INT", "widget": {"name": "max_images"}, "link": null},
         {"name": "generation_count", "type": "INT", "widget": {"name": "generation_count"}, "link": null},
-        {"name": "thinking", "type": "BOOLEAN", "widget": {"name": "thinking"}, "link": null},
+        {"name": "prompt_optimization", "type": "COMBO", "widget": {"name": "prompt_optimization"}, "link": null},
         {"name": "watermark", "type": "BOOLEAN", "widget": {"name": "watermark"}, "link": null},
         {"name": "images.image_1", "type": "IMAGE", "shape": 7, "link": 2}
       ],
@@ -67,8 +68,8 @@
         {"name": "images", "type": "IMAGE", "links": [3]},
         {"name": "response", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-Jimeng-API", "ver": "2.5.0", "Node name for S&R": "JimengSeedream4"},
-      "widgets_values": ["doubao-seedream-4.0", "", "2K (adaptive)", 2048, 2048, 0, "randomize", false, 1, 1, true, false]
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusSeedream4"},
+      "widgets_values": ["seedream-4-0", "", "2K (adaptive)", 2048, 2048, 0, "randomize", false, 1, 1, "standard", false]
     },
     {
       "id": 4,
@@ -84,11 +85,11 @@
       ],
       "outputs": [],
       "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveImage"},
-      "widgets_values": ["Jimeng/Image/Seedream4"]
+      "widgets_values": ["BytePlus/Image/Seedream4"]
     }
   ],
   "links": [
-    [1, 1, 0, 3, 0, "JIMENG_CLIENT"],
+    [1, 1, 0, 3, 0, "BYTEPLUS_CLIENT"],
     [2, 2, 0, 3, 12, "IMAGE"],
     [3, 3, 0, 4, 0, "IMAGE"]
   ],
