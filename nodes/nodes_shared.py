@@ -544,54 +544,50 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
         
     try:
         log_msg("visual_uploading", path=file_path)
-        if hasattr(client.ark, "files"):
-            with open(file_path, "rb") as f:
-                
-                upload_kwargs = {
-                    "file": f,
-                    "purpose": "user_data",
-                    # BytePlus SDK name (the returned file object uses expire_at)
-                    "expires_at": expire_at
-                }
-                
-                if fps is not None:
-                    preprocess_config = {
-                        "video": {
-                            "fps": float(fps)
-                        }
-                    }
-                    upload_kwargs["preprocess_configs"] = preprocess_config
+        if not hasattr(client.ark, "files"):
+            raise BytePlusException(get_text("err_files_api_missing"))
+        with open(file_path, "rb") as f:
+            upload_kwargs = {
+                "file": f,
+                "purpose": "user_data",
+                # BytePlus SDK name (the returned file object uses expire_at)
+                "expires_at": expire_at,
+            }
+            if fps is not None:
+                upload_kwargs["preprocess_configs"] = {"video": {"fps": float(fps)}}
+            file_obj = await asyncio.to_thread(client.ark.files.create, **upload_kwargs)
 
-                file_obj = await asyncio.to_thread(
-                    client.ark.files.create,
-                    **upload_kwargs
-                )
-                
-                if hasattr(file_obj, "id"):
-                    file_id = file_obj.id
-                    log_msg("visual_uploaded", id=file_id, status=getattr(file_obj, 'status', 'unknown'))
-                    
-                    await wait_for_file_active(client, file_id)
-                    
-                    UPLOAD_CACHE_STORE.set(cache_key, {
-                        "file_id": file_id,
-                        "expire_at": expire_at
-                    })
-                    save_files_upload_cache()
-                    if return_meta:
-                        return {
-                            "file_id": file_id,
-                            "expire_at": expire_at
-                        }
-                    return file_id
-                else:
-                    raise BytePlusException("Upload failed: No file ID returned.")
-        else:
-             raise BytePlusException("SDK does not support files.create.")
-             
+        file_id = getattr(file_obj, "id", None)
+        if not file_id:
+            raise BytePlusException(get_text("err_file_no_id"))
+        log_msg("visual_uploaded", id=file_id, status=getattr(file_obj, "status", "unknown"))
+
+        try:
+            await wait_for_file_active(client, file_id)
+        except BytePlusException:
+            # Failed or timed out: don't leave an unusable file in Ark Files.
+            await _delete_file_quietly(client, file_id)
+            raise
+
+        UPLOAD_CACHE_STORE.set(cache_key, {"file_id": file_id, "expire_at": expire_at})
+        save_files_upload_cache()
+        if return_meta:
+            return {"file_id": file_id, "expire_at": expire_at}
+        return file_id
+    except BytePlusException:
+        raise
     except Exception as e:
         logger.error(f"Upload failed for {file_path}: {e}")
-        raise BytePlusException(f"File upload failed: {e}")
+        raise BytePlusException(
+            get_text("err_file_upload_failed", e=format_api_error(e).replace(LOG_PREFIX, "", 1))
+        )
+
+
+async def _delete_file_quietly(client, file_id):
+    try:
+        await asyncio.to_thread(client.ark.files.delete, file_id=file_id)
+    except Exception as e:
+        logger.warning(f"Could not delete file {file_id}: {e}")
 
 
 FILE_ACTIVE_POLL_SECONDS = 1
@@ -801,18 +797,38 @@ class BytePlusClients:
 API_KEY_SAVED_EVENT = "byteplus.api_key_saved"
 
 
-def _notify_api_key_saved(node_id, key_name):
+def api_key_fingerprint(api_key):
+    """Short one-way fingerprint so the frontend can find the node holding this key."""
+    return hashlib.sha256(api_key.strip().encode("utf-8")).hexdigest()[:16]
+
+
+def _notify_api_key_saved(node_id, key_name, api_key):
     """
     Tell the frontend a Custom key was saved, so the node switches to the saved
     name and clears the raw key. Otherwise the key stays in the workflow and in
     the prompt metadata embedded in every saved image or video.
+
+    Sent only to the browser client that queued the prompt (not broadcast), with
+    a fingerprint of the key: the frontend switches only API Client nodes whose
+    pasted key matches, wherever they are (other tabs, subgraphs), and never
+    receives the key itself.
     """
     if not node_id:
         return
     try:
         from server import PromptServer
 
-        PromptServer.instance.send_sync(API_KEY_SAVED_EVENT, {"node": str(node_id), "key_name": key_name})
+        server = PromptServer.instance
+        server.send_sync(
+            API_KEY_SAVED_EVENT,
+            {
+                "node": str(node_id),
+                "key_name": key_name,
+                "key_fingerprint": api_key_fingerprint(api_key),
+                "prompt_id": getattr(server, "last_prompt_id", None),
+            },
+            getattr(server, "client_id", None),
+        )
     except Exception as e:
         logger.warning(f"Could not notify the frontend that the API key was saved: {e}")
 
@@ -867,7 +883,7 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
             if new_key_name and new_key_name.strip():
                 save_api_key(new_key_name.strip(), api_key)
                 print(get_text("info_new_key_saved", name=new_key_name.strip()))
-                _notify_api_key_saved(cls.hidden.unique_id, new_key_name.strip())
+                _notify_api_key_saved(cls.hidden.unique_id, new_key_name.strip(), api_key)
 
         else:
             api_key = API_KEY_STORE.find_api_key(key_name)

@@ -14,7 +14,7 @@ Verified against Comfy-Org/ComfyUI_frontend `main` (2026-09-27; releases v1.53�
 | `web/js/byteplus_dynamic_widgets.js` | `ComfyUI.BytePlus.DynamicWidgets` | Show/hide rules (`TARGET_WIDGETS`, `widgetLogic`, run from chained `widget.callback` and `applyAllWidgetRules` after load), Autogrow input relabels (`AUTOGROW_LABEL_RULES`), DynamicCombo value restore after load (`restoreDynamicComboWidgetValues`, nodes in `DYNAMIC_COMBO_NODES`), bottom padding, `byteplus.api_key_saved` listener. |
 | `web/js/byteplus_progress.js` | `ComfyUI.BytePlus.ProgressBar` | Listens to `progress`/`executed`; draws a bar + "Ns / Ms" in `onDrawForeground` (**Classic Canvas only**). |
 
-Both match nodes with `node.comfyClass.startsWith("BytePlus")` and read `Comfy.VueNodes.Enabled` **once at load** (toggling the setting needs a page reload).
+Both match nodes with `isBytePlusNode()` (`comfyClass` guarded — progress events are broadcast and can name frontend-only nodes). `Comfy.VueNodes.Enabled` is read each time a rule is applied, and `app.ui.settings.addEventListener("Comfy.VueNodes.Enabled.change", …)` (fires on 1.52.7) re-applies all rules, so switching renderers needs no reload; `toggleWidget` clears the other mode's hide/disable state. Linking/unlinking a widget input re-runs the rules (linked widgets are always shown).
 
 When you change a Python input name that JS keys on, grep `web/js` for it — the JS is keyed by widget **name** strings and will silently stop working.
 

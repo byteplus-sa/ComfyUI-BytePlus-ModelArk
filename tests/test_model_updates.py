@@ -1422,20 +1422,33 @@ class AssetLibraryTests(unittest.IsolatedAsyncioTestCase):
         self.calls = []
         self.statuses = ["Processing", "Active"]
         self.groups = []
+        self.group_pages = []
+        self.failures = {}
+        self.empty_ids = False
         test = self
 
         class FakeLibrary:
             def __init__(self, client):
                 test.assets.resolve_asset_credentials(client)
                 self.client = client
+                self.region = getattr(client, "region", "ap-southeast-1")
+                self.account_fingerprint = "acct-1"
 
             def call(self, action, body):
                 test.calls.append((action, body))
+                failure = test.failures.get(action)
+                if failure:
+                    test.failures[action] -= 1
+                    raise test.assets.BytePlusException(f"[BytePlus] {action} failed")
                 if action == "ListAssetGroups":
+                    if test.group_pages:
+                        return test.group_pages.pop(0)
                     return {"Items": list(test.groups)}
                 if action == "CreateAssetGroup":
                     return {"Id": "group-new"}
                 if action == "CreateAsset":
+                    if test.empty_ids:
+                        return {}
                     return {"Id": f"asset-{len([c for c in test.calls if c[0] == 'CreateAsset'])}"}
                 if action == "GetAsset":
                     status = test.statuses.pop(0) if len(test.statuses) > 1 else test.statuses[0]
@@ -1518,6 +1531,63 @@ class AssetLibraryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(create["AssetType"], "Audio")
         self.assertEqual(create["URL"], "https://cdn.example/voice.mp3")
         self.assertNotIn("GetAsset", [a for a, _ in self.calls])
+
+    async def test_cached_asset_deleted_in_console_is_recreated(self):
+        await self._create(group_id="group-7")
+        self.failures["GetAsset"] = 1  # the cached asset is gone
+        self.statuses = ["Active"]
+        result = await self._create(group_id="group-7")
+        creates = [a for a, _ in self.calls].count("CreateAsset")
+        self.assertEqual(creates, 2)
+        self.assertEqual(result[0], "asset://asset-2")
+
+    async def test_cache_key_includes_asset_name(self):
+        await self._create(group_id="group-7", asset_name="first")
+        await self._create(group_id="group-7", asset_name="second")
+        self.assertEqual([a for a, _ in self.calls].count("CreateAsset"), 2)
+
+    async def test_wait_tolerates_transient_status_errors(self):
+        self.failures["GetAsset"] = 2
+        self.statuses = ["Active"]
+        result = await self._create(group_id="group-7")
+        self.assertEqual(json.loads(result[3])["status"], "Active")
+        self.failures["GetAsset"] = self.assets.ASSET_MAX_STATUS_ERRORS
+        self.assets.ASSET_UPLOAD_CACHE.clear()
+        with self.assertRaises(Exception) as ctx:
+            await self._create(group_id="group-8")
+        self.assertIn("GetAsset failed", str(ctx.exception))
+
+    async def test_group_lookup_pages_before_creating(self):
+        self.group_pages = [
+            {"Items": [{"Id": "g-other", "Name": "Neon Demo 2"}], "NextToken": "page-2"},
+            {"Items": [{"Id": "g-neon", "Name": "Neon Demo"}]},
+        ]
+        await self._create(group_name="Neon Demo")
+        actions = [a for a, _ in self.calls]
+        self.assertEqual(actions[:2], ["ListAssetGroups", "ListAssetGroups"])
+        self.assertEqual(self.calls[1][1]["NextToken"], "page-2")
+        self.assertNotIn("CreateAssetGroup", actions)
+        self.assertEqual(next(b for a, b in self.calls if a == "CreateAsset")["GroupId"], "g-neon")
+
+    async def test_empty_ids_are_errors(self):
+        self.empty_ids = True
+        with self.assertRaises(Exception) as ctx:
+            await self._create(group_id="group-7")
+        self.assertIn("returned no ID", str(ctx.exception))
+
+    def test_error_parsing_for_http_200_and_odd_bodies(self):
+        from byteplussdkcore.rest import ApiException
+
+        business = ApiException(status=200, reason=str({"Code": "AccessDenied", "Message": "no rights"}))
+        message = self.assets._format_asset_error("CreateAsset", business)
+        self.assertIn("AccessDenied: no rights", message)
+        self.assertIn("Advanced Creation Rights", message)
+        odd = ApiException(status=500)
+        odd.body = "null"
+        self.assertIn("CreateAsset failed", self.assets._format_asset_error("CreateAsset", odd))
+        throttled = ApiException(status=429)
+        throttled.body = json.dumps({"ResponseMetadata": {"Error": {"Code": "FlowLimitExceeded", "Message": "slow down"}}})
+        self.assertIn("rate-limited", self.assets._format_asset_error("CreateAsset", throttled))
 
     async def test_list_assets(self):
         uris, raw = await self.assets.BytePlusAssetLibrary.execute(
@@ -1623,6 +1693,15 @@ class SeedanceAssetReferenceTests(unittest.IsolatedAsyncioTestCase):
             await self._run({}, ref_image_urls="portrait.png")
         self.assertIn("asset://<asset_id>", str(ctx.exception))
         with self.assertRaises(Exception) as ctx:
+            await self._run({}, ref_image_urls="http://insecure.example/portrait.png")
+        self.assertIn("asset://<asset_id>", str(ctx.exception))
+        # asset:// is matched regardless of case, also for video links
+        captured = await self._run({"aspect_ratio": "adaptive", "task_type": "reference"}, ref_video_urls="ASSET://asset-video-1")
+        self.assertIn(
+            {"type": "video_url", "video_url": {"url": "ASSET://asset-video-1"}, "role": "reference_video"},
+            captured["kwargs"]["content"],
+        )
+        with self.assertRaises(Exception) as ctx:
             await self._run(
                 {"model_version": "dreamina-seedance-2-0", "duration": 5},
                 ref_image_urls="\n".join(f"asset://asset-{i}" for i in range(10)),
@@ -1639,6 +1718,85 @@ class SeedanceAssetReferenceTests(unittest.IsolatedAsyncioTestCase):
                 ref_image_urls="asset://asset-1",
             )
         self.assertIn("First/last frame mode cannot be used together", str(ctx.exception))
+
+
+@requires_comfyui
+class ReviewFixTests(unittest.IsolatedAsyncioTestCase):
+    async def _upload(self, files):
+        import tempfile
+
+        client = SimpleNamespace(ark=SimpleNamespace(files=files))
+        old = (nodes_shared.save_files_upload_cache, nodes_shared.FILE_ACTIVE_POLL_SECONDS)
+        nodes_shared.save_files_upload_cache = lambda: None
+        nodes_shared.FILE_ACTIVE_POLL_SECONDS = 0
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".jpg") as tmp:
+                tmp.write(os.urandom(64))
+                tmp.flush()
+                return await nodes_shared.upload_file_to_ark(client, tmp.name)
+        finally:
+            nodes_shared.save_files_upload_cache, nodes_shared.FILE_ACTIVE_POLL_SECONDS = old
+
+    async def test_failed_file_is_deleted_and_error_not_rewrapped(self):
+        deleted = []
+        files = SimpleNamespace(
+            create=lambda **kw: SimpleNamespace(id="file-9", status="processing"),
+            retrieve=lambda **kw: SimpleNamespace(status="failed", error=SimpleNamespace(message="bad codec")),
+            delete=lambda **kw: deleted.append(kw["file_id"]),
+        )
+        with self.assertRaises(Exception) as ctx:
+            await self._upload(files)
+        message = str(ctx.exception)
+        self.assertIn("could not process file file-9: bad codec", message)
+        self.assertNotIn("File upload", message)
+        self.assertEqual(message.count("[BytePlus]"), 1)
+        self.assertEqual(deleted, ["file-9"])
+
+    async def test_sdk_errors_are_wrapped_once(self):
+        def boom(**_kw):
+            raise RuntimeError("connection reset")
+
+        files = SimpleNamespace(create=boom, retrieve=None, delete=None)
+        with self.assertRaises(Exception) as ctx:
+            await self._upload(files)
+        self.assertIn("File upload to ModelArk failed", str(ctx.exception))
+        self.assertEqual(str(ctx.exception).count("[BytePlus]"), 1)
+
+    def test_dependency_check_accepts_sdk_without_metadata(self):
+        from importlib.metadata import PackageNotFoundError
+
+        import importlib.util
+
+        # The test package does not run the plugin's __init__.py; load it as a
+        # package of its own to reach check_dependencies.
+        name = f"{PACKAGE_NAME}_entry"
+        plugin = sys.modules.get(name)
+        if plugin is None:
+            spec = importlib.util.spec_from_file_location(
+                name, os.path.join(PLUGIN_ROOT, "__init__.py"), submodule_search_locations=[PLUGIN_ROOT]
+            )
+            plugin = importlib.util.module_from_spec(spec)
+            sys.modules[name] = plugin
+            spec.loader.exec_module(plugin)
+
+        def missing(_name):
+            raise PackageNotFoundError(_name)
+
+        old = plugin.package_version
+        plugin.package_version = missing
+        try:
+            self.assertTrue(plugin.check_dependencies())
+        finally:
+            plugin.package_version = old
+
+    def test_visual_history_is_scoped_and_bounded(self):
+        visual = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_visual")
+        a = visual._conversation_owner(SimpleNamespace(api_key="k1", region="ap-southeast-1"))
+        b = visual._conversation_owner(SimpleNamespace(api_key="k1", region="eu-west-1"))
+        c = visual._conversation_owner(SimpleNamespace(api_key="k2", region="ap-southeast-1"))
+        self.assertNotEqual(a, b)
+        self.assertNotEqual(a, c)
+        self.assertNotIn("k1", json.dumps(a))
 
 
 @requires_comfyui
@@ -1850,7 +2008,11 @@ class ApiKeySavedEventTests(unittest.TestCase):
         sent = []
         server = importlib.import_module("server")
         old_instance = getattr(server.PromptServer, "instance", None)
-        server.PromptServer.instance = SimpleNamespace(send_sync=lambda event, data, sid=None: sent.append((event, data)))
+        server.PromptServer.instance = SimpleNamespace(
+            send_sync=lambda event, data, sid=None: sent.append((event, data, sid)),
+            client_id="browser-1",
+            last_prompt_id="prompt-9",
+        )
         saved = {}
         patches = {
             "validate_api_key": lambda key, url: True,
@@ -1869,7 +2031,17 @@ class ApiKeySavedEventTests(unittest.TestCase):
             server.PromptServer.instance = old_instance
             delattr(nodes_shared.BytePlusAPIClient, "hidden")
         self.assertEqual(saved, {"work": "sk-123"})
-        self.assertEqual(sent, [(nodes_shared.API_KEY_SAVED_EVENT, {"node": "7", "key_name": "work"})])
+        import hashlib
+
+        self.assertEqual(len(sent), 1)
+        event, data, sid = sent[0]
+        self.assertEqual(event, nodes_shared.API_KEY_SAVED_EVENT)
+        self.assertEqual(sid, "browser-1")  # only the client that queued the prompt
+        self.assertEqual(data["node"], "7")
+        self.assertEqual(data["key_name"], "work")
+        self.assertEqual(data["prompt_id"], "prompt-9")
+        self.assertEqual(data["key_fingerprint"], hashlib.sha256(b"sk-123").hexdigest()[:16])
+        self.assertNotIn("sk-123", json.dumps(data))
         hidden = nodes_shared.BytePlusAPIClient.define_schema().hidden
         self.assertIn(nodes_shared.comfy_io.Hidden.unique_id, hidden)
 

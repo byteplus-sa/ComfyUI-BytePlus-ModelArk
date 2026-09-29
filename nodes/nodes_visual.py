@@ -23,15 +23,23 @@ from .nodes_shared import (
     format_api_error,
     upload_file_to_ark,
     get_node_count_in_workflow,
+    api_key_fingerprint,
 )
 from .executor import BytePlusVisualExecutor
 from .constants import DEFAULT_VISUAL_SYSTEM_PROMPT, DEFAULT_VISUAL_USER_PROMPT
 from .models_config import VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
 
 # Last response per Visual node, for multi-turn (previous_response_id).
-# Keyed by node id so parallel nodes keep separate conversations; the API key
-# is stored too because a response ID only exists in the account that made it.
+# Keyed by node id so parallel nodes keep separate conversations. A response ID
+# only exists in the account and region that made it, so those are stored too
+# (the key as a fingerprint). Oldest entries are dropped past the limit.
 LAST_RESPONSES = {}
+LAST_RESPONSES_MAX = 256
+
+
+def _conversation_owner(client):
+    api_key = getattr(client, "api_key", None) or ""
+    return (api_key_fingerprint(api_key) if api_key else "", getattr(client, "region", None))
 
 class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
     @classmethod
@@ -192,7 +200,7 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
                 inputs_content.append(content_item)
 
         node_id = cls.hidden.unique_id
-        api_key = getattr(client, "api_key", None)
+        owner = _conversation_owner(client)
 
         full_content = ""
         final_json_str = "{}"
@@ -200,7 +208,7 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
         previous_response_id = None
         
         last = LAST_RESPONSES.get(node_id)
-        if turns > 1 and last and last["api_key"] == api_key:
+        if turns > 1 and last and last.get("owner") == owner:
             previous_response_id = last["id"]
             log_msg("visual_cont_conv", id=previous_response_id)
         else:
@@ -276,7 +284,10 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
             final_json_str = json.dumps(current_response_json, indent=2, ensure_ascii=False)
         
         if "id" in current_response_json:
-            LAST_RESPONSES[node_id] = {"id": current_response_json["id"], "api_key": api_key}
+            LAST_RESPONSES.pop(node_id, None)
+            LAST_RESPONSES[node_id] = {"id": current_response_json["id"], "owner": owner}
+            while len(LAST_RESPONSES) > LAST_RESPONSES_MAX:
+                LAST_RESPONSES.pop(next(iter(LAST_RESPONSES)))
             log_msg("visual_cached_id", id=current_response_json["id"])
         
         return comfy_io.NodeOutput(full_content, final_json_str)

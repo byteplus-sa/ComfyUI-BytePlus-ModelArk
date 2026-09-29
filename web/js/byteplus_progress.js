@@ -20,7 +20,11 @@ function getGraph() {
     return app.rootGraph ?? app.graph;
 }
 
-const VUE_NODES_ENABLED = isVueNodesEnabled();
+// Progress events are broadcast, so they can name nodes of any pack (or
+// frontend-only nodes without a comfyClass) in whatever graph is open.
+function isBytePlusNode(node) {
+    return typeof node?.comfyClass === "string" && node.comfyClass.startsWith("BytePlus");
+}
 
 app.registerExtension({
     name: "ComfyUI.BytePlus.ProgressBar",
@@ -30,7 +34,7 @@ app.registerExtension({
             const { value, max, node } = detail;
             const graphNode = getGraph()?.getNodeById(node);
             
-            if (graphNode && graphNode.comfyClass.startsWith("BytePlus")) {
+            if (isBytePlusNode(graphNode) && max > 0) {
                 const ratio = value / max;
                 graphNode.byteplus_progress_ratio = ratio;
                 graphNode.byteplus_progress_text = `${value}s / ${max}s`;
@@ -41,7 +45,7 @@ app.registerExtension({
 
         api.addEventListener("executed", ({ detail }) => {
              const graphNode = getGraph()?.getNodeById(detail.node);
-             if (graphNode && graphNode.comfyClass.startsWith("BytePlus")) {
+             if (isBytePlusNode(graphNode)) {
                  graphNode.byteplus_progress_ratio = 0;
                  graphNode.byteplus_progress_text = "";
                  graphNode.byteplus_progress_mode = null;
@@ -53,12 +57,14 @@ app.registerExtension({
     },
 
     nodeCreated(node) {
-        if (node.comfyClass && node.comfyClass.startsWith("BytePlus")) {
-            if (VUE_NODES_ENABLED) return;
+        if (isBytePlusNode(node)) {
             const origOnDrawForeground = node.onDrawForeground;
-            
+
             node.onDrawForeground = function(ctx) {
                 if (origOnDrawForeground) origOnDrawForeground.apply(this, arguments);
+                // Canvas drawing only; Nodes 2.0 shows the built-in progress bar.
+                // Checked per draw so toggling the renderer needs no reload.
+                if (isVueNodesEnabled()) return;
 
                 if (this.byteplus_progress_ratio > 0 && this.byteplus_progress_ratio < 1) {
                     const w = this.size[0];
