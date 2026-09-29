@@ -184,6 +184,7 @@ MESSAGES = {
     "err_aspect_ratio": "Parameter Error: Aspect ratio must be between {min} and {max}. Your current: {current}",
     "err_download_img": "Error: Failed to download the generated image.",
     "err_model_not_supported": "This node does not support model {model}.",
+    "err_seedream_flash_prompt_optimization": "Seedream 5.0 Flash supports only standard prompt optimization.",
     "err_seedance2_resolution_unsupported": "Model {model} does not support {resolution}. Supported resolutions: {supported}.",
     "err_seedance2_duration_unsupported": "Model {model} requires a duration between {min} and {max} seconds. Current: {duration}",
     "err_seedance25_editing_params": "Seedance 2.5 video editing (task_type edit) requires the adaptive aspect ratio and auto duration.",

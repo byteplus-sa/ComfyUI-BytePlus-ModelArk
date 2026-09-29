@@ -21,10 +21,10 @@ Generation calls go directly to ModelArk with **your own ModelArk API key**, so 
   - `Quota Settings`: limit image and video token usage.
 - **Image**
   - `Seedream 4`: `seedream-4-5`, `seedream-4-0`. Text-to-image, image editing, multi-reference, group generation. Seedream 4.0 adds a `standard` / `fast` prompt optimization mode.
-  - `Seedream 5`: `dola-seedream-5-0-pro`, `seedream-5-0-lite`.
-    - Pro: 1K / 1.5K / 2K sizes, `standard` / `fast` prompt optimization, PNG output, and a transparent background (edit one image with an alpha channel: connect Load Image's `MASK` to `reference_mask`; the output `mask` holds the result's transparency).
+  - `Seedream 5`: `dola-seedream-5-0-pro`, `dola-seedream-5-0-flash`, `seedream-5-0-lite`.
+    - Pro and Flash: 1K / 1.5K / 2K sizes, PNG output, and a transparent background (edit one image with an alpha channel: connect Load Image's `MASK` to `reference_mask`; the output `mask` holds the result's transparency). Pro offers `standard` / `fast` prompt optimization; Flash uses `standard` only.
     - Lite: up to 4K, group generation.
-  - `Seedream Layer Decomposition`: splits one image into a base image and up to 16 transparent layers with Seedream 5.0 Pro. Outputs the base image, each layer placed on the base canvas, per-layer masks, and a JSON list of layer names, descriptions and bounding boxes. The original layer PNGs are saved to the output folder.
+  - `Seedream Layer Decomposition`: splits one image into a base image and up to 16 transparent layers with Seedream 5.0 Pro or Flash. Outputs the base image, each layer placed on the base canvas, per-layer masks, and a JSON list of layer names, descriptions and bounding boxes. The original layer PNGs are saved to the output folder.
 - **Video**
   - `Seedance 1.0`: `seedance-1-0-pro`, `seedance-1-0-pro-fast`. Text-to-video and first/last-frame image-to-video.
   - `Seedance 1.5 Pro`: `seedance-1-5-pro`, with audio and draft mode.
@@ -117,9 +117,9 @@ COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates
 - [x] English UI strings and BytePlus console guidance in error messages
 - [ ] Optional reference video upload via your own object storage (TOS or S3, presigned URL)
 - [x] Seedance 2.5 / 2.5 Premium draft mode
-- [x] Seedream 5.0 Pro layer decomposition and transparent backgrounds
+- [x] Seedream 5.0 Pro / Flash layer decomposition and transparent backgrounds
 - [x] `asset://` references for images, videos and audio; Virtual Portrait asset library nodes
-- [ ] Seedream 5.0 Flash (not yet in the ModelArk catalog for this account)
+- [x] Seedream 5.0 Flash
 
 ## Compatibility
 
