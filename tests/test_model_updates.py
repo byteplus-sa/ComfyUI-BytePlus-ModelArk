@@ -284,8 +284,32 @@ class ModelConfigurationTests(unittest.TestCase):
             "dreamina-seedance-2-5-premium-260915",
         )
         self.assertEqual(
+            models_config.VIDEO_2_MODEL_RESOLUTIONS["dreamina-seedance-2-5-premium"],
+            ["4k"],
+        )
+        premium_option = next(
+            option
+            for option in nodes_video.BytePlusSeedance2.define_schema().inputs[1].options
+            if option.key == "dreamina-seedance-2-5-premium"
+        )
+        resolution_input = next(item for item in premium_option.inputs if item.id == "resolution")
+        self.assertEqual(resolution_input.options, ["4k"])
+        self.assertEqual(resolution_input.default, "4k")
+        self.assertEqual(
             nodes_video.validate_seedance2_resolution("dreamina-seedance-2-5-premium", "4k"),
             "4k",
+        )
+        for resolution in ("480p", "720p", "1080p"):
+            with self.subTest(resolution=resolution):
+                with self.assertRaises(Exception):
+                    nodes_video.validate_seedance2_resolution(
+                        "dreamina-seedance-2-5-premium", resolution
+                    )
+        self.assertEqual(
+            nodes_video.validate_seedance2_resolution(
+                "dreamina-seedance-2-5-premium", "480p", draft_mode=True
+            ),
+            "480p",
         )
         self.assertEqual(
             nodes_video.validate_seedance2_duration("dreamina-seedance-2-5-premium", 30),
@@ -1070,6 +1094,37 @@ class SeedanceDraftModeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(args[3], "480p")
         self.assertTrue(kwargs["extra_api_params"]["draft"])
         self.assertFalse(kwargs["return_last_frame"])
+
+        result, captured = await self._run(
+            {
+                "model_version": "dreamina-seedance-2-5-premium",
+                "draft_mode": True,
+                "resolution": "4k",
+            }
+        )
+        self.assertEqual(result, "draft")
+        args, kwargs = captured["common"]
+        self.assertEqual(args[3], "480p")
+        self.assertTrue(kwargs["extra_api_params"]["draft"])
+
+    async def test_premium_normal_generation_requires_4k(self):
+        result, captured = await self._run(
+            {"model_version": "dreamina-seedance-2-5-premium", "resolution": "4k"}
+        )
+        self.assertEqual(result, "draft")
+        args, kwargs = captured["common"]
+        self.assertEqual(args[3], "4k")
+        self.assertNotIn("draft", kwargs["extra_api_params"])
+
+        for resolution in ("480p", "720p", "1080p"):
+            with self.subTest(resolution=resolution):
+                with self.assertRaises(Exception):
+                    await self._run(
+                        {
+                            "model_version": "dreamina-seedance-2-5-premium",
+                            "resolution": resolution,
+                        }
+                    )
 
     async def test_final_from_draft_task_id_sends_only_draft_reference(self):
         result, captured = await self._run(

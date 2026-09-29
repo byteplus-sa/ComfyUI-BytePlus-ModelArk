@@ -30,7 +30,7 @@ Generation calls go directly to ModelArk with **your own ModelArk API key**, so 
 - **Video**
   - `Seedance 1.0`: `seedance-1-0-pro`, `seedance-1-0-pro-fast`. Text-to-video and first/last-frame image-to-video.
   - `Seedance 1.5 Pro`: `seedance-1-5-pro`, with audio and draft mode.
-  - `Seedance 2 / 2.5`: `dreamina-seedance-2-0` (up to 4K), `-2-0-fast`, `-2-0-mini`, `dreamina-seedance-2-5` (up to 1080p and 30 s), and `dreamina-seedance-2-5-premium` (up to 4K and 30 s; whitelist-only). Multimodal reference (image, video, audio), video editing and extension. The 2.5 models add `task_type` (auto / reference / edit / extend), `output_format` (mp4 / mov) and [draft mode](#draft-mode).
+  - `Seedance 2 / 2.5`: `dreamina-seedance-2-0` (up to 4K), `-2-0-fast`, `-2-0-mini`, `dreamina-seedance-2-5` (up to 1080p and 30 s), and `dreamina-seedance-2-5-premium` (4K final output only, up to 30 s; whitelist-only). Multimodal reference (image, video, audio), video editing and extension. The 2.5 models add `task_type` (auto / reference / edit / extend), `output_format` (mp4 / mov) and [draft mode](#draft-mode).
   - `Video Query Tasks`: query generation task history.
 - **Asset library** (Dreamina Seedance Advanced Creation Rights; see [Virtual Portraits](#virtual-portraits))
   - `Virtual Portrait Asset`: adds an authorized portrait to your private asset library and outputs its `asset://` URI.

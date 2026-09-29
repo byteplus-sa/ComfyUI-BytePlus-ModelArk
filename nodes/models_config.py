@@ -75,7 +75,7 @@ VIDEO_2_MODEL_RESOLUTIONS = {
     "dreamina-seedance-2-0-fast": ["480p", "720p"],
     "dreamina-seedance-2-0-mini": ["480p", "720p"],
     "dreamina-seedance-2-5": ["480p", "720p", "1080p"],
-    "dreamina-seedance-2-5-premium": ["480p", "720p", "1080p", "4k"],
+    "dreamina-seedance-2-5-premium": ["4k"],
 }
 
 VIDEO_2_MODEL_MAX_DURATIONS = {

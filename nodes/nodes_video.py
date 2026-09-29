@@ -218,12 +218,14 @@ def _collect_dynamic_inputs(values=None, kwargs=None, prefix=None):
     return [value for value in collected if value is not None]
 
 
-def validate_seedance2_resolution(model_version, resolution):
+def validate_seedance2_resolution(model_version, resolution, draft_mode=False):
     supported_resolutions = VIDEO_2_MODEL_RESOLUTIONS.get(model_version)
     if supported_resolutions is None:
         raise BytePlusException(
             get_text("err_model_not_supported").format(model=model_version)
         )
+    if draft_mode and model_version in SEEDANCE_2_5_FAMILY:
+        supported_resolutions = [SEEDANCE_DRAFT_RESOLUTION]
     if resolution not in supported_resolutions:
         raise BytePlusException(
             get_text("err_seedance2_resolution_unsupported").format(
@@ -1659,7 +1661,7 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
         if is_draft:
             resolution = SEEDANCE_DRAFT_RESOLUTION
 
-        validate_seedance2_resolution(model_version, resolution)
+        validate_seedance2_resolution(model_version, resolution, draft_mode=is_draft)
         duration = validate_seedance2_duration(model_version, duration, auto_duration)
 
         content = []
