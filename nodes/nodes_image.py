@@ -43,6 +43,8 @@ from .models_config import (
     SEEDREAM_4_0_UI_MODEL,
     SEEDREAM_5_MODEL_MAP,
     SEEDREAM_5_PRO_UI_MODEL,
+    SEEDREAM_5_FLASH_UI_MODEL,
+    SEEDREAM_5_URL_MODELS,
     SEEDREAM_LAYER_MODEL_MAP,
     SEEDREAM_LAYER_SIZES,
     PROMPT_OPTIMIZATION_MODES,
@@ -72,7 +74,7 @@ from .nodes_image_schema import (
 
 def resolve_seedream5_pro_size(size: str, width: int, height: int) -> str:
     """
-    Seedream 5.0 Pro accepts a resolution level (1K / 1.5K / 2K) or WxH
+    Seedream 5.0 Pro and Flash accept a resolution level (1K / 1.5K / 2K) or WxH
     within [1280x720, 2048x2048x1.1025] total pixels.
     """
     if size == "Custom":
@@ -382,15 +384,15 @@ class BytePlusSeedream4(comfy_io.ComfyNode):
 
 class BytePlusSeedream5(comfy_io.ComfyNode):
     """
-    Seedream 5.0 Pro / Lite image generation node.
-    Pro returns URLs; Lite supports group generation and web search via streaming.
+    Seedream 5.0 Pro / Flash / Lite image generation node.
+    Pro and Flash return URLs; Lite supports group generation via streaming.
     """
     RECOMMENDED_SIZES = RECOMMENDED_SIZES_V5
 
     @staticmethod
     def _model_inputs(model_version):
-        if model_version == SEEDREAM_5_PRO_UI_MODEL:
-            return [
+        if model_version in SEEDREAM_5_URL_MODELS:
+            inputs = [
                 comfy_io.String.Input("prompt", multiline=True, default=""),
                 *get_image_generation_inputs(
                     RECOMMENDED_SIZES_V5_PRO,
@@ -400,25 +402,33 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
                 comfy_io.Int.Input(
                     "generation_count", default=1, min=1, max=MAX_GENERATION_COUNT
                 ),
-                comfy_io.Combo.Input(
-                    "prompt_optimization",
-                    options=PROMPT_OPTIMIZATION_MODES,
-                    default="standard",
-                    tooltip="standard: higher quality. fast: lower latency.",
-                ),
-                comfy_io.Combo.Input("output_format", options=["jpeg", "png"], default="jpeg"),
-                comfy_io.Combo.Input(
-                    "background",
-                    options=["opaque", "transparent"],
-                    default="opaque",
-                    tooltip=(
-                        "transparent: edit one reference image that has an alpha "
-                        "channel (connect its mask to reference_mask) and return a "
-                        "PNG with transparency. Needs output_format png."
-                    ),
-                ),
-                comfy_io.Boolean.Input("watermark", default=False),
             ]
+            if model_version == SEEDREAM_5_PRO_UI_MODEL:
+                inputs.append(
+                    comfy_io.Combo.Input(
+                        "prompt_optimization",
+                        options=PROMPT_OPTIMIZATION_MODES,
+                        default="standard",
+                        tooltip="standard: higher quality. fast: lower latency.",
+                    )
+                )
+            inputs.extend(
+                [
+                    comfy_io.Combo.Input("output_format", options=["jpeg", "png"], default="jpeg"),
+                    comfy_io.Combo.Input(
+                        "background",
+                        options=["opaque", "transparent"],
+                        default="opaque",
+                        tooltip=(
+                            "transparent: edit one reference image that has an alpha "
+                            "channel (connect its mask to reference_mask) and return a "
+                            "PNG with transparency. Needs output_format png."
+                        ),
+                    ),
+                    comfy_io.Boolean.Input("watermark", default=False),
+                ]
+            )
+            return inputs
 
         return [
             comfy_io.String.Input("prompt", multiline=True, default=""),
@@ -437,9 +447,9 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
             display_name="BytePlus Seedream 5",
             category=GLOBAL_CATEGORY,
             description=(
-                "Generate images with Seedream 5.0 Pro or Lite. Pro supports prompt "
-                "optimization modes, PNG output and transparent backgrounds; Lite "
-                "supports grouped generation."
+                "Generate images with Seedream 5.0 Pro, Flash or Lite. Pro supports "
+                "standard and fast prompt optimization; Pro and Flash support PNG "
+                "output and transparent backgrounds; Lite supports grouped generation."
             ),
             inputs=[
                 BytePlusClientType.Input("client"),
@@ -522,14 +532,16 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
         if not model_id:
             raise BytePlusException(get_text("err_model_not_supported").format(model=model_version))
 
-        is_pro = model_version == SEEDREAM_5_PRO_UI_MODEL
+        is_url_model = model_version in SEEDREAM_5_URL_MODELS
+        if model_version == SEEDREAM_5_FLASH_UI_MODEL and prompt_optimization != "standard":
+            raise BytePlusException(get_text("err_seedream_flash_prompt_optimization"))
 
-        sequential_param = "auto" if enable_group_generation and not is_pro else "disabled"
+        sequential_param = "auto" if enable_group_generation and not is_url_model else "disabled"
         n_input_images, image_param = _prepare_multi_image_inputs(images, **kwargs)
 
-        if is_pro and n_input_images > 10:
+        if is_url_model and n_input_images > 10:
             raise BytePlusException(get_text("err_img_limit_10"))
-        transparent = is_pro and background == "transparent"
+        transparent = is_url_model and background == "transparent"
         if transparent:
             if n_input_images != 1:
                 raise BytePlusException(
@@ -552,7 +564,7 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
                     )
                 )
 
-        if is_pro:
+        if is_url_model:
             size_str = resolve_seedream5_pro_size(size, width, height)
         elif size == "Custom":
             min_pixels = MIN_IMAGE_PIXELS_V5
@@ -573,7 +585,7 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
         client.check_quota(
             model_id,
             generation_count * max_images
-            if enable_group_generation and not is_pro
+            if enable_group_generation and not is_url_model
             else generation_count,
         )
 
@@ -589,7 +601,7 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
         async def _generate_single(idx, session):
             current_seed = random.randint(0, MAX_SEED) if seed == -1 else seed + idx
 
-            if is_pro:
+            if is_url_model:
                 request_kwargs = {
                     "model": model_id,
                     "prompt": prompt,
@@ -598,10 +610,11 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
                     "watermark": watermark,
                     "seed": current_seed,
                     "output_format": output_format,
-                    "optimize_prompt_options": OptimizePromptOptions(
-                        mode=prompt_optimization
-                    ),
                 }
+                if model_version == SEEDREAM_5_PRO_UI_MODEL:
+                    request_kwargs["optimize_prompt_options"] = OptimizePromptOptions(
+                        mode=prompt_optimization
+                    )
                 if image_param:
                     request_kwargs["image"] = image_param
                 if transparent:
@@ -725,7 +738,7 @@ def place_layer_on_canvas(layer, bounding_box, canvas_size):
 
 class BytePlusSeedreamLayers(comfy_io.ComfyNode):
     """
-    Seedream 5.0 Pro layer decomposition: splits one image into a base image
+    Seedream 5.0 Pro / Flash layer decomposition: splits one image into a base image
     and up to 16 transparent layers (subjects, background, text, ...).
     """
 
@@ -739,7 +752,7 @@ class BytePlusSeedreamLayers(comfy_io.ComfyNode):
             is_output_node=True,
             description=(
                 "Split an image into a base image and up to 16 editable layers with "
-                "Seedream 5.0 Pro. Layers are returned placed on the base image canvas, "
+                "Seedream 5.0 Pro or Flash. Layers are returned placed on the base image canvas, "
                 "with their masks; the original layer PNGs can be saved to the output folder."
             ),
             inputs=[

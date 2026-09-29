@@ -62,6 +62,10 @@ class ModelConfigurationTests(unittest.TestCase):
             "dola-seedream-5-0-pro-260628",
         )
         self.assertEqual(
+            models_config.SEEDREAM_5_MODEL_MAP["dola-seedream-5-0-flash"],
+            "dola-seedream-5-0-flash-260915",
+        )
+        self.assertEqual(
             models_config.SEEDREAM_5_MODEL_MAP["seedream-5-0-lite"],
             "seedream-5-0-260128",
         )
@@ -216,6 +220,21 @@ class ModelConfigurationTests(unittest.TestCase):
             [item.id for item in pro.inputs][-5:],
             ["generation_count", "prompt_optimization", "output_format", "background", "watermark"],
         )
+
+        flash = next(
+            option
+            for option in image_combo.options
+            if option.key == "dola-seedream-5-0-flash"
+        )
+        self.assertEqual(
+            [item.id for item in flash.inputs],
+            [item.id for item in pro.inputs if item.id != "prompt_optimization"],
+        )
+        layer_model = next(
+            item for item in nodes_image.BytePlusSeedreamLayers.define_schema().inputs
+            if item.id == "model"
+        )
+        self.assertIn("dola-seedream-5-0-flash", layer_model.options)
 
         seedream4_ids = [
             item.id for item in nodes_image.BytePlusSeedream4.define_schema().inputs
@@ -532,7 +551,7 @@ class Seedream4PromptOptimizationTests(unittest.IsolatedAsyncioTestCase):
 
 
 @requires_comfyui
-class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
+class Seedream5UrlModelTests(unittest.IsolatedAsyncioTestCase):
     def test_size_levels_and_custom_limits(self):
         resolve = nodes_image.resolve_seedream5_pro_size
         self.assertEqual(resolve("1.5K (adaptive)", 0, 0), "1.5K")
@@ -623,7 +642,14 @@ class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("tools", request)
         self.assertNotIn("sequential_image_generation", request)
 
-    async def _run_pro(self, model_config, images=None, reference_mask=None, rgba=False):
+    async def _run_url_model(
+        self,
+        model_config,
+        images=None,
+        reference_mask=None,
+        rgba=False,
+        model_version="dola-seedream-5-0-pro",
+    ):
         import torch
         from byteplussdkarkruntime.resources.images.images import Images as SdkImages
 
@@ -674,7 +700,7 @@ class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
         try:
             result = await nodes_image.BytePlusSeedream5.execute(
                 Client(),
-                {"model_version": "dola-seedream-5-0-pro", "prompt": "edit", **model_config},
+                {"model_version": model_version, "prompt": "edit", **model_config},
                 images=images,
                 reference_mask=reference_mask,
             )
@@ -700,7 +726,7 @@ class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
 
         mask = torch.zeros((1, 8, 8))
         mask[:, :, :4] = 1.0  # left half transparent (Load Image convention)
-        calls, result = await self._run_pro(
+        calls, result = await self._run_url_model(
             {"background": "transparent", "output_format": "png"},
             images=torch.ones((1, 8, 8, 3)),
             reference_mask=mask,
@@ -721,27 +747,33 @@ class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
         import torch
 
         with self.assertRaises(Exception):
-            await self._run_pro({"background": "transparent", "output_format": "png"})
+            await self._run_url_model({"background": "transparent", "output_format": "png"})
         with self.assertRaises(Exception):
-            await self._run_pro(
+            await self._run_url_model(
                 {"background": "transparent", "output_format": "jpeg"},
                 images=torch.ones((1, 8, 8, 3)),
             )
 
     async def test_opaque_output_has_empty_mask(self):
-        _calls, result = await self._run_pro({})
+        _calls, result = await self._run_url_model({})
         images, _response, output_mask = result
         self.assertEqual(tuple(output_mask.shape), tuple(images.shape[:3]))
         self.assertEqual(float(output_mask.sum()), 0.0)
 
-    async def test_pro_reference_limit_is_ten(self):
+    async def test_pro_and_flash_reference_limit_is_ten(self):
         import torch
 
-        calls, _result = await self._run_pro({}, images=torch.zeros((10, 8, 8, 3)))
-        self.assertEqual(len(calls[0]["image"]), 10)
-        with self.assertRaises(Exception) as ctx:
-            await self._run_pro({}, images=torch.zeros((11, 8, 8, 3)))
-        self.assertIn("cannot exceed 10", str(ctx.exception))
+        for model_version in ("dola-seedream-5-0-pro", "dola-seedream-5-0-flash"):
+            with self.subTest(model_version=model_version):
+                calls, _result = await self._run_url_model(
+                    {}, images=torch.zeros((10, 8, 8, 3)), model_version=model_version
+                )
+                self.assertEqual(len(calls[0]["image"]), 10)
+                with self.assertRaises(Exception) as ctx:
+                    await self._run_url_model(
+                        {}, images=torch.zeros((11, 8, 8, 3)), model_version=model_version
+                    )
+                self.assertIn("cannot exceed 10", str(ctx.exception))
 
     async def test_transparent_without_mask_sends_opaque_alpha(self):
         import base64
@@ -749,7 +781,7 @@ class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
         import PIL.Image
         import torch
 
-        calls, _result = await self._run_pro(
+        calls, _result = await self._run_url_model(
             {"background": "transparent", "output_format": "png"},
             images=torch.ones((1, 8, 8, 3)),
         )
@@ -758,6 +790,40 @@ class Seedream5ProTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(png.mode, "RGBA")
         self.assertEqual(png.getpixel((0, 0))[3], 255)
+
+    async def test_flash_uses_url_request_without_fast_optimization(self):
+        calls, _result = await self._run_url_model(
+            {"size": "2K (adaptive)", "seed": 7, "watermark": True},
+            model_version="dola-seedream-5-0-flash",
+        )
+        request = calls[0]
+        self.assertEqual(request["model"], "dola-seedream-5-0-flash-260915")
+        self.assertEqual(request["size"], "2K")
+        self.assertEqual(request["response_format"], "url")
+        self.assertEqual(request["seed"], 7)
+        self.assertTrue(request["watermark"])
+        self.assertNotIn("optimize_prompt_options", request)
+        self.assertNotIn("sequential_image_generation", request)
+
+    async def test_flash_transparent_background_returns_mask(self):
+        import torch
+
+        calls, result = await self._run_url_model(
+            {"background": "transparent", "output_format": "png"},
+            images=torch.ones((1, 8, 8, 3)),
+            reference_mask=torch.ones((1, 8, 8)),
+            model_version="dola-seedream-5-0-flash",
+        )
+        self.assertEqual(calls[0]["extra_body"], {"background": "transparent"})
+        self.assertEqual(calls[0]["output_format"], "png")
+        self.assertAlmostEqual(float(result[2][0, 0, 0]), 0.75)
+
+    async def test_flash_rejects_stale_fast_setting(self):
+        with self.assertRaisesRegex(Exception, "Flash supports only standard"):
+            await self._run_url_model(
+                {"prompt_optimization": "fast"},
+                model_version="dola-seedream-5-0-flash",
+            )
 
 
 @requires_comfyui
@@ -1273,7 +1339,9 @@ class SeedreamLayerDecompositionTests(unittest.IsolatedAsyncioTestCase):
         PIL.Image.new("RGBA", size, color).save(buffer, format="PNG")
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-    async def _run(self, save_layers=False, output_dir=None):
+    async def _run(
+        self, save_layers=False, output_dir=None, model="dola-seedream-5-0-pro"
+    ):
         import torch
 
         calls = []
@@ -1308,7 +1376,7 @@ class SeedreamLayerDecompositionTests(unittest.IsolatedAsyncioTestCase):
         try:
             result = await nodes_image.BytePlusSeedreamLayers.execute(
                 client,
-                "dola-seedream-5-0-pro",
+                model,
                 torch.ones((1, 600, 600, 3)),
                 save_layers=save_layers,
             )
@@ -1335,6 +1403,12 @@ class SeedreamLayerDecompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([item["z_index"] for item in info], [0, 1])
         self.assertEqual(info[1]["name"], "leaf")
         self.assertEqual(info[1]["bounding_box"]["absolute"], [2, 2, 6, 6])
+
+    async def test_flash_layer_decomposition_uses_flash_model(self):
+        calls, result = await self._run(model="dola-seedream-5-0-flash")
+        self.assertEqual(calls[0]["model"], "dola-seedream-5-0-flash-260915")
+        self.assertTrue(calls[0]["layer_decomposition"])
+        self.assertEqual(json.loads(result[3])["model"], "dola-seedream-5-0-flash-260915")
 
     async def test_saves_original_layer_pngs(self):
         import tempfile

@@ -11,21 +11,24 @@ SEEDREAM_4_MODEL_MAP = {
 SEEDREAM_4_0_UI_MODEL = "seedream-4-0"
 
 # Prompt optimization modes (optimize_prompt_options.mode). "fast" is supported
-# by Seedream 5.0 Pro and 4.0; 5.0 Lite and 4.5 always use "standard".
+# by Seedream 5.0 Pro and 4.0; 5.0 Flash, 5.0 Lite and 4.5 use "standard".
 PROMPT_OPTIMIZATION_MODES = ["standard", "fast"]
 
 # Seedream 5
 SEEDREAM_5_MODEL_MAP = {
     "dola-seedream-5-0-pro": "dola-seedream-5-0-pro-260628",
+    "dola-seedream-5-0-flash": "dola-seedream-5-0-flash-260915",
     "seedream-5-0-lite": "seedream-5-0-260128",
 }
 
 SEEDREAM_5_PRO_UI_MODEL = "dola-seedream-5-0-pro"
+SEEDREAM_5_FLASH_UI_MODEL = "dola-seedream-5-0-flash"
 SEEDREAM_5_LITE_UI_MODEL = "seedream-5-0-lite"
+SEEDREAM_5_URL_MODELS = (SEEDREAM_5_PRO_UI_MODEL, SEEDREAM_5_FLASH_UI_MODEL)
 
-# Seedream 5.0 Pro layer decomposition: one input image -> base image + up to 16 layers
+# Seedream 5.0 Pro / Flash layer decomposition: one input image -> base image + up to 16 layers
 SEEDREAM_LAYER_MODEL_MAP = {
-    "dola-seedream-5-0-pro": "dola-seedream-5-0-pro-260628",
+    model: SEEDREAM_5_MODEL_MAP[model] for model in SEEDREAM_5_URL_MODELS
 }
 SEEDREAM_LAYER_SIZES = ["auto", "1K", "1.5K", "2K"]
 
