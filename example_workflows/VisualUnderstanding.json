@@ -19,7 +19,7 @@
         {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
       ],
       "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1]}],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusAPIClient"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusAPIClient"},
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
@@ -86,7 +86,7 @@
         {"name": "content", "type": "STRING", "links": null},
         {"name": "raw_json", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.0", "Node name for S&R": "BytePlusVisualUnderstanding"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusVisualUnderstanding"},
       "widgets_values": ["dola-seed-2-1-turbo", "You are a helpful assistant that describes and analyzes images and videos accurately.", "Describe the content of this image or video.", "high", 1.0, "auto", "medium", 1, false, 604800, 0, "randomize"]
     }
   ],
