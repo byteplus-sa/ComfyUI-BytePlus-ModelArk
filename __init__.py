@@ -128,7 +128,10 @@ def check_dependencies():
     try:
         current_version = package_version(distribution_name)
     except PackageNotFoundError:
-        current_version = "0"
+        # The SDK imports but has no package metadata (vendored or --target
+        # install): the version can't be checked, so warn and load anyway.
+        print(get_init_text("init_sdk_version_unknown", min=minimum_version))
+        return True
     if _numeric_version(current_version) < _numeric_version(minimum_version):
         print(
             get_init_text(

@@ -7,6 +7,7 @@ Assets are managed with the signed ModelArk OpenAPI (service "ark", version
 Seedance as asset://<asset_id> (ref_image_urls / ref_video_urls /
 ref_audio_urls on the Seedance 2 / 2.5 node).
 """
+import ast
 import asyncio
 import hashlib
 import io
@@ -38,6 +39,8 @@ from .nodes_shared import (
 GROUP_TYPES = ["AIGC", "LivenessFace"]
 ASSET_STATUSES = ["all", "Active", "Processing", "Failed"]
 ASSET_TYPES = ["Image", "Video", "Audio"]
+ASSET_MAX_STATUS_ERRORS = 5
+GROUP_LIST_PAGE_SIZE = 100
 AUTH_ERROR_CODES = {"InvalidAccessKey", "SignatureDoesNotMatch", "InvalidSecretKey", "InvalidAuthorization"}
 DENIED_ERROR_CODES = {"AccessDenied", "Forbidden", "UnauthorizedOperation", "NoPermission"}
 THROTTLE_ERROR_CODES = {"RequestLimitExceeded", "FlowLimitExceeded", "TooManyRequests", "Throttling"}
@@ -79,6 +82,9 @@ class AssetLibrary:
         config.region = region
         config.host = ASSET_API_HOSTS.get(region, ASSET_API_HOSTS[DEFAULT_REGION])
         self._api = UniversalApi(byteplussdkcore.ApiClient(config))
+        self.region = region
+        # Identifies the account in cache keys without keeping the key itself.
+        self.account_fingerprint = hashlib.sha256(credentials["access_key"].encode()).hexdigest()[:16]
 
     def call(self, action, body):
         """Blocking call; returns the Result object. Run it with asyncio.to_thread."""
@@ -99,15 +105,38 @@ class AssetLibrary:
         return result if isinstance(result, dict) else {}
 
 
+def _parse_error_payload(error):
+    """
+    The provider error as a dict. Non-2xx responses carry the JSON body; the
+    SDK raises HTTP-200 business errors with the error dict as `reason`.
+    """
+    body = getattr(error, "body", None)
+    if body:
+        try:
+            payload = json.loads(body)
+        except (TypeError, ValueError):
+            payload = None
+        if isinstance(payload, dict):
+            err = (payload.get("ResponseMetadata") or {}).get("Error")
+            if isinstance(err, dict):
+                return err
+    reason = getattr(error, "reason", None)
+    if isinstance(reason, dict):
+        return reason
+    if isinstance(reason, str) and reason.strip().startswith("{"):
+        try:
+            parsed = ast.literal_eval(reason.strip())
+        except (ValueError, SyntaxError):
+            parsed = None
+        if isinstance(parsed, dict):
+            return parsed
+    return {}
+
+
 def _format_asset_error(action, error):
-    code, message = str(getattr(error, "status", "") or "Error"), str(error)
-    try:
-        payload = json.loads(getattr(error, "body", "") or "{}")
-        err = (payload.get("ResponseMetadata") or {}).get("Error") or {}
-        code = err.get("Code") or code
-        message = err.get("Message") or message
-    except (TypeError, ValueError):
-        pass
+    err = _parse_error_payload(error)
+    code = str(err.get("Code") or getattr(error, "status", "") or "Error")
+    message = str(err.get("Message") or getattr(error, "reason", "") or error)
     hint = ""
     if code in AUTH_ERROR_CODES:
         hint = get_text("hint_asset_auth")
@@ -147,16 +176,22 @@ async def upload_image_to_comfy_storage(node_cls, image):
 
 async def find_or_create_group(library, name, project_name):
     """Reuse the single AIGC group with exactly this name, or create it."""
-    result = await asyncio.to_thread(
-        library.call,
-        "ListAssetGroups",
-        {
-            "Filter": {"Name": name, "GroupType": "AIGC"},
-            "MaxResults": 100,
-            "ProjectName": project_name,
-        },
-    )
-    matches = [g for g in result.get("Items") or [] if g.get("Name") == name]
+    matches, next_token = [], None
+    while True:
+        result = await asyncio.to_thread(
+            library.call,
+            "ListAssetGroups",
+            {
+                "Filter": {"Name": name, "GroupType": "AIGC"},
+                "MaxResults": GROUP_LIST_PAGE_SIZE,
+                "NextToken": next_token,
+                "ProjectName": project_name,
+            },
+        )
+        matches += [g for g in result.get("Items") or [] if g.get("Name") == name]
+        next_token = result.get("NextToken")
+        if not next_token:
+            break
     if len(matches) > 1:
         raise BytePlusException(get_text("err_asset_group_ambiguous", count=len(matches), name=name))
     if matches:
@@ -172,6 +207,8 @@ async def find_or_create_group(library, name, project_name):
         },
     )
     group_id = str(created.get("Id") or "")
+    if not group_id:
+        raise BytePlusException(get_text("err_asset_no_id", action="CreateAssetGroup"))
     log_msg("asset_group_created", group_id=group_id, name=name)
     return group_id
 
@@ -180,11 +217,21 @@ async def wait_for_asset(library, asset_id, project_name, timeout=ASSET_ACTIVE_T
     """Poll GetAsset until Active; raise on Failed or timeout. Interruptible."""
     deadline = time.monotonic() + timeout
     last_status = None
+    status_errors = 0
     while True:
         comfy.model_management.throw_exception_if_processing_interrupted()
-        asset = await asyncio.to_thread(
-            library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name}
-        )
+        try:
+            asset = await asyncio.to_thread(
+                library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name}
+            )
+        except BytePlusException:
+            # Throttling or a network error: keep waiting, the asset is still processing.
+            status_errors += 1
+            if status_errors >= ASSET_MAX_STATUS_ERRORS or time.monotonic() >= deadline:
+                raise
+            await _sleep_interruptibly(ASSET_POLL_SECONDS)
+            continue
+        status_errors = 0
         status = str(asset.get("Status") or "")
         if status != last_status:
             log_msg("asset_status", asset_id=asset_id, status=status or "unknown")
@@ -197,9 +244,13 @@ async def wait_for_asset(library, asset_id, project_name, timeout=ASSET_ACTIVE_T
             raise BytePlusException(
                 get_text("err_asset_timeout", asset_id=asset_id, status=status, seconds=int(timeout))
             )
-        for _ in range(ASSET_POLL_SECONDS * 2):
-            comfy.model_management.throw_exception_if_processing_interrupted()
-            await asyncio.sleep(0.5)
+        await _sleep_interruptibly(ASSET_POLL_SECONDS)
+
+
+async def _sleep_interruptibly(seconds):
+    for _ in range(max(1, int(seconds * 2))):
+        comfy.model_management.throw_exception_if_processing_interrupted()
+        await asyncio.sleep(0.5 if seconds else 0)
 
 
 def _asset_summary(asset, asset_id=None):
@@ -310,12 +361,23 @@ class BytePlusVirtualPortraitAsset(comfy_io.ComfyNode):
         cache_key = None
         if image is not None:
             png = await asyncio.to_thread(_tensor_to_png_bytes, image)
-            cache_key = (hashlib.sha256(png).hexdigest(), group_id, project_name)
+            cache_key = (
+                hashlib.sha256(png).hexdigest(),
+                library.account_fingerprint,
+                library.region,
+                project_name,
+                group_id,
+                (asset_name or "").strip(),
+            )
             cached_id = ASSET_UPLOAD_CACHE.get(cache_key)
             if cached_id:
-                asset = await asyncio.to_thread(
-                    library.call, "GetAsset", {"Id": cached_id, "ProjectName": project_name}
-                )
+                try:
+                    asset = await asyncio.to_thread(
+                        library.call, "GetAsset", {"Id": cached_id, "ProjectName": project_name}
+                    )
+                except BytePlusException:
+                    # Deleted in the console, or not visible to these credentials: create it again.
+                    asset = {}
                 if str(asset.get("Status")) in ("Active", "Processing"):
                     log_msg("asset_reused", asset_id=cached_id)
                     if wait_until_active:
@@ -339,6 +401,8 @@ class BytePlusVirtualPortraitAsset(comfy_io.ComfyNode):
             },
         )
         asset_id = str(created.get("Id") or "")
+        if not asset_id:
+            raise BytePlusException(get_text("err_asset_no_id", action="CreateAsset"))
         if cache_key:
             ASSET_UPLOAD_CACHE[cache_key] = asset_id
         log_msg("asset_created", asset_id=asset_id)

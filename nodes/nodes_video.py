@@ -122,9 +122,13 @@ def _parse_reference_urls(text) -> list[str]:
     urls = _parse_video_urls(text)
     for url in urls:
         lowered = url.lower()
-        if not (lowered.startswith(("https://", "http://")) or (lowered.startswith("asset://") and len(url) > len("asset://"))):
+        if not (lowered.startswith("https://") or (_is_asset_uri(url) and len(url) > len("asset://"))):
             raise BytePlusException(get_text("err_asset_uri_invalid", value=url))
     return urls
+
+
+def _is_asset_uri(url) -> bool:
+    return str(url or "").strip().lower().startswith("asset://")
 
 
 def _parse_draft_task_ids(text) -> list[str]:
@@ -1663,7 +1667,7 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
         ref_images = _collect_dynamic_inputs(ref_images, kwargs, "ref_image_")
         ref_videos = _collect_dynamic_inputs(ref_videos, kwargs, "ref_video_")
         ref_audios = _collect_dynamic_inputs(ref_audios, kwargs, "ref_audio_")
-        linked_video_urls = _parse_video_urls(ref_video_urls)
+        linked_video_urls = _parse_reference_urls(ref_video_urls)
         linked_image_urls = _parse_reference_urls(ref_image_urls)
         linked_audio_urls = _parse_reference_urls(ref_audio_urls)
         validate_seedance2_reference_counts(
@@ -1710,7 +1714,7 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
 
         helper._validate_reference_videos_constraints(
             ref_videos,
-            ref_video_urls=[url for url in linked_video_urls if not url.startswith("asset://")],
+            ref_video_urls=[url for url in linked_video_urls if not _is_asset_uri(url)],
             max_duration=reference_media_max_duration,
             max_total_duration=reference_media_max_duration,
         )

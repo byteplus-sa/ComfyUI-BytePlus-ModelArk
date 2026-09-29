@@ -27,7 +27,27 @@ function markDirty(node) {
     graph?.setDirtyCanvas?.(true, true);
 }
 
-const VUE_NODES_ENABLED = isVueNodesEnabled();
+// The renderer can be switched without a reload, so the setting is read
+// whenever a rule is applied (and all rules re-run when it changes).
+const VUE_NODES_SETTING = "Comfy.VueNodes.Enabled";
+
+function isBytePlusNode(node) {
+    return typeof node?.comfyClass === "string" && node.comfyClass.startsWith("BytePlus");
+}
+
+// Every node in the root graph and in subgraph definitions.
+function allGraphNodes() {
+    const root = getRootGraph();
+    if (!root) return [];
+    const nodes = [...(root.nodes ?? root._nodes ?? [])];
+    const subgraphs = root.subgraphs;
+    if (subgraphs && typeof subgraphs.values === "function") {
+        for (const subgraph of subgraphs.values()) {
+            nodes.push(...(subgraph?.nodes ?? subgraph?._nodes ?? []));
+        }
+    }
+    return nodes;
+}
 
 /**
  * Widgets whose value changes drive visibility logic
@@ -112,24 +132,40 @@ function isHiddenWidget(widget) {
 function toggleWidget(node, widget, show) {
     if (!widget) return false;
 
-    // Never hide a widget whose input is linked
-    if (!show && isWidgetLinked(node, widget.name)) return false;
+    // A widget whose input is linked is always shown (and re-shown when linked)
+    if (isWidgetLinked(node, widget.name)) show = true;
 
-    if (VUE_NODES_ENABLED && !hasVisibilityApi(widget)) {
-        const disabled = !show;
-        const changed = widget.disabled !== disabled || widget.options?.disabled !== disabled;
-        widget.disabled = disabled;
-        widget.options = widget.options || {};
-        widget.options.disabled = disabled;
-        if (widget.inputEl) widget.inputEl.disabled = disabled;
+    if (isVueNodesEnabled() && !hasVisibilityApi(widget)) {
+        // Nodes 2.0 on frontends without a visibility API: disable instead of hide.
+        let changed = setWidgetDisabled(widget, !show);
+        if (widget.hidden === true) {
+            widget.hidden = false;
+            changed = true;
+        }
         if (changed) markDirty(node);
         return changed;
     }
 
+    // Clear a disable left over from Nodes 2.0 mode before hiding.
+    let changed = setWidgetDisabled(widget, false);
     const hidden = !show;
-    if ((widget.hidden === true) === hidden) return false;
-    widget.hidden = hidden;
-    return true;
+    if ((widget.hidden === true) !== hidden) {
+        widget.hidden = hidden;
+        changed = true;
+    }
+    return changed;
+}
+
+// Only ever undo a disable this extension applied.
+function setWidgetDisabled(widget, disabled) {
+    if (!disabled && !widget._byteplusDisabled) return false;
+    const changed = widget.disabled !== disabled || widget.options?.disabled !== disabled;
+    widget.disabled = disabled;
+    widget.options = widget.options || {};
+    widget.options.disabled = disabled;
+    if (widget.inputEl) widget.inputEl.disabled = disabled;
+    widget._byteplusDisabled = disabled;
+    return changed;
 }
 
 /**
@@ -138,7 +174,7 @@ function toggleWidget(node, widget, show) {
  * @param {number} [extraHeight=0] - extra height the user added manually
  */
 function updateNodeHeight(node, extraHeight = 0) {
-    if (VUE_NODES_ENABLED) return;
+    if (isVueNodesEnabled()) return;
     if (node.flags?.collapsed) return;
 
     // Minimum required size
@@ -157,7 +193,7 @@ function updateNodeHeight(node, extraHeight = 0) {
  * @returns {boolean} whether anything changed
  */
 function applyBottomPadding(node) {
-    if (VUE_NODES_ENABLED) return false;
+    if (isVueNodesEnabled()) return false;
     if (!node.widgets) return false;
 
     // 1. Find the last visible widget
@@ -330,7 +366,7 @@ function widgetLogic(node, widget) {
     // 1. Measure how much extra height the user added before the layout changes
     // so it can be restored after resizing
     let extraHeight = 0;
-    if (!VUE_NODES_ENABLED && node.size && node.computeSize && !node.flags?.collapsed) {
+    if (!isVueNodesEnabled() && node.size && node.computeSize && !node.flags?.collapsed) {
         const currentMinHeight = node.computeSize()[1];
         const currentActualHeight = node.size[1];
         // Clamp negative values
@@ -521,30 +557,86 @@ function installWidgetWatchers(node) {
 
 const API_KEY_SAVED_EVENT = "byteplus.api_key_saved";
 
+async function sha256Hex(text) {
+    const bytes = new TextEncoder().encode(text);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * API Client nodes that still hold the key that was just saved: key_name is
+ * Custom, new_key_name is the saved name and the pasted key matches the
+ * fingerprint. Searches the root graph and subgraphs, so the right node is
+ * found even after switching tabs or inside a subgraph, and a different node
+ * that merely shares the id is never touched.
+ */
+async function findNodesHoldingSavedKey(detail) {
+    const canHash = !!(globalThis.crypto?.subtle && window.isSecureContext !== false);
+    const matches = [];
+    for (const node of allGraphNodes()) {
+        if (node?.comfyClass !== "BytePlusAPIClient") continue;
+        if (findWidgetByName(node, 'key_name')?.value !== "Custom") continue;
+        if (String(findWidgetByName(node, 'new_key_name')?.value ?? "").trim() !== detail.key_name) continue;
+        const pastedKey = String(findWidgetByName(node, 'new_api_key')?.value ?? "").trim();
+        if (!pastedKey) continue;
+        if (canHash && detail.key_fingerprint) {
+            if ((await sha256Hex(pastedKey)).slice(0, 16) !== detail.key_fingerprint) continue;
+        } else if (String(node.id) !== String(detail.node)) {
+            // No Web Crypto (plain-http remote access): fall back to the node id.
+            continue;
+        }
+        matches.push(node);
+    }
+    return matches;
+}
+
+// Record a code-made widget change so the workflow is saved with it.
+function markWorkflowModified(node) {
+    try {
+        app.extensionManager?.workflow?.activeWorkflow?.changeTracker?.checkState?.();
+    } catch {
+    }
+    try {
+        node?.graph?.change?.();
+    } catch {
+    }
+}
+
 /**
  * After a Custom key is saved under new_key_name, switch the API Client to the
  * saved name and clear the raw key, so it is not kept in the workflow or in
  * the prompt metadata of later outputs.
  */
-function onApiKeySaved({ detail }) {
-    const node = getRootGraph()?.getNodeById?.(detail?.node);
-    if (!node || node.comfyClass !== "BytePlusAPIClient" || !detail.key_name) return;
-
-    const keyNameWidget = findWidgetByName(node, 'key_name');
-    if (keyNameWidget) {
-        const values = keyNameWidget.options?.values;
-        if (Array.isArray(values) && !values.includes(detail.key_name)) {
-            const customIndex = values.indexOf("Custom");
-            values.splice(customIndex >= 0 ? customIndex : values.length, 0, detail.key_name);
+async function onApiKeySaved({ detail }) {
+    if (!detail?.key_name) return;
+    for (const node of await findNodesHoldingSavedKey(detail)) {
+        const keyNameWidget = findWidgetByName(node, 'key_name');
+        if (keyNameWidget) {
+            const values = keyNameWidget.options?.values;
+            if (Array.isArray(values) && !values.includes(detail.key_name)) {
+                const customIndex = values.indexOf("Custom");
+                values.splice(customIndex >= 0 ? customIndex : values.length, 0, detail.key_name);
+            }
+            keyNameWidget.value = detail.key_name;
         }
-        keyNameWidget.value = detail.key_name;
+        for (const name of ['new_api_key', 'new_key_name']) {
+            const widget = findWidgetByName(node, name);
+            if (widget) widget.value = "";
+        }
+        if (keyNameWidget) widgetLogic(node, keyNameWidget);
+        markDirty(node);
+        markWorkflowModified(node);
     }
-    for (const name of ['new_api_key', 'new_key_name']) {
-        const widget = findWidgetByName(node, name);
-        if (widget) widget.value = "";
-    }
-    if (keyNameWidget) widgetLogic(node, keyNameWidget);
-    markDirty(node);
+}
+
+// Re-apply every rule after the renderer is switched, so widgets disabled in
+// Nodes 2.0 (or hidden on the canvas) get the other mode's treatment.
+function onRendererChanged() {
+    setTimeout(() => {
+        for (const node of allGraphNodes()) {
+            if (isBytePlusNode(node)) applyAllWidgetRules(node);
+        }
+    }, 150);
 }
 
 app.registerExtension({
@@ -552,12 +644,13 @@ app.registerExtension({
 
     async setup() {
         api.addEventListener(API_KEY_SAVED_EVENT, onApiKeySaved);
-        const mode = VUE_NODES_ENABLED ? "Node2.0(Vue)" : "Legacy(Canvas)";
+        app.ui?.settings?.addEventListener?.(`${VUE_NODES_SETTING}.change`, onRendererChanged);
+        const mode = isVueNodesEnabled() ? "Node2.0(Vue)" : "Legacy(Canvas)";
         console.log(`%c[BytePlus] Dynamic Widgets Extension Loaded (${mode})`, "color:green; font-weight:bold;");
     },
 
     nodeCreated(node) {
-        if (!node.comfyClass || !node.comfyClass.startsWith("BytePlus")) return;
+        if (!isBytePlusNode(node)) return;
 
         // Wrap configure to know when a workflow is being loaded
         const origConfigure = node.configure;
@@ -574,6 +667,9 @@ app.registerExtension({
             const r = onConnectionsChange ? onConnectionsChange.apply(this, arguments) : undefined;
             if (!this._isConfiguring) {
                 refreshAutogrowInputLabels(this);
+                // A widget converted to a linked input is never hidden, so
+                // re-evaluate the rules when links change.
+                applyAllWidgetRules(this);
             }
             return r;
         };
