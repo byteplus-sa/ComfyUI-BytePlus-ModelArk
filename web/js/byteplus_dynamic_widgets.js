@@ -509,8 +509,8 @@ function widgetLogic(node, widget) {
         }
     }
 
-    // Visual understanding node
-    if (node.comfyClass === "BytePlusVisualUnderstanding") {
+    // Seed and Visual Understanding (Legacy): effort only applies while thinking is on
+    if (node.comfyClass === "BytePlusSeed" || node.comfyClass === "BytePlusVisualUnderstanding") {
         if (widgetName === 'reasoning_mode') {
             const isThinkingEnabled = widget.value !== "disabled";
             const effortWidget = findWidgetByName(node, 'reasoning_effort');
