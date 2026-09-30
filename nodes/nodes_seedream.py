@@ -22,7 +22,13 @@ from byteplussdkarkruntime.types.images.images import (
 )
 
 from .constants import MIN_ASPECT_RATIO, MAX_ASPECT_RATIO
-from .core_style import SEED_MAX, seed_input, watermark_input, generation_count_input
+from .core_style import (
+    SEED_MAX,
+    generation_count_input,
+    raise_if_model_unavailable_in_region,
+    seed_input,
+    watermark_input,
+)
 from .executor import BytePlusGenerationExecutor
 from .models_config import (
     SEEDREAM_PRO,
@@ -434,6 +440,7 @@ class BytePlusSeedream(comfy_io.ComfyNode):
     async def execute(cls, client, prompt, model) -> comfy_io.NodeOutput:
         plan = build_seedream_plan(model if isinstance(model, dict) else {"model": model}, prompt)
         model_id = plan["model_id"]
+        raise_if_model_unavailable_in_region(client, model_id)
         generation_count = plan["generation_count"]
         batch_mode = plan["max_images"] > 1
 

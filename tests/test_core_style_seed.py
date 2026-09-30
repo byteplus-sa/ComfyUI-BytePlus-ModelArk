@@ -167,10 +167,8 @@ class SeedSchemaTests(unittest.TestCase):
         self.assertIsInstance(model, comfy_io.DynamicCombo.Input)
         keys = [o.key for o in model.options]
         self.assertEqual(keys[:3], ["Seed 2.0 Pro", "Seed 2.0 Lite", "Seed 2.0 Mini"])
-        self.assertEqual(keys, [
-            "Seed 2.0 Pro", "Seed 2.0 Lite", "Seed 2.0 Mini",
-            "Seed 2.1 Turbo", "Seed 1.8", "Seed 1.6", "Seed 1.6 Flash",
-        ])
+        # Seed 1.8 / 1.6 / 1.6 Flash are deprecated by BytePlus (shut down on 2026-11-11).
+        self.assertEqual(keys, ["Seed 2.0 Pro", "Seed 2.0 Lite", "Seed 2.0 Mini", "Seed 2.1 Turbo"])
         for key in keys:
             with self.subTest(model=key):
                 option = next(o for o in model.options if o.key == key)
@@ -190,10 +188,9 @@ class SeedSchemaTests(unittest.TestCase):
             "Seed 2.0 Lite": "seed-2-0-lite-260428",
             "Seed 2.0 Mini": "seed-2-0-mini-260428",
             "Seed 2.1 Turbo": "dola-seed-2-1-turbo-260628",
-            "Seed 1.8": "seed-1-8-251228",
-            "Seed 1.6": "seed-1-6-250915",
-            "Seed 1.6 Flash": "seed-1-6-flash-250715",
         })
+        # Every current model accepts reasoning.effort (Seed 1.6 Flash was the last that did not).
+        self.assertEqual(models_config.SEED_LLM_NO_REASONING_EFFORT, ())
 
     def test_outputs(self):
         outputs = self.schema.outputs
@@ -337,8 +334,8 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         cases = [
             ("Seed 2.1 Turbo", "enabled", "high", {"type": "enabled"}, {"effort": "high"}),
             ("Seed 2.0 Mini", "disabled", "high", {"type": "disabled"}, None),
-            ("Seed 1.6 Flash", "enabled", "low", {"type": "enabled"}, None),
-            ("Seed 1.8", "auto", "minimal", None, {"effort": "minimal"}),
+            ("Seed 2.0 Pro", "enabled", "low", {"type": "enabled"}, {"effort": "low"}),
+            ("Seed 2.0 Lite", "auto", "minimal", None, {"effort": "minimal"}),
         ]
         for label, mode, effort, thinking, reasoning in cases:
             with self.subTest(model=label, mode=mode):

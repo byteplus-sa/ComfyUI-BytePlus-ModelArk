@@ -173,7 +173,7 @@ IMAGE_MIN_RATIO = 0.4
 IMAGE_MAX_RATIO = 2.5
 REF_IMAGE_MAX_SIZE_MB = 30.0
 REF_IMAGE_MAX_TOTAL_REQUEST_MB = 64.0
-REF_MEDIA_MIN_DURATION = 1.8
+REF_MEDIA_MIN_DURATION = 2.0
 REF_MEDIA_MAX_DURATION = 15.2
 REF_MEDIA_MAX_DURATION_SEEDANCE_2_5 = 30.2
 REF_VIDEO_MIN_DURATION = REF_MEDIA_MIN_DURATION
@@ -471,12 +471,12 @@ MESSAGES = {
     "err_comfy_upload_failed_reference": "Uploading the reference video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or put a public mp4/mov link or an asset ID in a reference_assets slot instead.",
     "err_draft_task_id_empty": "Enter a draft task ID: the draft_task_id output of a Seedance 2.5 Draft run, or a pasted ID.",
     "err_draft_lookup_failed": "Could not look up draft task {task_id}: {e}",
-    "err_draft_not_a_draft": "Task {task_id} is not a draft. Use the draft_task_id of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run, or of a Seedance 1.5 Pro draft.",
+    "err_draft_not_a_draft": "Task {task_id} is not a draft. Use the draft_task_id of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run.",
     "err_draft_is_final": "Task {task_id} is a final video rendered from draft {draft_task_id}, not a draft. Use the draft task ID.",
     "err_draft_expired": "Draft task {task_id} is more than 7 days old; drafts can only be rendered for 7 days. Generate a new draft.",
     "err_draft_not_ready": "Draft task {task_id} is {status}. Render the final video after the draft has succeeded.",
     "err_draft_failed": "Draft task {task_id} is {status} and cannot be rendered. Generate a new draft.",
-    "err_draft_model_unsupported": "Draft task {task_id} was made with {model}, which cannot render a final from a draft. Supported: Seedance 2.5, Seedance 2.5 Premium and Seedance 1.5 Pro drafts.",
+    "err_draft_model_unsupported": "Draft task {task_id} was made with {model}, which cannot render a final from a draft. Supported: Seedance 2.5 and Seedance 2.5 Premium drafts.",
     "err_draft_mixed_models": "The draft task IDs come from different models ({models}). Render each model's drafts in its own node.",
     "draft_final_render": "Rendering the {resolution} final video of {count} draft(s) with {model}.",
     "err_asset_media_missing": "Connect the {media} input or set {url_input} (a public HTTPS URL).",
@@ -500,10 +500,9 @@ MESSAGES = {
     "asset_ids_saved_hint": "Save the asset_id and group_id for reuse.\n\nasset_id: {asset_id}\n\ngroup_id: {group_id}",
 
     # Core-style nodes: Seedance 1.x (nodes_seedance1.py)
+    "err_model_retired": "{model} is deprecated by BytePlus (shut down on 2026-11-11), so this pack no longer uses it. Switch to {replacement}.",
+    "err_model_region_unavailable": "{model} is not available in {region}. Pick another model, or use an API Client in another region.",
     "err_seedance1_prompt_empty": "prompt is empty. Describe the video to generate.",
-    "err_seedance1_min_duration": "Minimum supported duration for Seedance 1.5 Pro is {min} seconds (duration is {duration}).",
-    "err_seedance1_1_5_only": "{option} is only supported by {model}. Select that model or turn {option} off.",
-    "err_seedance1_draft_output_linked": "Only draft_mode produces a draft_task_id. Turn on draft_mode (seedance-1-5-pro-251215), or disconnect the draft_task_id output",
     "err_seedance1_image_missing": "{name} is required.",
     "err_seedance1_image_size": "{name}: width and height must be between {min} and {max} pixels (got {width}x{height}).",
     "err_seedance1_image_ratio": "{name}: aspect ratio (width / height) must be between {min} and {max} (got {ratio}).",

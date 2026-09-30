@@ -26,6 +26,12 @@ SEEDREAM_5_FLASH_UI_MODEL = "dola-seedream-5-0-flash"
 SEEDREAM_5_LITE_UI_MODEL = "seedream-5-0-lite"
 SEEDREAM_5_URL_MODELS = (SEEDREAM_5_PRO_UI_MODEL, SEEDREAM_5_FLASH_UI_MODEL)
 
+# Model ID -> regions where it must not be used. Seedream 5.0 Lite was
+# deactivated in eu-west-1 on 2026-09-10 (model deprecation notice).
+MODEL_REGION_EXCLUSIONS = {
+    "seedream-5-0-260128": ("eu-west-1",),
+}
+
 # Seedream 5.0 Pro / Flash layer decomposition: one input image -> base image + up to 16 layers
 SEEDREAM_LAYER_MODEL_MAP = {
     model: SEEDREAM_5_MODEL_MAP[model] for model in SEEDREAM_5_URL_MODELS
@@ -36,7 +42,6 @@ SEEDREAM_LAYER_SIZES = ["auto", "1K", "1.5K", "2K"]
 VIDEO_MODEL_MAP = {
     "seedance-1-0-pro": "seedance-1-0-pro-250528",
     "seedance-1-0-pro-fast": "seedance-1-0-pro-fast-251015",
-    "seedance-1-5-pro": "seedance-1-5-pro-251215",
     "dreamina-seedance-2-0": "dreamina-seedance-2-0-260128",
     "dreamina-seedance-2-0-fast": "dreamina-seedance-2-0-fast-260128",
     "dreamina-seedance-2-0-mini": "dreamina-seedance-2-0-mini-260615",
@@ -50,7 +55,18 @@ VIDEO_1_UI_OPTIONS = [
     "seedance-1-0-pro-fast",
 ]
 
-# Seedance 1.5 node options
+# Models BytePlus deprecated on 2026-09-15 and shuts down on 2026-11-11 (model
+# deprecation notice): removed from every node. The Legacy nodes that saved them still load and explain
+# the replacement when run. UI name -> (model ID, replacement).
+RETIRED_MODELS = {
+    "seedance-1-5-pro": ("seedance-1-5-pro-251215", "dreamina-seedance-2-0-mini-260615"),
+    "seed-1-8": ("seed-1-8-251228", "seed-2-0-lite-260428"),
+    "seed-1-6": ("seed-1-6-250915", "seed-2-0-lite-260428"),
+    "seed-1-6-flash": ("seed-1-6-flash-250715", "seed-2-0-mini-260428"),
+}
+
+# Legacy Seedance 1.5 Pro node options (kept so saved workflows load; the
+# model is retired, see RETIRED_MODELS)
 VIDEO_1_5_UI_OPTIONS = [
     "seedance-1-5-pro",
 ]
@@ -108,7 +124,7 @@ SEEDANCE_2_5_TASK_TYPES = ["auto", "reference", "edit", "extend"]
 SEEDANCE_2_5_OUTPUT_FORMATS = ["mp4", "mov"]
 
 # Model list for the task query node
-QUERY_TASKS_MODEL_LIST = ["all"] + VIDEO_1_UI_OPTIONS + VIDEO_1_5_UI_OPTIONS + VIDEO_2_UI_OPTIONS
+QUERY_TASKS_MODEL_LIST = ["all"] + VIDEO_1_UI_OPTIONS + VIDEO_2_UI_OPTIONS
 
 # Visual understanding models
 VISUAL_MODEL_MAP = {
@@ -116,9 +132,6 @@ VISUAL_MODEL_MAP = {
     "seed-2-0-pro": "seed-2-0-pro-260328",
     "seed-2-0-lite": "seed-2-0-lite-260428",
     "seed-2-0-mini": "seed-2-0-mini-260428",
-    "seed-1-8": "seed-1-8-251228",
-    "seed-1-6": "seed-1-6-250915",
-    "seed-1-6-flash": "seed-1-6-flash-250715",
 }
 VISUAL_UI_OPTIONS = list(VISUAL_MODEL_MAP.keys())
 
@@ -202,10 +215,9 @@ SEEDREAM_LAYER_SEPARATION_MODELS = {
 }
 
 # Seedance 1.x (nodes_seedance1.py)
-# Core's labels are dated IDs; behaviour branches on the label.
-SEEDANCE_1_5_PRO_MODEL = "seedance-1-5-pro-251215"
+# Core's labels are dated IDs. Core also offers seedance-1-5-pro-251215, which
+# BytePlus shuts down on 2026-11-11.
 SEEDANCE_1_MODELS = {
-    SEEDANCE_1_5_PRO_MODEL: VIDEO_MODEL_MAP["seedance-1-5-pro"],
     "seedance-1-0-pro-250528": VIDEO_MODEL_MAP["seedance-1-0-pro"],
     "seedance-1-0-pro-fast-251015": VIDEO_MODEL_MAP["seedance-1-0-pro-fast"],
 }
@@ -213,15 +225,15 @@ SEEDANCE_1_MODELS = {
 SEEDANCE_1_MODEL_OPTIONS = list(SEEDANCE_1_MODELS)
 SEEDANCE_1_DEFAULT_MODEL = "seedance-1-0-pro-fast-251015"
 # First-Last-Frame to Video (1.0 Pro Fast has no last-frame support)
-SEEDANCE_1_FLF_MODEL_OPTIONS = [SEEDANCE_1_5_PRO_MODEL, "seedance-1-0-pro-250528"]
-SEEDANCE_1_FLF_DEFAULT_MODEL = SEEDANCE_1_5_PRO_MODEL
+SEEDANCE_1_FLF_MODEL_OPTIONS = ["seedance-1-0-pro-250528"]
+SEEDANCE_1_FLF_DEFAULT_MODEL = "seedance-1-0-pro-250528"
 SEEDANCE_1_RESOLUTIONS = ["480p", "720p", "1080p"]
 SEEDANCE_1_TEXT_RATIOS = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]
 SEEDANCE_1_IMAGE_RATIOS = ["adaptive"] + SEEDANCE_1_TEXT_RATIOS
-SEEDANCE_1_MIN_DURATION = 3
+# BytePlus: 2-12 s for 1.0 Pro and Pro Fast (core's widget starts at 3).
+SEEDANCE_1_MIN_DURATION = 2
 SEEDANCE_1_MAX_DURATION = 12
 SEEDANCE_1_DEFAULT_DURATION = 5
-SEEDANCE_1_5_PRO_MIN_DURATION = 4
 
 # Seedance 2 / 2.5 (nodes_seedance2.py)
 # Model option label -> VIDEO_MODEL_MAP key. Core's labels plus the Premium
@@ -248,11 +260,6 @@ SEEDANCE2_REF_VIDEO_DOWNSCALE_TARGETS = {
     "dreamina-seedance-2-0-mini": {"480p": 927_408, "720p": 927_408},
 }
 
-# Final resolution for Seedance 1.5 Pro drafts in the Draft to Final node
-# (the API takes 480p / 720p / 1080p for a final; 1080p is the highest).
-SEEDANCE_1_5_UI_MODEL = "seedance-1-5-pro"
-SEEDANCE_1_5_DRAFT_FINAL_RESOLUTION = "1080p"
-
 # Seed LLM (nodes_seed.py)
 # Core's three labels first (core's first option is the default), then this
 # pack's other Seed models. All accept images and video through the Responses
@@ -262,13 +269,11 @@ SEED_LLM_MODEL_MAP = {
     "Seed 2.0 Lite": VISUAL_MODEL_MAP["seed-2-0-lite"],
     "Seed 2.0 Mini": VISUAL_MODEL_MAP["seed-2-0-mini"],
     "Seed 2.1 Turbo": VISUAL_MODEL_MAP["dola-seed-2-1-turbo"],
-    "Seed 1.8": VISUAL_MODEL_MAP["seed-1-8"],
-    "Seed 1.6": VISUAL_MODEL_MAP["seed-1-6"],
-    "Seed 1.6 Flash": VISUAL_MODEL_MAP["seed-1-6-flash"],
 }
 SEED_LLM_UI_OPTIONS = list(SEED_LLM_MODEL_MAP.keys())
 # Models that reject reasoning.effort (not in the ModelArk "Adjust
 # chain-of-thought length" model table); the node does not send it for them.
-SEED_LLM_NO_REASONING_EFFORT = ("Seed 1.6 Flash",)
+# None of the current models (Seed 1.6 Flash was the last one; shut down 2026-11-11).
+SEED_LLM_NO_REASONING_EFFORT = ()
 SEED_LLM_MAX_IMAGES = 20
 SEED_LLM_MAX_VIDEOS = 4

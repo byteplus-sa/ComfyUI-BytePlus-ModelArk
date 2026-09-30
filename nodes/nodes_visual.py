@@ -27,7 +27,8 @@ from .nodes_shared import (
 )
 from .executor import BytePlusVisualExecutor
 from .constants import DEFAULT_VISUAL_SYSTEM_PROMPT, DEFAULT_VISUAL_USER_PROMPT
-from .models_config import VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
+from .core_style import raise_if_model_retired
+from .models_config import RETIRED_MODELS, VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
 
 # Last response per Visual node, for multi-turn (previous_response_id).
 # Keyed by node id so parallel nodes keep separate conversations. A response ID
@@ -56,7 +57,12 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
             is_deprecated=True,
             inputs=[
                 BytePlusClientType.Input("client"),
-                comfy_io.Combo.Input("model", options=VISUAL_UI_OPTIONS, default=VISUAL_UI_OPTIONS[0]),
+                comfy_io.Combo.Input(
+                    "model",
+                    # Retired models stay listed so saved workflows load; running them explains why not.
+                    options=VISUAL_UI_OPTIONS + [m for m in RETIRED_MODELS if m.startswith("seed-")],
+                    default=VISUAL_UI_OPTIONS[0],
+                ),
                 comfy_io.String.Input("system_prompt", multiline=True, default=DEFAULT_VISUAL_SYSTEM_PROMPT),
                 comfy_io.String.Input("user_prompt", multiline=True, default=DEFAULT_VISUAL_USER_PROMPT),
                 comfy_io.Combo.Input("detail", options=["low", "high"], default="high"),
@@ -107,7 +113,7 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
         visual_input_2=None,
         visual_input_3=None,
     ) -> comfy_io.NodeOutput:
-        
+        raise_if_model_retired(model)
         effective_system_prompt = (system_prompt or "").strip() or DEFAULT_VISUAL_SYSTEM_PROMPT
         inputs_content = []
         normalized_file_expire_seconds = int(file_expire_seconds if file_expire_seconds is not None else 604800)

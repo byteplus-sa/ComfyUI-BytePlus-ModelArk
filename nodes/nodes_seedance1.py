@@ -1,15 +1,16 @@
 """
 Seedance 1.x nodes shaped like ComfyUI core's ByteDance Text to Video, Image to Video and First-Last-Frame to Video nodes.
 
-Inputs, defaults, limits and tooltips copy core's ByteDanceTextToVideoNode,
+Inputs, defaults and tooltips copy core's ByteDanceTextToVideoNode,
 ByteDanceImageToVideoNode and ByteDanceFirstLastFrameNode
-(comfy_api_nodes/nodes_bytedance.py). Every node also takes this pack's API
-Client as its first input and ends with this pack's extras (advanced). The
-request goes straight to BytePlus ModelArk: parameters as JSON body fields,
-frames as base64 data URIs (the Legacy Seedance 1.x request code).
+(comfy_api_nodes/nodes_bytedance.py), with BytePlus's limits where they
+differ (duration 2-12 s). Seedance 1.5 Pro, core's third model, is deprecated
+by BytePlus (shut down on 2026-11-11), so it and its generate_audio input are left out. Every
+node also takes this pack's API Client as its first input and ends with this
+pack's extras (advanced). The request goes straight to BytePlus ModelArk:
+parameters as JSON body fields, frames as base64 data URIs (the Legacy
+Seedance 1.x request code).
 """
-import json
-
 from comfy_api.latest import io as comfy_io
 
 from .constants import (
@@ -20,10 +21,8 @@ from .constants import (
     IMAGE_MIN_RATIO,
     VIDEO_DEFAULT_TIMEOUT,
 )
-from .core_style import raise_if_output_linked, seed_input, video_extra_inputs, watermark_input
+from .core_style import seed_input, video_extra_inputs, watermark_input
 from .models_config import (
-    SEEDANCE_1_5_PRO_MIN_DURATION,
-    SEEDANCE_1_5_PRO_MODEL,
     SEEDANCE_1_DEFAULT_DURATION,
     SEEDANCE_1_DEFAULT_MODEL,
     SEEDANCE_1_FLF_DEFAULT_MODEL,
@@ -35,11 +34,9 @@ from .models_config import (
     SEEDANCE_1_MODELS,
     SEEDANCE_1_RESOLUTIONS,
     SEEDANCE_1_TEXT_RATIOS,
-    SEEDANCE_DRAFT_RESOLUTION,
 )
 from .nodes_shared import (
     GLOBAL_CATEGORY,
-    LOG_PREFIX,
     BytePlusClientType,
     BytePlusException,
     get_text,
@@ -47,7 +44,7 @@ from .nodes_shared import (
 from .nodes_video import BytePlusVideoBase, _raise_if_text_params, build_seedance1_frame_content
 
 # Flags ModelArk would also read from the prompt text; here they are widgets
-# (core's list plus the Legacy nodes' "dur", "frames" and "generate_audio").
+# (core's list plus the Legacy nodes' "dur" and "frames").
 FORBIDDEN_PROMPT_FLAGS = [
     "resolution",
     "ratio",
@@ -56,11 +53,7 @@ FORBIDDEN_PROMPT_FLAGS = [
     "seed",
     "camerafixed",
     "watermark",
-    "generate_audio",
 ]
-
-# Output order: core's Video, then this pack's extras.
-DRAFT_TASK_ID_OUTPUT = 1
 
 
 def resolve_seedance1_model(model, options):
@@ -74,22 +67,6 @@ def validate_seedance1_prompt(prompt):
     """Core's validate_string(prompt, strip_whitespace=True, min_length=1)."""
     if not str(prompt or "").strip():
         raise BytePlusException(get_text("err_seedance1_prompt_empty"))
-
-
-def validate_seedance1_duration(model, duration, auto_duration=False):
-    """Core: Seedance 1.5 Pro needs at least 4 seconds."""
-    if (
-        model == SEEDANCE_1_5_PRO_MODEL
-        and not auto_duration
-        and duration < SEEDANCE_1_5_PRO_MIN_DURATION
-    ):
-        raise BytePlusException(
-            get_text(
-                "err_seedance1_min_duration",
-                min=SEEDANCE_1_5_PRO_MIN_DURATION,
-                duration=duration,
-            )
-        )
 
 
 def validate_seedance1_frame(helper, name, image):
@@ -125,25 +102,6 @@ def validate_seedance1_frame(helper, name, image):
                 ratio=f"{ratio:.4f}",
             )
         )
-
-
-def draft_task_ids_from_response(response):
-    """Task IDs of the finished tasks in the response JSON, one per line."""
-    try:
-        items = json.loads(response) if response else None
-    except (TypeError, ValueError):
-        return ""
-    if not isinstance(items, list):
-        # A pending non_blocking run or an ignored failure.
-        return ""
-    return "\n".join(
-        str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")
-    )
-
-
-def _message_without_prefix(key):
-    text = get_text(key)
-    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
 
 
 # --- Inputs (core's definitions) ---
@@ -203,39 +161,15 @@ def _core_option_inputs():
             tooltip='Whether to add an "AI generated" watermark to the video.',
             optional=True,
         ),
-        comfy_io.Boolean.Input(
-            "generate_audio",
-            default=False,
-            tooltip="This parameter is ignored for any model except seedance-1-5-pro.",
-            optional=True,
-            advanced=True,
-        ),
     ]
 
 
 def _extra_inputs():
     """This pack's extras, after core's inputs."""
-    extras = [
-        comfy_io.Boolean.Input(
-            "auto_duration",
-            default=False,
-            tooltip="seedance-1-5-pro only: let the model choose a length of 4 to 12 seconds; "
-            "duration is ignored.",
-            advanced=True,
-        ),
-        comfy_io.Boolean.Input(
-            "draft_mode",
-            default=False,
-            tooltip="seedance-1-5-pro only: generate a low-cost 480p draft (no offline inference). "
-            "Connect draft_task_id to the Seedance Draft to Final node to render the final "
-            "video from it; drafts can be rendered for 7 days.",
-            advanced=True,
-        ),
-        *video_extra_inputs(include_offline=True),
-    ]
-    # Core's seed/camera_fixed/watermark/generate_audio are optional, and the
-    # frontend lists required inputs before optional ones: keep the extras
-    # optional too so they stay last.
+    extras = video_extra_inputs(include_offline=True)
+    # Core's seed/camera_fixed/watermark are optional, and the frontend lists
+    # required inputs before optional ones: keep the extras optional too so
+    # they stay last.
     for item in extras:
         item.optional = True
     return extras
@@ -244,11 +178,6 @@ def _extra_inputs():
 def _outputs():
     return [
         comfy_io.Video.Output(),
-        comfy_io.String.Output(
-            "draft_task_id",
-            tooltip="Task ID of a draft_mode run (one per line when generation_count > 1); empty "
-            "otherwise. Connect it to the Seedance Draft to Final node to render the final video.",
-        ),
         comfy_io.Image.Output("last_frame", tooltip="Last frame of the generated video."),
         comfy_io.String.Output(
             "response",
@@ -294,9 +223,6 @@ async def generate_seedance1_video(
     seed,
     camera_fixed,
     watermark,
-    generate_audio,
-    auto_duration,
-    draft_mode,
     enable_offline_inference,
     generation_count,
     filename_prefix,
@@ -308,20 +234,6 @@ async def generate_seedance1_video(
     image) for first_frame and, optionally, last_frame.
     """
     model_id = resolve_seedance1_model(model, model_options)
-    is_1_5_pro = model == SEEDANCE_1_5_PRO_MODEL
-    for option, enabled in (("auto_duration", auto_duration), ("draft_mode", draft_mode)):
-        if enabled and not is_1_5_pro:
-            raise BytePlusException(
-                get_text("err_seedance1_1_5_only", option=option, model=SEEDANCE_1_5_PRO_MODEL)
-            )
-    if not draft_mode:
-        raise_if_output_linked(
-            cls,
-            DRAFT_TASK_ID_OUTPUT,
-            _message_without_prefix("err_seedance1_draft_output_linked"),
-        )
-
-    validate_seedance1_duration(model, duration, auto_duration)
     validate_seedance1_prompt(prompt)
     _raise_if_text_params(prompt, FORBIDDEN_PROMPT_FLAGS)
 
@@ -336,19 +248,7 @@ async def generate_seedance1_video(
     service_tier, execution_expires_after = helper._get_service_options(
         enable_offline_inference, VIDEO_DEFAULT_TIMEOUT
     )
-    extra_api_params = {"camera_fixed": camera_fixed, "watermark": watermark}
-    if is_1_5_pro:
-        extra_api_params["generate_audio"] = generate_audio
-    return_last_frame = True
-    if draft_mode:
-        # Drafts are 480p only, without last frame or offline inference.
-        extra_api_params["draft"] = True
-        resolution = SEEDANCE_DRAFT_RESOLUTION
-        return_last_frame = False
-        service_tier = "default"
-        save_last_frame_batch = False
-
-    result = await helper._common_generation_logic(
+    return await helper._common_generation_logic(
         client,
         prompt,
         duration,
@@ -365,16 +265,11 @@ async def generate_seedance1_video(
         forbidden_params=FORBIDDEN_PROMPT_FLAGS,
         service_tier=service_tier,
         execution_expires_after=execution_expires_after,
-        is_auto_duration=bool(auto_duration),
-        extra_api_params=extra_api_params,
-        return_last_frame=return_last_frame,
+        extra_api_params={"camera_fixed": camera_fixed, "watermark": watermark},
+        return_last_frame=True,
         node_class_type=cls.NODE_ID,
         workflow_prompt=cls.hidden.prompt,
     )
-
-    video, last_frame_image, response = (tuple(result.args) + (None, None, None))[:3]
-    draft_task_id = draft_task_ids_from_response(response) if draft_mode else ""
-    return comfy_io.NodeOutput(video, draft_task_id, last_frame_image, response)
 
 
 class BytePlusSeedanceTextToVideo(comfy_io.ComfyNode):
@@ -406,9 +301,6 @@ class BytePlusSeedanceTextToVideo(comfy_io.ComfyNode):
         seed=0,
         camera_fixed=False,
         watermark=False,
-        generate_audio=False,
-        auto_duration=False,
-        draft_mode=False,
         enable_offline_inference=False,
         generation_count=1,
         filename_prefix=DEFAULT_FILENAME_PREFIX,
@@ -428,9 +320,6 @@ class BytePlusSeedanceTextToVideo(comfy_io.ComfyNode):
             seed=seed,
             camera_fixed=camera_fixed,
             watermark=watermark,
-            generate_audio=generate_audio,
-            auto_duration=auto_duration,
-            draft_mode=draft_mode,
             enable_offline_inference=enable_offline_inference,
             generation_count=generation_count,
             filename_prefix=filename_prefix,
@@ -474,9 +363,6 @@ class BytePlusSeedanceImageToVideo(comfy_io.ComfyNode):
         seed=0,
         camera_fixed=False,
         watermark=False,
-        generate_audio=False,
-        auto_duration=False,
-        draft_mode=False,
         enable_offline_inference=False,
         generation_count=1,
         filename_prefix=DEFAULT_FILENAME_PREFIX,
@@ -496,9 +382,6 @@ class BytePlusSeedanceImageToVideo(comfy_io.ComfyNode):
             seed=seed,
             camera_fixed=camera_fixed,
             watermark=watermark,
-            generate_audio=generate_audio,
-            auto_duration=auto_duration,
-            draft_mode=draft_mode,
             enable_offline_inference=enable_offline_inference,
             generation_count=generation_count,
             filename_prefix=filename_prefix,
@@ -547,9 +430,6 @@ class BytePlusSeedanceFirstLastFrame(comfy_io.ComfyNode):
         seed=0,
         camera_fixed=False,
         watermark=False,
-        generate_audio=False,
-        auto_duration=False,
-        draft_mode=False,
         enable_offline_inference=False,
         generation_count=1,
         filename_prefix=DEFAULT_FILENAME_PREFIX,
@@ -569,9 +449,6 @@ class BytePlusSeedanceFirstLastFrame(comfy_io.ComfyNode):
             seed=seed,
             camera_fixed=camera_fixed,
             watermark=watermark,
-            generate_audio=generate_audio,
-            auto_duration=auto_duration,
-            draft_mode=draft_mode,
             enable_offline_inference=enable_offline_inference,
             generation_count=generation_count,
             filename_prefix=filename_prefix,

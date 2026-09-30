@@ -565,6 +565,47 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request["sequential_image_generation"], "disabled")
         self.assertNotIn("sequential_image_generation_options", request)
 
+    async def test_lite_is_not_offered_in_eu_west_1(self):
+        """Seedream 5.0 Lite was deactivated in eu-west-1: refused before any request."""
+        fake = FakeImages()
+        client = FakeClient(fake)
+        client.region = "eu-west-1"
+        with self.assertRaises(Exception) as ctx:
+            await nodes_seedream.BytePlusSeedream.execute(client, "a red apple", {"model": LITE})
+        self.assertIn("seedream-5-0-260128 is not available in eu-west-1", str(ctx.exception))
+        self.assertTrue(str(ctx.exception).startswith("[BytePlus]"))
+        self.assertEqual((fake.calls, client.quota), ([], []))
+
+        # Other models in eu-west-1, and Lite in ap-southeast-1, run.
+        for model in (PRO, FLASH, V45, V40):
+            with self.subTest(model=model):
+                await nodes_seedream.BytePlusSeedream.execute(client, "a red apple", {"model": model})
+        self.assertEqual(len(fake.calls), 4)
+        client.region = "ap-southeast-1"
+        await nodes_seedream.BytePlusSeedream.execute(client, "a red apple", {"model": LITE})
+        self.assertEqual(fake.calls[-1]["model"], "seedream-5-0-260128")
+
+    async def test_legacy_seedream5_lite_is_not_offered_in_eu_west_1(self):
+        fake = FakeImages()
+        client = FakeClient(fake)
+        client.region = "eu-west-1"
+        legacy = nodes_image.BytePlusSeedream5
+        old_hidden = legacy.__dict__.get("hidden")
+        legacy.hidden = SimpleNamespace(unique_id="legacy-node", prompt={})
+        try:
+            with self.assertRaises(Exception) as ctx:
+                await legacy.execute(
+                    client,
+                    {"model_version": "seedream-5-0-lite", "prompt": "a red apple", "size": "2K (adaptive)"},
+                )
+        finally:
+            if old_hidden is None:
+                delattr(legacy, "hidden")
+            else:
+                legacy.hidden = old_hidden
+        self.assertIn("seedream-5-0-260128 is not available in eu-west-1", str(ctx.exception))
+        self.assertEqual((fake.calls, client.quota), ([], []))
+
     async def test_legacy_seedream4_stream_response_is_json(self):
         # The streamed completed event carries the SDK's Usage model; the legacy
         # node json.dumps its response, which used to raise TypeError.

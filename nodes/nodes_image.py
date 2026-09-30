@@ -38,6 +38,7 @@ from .utils_download import (
 )
 from .executor import BytePlusGenerationExecutor
 
+from .core_style import raise_if_model_unavailable_in_region
 from .models_config import (
     SEEDREAM_4_MODEL_MAP,
     SEEDREAM_4_0_UI_MODEL,
@@ -573,6 +574,7 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
             prompt_optimization = model_config.get("prompt_optimization", prompt_optimization)
             output_format = model_config.get("output_format", output_format)
             background = model_config.get("background", background)
+        raise_if_model_unavailable_in_region(client, SEEDREAM_5_MODEL_MAP.get(model_version, ""))
 
         model_id = SEEDREAM_5_MODEL_MAP.get(model_version)
         if not model_id:

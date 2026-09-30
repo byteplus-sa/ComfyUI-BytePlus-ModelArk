@@ -36,7 +36,6 @@ from .constants import (
     REF_VIDEO_MIN_FPS,
     REF_VIDEO_MIN_PIXELS,
     SEEDANCE_2_5_EDIT_MIN_DURATION,
-    VIDEO_DEFAULT_TIMEOUT,
 )
 from .core_style import (
     raise_if_output_linked,
@@ -50,8 +49,6 @@ from .models_config import (
     SEEDANCE2_CORE_DRAFT_OPTIONS,
     SEEDANCE2_CORE_MODEL_OPTIONS,
     SEEDANCE2_REF_VIDEO_DOWNSCALE_TARGETS,
-    SEEDANCE_1_5_DRAFT_FINAL_RESOLUTION,
-    SEEDANCE_1_5_UI_MODEL,
     SEEDANCE_2_5_FAMILY,
     SEEDANCE_2_5_TASK_TYPES,
     SEEDANCE_2_5_OUTPUT_FORMATS,
@@ -1261,9 +1258,6 @@ def draft_final_plan(model_key):
     """(final resolution, service_tier, execution_expires_after) for drafts of this model."""
     if model_key in SEEDANCE_DRAFT_FINAL_RESOLUTIONS:
         return SEEDANCE_DRAFT_FINAL_RESOLUTIONS[model_key][0], None, None
-    if model_key == SEEDANCE_1_5_UI_MODEL:
-        # Same request options as BytePlusSeedance1_5's final-from-draft path.
-        return SEEDANCE_1_5_DRAFT_FINAL_RESOLUTION, "default", VIDEO_DEFAULT_TIMEOUT
     return None
 
 
@@ -1323,7 +1317,7 @@ async def describe_drafts(client, draft_ids):
 
 
 class BytePlusSeedanceDraftToFinal(comfy_io.ComfyNode):
-    """Core's ByteDance2DraftToFinalVideoNode on BytePlus ModelArk; also renders Seedance 1.5 Pro drafts."""
+    """Core's ByteDance2DraftToFinalVideoNode on BytePlus ModelArk (also Seedance 2.5 Premium drafts)."""
 
     NODE_ID = "BytePlusSeedanceDraftToFinal"
 
@@ -1331,12 +1325,11 @@ class BytePlusSeedanceDraftToFinal(comfy_io.ComfyNode):
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id=cls.NODE_ID,
-            display_name="BytePlus Seedance Draft to Final Video",
+            display_name="BytePlus Seedance 2.5 Draft to Final Video",
             category=GLOBAL_CATEGORY,
-            description="Render the final video of a Seedance draft: 1080p for Seedance 2.5 Draft, 4k for "
-            "Seedance 2.5 Premium Draft, 1080p for Seedance 1.5 Pro drafts. The final keeps the draft's "
-            "scene and motion, and reuses its prompt, references, duration, aspect ratio, and audio setting. "
-            "The model is read from the draft task.",
+            description="Render the final video of a Seedance 2.5 Draft (1080p) or Seedance 2.5 Premium "
+            "Draft (4k). The final keeps the draft's scene and motion, and reuses its prompt, references, "
+            "duration, aspect ratio, and audio setting. The model is read from the draft task.",
             is_output_node=True,
             inputs=[
                 BytePlusClientType.Input("client"),
@@ -1344,7 +1337,7 @@ class BytePlusSeedanceDraftToFinal(comfy_io.ComfyNode):
                     "draft_task_id",
                     default="",
                     tooltip="The draft_task_id output of a BytePlus Seedance 2.5 node run with a Draft model "
-                    "(Seedance 2.5 Draft or Seedance 2.5 Premium Draft), a Seedance 1.5 Pro draft, or pasted "
+                    "(Seedance 2.5 Draft or Seedance 2.5 Premium Draft), or pasted "
                     "draft task IDs (one per line, or separated by commas). Set that node's seed control to "
                     "fixed, otherwise the next run generates a new draft instead of reusing the one you "
                     "reviewed. A draft can be rendered for 7 days after it was created.",

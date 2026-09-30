@@ -8,267 +8,935 @@
       "id": 1,
       "type": "BytePlusAPIClient",
       "pos": [20, 80],
-      "size": [300, 130],
+      "size": [300, 138],
       "flags": {},
       "order": 0,
       "mode": 0,
       "inputs": [
-        {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
-        {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
-        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null},
-        {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
+        {
+          "name": "new_api_key",
+          "type": "STRING",
+          "widget": {
+            "name": "new_api_key"
+          },
+          "link": null
+        },
+        {
+          "name": "new_key_name",
+          "type": "STRING",
+          "widget": {
+            "name": "new_key_name"
+          },
+          "link": null
+        },
+        {
+          "name": "key_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "key_name"
+          },
+          "link": null
+        },
+        {
+          "name": "region",
+          "type": "COMBO",
+          "widget": {
+            "name": "region"
+          },
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1, 2, 3, 4]}
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "links": [1, 2, 3, 4]
+        }
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusAPIClient"},
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusAPIClient"
+      },
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
       "id": 2,
       "type": "BytePlusSeedanceTextToVideo",
       "pos": [390, 80],
-      "size": [440, 420],
+      "size": [440, 448],
       "flags": {},
       "order": 1,
       "mode": 0,
       "inputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 1},
-        {"name": "model", "type": "COMBO", "widget": {"name": "model"}, "link": null},
-        {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
-        {"name": "resolution", "type": "COMBO", "widget": {"name": "resolution"}, "link": null},
-        {"name": "aspect_ratio", "type": "COMBO", "widget": {"name": "aspect_ratio"}, "link": null},
-        {"name": "duration", "type": "INT", "widget": {"name": "duration"}, "link": null},
-        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "shape": 7, "link": null},
-        {"name": "camera_fixed", "type": "BOOLEAN", "widget": {"name": "camera_fixed"}, "shape": 7, "link": null},
-        {"name": "watermark", "type": "BOOLEAN", "widget": {"name": "watermark"}, "shape": 7, "link": null},
-        {"name": "generate_audio", "type": "BOOLEAN", "widget": {"name": "generate_audio"}, "shape": 7, "link": null},
-        {"name": "auto_duration", "type": "BOOLEAN", "widget": {"name": "auto_duration"}, "shape": 7, "link": null},
-        {"name": "draft_mode", "type": "BOOLEAN", "widget": {"name": "draft_mode"}, "shape": 7, "link": null},
-        {"name": "enable_offline_inference", "type": "BOOLEAN", "widget": {"name": "enable_offline_inference"}, "shape": 7, "link": null},
-        {"name": "generation_count", "type": "INT", "widget": {"name": "generation_count"}, "shape": 7, "link": null},
-        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "shape": 7, "link": null},
-        {"name": "save_last_frame_batch", "type": "BOOLEAN", "widget": {"name": "save_last_frame_batch"}, "shape": 7, "link": null},
-        {"name": "non_blocking", "type": "BOOLEAN", "widget": {"name": "non_blocking"}, "shape": 7, "link": null}
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 1
+        },
+        {
+          "name": "model",
+          "type": "COMBO",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "aspect_ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "duration",
+          "type": "INT",
+          "widget": {
+            "name": "duration"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "camera_fixed",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "camera_fixed"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "enable_offline_inference",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_offline_inference"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "save_last_frame_batch",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "save_last_frame_batch"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "shape": 7,
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "VIDEO", "type": "VIDEO", "links": [8]},
-        {"name": "draft_task_id", "type": "STRING", "links": null},
-        {"name": "last_frame", "type": "IMAGE", "links": null},
-        {"name": "response", "type": "STRING", "links": null}
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [8]
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusSeedanceTextToVideo"},
-      "widgets_values": ["seedance-1-0-pro-fast-251015", "A red fox trots through fresh snow at sunrise, the camera slowly tracking alongside it.", "720p", "16:9", 5, 0, "randomize", false, false, false, false, false, false, 1, "BytePlus/Video/Batch/Seedance", false, false]
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusSeedanceTextToVideo"
+      },
+      "widgets_values": [
+        "seedance-1-0-pro-fast-251015",
+        "A red fox trots through fresh snow at sunrise, the camera slowly tracking alongside it.",
+        "720p",
+        "16:9",
+        5,
+        0,
+        "randomize",
+        false,
+        false,
+        false,
+        1,
+        "BytePlus/Video/Batch/Seedance",
+        false,
+        false
+      ]
     },
     {
       "id": 3,
       "type": "SaveVideo",
       "pos": [900, 80],
-      "size": [300, 130],
+      "size": [300, 106],
       "flags": {},
       "order": 2,
       "mode": 0,
       "inputs": [
-        {"name": "video", "type": "VIDEO", "link": 8},
-        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "link": null},
-        {"name": "format", "type": "COMBO", "widget": {"name": "format"}, "link": null},
-        {"name": "codec", "type": "COMBO", "widget": {"name": "codec"}, "link": null}
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 8
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
       ],
       "outputs": [],
-      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveVideo"},
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
       "widgets_values": ["BytePlus/Video/SeedanceTextToVideo", "auto", "auto"]
     },
     {
       "id": 4,
       "type": "LoadImage",
-      "pos": [20, 620],
-      "size": [300, 320],
+      "pos": [20, 692],
+      "size": [300, 326],
       "flags": {},
       "order": 3,
       "mode": 0,
       "inputs": [
-        {"name": "image", "type": "COMBO", "widget": {"name": "image"}, "link": null},
-        {"name": "upload", "type": "IMAGEUPLOAD", "widget": {"name": "upload"}, "link": null}
+        {
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "IMAGE", "type": "IMAGE", "links": [5]},
-        {"name": "MASK", "type": "MASK", "links": null}
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [5]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
       ],
-      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "LoadImage"},
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "LoadImage"
+      },
       "widgets_values": ["comfyui_logo.png", "image"]
     },
     {
       "id": 5,
       "type": "BytePlusSeedanceImageToVideo",
-      "pos": [390, 620],
-      "size": [440, 440],
+      "pos": [390, 692],
+      "size": [440, 448],
       "flags": {},
       "order": 4,
       "mode": 4,
       "inputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 2},
-        {"name": "model", "type": "COMBO", "widget": {"name": "model"}, "link": null},
-        {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
-        {"name": "image", "type": "IMAGE", "link": 5},
-        {"name": "resolution", "type": "COMBO", "widget": {"name": "resolution"}, "link": null},
-        {"name": "aspect_ratio", "type": "COMBO", "widget": {"name": "aspect_ratio"}, "link": null},
-        {"name": "duration", "type": "INT", "widget": {"name": "duration"}, "link": null},
-        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "shape": 7, "link": null},
-        {"name": "camera_fixed", "type": "BOOLEAN", "widget": {"name": "camera_fixed"}, "shape": 7, "link": null},
-        {"name": "watermark", "type": "BOOLEAN", "widget": {"name": "watermark"}, "shape": 7, "link": null},
-        {"name": "generate_audio", "type": "BOOLEAN", "widget": {"name": "generate_audio"}, "shape": 7, "link": null},
-        {"name": "auto_duration", "type": "BOOLEAN", "widget": {"name": "auto_duration"}, "shape": 7, "link": null},
-        {"name": "draft_mode", "type": "BOOLEAN", "widget": {"name": "draft_mode"}, "shape": 7, "link": null},
-        {"name": "enable_offline_inference", "type": "BOOLEAN", "widget": {"name": "enable_offline_inference"}, "shape": 7, "link": null},
-        {"name": "generation_count", "type": "INT", "widget": {"name": "generation_count"}, "shape": 7, "link": null},
-        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "shape": 7, "link": null},
-        {"name": "save_last_frame_batch", "type": "BOOLEAN", "widget": {"name": "save_last_frame_batch"}, "shape": 7, "link": null},
-        {"name": "non_blocking", "type": "BOOLEAN", "widget": {"name": "non_blocking"}, "shape": 7, "link": null}
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 2
+        },
+        {
+          "name": "model",
+          "type": "COMBO",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 5
+        },
+        {
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "aspect_ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "duration",
+          "type": "INT",
+          "widget": {
+            "name": "duration"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "camera_fixed",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "camera_fixed"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "enable_offline_inference",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_offline_inference"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "save_last_frame_batch",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "save_last_frame_batch"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "shape": 7,
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "VIDEO", "type": "VIDEO", "links": [9]},
-        {"name": "draft_task_id", "type": "STRING", "links": null},
-        {"name": "last_frame", "type": "IMAGE", "links": null},
-        {"name": "response", "type": "STRING", "links": null}
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [9]
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusSeedanceImageToVideo"},
-      "widgets_values": ["seedance-1-5-pro-251215", "The logo slowly turns toward the camera as soft light sweeps across it, with a gentle whoosh.", "720p", "adaptive", 5, 0, "randomize", false, false, true, false, false, false, 1, "BytePlus/Video/Batch/Seedance", false, false]
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusSeedanceImageToVideo"
+      },
+      "widgets_values": [
+        "seedance-1-0-pro-fast-251015",
+        "The logo slowly turns toward the camera as soft light sweeps across it.",
+        "720p",
+        "adaptive",
+        5,
+        0,
+        "randomize",
+        false,
+        false,
+        false,
+        1,
+        "BytePlus/Video/Batch/Seedance",
+        false,
+        false
+      ]
     },
     {
       "id": 6,
       "type": "SaveVideo",
-      "pos": [900, 620],
-      "size": [300, 130],
+      "pos": [900, 692],
+      "size": [300, 106],
       "flags": {},
       "order": 5,
       "mode": 4,
       "inputs": [
-        {"name": "video", "type": "VIDEO", "link": 9},
-        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "link": null},
-        {"name": "format", "type": "COMBO", "widget": {"name": "format"}, "link": null},
-        {"name": "codec", "type": "COMBO", "widget": {"name": "codec"}, "link": null}
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 9
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
       ],
       "outputs": [],
-      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveVideo"},
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
       "widgets_values": ["BytePlus/Video/SeedanceImageToVideo", "auto", "auto"]
     },
     {
       "id": 7,
       "type": "LoadImage",
-      "pos": [20, 1180],
-      "size": [300, 320],
+      "pos": [20, 1304],
+      "size": [300, 326],
       "flags": {},
       "order": 6,
       "mode": 0,
       "inputs": [
-        {"name": "image", "type": "COMBO", "widget": {"name": "image"}, "link": null},
-        {"name": "upload", "type": "IMAGEUPLOAD", "widget": {"name": "upload"}, "link": null}
+        {
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "IMAGE", "type": "IMAGE", "links": [6]},
-        {"name": "MASK", "type": "MASK", "links": null}
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [6]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
       ],
-      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "LoadImage"},
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "LoadImage"
+      },
       "widgets_values": ["comfyui_logo.png", "image"]
     },
     {
       "id": 8,
       "type": "LoadImage",
-      "pos": [20, 1540],
-      "size": [300, 320],
+      "pos": [20, 1664],
+      "size": [300, 326],
       "flags": {},
       "order": 7,
       "mode": 0,
       "inputs": [
-        {"name": "image", "type": "COMBO", "widget": {"name": "image"}, "link": null},
-        {"name": "upload", "type": "IMAGEUPLOAD", "widget": {"name": "upload"}, "link": null}
+        {
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "IMAGE", "type": "IMAGE", "links": [7]},
-        {"name": "MASK", "type": "MASK", "links": null}
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [7]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
       ],
-      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "LoadImage"},
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "LoadImage"
+      },
       "widgets_values": ["comfyui_logo.png", "image"]
     },
     {
       "id": 9,
       "type": "BytePlusSeedanceFirstLastFrame",
-      "pos": [390, 1180],
+      "pos": [390, 1304],
       "size": [440, 460],
       "flags": {},
       "order": 8,
       "mode": 4,
       "inputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 3},
-        {"name": "model", "type": "COMBO", "widget": {"name": "model"}, "link": null},
-        {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
-        {"name": "first_frame", "type": "IMAGE", "link": 6},
-        {"name": "last_frame", "type": "IMAGE", "link": 7},
-        {"name": "resolution", "type": "COMBO", "widget": {"name": "resolution"}, "link": null},
-        {"name": "aspect_ratio", "type": "COMBO", "widget": {"name": "aspect_ratio"}, "link": null},
-        {"name": "duration", "type": "INT", "widget": {"name": "duration"}, "link": null},
-        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "shape": 7, "link": null},
-        {"name": "camera_fixed", "type": "BOOLEAN", "widget": {"name": "camera_fixed"}, "shape": 7, "link": null},
-        {"name": "watermark", "type": "BOOLEAN", "widget": {"name": "watermark"}, "shape": 7, "link": null},
-        {"name": "generate_audio", "type": "BOOLEAN", "widget": {"name": "generate_audio"}, "shape": 7, "link": null},
-        {"name": "auto_duration", "type": "BOOLEAN", "widget": {"name": "auto_duration"}, "shape": 7, "link": null},
-        {"name": "draft_mode", "type": "BOOLEAN", "widget": {"name": "draft_mode"}, "shape": 7, "link": null},
-        {"name": "enable_offline_inference", "type": "BOOLEAN", "widget": {"name": "enable_offline_inference"}, "shape": 7, "link": null},
-        {"name": "generation_count", "type": "INT", "widget": {"name": "generation_count"}, "shape": 7, "link": null},
-        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "shape": 7, "link": null},
-        {"name": "save_last_frame_batch", "type": "BOOLEAN", "widget": {"name": "save_last_frame_batch"}, "shape": 7, "link": null},
-        {"name": "non_blocking", "type": "BOOLEAN", "widget": {"name": "non_blocking"}, "shape": 7, "link": null}
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 3
+        },
+        {
+          "name": "model",
+          "type": "COMBO",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "first_frame",
+          "type": "IMAGE",
+          "link": 6
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "link": 7
+        },
+        {
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "aspect_ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "duration",
+          "type": "INT",
+          "widget": {
+            "name": "duration"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "camera_fixed",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "camera_fixed"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "enable_offline_inference",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_offline_inference"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "save_last_frame_batch",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "save_last_frame_batch"
+          },
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "shape": 7,
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "VIDEO", "type": "VIDEO", "links": [10]},
-        {"name": "draft_task_id", "type": "STRING", "links": null},
-        {"name": "last_frame", "type": "IMAGE", "links": null},
-        {"name": "response", "type": "STRING", "links": null}
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [10]
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusSeedanceFirstLastFrame"},
-      "widgets_values": ["seedance-1-5-pro-251215", "A smooth, continuous camera move from the first frame to the last frame.", "720p", "adaptive", 5, 0, "randomize", false, false, false, false, false, false, 1, "BytePlus/Video/Batch/Seedance", false, false]
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusSeedanceFirstLastFrame"
+      },
+      "widgets_values": [
+        "seedance-1-0-pro-250528",
+        "A smooth, continuous camera move from the first frame to the last frame.",
+        "720p",
+        "adaptive",
+        5,
+        0,
+        "randomize",
+        false,
+        false,
+        false,
+        1,
+        "BytePlus/Video/Batch/Seedance",
+        false,
+        false
+      ]
     },
     {
       "id": 10,
       "type": "SaveVideo",
-      "pos": [900, 1180],
-      "size": [300, 130],
+      "pos": [900, 1304],
+      "size": [300, 106],
       "flags": {},
       "order": 9,
       "mode": 4,
       "inputs": [
-        {"name": "video", "type": "VIDEO", "link": 10},
-        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "link": null},
-        {"name": "format", "type": "COMBO", "widget": {"name": "format"}, "link": null},
-        {"name": "codec", "type": "COMBO", "widget": {"name": "codec"}, "link": null}
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 10
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
       ],
       "outputs": [],
-      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveVideo"},
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
       "widgets_values": ["BytePlus/Video/SeedanceFirstLastFrame", "auto", "auto"]
     },
     {
       "id": 11,
       "type": "BytePlusVideoQueryTasks",
-      "pos": [900, 1740],
+      "pos": [900, 1864],
       "size": [350, 300],
       "flags": {},
       "order": 10,
       "mode": 4,
       "inputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 4},
-        {"name": "page_num", "type": "INT", "widget": {"name": "page_num"}, "link": null},
-        {"name": "page_size", "type": "INT", "widget": {"name": "page_size"}, "link": null},
-        {"name": "status", "type": "COMBO", "widget": {"name": "status"}, "link": null},
-        {"name": "service_tier", "type": "COMBO", "widget": {"name": "service_tier"}, "link": null},
-        {"name": "task_ids", "type": "STRING", "widget": {"name": "task_ids"}, "link": null},
-        {"name": "model_version", "type": "COMBO", "widget": {"name": "model_version"}, "link": null},
-        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "link": null}
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 4
+        },
+        {
+          "name": "page_num",
+          "type": "INT",
+          "widget": {
+            "name": "page_num"
+          },
+          "link": null
+        },
+        {
+          "name": "page_size",
+          "type": "INT",
+          "widget": {
+            "name": "page_size"
+          },
+          "link": null
+        },
+        {
+          "name": "status",
+          "type": "COMBO",
+          "widget": {
+            "name": "status"
+          },
+          "link": null
+        },
+        {
+          "name": "service_tier",
+          "type": "COMBO",
+          "widget": {
+            "name": "service_tier"
+          },
+          "link": null
+        },
+        {
+          "name": "task_ids",
+          "type": "STRING",
+          "widget": {
+            "name": "task_ids"
+          },
+          "link": null
+        },
+        {
+          "name": "model_version",
+          "type": "COMBO",
+          "widget": {
+            "name": "model_version"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "task_list_json", "type": "STRING", "links": null},
-        {"name": "total_tasks", "type": "INT", "links": null}
+        {
+          "name": "task_list_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "total_tasks",
+          "type": "INT",
+          "links": null
+        }
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusVideoQueryTasks"},
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusVideoQueryTasks"
+      },
       "widgets_values": [1, 10, "all", "default", "", "all", 0, "randomize"]
     }
   ],
@@ -285,11 +953,37 @@
     [10, 9, 0, 10, 0, "VIDEO"]
   ],
   "groups": [
-    {"id": 1, "title": "Text to Video", "bounding": [360, 20, 880, 540], "color": "#3f789e", "font_size": 22, "flags": {}},
-    {"id": 2, "title": "Image to Video (enable as needed)", "bounding": [0, 560, 1240, 540], "color": "#3f789e", "font_size": 22, "flags": {}},
-    {"id": 3, "title": "First-Last-Frame to Video (enable as needed)", "bounding": [0, 1120, 1240, 960], "color": "#3f789e", "font_size": 22, "flags": {}}
+    {
+      "id": 1,
+      "title": "Text to Video",
+      "bounding": [370, -4, 850, 552],
+      "color": "#3f789e",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "Image to Video (enable as needed)",
+      "bounding": [0, 608, 1220, 552],
+      "color": "#3f789e",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "First-Last-Frame to Video (enable as needed)",
+      "bounding": [0, 1220, 1270, 964],
+      "color": "#3f789e",
+      "font_size": 22,
+      "flags": {}
+    }
   ],
   "config": {},
-  "extra": {"ds": {"scale": 0.7, "offset": [90, 50]}},
+  "extra": {
+    "ds": {
+      "scale": 0.7,
+      "offset": [90, 50]
+    }
+  },
   "version": 0.4
 }

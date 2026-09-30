@@ -29,8 +29,8 @@ class WorkflowTemplateTests(unittest.TestCase):
     SEEDANCE1_BEFORE_FRAMES = ["client", "model", "prompt"]
     SEEDANCE1_AFTER_FRAMES = [
         "resolution", "aspect_ratio", "duration", "seed", "camera_fixed", "watermark",
-        "generate_audio", "auto_duration", "draft_mode", "enable_offline_inference",
-        "generation_count", "filename_prefix", "save_last_frame_batch", "non_blocking",
+        "enable_offline_inference", "generation_count", "filename_prefix",
+        "save_last_frame_batch", "non_blocking",
     ]
     # BytePlusSeedream / BytePlusSeedreamLayerSeparation (core-style): inputs per
     # selected model; widgets_values index of the model value.
@@ -355,10 +355,12 @@ class WorkflowTemplateTests(unittest.TestCase):
         nodes = {node["type"]: node for node in workflow["nodes"]}
         self.assertNotIn("BytePlusSeedance1", nodes)
         self.assertNotIn("BytePlusSeedance1_5", nodes)
+        # Seedance 1.5 Pro is deprecated by BytePlus (shut down on 2026-11-11).
+        self.assertNotIn("seedance-1-5-pro", json.dumps(workflow))
         for node_type, model in (
             ("BytePlusSeedanceTextToVideo", "seedance-1-0-pro-fast-251015"),
-            ("BytePlusSeedanceImageToVideo", "seedance-1-5-pro-251215"),
-            ("BytePlusSeedanceFirstLastFrame", "seedance-1-5-pro-251215"),
+            ("BytePlusSeedanceImageToVideo", "seedance-1-0-pro-fast-251015"),
+            ("BytePlusSeedanceFirstLastFrame", "seedance-1-0-pro-250528"),
         ):
             with self.subTest(node=node_type):
                 node = nodes[node_type]
@@ -373,8 +375,13 @@ class WorkflowTemplateTests(unittest.TestCase):
                 named = dict(zip(widget_inputs[: seed_index + 1], values))
                 named.update(zip(widget_inputs[seed_index + 1 :], values[seed_index + 2 :]))
                 self.assertEqual(named["duration"], 5)
-                self.assertIs(named["draft_mode"], False)
                 self.assertEqual(named["generation_count"], 1)
+                for removed in ("generate_audio", "auto_duration", "draft_mode"):
+                    self.assertNotIn(removed, named)
+                self.assertEqual(
+                    [output["name"] for output in node["outputs"]],
+                    ["VIDEO", "last_frame", "response"],
+                )
                 # Core's optional inputs and this pack's extras are optional sockets.
                 optional = {item["name"] for item in node["inputs"] if item.get("shape") == 7}
                 self.assertEqual(

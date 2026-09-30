@@ -12,6 +12,7 @@ import aiohttp
 from comfy_api.latest import io as comfy_io
 
 from .constants import ASSET_URI_PREFIX, DEFAULT_FILENAME_PREFIX
+from .models_config import MODEL_REGION_EXCLUSIONS, RETIRED_MODELS
 from .nodes_shared import BytePlusException, get_text
 
 SEED_MAX = 2147483647
@@ -111,6 +112,21 @@ def video_extra_inputs(include_offline=False):
         ]
     )
     return inputs
+
+
+def raise_if_model_retired(model):
+    """Legacy nodes keep retired models in their lists so saved workflows load."""
+    retired = RETIRED_MODELS.get(str(model or ""))
+    if retired:
+        model_id, replacement = retired
+        raise BytePlusException(get_text("err_model_retired", model=model_id, replacement=replacement))
+
+
+def raise_if_model_unavailable_in_region(client, model_id):
+    """Some models are not offered in every region (see MODEL_REGION_EXCLUSIONS)."""
+    region = str(getattr(client, "region", "") or "")
+    if region in MODEL_REGION_EXCLUSIONS.get(model_id, ()):
+        raise BytePlusException(get_text("err_model_region_unavailable", model=model_id, region=region))
 
 
 def get_output_consumers(prompt, node_id, output_index):

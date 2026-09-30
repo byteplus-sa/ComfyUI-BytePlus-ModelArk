@@ -65,14 +65,25 @@ def _image(width, height):
 
 CORE_INPUTS = [
     "model", "prompt", "resolution", "aspect_ratio", "duration",
-    "seed", "camera_fixed", "watermark", "generate_audio",
+    "seed", "camera_fixed", "watermark",
 ]
 EXTRA_INPUTS = [
-    "auto_duration", "draft_mode", "enable_offline_inference", "generation_count",
+    "enable_offline_inference", "generation_count",
     "filename_prefix", "save_last_frame_batch", "non_blocking",
 ]
-CORE_ADVANCED = {"camera_fixed", "watermark", "generate_audio"}
-CORE_OPTIONAL = {"seed", "camera_fixed", "watermark", "generate_audio"}
+CORE_ADVANCED = {"camera_fixed", "watermark"}
+CORE_OPTIONAL = {"seed", "camera_fixed", "watermark"}
+
+# Core also offers Seedance 1.5 Pro, which BytePlus deprecated (shut down on
+# 2026-11-11): these nodes leave it out, with its generate_audio input.
+DEPRECATED_MODEL = "seedance-1-5-pro-251215"
+# Documented deviations from core's inputs, checked in
+# test_documented_byteplus_deviations instead of test_matches_core_nodes:
+#   model          - core's options without DEPRECATED_MODEL (FLF defaults to 1.0 Pro)
+#   duration       - BytePlus allows 2-12 s for 1.0 Pro / Pro Fast; core's widget starts at 3
+#   generate_audio - Seedance 1.5 Pro only, left out with it
+BYTEPLUS_DEVIATIONS = {"model", "duration", "generate_audio"}
+REMOVED_CORE_INPUTS = {"generate_audio"}
 
 
 def _with_frames(frames):
@@ -112,11 +123,12 @@ class Seedance1SchemaTests(unittest.TestCase):
                 )
 
     def test_model_options_labels_and_ids(self):
-        full = ["seedance-1-5-pro-251215", "seedance-1-0-pro-250528", "seedance-1-0-pro-fast-251015"]
+        full = ["seedance-1-0-pro-250528", "seedance-1-0-pro-fast-251015"]
         expected = {
             T2V: (full, "seedance-1-0-pro-fast-251015"),
             I2V: (full, "seedance-1-0-pro-fast-251015"),
-            FLF: (full[:2], "seedance-1-5-pro-251215"),
+            # 1.0 Pro Fast has no last-frame support.
+            FLF: (full[:1], "seedance-1-0-pro-250528"),
         }
         for node, (options, default) in expected.items():
             model = node.define_schema().inputs[1]
@@ -124,11 +136,11 @@ class Seedance1SchemaTests(unittest.TestCase):
                 self.assertEqual(model.id, "model")
                 self.assertEqual(model.options, options)
                 self.assertEqual(model.default, default)
+                self.assertNotIn(DEPRECATED_MODEL, model.options)
         # Labels are core's; the values sent come from the BytePlus model map.
         self.assertEqual(
             models_config.SEEDANCE_1_MODELS,
             {
-                "seedance-1-5-pro-251215": models_config.VIDEO_MODEL_MAP["seedance-1-5-pro"],
                 "seedance-1-0-pro-250528": models_config.VIDEO_MODEL_MAP["seedance-1-0-pro"],
                 "seedance-1-0-pro-fast-251015": models_config.VIDEO_MODEL_MAP["seedance-1-0-pro-fast"],
             },
@@ -141,9 +153,10 @@ class Seedance1SchemaTests(unittest.TestCase):
                 self.assertEqual(inputs["resolution"].options, ["480p", "720p", "1080p"])
                 self.assertIsNone(inputs["resolution"].default)
                 duration = inputs["duration"]
+                # BytePlus: 2-12 s (core's widget starts at 3).
                 self.assertEqual(
                     (duration.default, duration.min, duration.max, duration.step),
-                    (5, 3, 12, 1),
+                    (5, 2, 12, 1),
                 )
                 self.assertEqual(duration.display_mode, comfy_io.NumberDisplay.slider)
                 seed = inputs["seed"]
@@ -151,8 +164,11 @@ class Seedance1SchemaTests(unittest.TestCase):
                 self.assertTrue(seed.control_after_generate)
                 self.assertEqual(seed.tooltip, "Seed to use for generation.")
                 self.assertTrue(inputs["prompt"].multiline)
-                for name in ("camera_fixed", "watermark", "generate_audio"):
+                for name in ("camera_fixed", "watermark"):
                     self.assertIs(inputs[name].default, False)
+                # Seedance 1.5 Pro only (deprecated): not offered.
+                for name in ("generate_audio", "auto_duration", "draft_mode"):
+                    self.assertNotIn(name, inputs)
                 for name in CORE_INPUTS:
                     self.assertEqual(bool(inputs[name].optional), name in CORE_OPTIONAL, name)
                     self.assertEqual(bool(inputs[name].advanced), name in CORE_ADVANCED, name)
@@ -171,31 +187,36 @@ class Seedance1SchemaTests(unittest.TestCase):
         for node in seedance1.NODES:
             info = node.GET_NODE_INFO_V1()
             with self.subTest(node=info["name"]):
-                self.assertEqual(info["output"], ["VIDEO", "STRING", "IMAGE", "STRING"])
-                self.assertEqual(
-                    info["output_name"], ["VIDEO", "draft_task_id", "last_frame", "response"]
-                )
-                self.assertEqual(seedance1.DRAFT_TASK_ID_OUTPUT, 1)
+                self.assertEqual(info["output"], ["VIDEO", "IMAGE", "STRING"])
+                self.assertEqual(info["output_name"], ["VIDEO", "last_frame", "response"])
 
-    def test_matches_core_nodes(self):
-        """Core's inputs, compared as /object_info would show them."""
+    def _core_pairs(self):
         try:
             core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
         except Exception as e:  # e.g. an older ComfyUI or API nodes unavailable
             self.skipTest(f"comfy_api_nodes.nodes_bytedance unavailable: {e}")
-        pairs = [
+        return [
             (core.ByteDanceTextToVideoNode, T2V),
             (core.ByteDanceImageToVideoNode, I2V),
             (core.ByteDanceFirstLastFrameNode, FLF),
         ]
-        for core_node, node in pairs:
+
+    def test_matches_core_nodes(self):
+        """Core's inputs, compared as /object_info would show them."""
+        for core_node, node in self._core_pairs():
             core_info, info = core_node.GET_NODE_INFO_V1(), node.GET_NODE_INFO_V1()
-            core_order = core_info["input_order"]["required"] + core_info["input_order"]["optional"]
+            core_order = [
+                name
+                for name in core_info["input_order"]["required"] + core_info["input_order"]["optional"]
+                if name not in REMOVED_CORE_INPUTS
+            ]
             order = info["input_order"]["required"] + info["input_order"]["optional"]
             with self.subTest(node=info["name"]):
                 self.assertEqual(order[1 : 1 + len(core_order)], core_order)
                 for section in ("required", "optional"):
                     for name, spec in core_info["input"][section].items():
+                        if name in BYTEPLUS_DEVIATIONS:
+                            continue  # checked in test_documented_byteplus_deviations
                         self.assertEqual(info["input"][section][name], spec, name)
                 self.assertEqual(info["output"][:1], core_info["output"])
                 self.assertEqual(info["output_name"][:1], core_info["output_name"])
@@ -203,6 +224,36 @@ class Seedance1SchemaTests(unittest.TestCase):
                     info["display_name"],
                     core_info["display_name"].replace("ByteDance", "BytePlus Seedance"),
                 )
+
+    def test_documented_byteplus_deviations(self):
+        """Where these nodes differ from core's (BYTEPLUS_DEVIATIONS), and nowhere else."""
+        for core_node, node in self._core_pairs():
+            core_info, info = core_node.GET_NODE_INFO_V1(), node.GET_NODE_INFO_V1()
+            core_inputs = {**core_info["input"]["required"], **core_info["input"]["optional"]}
+            inputs = {**info["input"]["required"], **info["input"]["optional"]}
+            with self.subTest(node=info["name"]):
+                # model: core's options in core's order, minus Seedance 1.5 Pro.
+                core_model, model = core_inputs["model"][1], inputs["model"][1]
+                self.assertIn(DEPRECATED_MODEL, core_model["options"])
+                self.assertEqual(
+                    model["options"], [o for o in core_model["options"] if o != DEPRECATED_MODEL]
+                )
+                expected_default = core_model["default"]
+                if expected_default == DEPRECATED_MODEL:  # core's First-Last-Frame default
+                    expected_default = "seedance-1-0-pro-250528"
+                self.assertEqual(model["default"], expected_default)
+                strip = lambda spec: {k: v for k, v in spec.items() if k not in ("options", "default")}
+                self.assertEqual(strip(model), strip(core_model))
+                # duration: BytePlus's 2 s minimum, everything else as core.
+                self.assertEqual(core_inputs["duration"][1]["min"], 3)
+                self.assertEqual(
+                    inputs["duration"], (core_inputs["duration"][0], {**core_inputs["duration"][1], "min": 2})
+                )
+                # generate_audio: core's, for Seedance 1.5 Pro only.
+                self.assertIn("generate_audio", core_inputs)
+                self.assertNotIn("generate_audio", inputs)
+                # Nothing else is missing.
+                self.assertEqual(set(core_inputs) - set(inputs), REMOVED_CORE_INPUTS)
 
     def test_legacy_nodes_are_deprecated_but_unchanged(self):
         for node, name in (
@@ -299,7 +350,6 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             seed=42,
             camera_fixed=True,
             watermark=True,
-            generate_audio=True,
         )
         request = self.submitted[0]
         self.assertEqual(request["model"], "seedance-1-0-pro-fast-251015")
@@ -313,29 +363,33 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         self.assertTrue(request["return_last_frame"])
         self.assertEqual(request["service_tier"], "default")
         self.assertEqual(request["execution_expires_after"], 172800)
-        # generate_audio is only sent for Seedance 1.5 Pro (ignored otherwise, like core).
+        # Seedance 1.0 has no audio and no draft mode (both were 1.5 Pro only).
         for absent in ("generate_audio", "draft", "frames"):
             self.assertNotIn(absent, request)
         self.assertEqual(self.quota_checks[0][0], "seedance-1-0-pro-fast-251015")
 
-        # Pending non_blocking run: no video yet, empty draft_task_id, task IDs in response.
-        video, draft_task_id, last_frame, response = result.args
+        # Pending non_blocking run: no video yet, task IDs in response.
+        video, last_frame, response = result.args
         self.assertIsNone(video)
-        self.assertEqual(draft_task_id, "")
         self.assertIsNone(last_frame)
         self.assertEqual(json.loads(response)["task_ids"], ["cgt-1"])
 
-    async def test_seedance_1_5_sends_generate_audio(self):
-        for generate_audio in (False, True):
-            self.submitted.clear()
-            await self._run(
-                T2V, model="seedance-1-5-pro-251215", generate_audio=generate_audio, seed=3
-            )
-            request = self.submitted[0]
-            self.assertEqual(request["model"], "seedance-1-5-pro-251215")
-            self.assertIs(request["generate_audio"], generate_audio)
-            self.assertIs(request["camera_fixed"], False)
-            self.assertIs(request["watermark"], False)
+    async def test_minimum_duration_is_two_seconds(self):
+        """BytePlus allows 2-12 s for 1.0 Pro and 1.0 Pro Fast (core's widget starts at 3)."""
+        frames = {
+            T2V: {},
+            I2V: {"image": _image(640, 360), "aspect_ratio": "adaptive"},
+            FLF: {"first_frame": _image(640, 360), "last_frame": _image(640, 360), "aspect_ratio": "adaptive"},
+        }
+        for node in seedance1.NODES:
+            options = next(i for i in node.define_schema().inputs if i.id == "model").options
+            for model in options:
+                with self.subTest(node=node.__name__, model=model):
+                    self.submitted.clear()
+                    await self._run(node, model=model, duration=2, **frames[node])
+                    self.assertEqual(self.submitted[0]["model"], model)
+                    self.assertEqual(self.submitted[0]["duration"], 2)
+        self.assertEqual(models_config.SEEDANCE_1_MIN_DURATION, 2)
 
     async def test_optional_inputs_default_like_core(self):
         await self._run(T2V, model="seedance-1-0-pro-250528")
@@ -363,38 +417,17 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
     async def test_first_last_frame_roles(self):
         await self._run(
             FLF,
-            model="seedance-1-5-pro-251215",
+            model="seedance-1-0-pro-250528",
             first_frame=_image(640, 360),
             last_frame=_image(360, 640),
             aspect_ratio="adaptive",
-            generate_audio=True,
         )
         request = self.submitted[0]
+        self.assertEqual(request["model"], "seedance-1-0-pro-250528")
         self.assertEqual(
             [item.get("role") for item in request["content"]], [None, "first_frame", "last_frame"]
         )
-        self.assertIs(request["generate_audio"], True)
-
-    async def test_draft_mode_request(self):
-        await self._run(
-            I2V,
-            model="seedance-1-5-pro-251215",
-            image=_image(640, 360),
-            resolution="1080p",
-            aspect_ratio="adaptive",
-            draft_mode=True,
-            enable_offline_inference=True,
-        )
-        request = self.submitted[0]
-        self.assertIs(request["draft"], True)
-        self.assertEqual(request["resolution"], "480p")
-        self.assertFalse(request["return_last_frame"])
-        # Drafts do not support offline inference.
-        self.assertEqual(request["service_tier"], "default")
-
-    async def test_auto_duration_sends_minus_one(self):
-        await self._run(T2V, model="seedance-1-5-pro-251215", auto_duration=True, duration=3)
-        self.assertEqual(self.submitted[0]["duration"], -1)
+        self.assertNotIn("generate_audio", request)
 
     async def test_offline_inference_and_batch(self):
         await self._run(
@@ -429,21 +462,20 @@ class Seedance1ValidationTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
                 model="seedance-1-0-pro-250528", prompt=f"a fox {flag}",
             )
 
-    async def test_seedance_1_5_minimum_duration(self):
-        error = await self._assert_rejected(
-            T2V, "Minimum supported duration for Seedance 1.5 Pro is 4 seconds",
-            model="seedance-1-5-pro-251215", duration=3,
-        )
-        self.assertTrue(str(error).startswith("[BytePlus]"))
-        await self._run(T2V, model="seedance-1-0-pro-250528", duration=3)
-        self.assertEqual(self.submitted[0]["duration"], 3)
-
-    async def test_1_5_only_options(self):
-        for option in ("auto_duration", "draft_mode"):
-            await self._assert_rejected(
-                T2V, f"{option} is only supported by seedance-1-5-pro-251215",
-                model="seedance-1-0-pro-fast-251015", **{option: True},
-            )
+    async def test_deprecated_seedance_1_5_pro_is_rejected(self):
+        """Core's third model: BytePlus shut it down on 2026-11-11."""
+        frames = {
+            T2V: {},
+            I2V: {"image": _image(640, 360)},
+            FLF: {"first_frame": _image(640, 360), "last_frame": _image(640, 360)},
+        }
+        for node in seedance1.NODES:
+            with self.subTest(node=node.__name__):
+                error = await self._assert_rejected(
+                    node, f"does not support model {DEPRECATED_MODEL}",
+                    model=DEPRECATED_MODEL, **frames[node],
+                )
+                self.assertTrue(str(error).startswith("[BytePlus]"))
 
     async def test_first_last_frame_has_no_pro_fast(self):
         await self._assert_rejected(
@@ -473,44 +505,10 @@ class Seedance1ValidationTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
 
 
 @requires_comfyui
-class Seedance1DraftOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
-    def _linked_graph(self, node_id, output_index):
-        return {
-            node_id: {"class_type": "BytePlusSeedanceTextToVideo", "inputs": {}},
-            "20": {
-                "class_type": "BytePlusSeedanceDraftToFinal",
-                "inputs": {"draft_task_id": [node_id, output_index]},
-            },
-        }
-
-    async def test_linked_draft_task_id_needs_draft_mode(self):
-        with self.assertRaises(Exception) as ctx:
-            await self._run(
-                T2V,
-                model="seedance-1-5-pro-251215",
-                node_id="7",
-                prompt_graph=self._linked_graph("7", 1),
-            )
-        message = str(ctx.exception)
-        self.assertIn("Only draft_mode produces a draft_task_id", message)
-        self.assertIn("BytePlusSeedanceDraftToFinal #20", message)
-        self.assertEqual(message.count("[BytePlus]"), 1)
-        self.assertEqual(self.submitted, [])
-
-        # Linked in draft mode, or another output linked: fine.
-        await self._run(
-            T2V, model="seedance-1-5-pro-251215", draft_mode=True,
-            node_id="7", prompt_graph=self._linked_graph("7", 1),
-        )
-        await self._run(
-            T2V, model="seedance-1-5-pro-251215",
-            node_id="8", prompt_graph=self._linked_graph("8", 0),
-        )
-        self.assertEqual(len(self.submitted), 2)
-
+class Seedance1OutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
     async def test_outputs_from_finished_tasks(self):
         video, frame = object(), object()
-        response = json.dumps([{"id": "cgt-a", "draft": True}, {"id": "cgt-b", "draft": True}])
+        response = json.dumps([{"id": "cgt-a"}, {"id": "cgt-b"}])
         calls = []
 
         async def fake_common(_self, *args, **kwargs):
@@ -520,22 +518,21 @@ class Seedance1DraftOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         old_common = nodes_video.BytePlusVideoBase._common_generation_logic
         nodes_video.BytePlusVideoBase._common_generation_logic = fake_common
         try:
-            draft = await self._run(T2V, model="seedance-1-5-pro-251215", draft_mode=True)
-            normal = await self._run(T2V, model="seedance-1-5-pro-251215")
+            result = await self._run(T2V, model="seedance-1-0-pro-250528")
         finally:
             nodes_video.BytePlusVideoBase._common_generation_logic = old_common
-        self.assertEqual(draft.args, (video, "cgt-a\ncgt-b", frame, response))
-        self.assertEqual(normal.args, (video, "", frame, response))
+        self.assertEqual(result.args, (video, frame, response))
         self.assertEqual(calls[0]["node_class_type"], "BytePlusSeedanceTextToVideo")
+        self.assertIs(calls[0]["return_last_frame"], True)
 
-    async def test_blocking_draft_run_outputs_task_id(self):
+    async def test_blocking_run_outputs(self):
         """Through the real executor and result handling (downloads stubbed)."""
         finished = SimpleNamespace(
             id="cgt-1",
             status="succeeded",
             seed=11,
             content=SimpleNamespace(video_url="https://example.invalid/v.mp4"),
-            model_dump=lambda: {"id": "cgt-1", "status": "succeeded", "draft": True},
+            model_dump=lambda: {"id": "cgt-1", "status": "succeeded"},
         )
         stubs = {
             "download_video_to_temp": None,
@@ -559,27 +556,72 @@ class Seedance1DraftOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             result = await self._run(
                 T2V,
                 client=self._client(tasks={"cgt-1": finished}),
-                model="seedance-1-5-pro-251215",
-                draft_mode=True,
+                model="seedance-1-0-pro-fast-251015",
                 non_blocking=False,
             )
         finally:
             for name, original in stubs.items():
                 setattr(nodes_video, name, original)
-        video, draft_task_id, last_frame, response = result.args
+        video, last_frame, response = result.args
         self.assertEqual(video, ("video", "/tmp/v.mp4"))
-        self.assertEqual(draft_task_id, "cgt-1")
         self.assertIs(last_frame, frame)
         self.assertEqual(json.loads(response)[0]["id"], "cgt-1")
-        self.assertIs(self.submitted[0]["draft"], True)
+        self.assertNotIn("draft", self.submitted[0])
 
-    def test_draft_ids_from_response_shapes(self):
-        parse = seedance1.draft_task_ids_from_response
-        self.assertEqual(parse(json.dumps([{"id": "a"}, {"id": "b"}])), "a\nb")
-        self.assertEqual(parse(json.dumps({"non_blocking": True, "task_ids": ["a"]})), "")
-        self.assertEqual(parse(json.dumps({"error": "All tasks failed"})), "")
-        self.assertEqual(parse(None), "")
-        self.assertEqual(parse("not json"), "")
+
+@requires_comfyui
+class Seedance1TemplateTests(unittest.TestCase):
+    """example_workflows/Seedance 1.json against the live schema."""
+
+    SOCKET_TYPES = {"BYTEPLUS_CLIENT", "IMAGE"}
+
+    def test_template_matches_the_schema(self):
+        path = os.path.join(PLUGIN_ROOT, "example_workflows", "Seedance 1.json")
+        with open(path, encoding="utf-8") as file:
+            workflow = json.load(file)
+        classes = {node.NODE_ID: node for node in seedance1.NODES}
+        checked = set()
+        for node in workflow["nodes"]:
+            node_cls = classes.get(node["type"])
+            if node_cls is None:
+                continue
+            checked.add(node["type"])
+            info = node_cls.GET_NODE_INFO_V1()
+            with self.subTest(node=node["type"]):
+                # The frontend lists required inputs, then optional ones.
+                expected = []
+                for section in ("required", "optional"):
+                    for name, spec in info["input"][section].items():
+                        expected.append((name, spec[0], section == "optional"))
+                self.assertEqual(
+                    [(i["name"], i["type"], i.get("shape") == 7) for i in node["inputs"]], expected
+                )
+                for item in node["inputs"]:
+                    self.assertEqual("widget" in item, item["type"] not in self.SOCKET_TYPES, item["name"])
+                self.assertEqual([o["name"] for o in node["outputs"]], info["output_name"])
+                self.assertEqual([o["type"] for o in node["outputs"]], info["output"])
+                # widgets_values: one per widget input in schema order, plus the
+                # seed's control_after_generate value right after the seed.
+                widgets = [name for name, type_, _opt in expected if type_ not in self.SOCKET_TYPES]
+                values = node["widgets_values"]
+                seed = widgets.index("seed")
+                self.assertEqual(len(values), len(widgets) + 1)
+                self.assertIn(values[seed + 1], ("fixed", "randomize"))
+                named = dict(zip(widgets[: seed + 1], values))
+                named.update(zip(widgets[seed + 1 :], values[seed + 2 :]))
+                model = next(i for i in node_cls.define_schema().inputs if i.id == "model")
+                self.assertIn(named["model"], model.options)
+                self.assertEqual(named["model"], model.default)
+                self.assertTrue(named["prompt"].strip())
+                self.assertIn(named["resolution"], ["480p", "720p", "1080p"])
+                self.assertIsInstance(named["duration"], int)
+                self.assertIsInstance(named["seed"], int)
+                for name in ("camera_fixed", "watermark", "enable_offline_inference",
+                             "save_last_frame_batch", "non_blocking"):
+                    self.assertIsInstance(named[name], bool, name)
+                self.assertIsInstance(named["generation_count"], int)
+                self.assertIsInstance(named["filename_prefix"], str)
+        self.assertEqual(checked, set(classes))
 
 
 if __name__ == "__main__":

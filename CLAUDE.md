@@ -27,7 +27,7 @@ The project release skill is `.agents/skills/comfyui-registry-release/SKILL.md`.
 | `nodes/core_style.py` | Shared pieces for the nodes shaped like ComfyUI core's ByteDance nodes: core's `seed_input` / `watermark_input`, this pack's extras as advanced inputs (`video_extra_inputs`), `raise_if_output_linked` (core's `validate_output_unlinked`, reads `Hidden.prompt`), and reference resolution for `asset_N` / `*_asset_id` (`resolve_reference_values`, `resolve_typed_reference`: asset ID, `asset://` or https link; asset types via `GetAsset`, which needs AK/SK). |
 | `nodes/nodes_seedream.py` | Core-style `BytePlusSeedream` (Seedream 4.5 & 5.0, `model` DynamicCombo) and `BytePlusSeedreamLayerSeparation`. |
 | `nodes/nodes_seedance1.py` | Core-style Seedance 1.x: `BytePlusSeedanceTextToVideo`, `…ImageToVideo`, `…FirstLastFrame`. |
-| `nodes/nodes_seedance2.py` | Core-style Seedance 2 / 2.5: `BytePlusSeedance2TextToVideo`, `…FirstLastFrame`, `…Reference` (Autogrow references inside each model option, `asset_N`, `assetN` prompt rewrite), `BytePlusSeedanceDraftToFinal` (reads the model from the draft task; also 1.5 Pro drafts). |
+| `nodes/nodes_seedance2.py` | Core-style Seedance 2 / 2.5: `BytePlusSeedance2TextToVideo`, `…FirstLastFrame`, `…Reference` (Autogrow references inside each model option, `asset_N`, `assetN` prompt rewrite), `BytePlusSeedanceDraftToFinal` (reads the model from the draft task; 2.5 and 2.5 Premium drafts). |
 | `nodes/nodes_seed.py` | Core-style `BytePlusSeed` (Seed LLM, Responses API, Files API media). |
 | `nodes/nodes_image.py` | Legacy: Seedream 4, Seedream 5, Seedream Layer Decomposition; shared Seedream request helpers. |
 | `nodes/nodes_video.py` | Legacy: Seedance 1.0 / 1.5 / 2 & 2.5. Also Video Query Tasks, dev-only Progress Test, `BytePlusVideoBase` helpers, Seedance validation helpers and Comfy.org reference-video upload used by the new nodes. |
@@ -42,7 +42,7 @@ The project release skill is `.agents/skills/comfyui-registry-release/SKILL.md`.
 | `nodes/utils_download.py` | aiohttp download helpers, `save_to_output`. |
 | `web/js/byteplus_dynamic_widgets.js` | Widget show/hide rules (`TARGET_WIDGETS`, `widgetLogic`, triggered by chained `widget.callback`), Autogrow labels, DynamicCombo value-restore workaround, `byteplus.api_key_saved` listener. |
 | `web/js/byteplus_progress.js` | Canvas progress bar driven by the `progress` websocket event. |
-| `example_workflows/*.json` | Templates shipped to the ComfyUI template browser; guarded by tests. They use only core-style nodes. Thumbnails (`<name>.jpg`) still need generating. |
+| `example_workflows/*.json` | Templates shipped to the ComfyUI template browser; guarded by tests. They use only core-style nodes. Each has a `<name>.jpg` thumbnail (a screenshot of the graph); retake it when the template changes. |
 | `.comfyignore` | Dev files excluded from the registry package. |
 
 ## Commands
@@ -75,6 +75,8 @@ Tests use stdlib `unittest` (pytest is not a dependency). `test_model_updates` f
 **Add/rename an input** → `define_schema` (or `_model_inputs` for DynamicCombo nodes) → `execute` kwarg (DynamicCombo values arrive as a dict under `model` on core-style nodes, `model_version` on Legacy ones; unpack them) → request mapping → `MESSAGES` → JS `TARGET_WIDGETS` if it drives visibility → example workflow `inputs` order **and** `widgets_values` positions → expected orders in `tests/test_workflow_templates.py`.
 
 **Add a model** → `models_config.py` maps/options/capability tables (Seedance 2.5-family also needs `SEEDANCE_2_5_FAMILY` and `SEEDANCE_DRAFT_FINAL_RESOLUTIONS`, else KeyError at schema build) → check `"seedance-2-"` substring logic in `executor.py` → README model list → `tests/test_model_updates.py`.
+
+**Retire a model** → remove it from every map/option list in `models_config.py` and add it to `RETIRED_MODELS` (UI name → (model ID, replacement)); Legacy nodes keep the name in their combo and call `core_style.raise_if_model_retired` so saved workflows load and explain the switch. Region-limited models go in `MODEL_REGION_EXCLUSIONS` (checked by `raise_if_model_unavailable_in_region`).
 
 **Bump version** → `pyproject.toml` `version` **and** `properties.ver` on every BytePlus node in every `example_workflows/*.json` (tested) **and** README status line.
 

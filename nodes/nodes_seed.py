@@ -117,7 +117,7 @@ def _extra_inputs():
             default="medium",
             tooltip=(
                 "Chain-of-thought length (reasoning.effort). Not sent when reasoning_mode is "
-                "disabled, or for Seed 1.6 Flash, which does not support it."
+                "disabled."
             ),
             optional=True,
             advanced=True,
@@ -272,7 +272,7 @@ class BytePlusSeed(comfy_io.ComfyNode):
             category=GLOBAL_CATEGORY,
             description=(
                 "Generate text responses with BytePlus Seed models (Seed 2.0 Pro, Lite and Mini, "
-                "Seed 2.1 Turbo, Seed 1.8, Seed 1.6). Provide a text prompt and optionally one or "
+                "Seed 2.1 Turbo). Provide a text prompt and optionally one or "
                 "more images or videos for multimodal context."
             ),
             inputs=[

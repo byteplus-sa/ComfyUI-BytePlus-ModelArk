@@ -130,7 +130,7 @@ class SchemaTests(unittest.TestCase):
             nodes_seedance2.BytePlusSeedance2TextToVideo: ("BytePlusSeedance2TextToVideo", "BytePlus Seedance 2.5 Text to Video"),
             nodes_seedance2.BytePlusSeedance2FirstLastFrame: ("BytePlusSeedance2FirstLastFrame", "BytePlus Seedance 2.5 First-Last-Frame to Video"),
             nodes_seedance2.BytePlusSeedance2Reference: ("BytePlusSeedance2Reference", "BytePlus Seedance 2.5 Reference to Video"),
-            nodes_seedance2.BytePlusSeedanceDraftToFinal: ("BytePlusSeedanceDraftToFinal", "BytePlus Seedance Draft to Final Video"),
+            nodes_seedance2.BytePlusSeedanceDraftToFinal: ("BytePlusSeedanceDraftToFinal", "BytePlus Seedance 2.5 Draft to Final Video"),
             nodes_assets.BytePlusCreateImageAsset: ("BytePlusCreateImageAsset", "BytePlus Create Image Asset"),
             nodes_assets.BytePlusCreateVideoAsset: ("BytePlusCreateVideoAsset", "BytePlus Create Video Asset"),
             nodes_assets.BytePlusCreateAudioAsset: ("BytePlusCreateAudioAsset", "BytePlus Create Audio Asset"),
@@ -949,6 +949,38 @@ class ReferenceTests(_ExecutorHarness):
                     await self.run_node(self.REF, model=model, seed=1)
                 self.assertIn(message, str(ctx.exception))
 
+    async def test_reference_media_minimum_is_two_seconds(self):
+        """BytePlus: reference videos and audios must be at least 2 s long."""
+        self.assertEqual(nodes_seedance2.REF_MEDIA_MIN_DURATION, 2.0)
+        for label in ("Seedance 2.5", "Seedance 2.0"):
+            with self.subTest(model=label):
+                with self.assertRaises(Exception) as ctx:
+                    await self.run_node(
+                        self.REF, model=self.model(label, reference_videos={"video_1": FakeVideo(duration=1.9)}), seed=1
+                    )
+                self.assertIn(
+                    "Reference video 1 is too short: 1.9s. Minimum duration is 2.0 seconds.", str(ctx.exception)
+                )
+                with self.assertRaises(Exception) as ctx:
+                    await self.run_node(
+                        self.REF,
+                        model=self.model(label, reference_images={"image_1": image(640, 640)},
+                                         reference_audios={"audio_1": sine_audio(1.9)}),
+                        seed=1,
+                    )
+                self.assertIn("audio duration must be between 2.0s", str(ctx.exception))
+                self.assertEqual(self.submitted, [])
+        # Exactly 2 s is accepted.
+        await self.run_node(self.REF, model=self.model(reference_videos={"video_1": FakeVideo(duration=2.0)}), seed=1)
+        nodes_video.NON_BLOCKING_TASK_CACHE.clear()
+        await self.run_node(
+            self.REF,
+            model=self.model(reference_images={"image_1": image(640, 640)}, reference_audios={"audio_1": sine_audio(2.0)}),
+            seed=1,
+        )
+        self.assertEqual(len(self.submitted), 2)
+        self.assertEqual(self.submitted[0]["model"], "dreamina-seedance-2-5-260628")
+
     def test_pixel_limit_table(self):
         limits = nodes_seedance2.ref_video_pixel_limits
         # BytePlus documents one range for every model and resolution; core's
@@ -1022,7 +1054,9 @@ class DraftToFinalTests(_ExecutorHarness):
         self.assertEqual(mapping("dreamina-seedance-2-5-260628"), "dreamina-seedance-2-5")
         self.assertEqual(mapping("dreamina-seedance-2-5-premium-260915"), "dreamina-seedance-2-5-premium")
         self.assertEqual(mapping("dreamina-seedance-2-5-premium-261201"), "dreamina-seedance-2-5-premium")
-        self.assertEqual(mapping("seedance-1-5-pro-251215"), "seedance-1-5-pro")
+        # Seedance 1.5 Pro is deprecated by BytePlus: no longer a known model.
+        self.assertIsNone(mapping("seedance-1-5-pro-251215"))
+        self.assertIsNone(nodes_seedance2.draft_final_plan("seedance-1-5-pro"))
         self.assertEqual(mapping("seedance-1-0-pro-fast-251015"), "seedance-1-0-pro-fast")
         self.assertIsNone(mapping("ep-20260101-xyz"))
 
@@ -1044,16 +1078,6 @@ class DraftToFinalTests(_ExecutorHarness):
         self.assertEqual(request["model"], "dreamina-seedance-2-5-premium-260915")
         self.assertEqual((request["resolution"], request["output_format"]), ("4k", "mov"))
 
-    async def test_seedance15_draft_uses_the_1_5_final_path(self):
-        self.draft("seedance-1-5-pro-251215", draft=None)
-        await self.run_node(self.D2F, draft_task_id="cgt-draft-1", watermark=False)
-        request = self.submitted[0]
-        self.assertEqual(request["model"], "seedance-1-5-pro-251215")
-        self.assertEqual(request["resolution"], "1080p")
-        self.assertEqual(request["service_tier"], "default")
-        self.assertEqual(request["execution_expires_after"], 172800)
-        self.assertTrue(request["return_last_frame"])
-
     async def test_several_drafts_render_one_final_each(self):
         self.draft("dreamina-seedance-2-5-260628", "cgt-a")
         self.draft("dreamina-seedance-2-5-260628", "cgt-b")
@@ -1071,6 +1095,7 @@ class DraftToFinalTests(_ExecutorHarness):
         self.draft("dreamina-seedance-2-5-260628", "cgt-failed", status="failed")
         self.draft("dreamina-seedance-2-0-260128", "cgt-20")
         self.draft("seedance-1-5-pro-251215", "cgt-15")
+        self.draft("dreamina-seedance-2-5-premium-260915", "cgt-premium")
         self.task_lookups["cgt-missing"] = RuntimeError("ResourceNotFound: task not found")
         # `draft` is only documented for 1.5 Pro: a task without it is still checked.
         final = self.draft("dreamina-seedance-2-5-260628", "cgt-final")
@@ -1091,7 +1116,11 @@ class DraftToFinalTests(_ExecutorHarness):
             ("cgt-running", "is running"),
             ("cgt-failed", "cannot be rendered"),
             ("cgt-20", "dreamina-seedance-2-0-260128"),
-            ("cgt-ok, cgt-15", "different models"),
+            ("cgt-ok, cgt-premium", "different models"),
+            # Seedance 1.5 Pro drafts are no longer rendered (model deprecated by BytePlus).
+            ("cgt-15", "made with seedance-1-5-pro-251215, which cannot render a final from a draft. "
+             "Supported: Seedance 2.5 and Seedance 2.5 Premium drafts."),
+            ("cgt-ok, cgt-15", "seedance-1-5-pro-251215"),
             ("cgt-missing", "Could not look up draft task cgt-missing"),
         ]
         for draft_task_id, message in cases:

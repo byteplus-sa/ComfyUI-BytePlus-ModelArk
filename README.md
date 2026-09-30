@@ -12,7 +12,7 @@ Generation calls go directly to ModelArk with **your own ModelArk API key**, so 
 
 ## Features
 
-- **Region selection**: `ap-southeast-1` (default) or `eu-west-1`, per API Client node.
+- **Region selection**: `ap-southeast-1` (default) or `eu-west-1`, per API Client node. Seedream 5.0 Lite is not available in `eu-west-1`; the nodes refuse it there.
 - **Multi-key management**: store several API keys and switch between them per node.
 - **Async and concurrent**: submit and generate tasks in parallel without blocking the queue.
 - **Quota guard**: cap image count and video tokens per client to avoid overspend.
@@ -29,15 +29,15 @@ The generation nodes match ComfyUI's built-in ByteDance nodes input for input, s
   - `Seedream 4.5 & 5.0`: Seedream 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0 in one node. Size presets per model (plus the ModelArk "adaptive" resolution levels), up to 10 reference images (14 on 5.0 Lite), `max_images` for related image sets (Lite, 4.5, 4.0), prompt optimization and "thinking" where the model supports them. Advanced: parallel generations, PNG output and a transparent background on Pro and Flash (connect Load Image's `MASK` to `reference_mask`; the `mask` output holds the result's transparency).
   - `Seedream 5.0 Layer Separation`: splits one image into a base image and up to 16 transparent layers with Seedream 5.0 Pro or Flash. Outputs the base image and mask, the layers and their masks, bounding boxes, a `layer_stack` for Create Layered Image, and a JSON list of layer names and descriptions.
 - **Video**
-  - `Seedance Text to Video`, `Seedance Image to Video`, `Seedance First-Last-Frame to Video`: `seedance-1-5-pro`, `seedance-1-0-pro`, `seedance-1-0-pro-fast` (First-Last-Frame: 1.5 Pro and 1.0 Pro). 480p–1080p, 3–12 s (1.5 Pro: 4–12 s), `camera_fixed`, `watermark`, and `generate_audio` on 1.5 Pro. Advanced: auto duration and 480p [draft mode](#draft-mode) (1.5 Pro), offline inference, parallel generations, non-blocking runs.
+  - `Seedance Text to Video`, `Seedance Image to Video`, `Seedance First-Last-Frame to Video`: `seedance-1-0-pro` and `seedance-1-0-pro-fast` (First-Last-Frame: 1.0 Pro only). 480p–1080p, 2–12 s, `camera_fixed` and `watermark`. Advanced: offline inference, parallel generations, non-blocking runs.
   - `Seedance 2.5 Text to Video`, `Seedance 2.5 First-Last-Frame to Video`, `Seedance 2.5 Reference to Video`: Seedance 2.5 (up to 1080p and 30 s), 2.5 Premium (4K, whitelist-only), 2.0 (up to 4K), 2.0 Fast and 2.0 Mini, each with a *Draft* option for 2.5 and 2.5 Premium. Reference to Video takes up to 9 images, 3 videos and 3 audio clips on 2.0 (30 / 10 / 10 on 2.5), plus `asset_N` inputs for [links and assets](#reference-links-and-assets), with `task_type` (auto / reference / edit / extend) and optional down/upscaling of reference videos. `output_format` (mp4 / mov) on 2.5.
-  - `Seedance Draft to Final Video`: renders the final video of a draft (see [Draft Mode](#draft-mode)).
+  - `Seedance 2.5 Draft to Final Video`: renders the final video of a Seedance 2.5 or 2.5 Premium draft (see [Draft Mode](#draft-mode)).
   - `Video Query Tasks`: query generation task history.
 - **Asset library** (Dreamina Seedance Advanced Creation Rights; see [Private Assets](#private-assets))
   - `Create Image Asset`, `Create Video Asset`, `Create Audio Asset`: add media (a connected input or an HTTPS link) to an asset group in your private asset library and output its `asset_id`, `group_id` and `asset://` URI.
   - `Asset Library`: lists your assets (virtual portraits or verified real people) as `asset://` URIs.
 - **Understanding**
-  - `Seed`: text answers with Seed 2.0 Pro / Lite / Mini, Seed 2.1 Turbo, Seed 1.8, Seed 1.6 or Seed 1.6 Flash, with up to 20 images and 4 videos as context, temperature and a system prompt. Advanced: image detail, video fps, deep thinking and effort, multi-turn conversations, streaming; a second output returns the raw response JSON.
+  - `Seed`: text answers with Seed 2.0 Pro / Lite / Mini or Seed 2.1 Turbo, with up to 20 images and 4 videos as context, temperature and a system prompt. Advanced: image detail, video fps, deep thinking and effort, multi-turn conversations, streaming; a second output returns the raw response JSON.
 - **Speech** (Seed Speech; needs a [Seed Speech API key](#seed-speech-api-key), not the ModelArk key)
   - `Speech Client` (required for the speech nodes): picks the Seed Speech API key.
   - `Seed Audio 1.0`: `seed-audio-1.0`. Speech, voiceovers, music and sound effects up to 120 s from a natural-language prompt in 20 languages, laid out like ComfyUI's built-in Seed Audio node. `reference_mode`: text only; audio reference (up to three clips from `Load Audio` up to 30 s, or speaker IDs, cloned voice IDs or audio URLs, referred to as `@Audio1`–`@Audio3` in the prompt); image reference (`Load Image` or a URL); or a preset TTS 2.0 voice. Sample rate, speed, loudness and pitch controls. Advanced: output format (wav, mp3, ogg_opus, pcm), sentence/word subtitles, audible and metadata watermarks. Uploaded clips and images are sent inline.
@@ -48,6 +48,8 @@ The generation nodes match ComfyUI's built-in ByteDance nodes input for input, s
 Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_config.py). Activate each model in the ModelArk console for the region you use.
 
 **Legacy nodes.** `Seedream 4`, `Seedream 5`, `Seedream Layer Decomposition`, `Seedance 1.0`, `Seedance 1.5 Pro`, `Seedance 2 / 2.5`, `Virtual Portrait Asset` and `Visual Understanding` are marked "(Legacy)": they still load and run in saved workflows but are hidden from node search. Use the nodes above for new workflows.
+
+**Retired models.** BytePlus deprecated `seedance-1-5-pro`, `seed-1-8`, `seed-1-6` and `seed-1-6-flash` and shuts them down on 2026-11-11, so no node offers them (ComfyUI's built-in Seedance nodes still list Seedance 1.5 Pro). Saved workflows that use them still load; running them names the replacement (`dreamina-seedance-2-0-mini` for Seedance 1.5 Pro, `seed-2-0-lite` / `seed-2-0-mini` for Seed 1.x).
 
 Example workflows are in [`example_workflows/`](./example_workflows).
 
@@ -116,12 +118,12 @@ Managing assets uses the signed ModelArk OpenAPI, which needs **IAM AK/SK** with
 
 ### Draft Mode
 
-Seedance 1.5 Pro and the Seedance 2.5 models can render a quick 480p draft before the full-quality video:
+The Seedance 2.5 models can render a quick 480p draft before the full-quality video:
 
-1. Pick a *Draft* model option (`Seedance 2.5 Draft`, `Seedance 2.5 Premium Draft`) on a Seedance 2.5 node, or enable `draft_mode` (advanced) on a Seedance 1.x node with 1.5 Pro. Set the seed control to **fixed** and run. The node outputs the draft's `draft_task_id`.
-2. Connect `draft_task_id` to `Seedance Draft to Final Video` (or paste IDs into it, one per line) and run again. The draft node is not re-run while its inputs are unchanged, so the final uses the draft you reviewed. The final video reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting.
+1. Pick a *Draft* model option (`Seedance 2.5 Draft` or `Seedance 2.5 Premium Draft`) on a Seedance 2.5 node. Set the seed control to **fixed** and run. The node outputs the draft's `draft_task_id`.
+2. Connect `draft_task_id` to `Seedance 2.5 Draft to Final Video` (or paste IDs into it, one per line) and run again. The draft node is not re-run while its inputs are unchanged, so the final uses the draft you reviewed. The final video reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting.
 
-Final videos from a Seedance 2.5 draft are 1080p; from a 2.5 Premium draft, 4K. Draft to Final reads the model from the draft task, so it needs no model setting. Draft task IDs are valid for 7 days. The Legacy nodes keep their in-node `draft_mode` / `reuse_last_draft_task` flow.
+Final videos from a Seedance 2.5 draft are 1080p; from a 2.5 Premium draft, 4K. Draft to Final reads the model from the draft task, so it needs no model setting. Draft task IDs are valid for 7 days.
 
 ## Development
 

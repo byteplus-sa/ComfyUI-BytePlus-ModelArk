@@ -22,6 +22,7 @@ from comfy_api.latest import io as comfy_io
 from comfy_api.input_impl import VideoFromFile
 
 from .audio_utils import audio_to_wav_bytes, audio_waveform
+from .core_style import raise_if_model_retired
 from .nodes_shared import (
     GLOBAL_CATEGORY,
     _image_to_base64,
@@ -1300,6 +1301,7 @@ class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
         last_frame_image=None,
     ) -> comfy_io.NodeOutput:
 
+        raise_if_model_retired(model_version)
         node_id = cls.hidden.unique_id
 
         global LAST_SEEDANCE_1_5_DRAFT_TASK_ID
@@ -1929,7 +1931,7 @@ class BytePlusProgressTest(comfy_io.ComfyNode):
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         test_model_options = (
-            ["None"] + VIDEO_1_UI_OPTIONS + VIDEO_1_5_UI_OPTIONS + VIDEO_2_UI_OPTIONS
+            ["None"] + VIDEO_1_UI_OPTIONS + VIDEO_2_UI_OPTIONS
         )
 
         return comfy_io.Schema(
