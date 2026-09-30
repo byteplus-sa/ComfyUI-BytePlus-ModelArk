@@ -223,6 +223,51 @@ SEEDANCE_1_DEFAULT_DURATION = 5
 SEEDANCE_1_5_PRO_MIN_DURATION = 4
 
 # Seedance 2 / 2.5 (nodes_seedance2.py)
+# Model option label -> VIDEO_MODEL_MAP key. Core's labels plus the Premium
+# pair; the Draft options render a 480p draft (SEEDANCE_DRAFT_RESOLUTION).
+SEEDANCE2_CORE_MODEL_OPTIONS = {
+    "Seedance 2.5": SEEDANCE_2_5_UI_MODEL,
+    "Seedance 2.5 Draft": SEEDANCE_2_5_UI_MODEL,
+    "Seedance 2.5 Premium": SEEDANCE_2_5_PREMIUM_UI_MODEL,
+    "Seedance 2.5 Premium Draft": SEEDANCE_2_5_PREMIUM_UI_MODEL,
+    "Seedance 2.0": "dreamina-seedance-2-0",
+    "Seedance 2.0 Fast": "dreamina-seedance-2-0-fast",
+    "Seedance 2.0 Mini": "dreamina-seedance-2-0-mini",
+}
+SEEDANCE2_CORE_DRAFT_OPTIONS = ("Seedance 2.5 Draft", "Seedance 2.5 Premium Draft")
+
+# Reference video pixel count (width x height) per model and output
+# resolution, from core's SEEDANCE2_REF_VIDEO_PIXEL_LIMITS (Premium: the
+# documented general range). Unlisted pairs use REF_VIDEO_MIN/MAX_PIXELS.
+SEEDANCE2_REF_VIDEO_PIXEL_LIMITS = {
+    "dreamina-seedance-2-0": {
+        "480p": {"min": 409_600, "max": 927_408},
+        "720p": {"min": 409_600, "max": 927_408},
+        "1080p": {"min": 409_600, "max": 2_073_600},
+    },
+    "dreamina-seedance-2-0-fast": {
+        "480p": {"min": 409_600, "max": 927_408},
+        "720p": {"min": 409_600, "max": 927_408},
+    },
+    "dreamina-seedance-2-0-mini": {
+        "480p": {"min": 409_600, "max": 927_408},
+        "720p": {"min": 409_600, "max": 927_408},
+    },
+    "dreamina-seedance-2-5": {
+        "480p": {"min": 409_600, "max": 8_295_044},
+        "720p": {"min": 409_600, "max": 8_295_044},
+        "1080p": {"min": 409_600, "max": 8_295_044},
+    },
+    "dreamina-seedance-2-5-premium": {
+        "480p": {"min": 409_600, "max": 8_295_044},
+        "4k": {"min": 409_600, "max": 8_295_044},
+    },
+}
+
+# Final resolution for Seedance 1.5 Pro drafts in the Draft to Final node
+# (the API takes 480p / 720p / 1080p for a final; 1080p is the highest).
+SEEDANCE_1_5_UI_MODEL = "seedance-1-5-pro"
+SEEDANCE_1_5_DRAFT_FINAL_RESOLUTION = "1080p"
 
 # Seed LLM (nodes_seed.py)
 # Core's three labels first (core's first option is the default), then this
