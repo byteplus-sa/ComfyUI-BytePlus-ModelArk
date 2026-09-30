@@ -1018,7 +1018,12 @@ class BytePlusGenerationExecutor:
                             queue.put_nowait,
                             {
                                 "type": "completed",
-                                "usage": event.usage,
+                                # SDK model -> dict, so the node's response JSON can be serialized
+                                "usage": (
+                                    event.usage.model_dump()
+                                    if hasattr(event.usage, "model_dump")
+                                    else event.usage
+                                ),
                                 "model": event.model,
                                 "created": event.created,
                             },

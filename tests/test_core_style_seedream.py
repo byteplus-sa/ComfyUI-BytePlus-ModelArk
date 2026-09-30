@@ -532,6 +532,26 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request["sequential_image_generation"], "disabled")
         self.assertNotIn("sequential_image_generation_options", request)
 
+    async def test_legacy_seedream4_stream_response_is_json(self):
+        # The streamed completed event carries the SDK's Usage model; the legacy
+        # node json.dumps its response, which used to raise TypeError.
+        fake = FakeImages()
+        legacy = nodes_image.BytePlusSeedream4
+        old_hidden = getattr(legacy, "hidden", None)
+        legacy.hidden = SimpleNamespace(unique_id="legacy-node", prompt={})
+        try:
+            image, response = await legacy.execute(
+                FakeClient(fake), "seedream-4-5", "a red apple", False, 1,
+                "2K (adaptive)", 2048, 2048, 1, 1, False,
+            )
+        finally:
+            if old_hidden is None:
+                delattr(legacy, "hidden")
+            else:
+                legacy.hidden = old_hidden
+        self.assertTrue(fake.calls[0]["stream"])
+        self.assertEqual(json.loads(response)[0]["usage"]["generated_images"], 1)
+
     async def test_size_validation(self):
         resolve = nodes_seedream.resolve_seedream_size
         self.assertEqual(resolve(PRO, "Custom", 1024, 1024), "1024x1024")
