@@ -4,7 +4,9 @@ ComfyUI custom nodes for **BytePlus ModelArk**: Seedance video generation, Seedr
 
 Generation calls go directly to ModelArk with **your own ModelArk API key**, so usage is billed to your BytePlus account (including contract pricing and resource packs). No Comfy credits are used. The one exception is local reference videos for Seedance 2 / 2.5, which pass through Comfy.org storage (see [Reference Videos](#reference-videos)).
 
-> **Status: in development (v0.2.1).** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
+> **Status: in development (v0.2.2).** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
+
+**v0.2.2:** Seedance 2.5 Premium accepts 4K normal renders only; draft mode submits at 480p. Unsupported normal resolutions are rejected before submission.
 
 **v0.2.1:** Adds the BytePlus icon to the Comfy Registry listing.
 

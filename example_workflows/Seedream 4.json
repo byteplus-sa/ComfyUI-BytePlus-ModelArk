@@ -19,7 +19,7 @@
         {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
       ],
       "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1]}],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusAPIClient"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusAPIClient"},
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
@@ -68,7 +68,7 @@
         {"name": "images", "type": "IMAGE", "links": [3]},
         {"name": "response", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusSeedream4"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusSeedream4"},
       "widgets_values": ["seedream-4-0", "", "2K (adaptive)", 2048, 2048, 0, "randomize", false, 1, 1, "standard", false]
     },
     {

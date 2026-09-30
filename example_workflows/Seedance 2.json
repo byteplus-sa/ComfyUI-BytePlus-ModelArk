@@ -19,7 +19,7 @@
         {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
       ],
       "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1]}],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusAPIClient"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusAPIClient"},
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
@@ -111,7 +111,7 @@
         {"name": "last_frame", "type": "IMAGE", "links": null},
         {"name": "response", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusSeedance2"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusSeedance2"},
       "widgets_values": ["dreamina-seedance-2-0", "", true, 0, "randomize", "720p", "adaptive", false, 5, true, 1, "BytePlus/Video/Batch/Seedance", false, false, "", "", ""]
     },
     {
@@ -154,7 +154,7 @@
         {"name": "task_list_json", "type": "STRING", "links": null},
         {"name": "total_tasks", "type": "INT", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusVideoQueryTasks"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusVideoQueryTasks"},
       "widgets_values": [1, 10, "all", "default", "", "all", 0, "randomize"]
     }
   ],

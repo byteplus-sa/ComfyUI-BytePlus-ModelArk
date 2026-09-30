@@ -19,7 +19,7 @@
         {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
       ],
       "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1, 2, 3]}],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusAPIClient"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusAPIClient"},
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
@@ -51,7 +51,7 @@
         {"name": "response", "type": "STRING", "links": null},
         {"name": "mask", "type": "MASK", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusSeedream5"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusSeedream5"},
       "widgets_values": ["dola-seedream-5-0-pro", "", "2K (adaptive)", 2048, 2048, 0, "randomize", 1, "standard", "jpeg", "opaque", false]
     },
     {
@@ -96,7 +96,7 @@
         {"name": "last_frame", "type": "IMAGE", "links": null},
         {"name": "response", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusSeedance2"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusSeedance2"},
       "widgets_values": ["dreamina-seedance-2-5", "", true, 0, "randomize", "720p", "adaptive", false, 30, true, "auto", "mp4", false, false, "", 1, "BytePlus/Video/Batch/Seedance", false, false, "", "", ""]
     },
     {
@@ -128,7 +128,7 @@
         {"name": "content", "type": "STRING", "links": null},
         {"name": "raw_json", "type": "STRING", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.1", "Node name for S&R": "BytePlusVisualUnderstanding"},
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.2.2", "Node name for S&R": "BytePlusVisualUnderstanding"},
       "widgets_values": ["dola-seed-2-1-turbo", "You are a helpful assistant that describes and analyzes images and videos accurately.", "Describe the content of this image or video.", "high", 1.0, "auto", "medium", 1, false, 604800, 0, "randomize"]
     }
   ],
