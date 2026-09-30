@@ -13,8 +13,8 @@ EXPECTED_WORKFLOWS = {
     "Seed Audio.json",
     "Seed Speech TTS and ASR.json",
     "Seed Voice Clone.json",
-    "Seedream 4.json",
-    "Seedream 5.json",
+    "Seedream.json",
+    "Seedream Layer Separation.json",
     "VisualUnderstanding.json",
 }
 
@@ -56,6 +56,47 @@ class WorkflowTemplateTests(unittest.TestCase):
         "generate_audio", "auto_duration", "draft_mode", "enable_offline_inference",
         "generation_count", "filename_prefix", "save_last_frame_batch", "non_blocking",
     ]
+    # BytePlusSeedream / BytePlusSeedreamLayerSeparation (core-style): inputs per
+    # selected model; widgets_values index of the model value.
+    SEEDREAM_INPUTS_HEAD = [
+        "client", "prompt", "model", "model.size_preset", "model.width", "model.height",
+    ]
+    SEEDREAM_BATCH_INPUTS = SEEDREAM_INPUTS_HEAD + [
+        "model.max_images", "model.images.image_1", "model.fail_on_partial", "model.seed",
+        "model.watermark", "model.thinking", "model.generation_count",
+    ]
+    SEEDREAM_INPUT_ORDERS = {
+        "seedream 5.0 pro": SEEDREAM_INPUTS_HEAD + [
+            "model.images.image_1", "model.prompt_optimization", "model.seed",
+            "model.watermark", "model.thinking", "model.generation_count",
+            "model.output_format", "model.background", "model.reference_mask",
+        ],
+        "seedream 5.0 flash": SEEDREAM_INPUTS_HEAD + [
+            "model.images.image_1", "model.seed", "model.watermark",
+            "model.generation_count", "model.output_format", "model.background",
+            "model.reference_mask",
+        ],
+        "seedream 5.0 lite": SEEDREAM_BATCH_INPUTS,
+        "seedream-4-5-251128": SEEDREAM_BATCH_INPUTS,
+        "seedream-4-0-250828": SEEDREAM_BATCH_INPUTS,
+    }
+    LAYER_SEPARATION_INPUT_ORDERS = {
+        "seedream 5.0 pro": [
+            "client", "model", "model.image", "model.prompt", "model.size", "model.seed",
+            "model.prompt_optimization", "model.watermark", "model.crop_layers",
+            "model.output_format", "model.save_layers", "model.filename_prefix",
+        ],
+        "seedream 5.0 flash": [
+            "client", "model", "model.image", "model.prompt", "model.size", "model.seed",
+            "model.watermark", "model.crop_layers", "model.output_format",
+            "model.save_layers", "model.filename_prefix",
+        ],
+    }
+    MODEL_KEYED_INPUT_ORDERS = {
+        # node type: (widgets_values index of the model, orders per model)
+        "BytePlusSeedream": (1, SEEDREAM_INPUT_ORDERS),
+        "BytePlusSeedreamLayerSeparation": (0, LAYER_SEPARATION_INPUT_ORDERS),
+    }
 
     CURRENT_INPUT_ORDERS = {
         "BytePlusAPIClient": ["new_api_key", "new_key_name", "key_name", "region"],
@@ -68,11 +109,6 @@ class WorkflowTemplateTests(unittest.TestCase):
         + SEEDANCE1_AFTER_FRAMES,
         "BytePlusSeedanceFirstLastFrame": SEEDANCE1_BEFORE_FRAMES
         + ["first_frame", "last_frame"] + SEEDANCE1_AFTER_FRAMES,
-        "BytePlusSeedream4": [
-            "client", "model_version", "prompt", "size", "width", "height", "seed",
-            "enable_group_generation", "max_images", "generation_count",
-            "prompt_optimization", "watermark", "images.image_1",
-        ],
         "BytePlusSeedream5": [
             "client", "model_version", "model_version.prompt", "model_version.size",
             "model_version.width", "model_version.height", "model_version.seed",
@@ -167,7 +203,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                         self.assertEqual(node["properties"]["ver"], "0.3.0")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
-        for name in ("Seedance 2.json", "Seedream 5.json", "2.5 Model Updates.json"):
+        for name in ("Seedance 2.json", "2.5 Model Updates.json"):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
                 if node["type"] not in {"BytePlusSeedance2", "BytePlusSeedream5"}:
@@ -187,6 +223,9 @@ class WorkflowTemplateTests(unittest.TestCase):
             for node in workflow["nodes"]:
                 if node["type"] == "BytePlusSeedance2":
                     expected = self.SEEDANCE2_INPUT_ORDERS[node["widgets_values"][0]]
+                elif node["type"] in self.MODEL_KEYED_INPUT_ORDERS:
+                    index, orders = self.MODEL_KEYED_INPUT_ORDERS[node["type"]]
+                    expected = orders[node["widgets_values"][index]]
                 else:
                     expected = self.CURRENT_INPUT_ORDERS.get(node["type"])
                 if expected is None:
@@ -198,7 +237,47 @@ class WorkflowTemplateTests(unittest.TestCase):
                     msg=f"{name}: {node['type']}",
                 )
         self.assertEqual(
-            found_types, set(self.CURRENT_INPUT_ORDERS) | {"BytePlusSeedance2"}
+            found_types,
+            set(self.CURRENT_INPUT_ORDERS)
+            | {"BytePlusSeedance2"}
+            | set(self.MODEL_KEYED_INPUT_ORDERS),
+        )
+
+    def test_core_style_seedream_templates(self):
+        seedream = next(
+            node for node in load_workflow("Seedream.json")["nodes"]
+            if node["type"] == "BytePlusSeedream"
+        )
+        layers = next(
+            node for node in load_workflow("Seedream Layer Separation.json")["nodes"]
+            if node["type"] == "BytePlusSeedreamLayerSeparation"
+        )
+        for node in (seedream, layers):
+            inputs = {item["name"]: item for item in node["inputs"]}
+            self.assertEqual(inputs["model"]["type"], "COMFY_DYNAMICCOMBO_V3")
+            # Option inputs are namespaced under the DynamicCombo, never bare.
+            self.assertNotIn("seed", inputs)
+            self.assertNotIn("watermark", inputs)
+            self.assertEqual(inputs["model.seed"]["type"], "INT")
+
+        values = seedream["widgets_values"]
+        self.assertTrue(values[0].strip())  # core rejects an empty prompt
+        self.assertEqual(values[1:5], ["seedream 5.0 pro", "(2K) 2048x2048 (1:1)", 2048, 2048])
+        self.assertEqual(values[5], "standard")  # prompt_optimization
+        self.assertEqual(values[6:8], [42, "randomize"])  # seed + control value
+        self.assertEqual(values[8:], [False, True, 1, "jpeg", "opaque"])
+        self.assertEqual(
+            [output["name"] for output in seedream["outputs"]], ["IMAGE", "response", "mask"]
+        )
+
+        self.assertEqual(
+            layers["widgets_values"],
+            ["seedream 5.0 pro", "", "auto", 42, "randomize", "standard", False, False,
+             "png", False, "BytePlus/Layers/Seedream"],
+        )
+        self.assertEqual(
+            [output["name"] for output in layers["outputs"]],
+            ["base_image", "base_mask", "layers", "masks", "bboxes", "layer_stack", "layers_json"],
         )
 
     def test_seedance_templates_cover_2_0_and_2_5(self):

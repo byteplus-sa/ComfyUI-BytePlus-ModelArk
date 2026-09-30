@@ -950,9 +950,12 @@ class BytePlusGenerationExecutor:
         idx,
         enable_group_generation,
         generation_count,
+        partial_failures=None,
     ):
         """
         Handle a streaming image request and its events.
+        partial_failures: optional list; each image_generation.partial_failed
+        event is appended as {"batch_index", "index", "code", "message"}.
         """
         queue = asyncio.Queue()
         loop = asyncio.get_running_loop()
@@ -981,6 +984,15 @@ class BytePlusGenerationExecutor:
                         error_msg = (
                             event.error.message if event.error else "Unknown Error"
                         )
+                        if partial_failures is not None:
+                            partial_failures.append(
+                                {
+                                    "batch_index": idx,
+                                    "index": event.image_index + 1,
+                                    "code": getattr(event.error, "code", None),
+                                    "message": error_msg,
+                                }
+                            )
                         loop.call_soon_threadsafe(
                             queue.put_nowait,
                             {

@@ -1,0 +1,123 @@
+{
+  "id": "736e13fa-bd33-43f9-862b-1ee28a4e96dd",
+  "revision": 0,
+  "last_node_id": 5,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "BytePlusAPIClient",
+      "pos": [20, 100],
+      "size": [300, 130],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
+        {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
+        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null},
+        {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
+      ],
+      "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1]}],
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusAPIClient"},
+      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [20, 300],
+      "size": [300, 320],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {"name": "image", "type": "COMBO", "widget": {"name": "image"}, "link": null},
+        {"name": "upload", "type": "IMAGEUPLOAD", "widget": {"name": "upload"}, "link": null}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [2]},
+        {"name": "MASK", "type": "MASK", "links": null}
+      ],
+      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "LoadImage"},
+      "widgets_values": ["comfyui_logo.png", "image"]
+    },
+    {
+      "id": 3,
+      "type": "BytePlusSeedreamLayerSeparation",
+      "pos": [390, 100],
+      "size": [430, 470],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 1},
+        {"name": "model", "type": "COMFY_DYNAMICCOMBO_V3", "widget": {"name": "model"}, "link": null},
+        {"name": "model.image", "type": "IMAGE", "link": 2},
+        {"name": "model.prompt", "type": "STRING", "widget": {"name": "model.prompt"}, "link": null},
+        {"name": "model.size", "type": "COMBO", "widget": {"name": "model.size"}, "link": null},
+        {"name": "model.seed", "type": "INT", "widget": {"name": "model.seed"}, "link": null},
+        {"name": "model.prompt_optimization", "type": "COMBO", "widget": {"name": "model.prompt_optimization"}, "link": null},
+        {"name": "model.watermark", "type": "BOOLEAN", "widget": {"name": "model.watermark"}, "link": null},
+        {"name": "model.crop_layers", "type": "BOOLEAN", "widget": {"name": "model.crop_layers"}, "link": null},
+        {"name": "model.output_format", "type": "COMBO", "widget": {"name": "model.output_format"}, "link": null},
+        {"name": "model.save_layers", "type": "BOOLEAN", "widget": {"name": "model.save_layers"}, "link": null},
+        {"name": "model.filename_prefix", "type": "STRING", "widget": {"name": "model.filename_prefix"}, "link": null}
+      ],
+      "outputs": [
+        {"name": "base_image", "type": "IMAGE", "links": [3]},
+        {"name": "base_mask", "type": "MASK", "links": null},
+        {"name": "layers", "type": "IMAGE", "links": [4]},
+        {"name": "masks", "type": "MASK", "links": null},
+        {"name": "bboxes", "type": "BOUNDING_BOX", "links": null},
+        {"name": "layer_stack", "type": "LAYERS", "links": null},
+        {"name": "layers_json", "type": "STRING", "links": null}
+      ],
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusSeedreamLayerSeparation"},
+      "widgets_values": [
+        "seedream 5.0 pro", "", "auto", 42, "randomize", "standard", false, false,
+        "png", false, "BytePlus/Layers/Seedream"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "PreviewImage",
+      "pos": [890, 100],
+      "size": [300, 270],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "link": 3}
+      ],
+      "outputs": [],
+      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "PreviewImage"},
+      "widgets_values": []
+    },
+    {
+      "id": 5,
+      "type": "SaveImage",
+      "pos": [890, 420],
+      "size": [300, 270],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "link": 4},
+        {"name": "filename_prefix", "type": "STRING", "widget": {"name": "filename_prefix"}, "link": null}
+      ],
+      "outputs": [],
+      "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveImage"},
+      "widgets_values": ["BytePlus/Layers/Seedream"]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 3, 0, "BYTEPLUS_CLIENT"],
+    [2, 2, 0, 3, 2, "IMAGE"],
+    [3, 3, 0, 4, 0, "IMAGE"],
+    [4, 3, 2, 5, 0, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {"ds": {"scale": 1, "offset": [40, 40]}},
+  "version": 0.4
+}
