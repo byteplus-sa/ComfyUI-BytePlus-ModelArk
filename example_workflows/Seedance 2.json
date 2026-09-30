@@ -8,7 +8,7 @@
       "id": 1,
       "type": "BytePlusAPIClient",
       "pos": [20, 80],
-      "size": [300, 130],
+      "size": [300, 138],
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -64,7 +64,7 @@
       "id": 2,
       "type": "BytePlusSeedance2TextToVideo",
       "pos": [380, 80],
-      "size": [460, 440],
+      "size": [460, 468],
       "flags": {},
       "order": 5,
       "mode": 0,
@@ -227,7 +227,7 @@
       "id": 3,
       "type": "SaveVideo",
       "pos": [880, 80],
-      "size": [300, 130],
+      "size": [300, 106],
       "flags": {},
       "order": 6,
       "mode": 0,
@@ -274,7 +274,7 @@
       "id": 4,
       "type": "BytePlusSeedanceDraftToFinal",
       "pos": [880, 260],
-      "size": [340, 200],
+      "size": [340, 226],
       "flags": {},
       "order": 7,
       "mode": 4,
@@ -361,7 +361,7 @@
       "id": 5,
       "type": "SaveVideo",
       "pos": [1260, 260],
-      "size": [300, 130],
+      "size": [300, 106],
       "flags": {},
       "order": 8,
       "mode": 4,
@@ -407,8 +407,8 @@
     {
       "id": 6,
       "type": "LoadImage",
-      "pos": [20, 680],
-      "size": [300, 320],
+      "pos": [20, 712],
+      "size": [300, 326],
       "flags": {},
       "order": 1,
       "mode": 4,
@@ -452,8 +452,8 @@
     {
       "id": 7,
       "type": "BytePlusSeedance2FirstLastFrame",
-      "pos": [380, 680],
-      "size": [460, 480],
+      "pos": [380, 712],
+      "size": [460, 492],
       "flags": {},
       "order": 9,
       "mode": 4,
@@ -642,8 +642,8 @@
     {
       "id": 8,
       "type": "SaveVideo",
-      "pos": [880, 680],
-      "size": [300, 130],
+      "pos": [880, 712],
+      "size": [300, 106],
       "flags": {},
       "order": 10,
       "mode": 4,
@@ -689,8 +689,8 @@
     {
       "id": 9,
       "type": "LoadImage",
-      "pos": [20, 1280],
-      "size": [300, 320],
+      "pos": [20, 1368],
+      "size": [300, 326],
       "flags": {},
       "order": 2,
       "mode": 4,
@@ -734,7 +734,7 @@
     {
       "id": 10,
       "type": "LoadVideo",
-      "pos": [20, 1640],
+      "pos": [20, 1728],
       "size": [300, 320],
       "flags": {},
       "order": 3,
@@ -774,7 +774,7 @@
     {
       "id": 11,
       "type": "LoadAudio",
-      "pos": [20, 2000],
+      "pos": [20, 2088],
       "size": [300, 160],
       "flags": {},
       "order": 4,
@@ -822,7 +822,7 @@
     {
       "id": 12,
       "type": "BytePlusSeedance2Reference",
-      "pos": [380, 1280],
+      "pos": [380, 1368],
       "size": [460, 660],
       "flags": {},
       "order": 11,
@@ -1056,8 +1056,8 @@
     {
       "id": 13,
       "type": "SaveVideo",
-      "pos": [880, 1280],
-      "size": [300, 130],
+      "pos": [880, 1368],
+      "size": [300, 106],
       "flags": {},
       "order": 12,
       "mode": 4,
@@ -1120,7 +1120,7 @@
     {
       "id": 1,
       "title": "Seedance 2.5 Text to Video: review the draft, then enable Draft to Final",
-      "bounding": [360, 20, 1240, 470],
+      "bounding": [360, -4, 1220, 572],
       "color": "#3f789e",
       "font_size": 22,
       "flags": {}
@@ -1128,7 +1128,7 @@
     {
       "id": 2,
       "title": "First-Last-Frame to Video (set the group to Always to use it)",
-      "bounding": [0, 620, 1200, 580],
+      "bounding": [0, 628, 1200, 596],
       "color": "#3f789e",
       "font_size": 22,
       "flags": {}
@@ -1136,7 +1136,7 @@
     {
       "id": 3,
       "title": "Reference to Video (set the group to Always to use it)",
-      "bounding": [0, 1220, 1200, 980],
+      "bounding": [0, 1284, 1200, 984],
       "color": "#3f789e",
       "font_size": 22,
       "flags": {}

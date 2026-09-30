@@ -8,18 +8,56 @@
       "id": 1,
       "type": "BytePlusAPIClient",
       "pos": [40, 80],
-      "size": [300, 130],
+      "size": [300, 138],
       "flags": {},
       "order": 0,
       "mode": 0,
       "inputs": [
-        {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
-        {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
-        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null},
-        {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
+        {
+          "name": "new_api_key",
+          "type": "STRING",
+          "widget": {
+            "name": "new_api_key"
+          },
+          "link": null
+        },
+        {
+          "name": "new_key_name",
+          "type": "STRING",
+          "widget": {
+            "name": "new_key_name"
+          },
+          "link": null
+        },
+        {
+          "name": "key_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "key_name"
+          },
+          "link": null
+        },
+        {
+          "name": "region",
+          "type": "COMBO",
+          "widget": {
+            "name": "region"
+          },
+          "link": null
+        }
       ],
-      "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1]}],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusAPIClient"},
+      "outputs": [
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "links": [1]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusAPIClient"
+      },
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
@@ -31,23 +69,74 @@
       "order": 1,
       "mode": 0,
       "inputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 1},
-        {"name": "image_model", "type": "COMBO", "widget": {"name": "image_model"}, "link": null},
-        {"name": "image_limit", "type": "INT", "widget": {"name": "image_limit"}, "link": null},
-        {"name": "video_model", "type": "COMBO", "widget": {"name": "video_model"}, "link": null},
-        {"name": "video_limit", "type": "INT", "widget": {"name": "video_limit"}, "link": null}
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 1
+        },
+        {
+          "name": "image_model",
+          "type": "COMBO",
+          "widget": {
+            "name": "image_model"
+          },
+          "link": null
+        },
+        {
+          "name": "image_limit",
+          "type": "INT",
+          "widget": {
+            "name": "image_limit"
+          },
+          "link": null
+        },
+        {
+          "name": "video_model",
+          "type": "COMBO",
+          "widget": {
+            "name": "video_model"
+          },
+          "link": null
+        },
+        {
+          "name": "video_limit",
+          "type": "INT",
+          "widget": {
+            "name": "video_limit"
+          },
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "status", "type": "STRING", "links": null},
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "links": null}
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "links": null
+        }
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusQuotaSettings"},
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusQuotaSettings"
+      },
       "widgets_values": ["None", 0, "None", 0]
     }
   ],
-  "links": [[1, 1, 0, 2, 0, "BYTEPLUS_CLIENT"]],
+  "links": [
+    [1, 1, 0, 2, 0, "BYTEPLUS_CLIENT"]
+  ],
   "groups": [],
   "config": {},
-  "extra": {"ds": {"scale": 1, "offset": [40, 40]}},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [40, 40]
+    }
+  },
   "version": 0.4
 }

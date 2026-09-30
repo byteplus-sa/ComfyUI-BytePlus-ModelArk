@@ -8,7 +8,7 @@
       "id": 1,
       "type": "BytePlusAPIClient",
       "pos": [40, 360],
-      "size": [300, 130],
+      "size": [300, 138],
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -205,7 +205,21 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusSeedream"
       },
-      "widgets_values": ["A minimalist poster for a spring tea festival: a porcelain teapot surrounded by cherry blossoms, soft pastel colors, the title \"Spring Tea Festival\" in elegant type.", "seedream 5.0 pro", "(2K) 2048x2048 (1:1)", 2048, 2048, "standard", 42, "randomize", false, true, 1, "jpeg", "opaque"]
+      "widgets_values": [
+        "A minimalist poster for a spring tea festival: a porcelain teapot surrounded by cherry blossoms, soft pastel colors, the title \"Spring Tea Festival\" in elegant type.",
+        "seedream 5.0 pro",
+        "(2K) 2048x2048 (1:1)",
+        2048,
+        2048,
+        "standard",
+        42,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque"
+      ]
     },
     {
       "id": 3,
@@ -242,7 +256,7 @@
       "id": 4,
       "type": "BytePlusSeedance2TextToVideo",
       "pos": [440, 640],
-      "size": [460, 440],
+      "size": [460, 468],
       "flags": {},
       "order": 3,
       "mode": 0,
@@ -384,13 +398,28 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusSeedance2TextToVideo"
       },
-      "widgets_values": ["Seedance 2.5", "A lighthouse keeper climbs the spiral stairs at dusk, lights the lamp and looks out over a stormy sea. Waves crash against the rocks; thunder rolls in the distance.", "720p", "16:9", 30, true, "mp4", 0, "randomize", false, 1, "BytePlus/Video/Batch/Seedance", false, false]
+      "widgets_values": [
+        "Seedance 2.5",
+        "A lighthouse keeper climbs the spiral stairs at dusk, lights the lamp and looks out over a stormy sea. Waves crash against the rocks; thunder rolls in the distance.",
+        "720p",
+        "16:9",
+        30,
+        true,
+        "mp4",
+        0,
+        "randomize",
+        false,
+        1,
+        "BytePlus/Video/Batch/Seedance",
+        false,
+        false
+      ]
     },
     {
       "id": 5,
       "type": "SaveVideo",
       "pos": [940, 640],
-      "size": [300, 130],
+      "size": [300, 106],
       "flags": {},
       "order": 4,
       "mode": 0,
@@ -436,7 +465,7 @@
     {
       "id": 6,
       "type": "BytePlusSeed",
-      "pos": [440, 1120],
+      "pos": [440, 1160],
       "size": [440, 520],
       "flags": {},
       "order": 5,
@@ -573,12 +602,26 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusSeed"
       },
-      "widgets_values": ["Write a three-shot storyboard for a 15-second product video of a smart watch. For each shot give the camera move, the action and one line of voice-over.", "Seed 2.1 Turbo", 1.0, 0, "randomize", "You are a helpful assistant that describes and analyzes images and videos accurately.", "high", 1.0, "auto", "medium", 1, false, 604800]
+      "widgets_values": [
+        "Write a three-shot storyboard for a 15-second product video of a smart watch. For each shot give the camera move, the action and one line of voice-over.",
+        "Seed 2.1 Turbo",
+        1.0,
+        0,
+        "randomize",
+        "You are a helpful assistant that describes and analyzes images and videos accurately.",
+        "high",
+        1.0,
+        "auto",
+        "medium",
+        1,
+        false,
+        604800
+      ]
     },
     {
       "id": 7,
       "type": "PreviewAny",
-      "pos": [940, 1120],
+      "pos": [940, 1160],
       "size": [400, 320],
       "flags": {},
       "order": 6,
@@ -611,7 +654,7 @@
     {
       "id": 1,
       "title": "2.5 Model Updates",
-      "bounding": [20, 0, 1380, 1560],
+      "bounding": [20, -4, 1340, 1704],
       "color": "#3f789e",
       "font_size": 24,
       "flags": {}

@@ -7,14 +7,8 @@
     {
       "id": 1,
       "type": "BytePlusAPIClient",
-      "pos": [
-        20,
-        80
-      ],
-      "size": [
-        300,
-        130
-      ],
+      "pos": [20, 80],
+      "size": [300, 138],
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -56,9 +50,7 @@
         {
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
-          "links": [
-            1
-          ]
+          "links": [1]
         }
       ],
       "properties": {
@@ -66,24 +58,13 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusAPIClient"
       },
-      "widgets_values": [
-        "",
-        "",
-        "Custom",
-        "ap-southeast-1"
-      ]
+      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
       "id": 2,
       "type": "LoadImage",
-      "pos": [
-        20,
-        290
-      ],
-      "size": [
-        300,
-        320
-      ],
+      "pos": [20, 290],
+      "size": [300, 326],
       "flags": {},
       "order": 1,
       "mode": 0,
@@ -109,9 +90,7 @@
         {
           "name": "IMAGE",
           "type": "IMAGE",
-          "links": [
-            2
-          ]
+          "links": [2]
         },
         {
           "name": "MASK",
@@ -124,22 +103,13 @@
         "ver": "0.33.2",
         "Node name for S&R": "LoadImage"
       },
-      "widgets_values": [
-        "comfyui_logo.png",
-        "image"
-      ]
+      "widgets_values": ["comfyui_logo.png", "image"]
     },
     {
       "id": 3,
       "type": "BytePlusSeed",
-      "pos": [
-        400,
-        80
-      ],
-      "size": [
-        440,
-        520
-      ],
+      "pos": [400, 80],
+      "size": [440, 520],
       "flags": {},
       "order": 2,
       "mode": 0,
@@ -262,9 +232,7 @@
         {
           "name": "STRING",
           "type": "STRING",
-          "links": [
-            3
-          ]
+          "links": [3]
         },
         {
           "name": "raw_json",
@@ -296,14 +264,8 @@
     {
       "id": 4,
       "type": "PreviewAny",
-      "pos": [
-        900,
-        80
-      ],
-      "size": [
-        400,
-        320
-      ],
+      "pos": [900, 80],
+      "size": [400, 320],
       "flags": {},
       "order": 3,
       "mode": 0,
@@ -324,40 +286,16 @@
     }
   ],
   "links": [
-    [
-      1,
-      1,
-      0,
-      3,
-      0,
-      "BYTEPLUS_CLIENT"
-    ],
-    [
-      2,
-      2,
-      0,
-      3,
-      3,
-      "IMAGE"
-    ],
-    [
-      3,
-      3,
-      0,
-      4,
-      0,
-      "STRING"
-    ]
+    [1, 1, 0, 3, 0, "BYTEPLUS_CLIENT"],
+    [2, 2, 0, 3, 3, "IMAGE"],
+    [3, 3, 0, 4, 0, "STRING"]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
       "scale": 0.95,
-      "offset": [
-        60,
-        40
-      ]
+      "offset": [60, 40]
     }
   },
   "version": 0.4
