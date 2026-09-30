@@ -50,25 +50,24 @@ class WorkflowTemplateTests(unittest.TestCase):
         + SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS,
     }
 
+    SEEDANCE1_BEFORE_FRAMES = ["client", "model", "prompt"]
+    SEEDANCE1_AFTER_FRAMES = [
+        "resolution", "aspect_ratio", "duration", "seed", "camera_fixed", "watermark",
+        "generate_audio", "auto_duration", "draft_mode", "enable_offline_inference",
+        "generation_count", "filename_prefix", "save_last_frame_batch", "non_blocking",
+    ]
+
     CURRENT_INPUT_ORDERS = {
         "BytePlusAPIClient": ["new_api_key", "new_key_name", "key_name", "region"],
         "BytePlusQuotaSettings": [
             "client", "image_model", "image_limit", "video_model", "video_limit"
         ],
-        "BytePlusSeedance1": [
-            "client", "model_version", "prompt", "enable_random_seed", "seed",
-            "resolution", "aspect_ratio", "duration", "camerafixed",
-            "enable_offline_inference", "generation_count", "filename_prefix",
-            "save_last_frame_batch", "non_blocking", "image", "last_frame_image",
-        ],
-        "BytePlusSeedance1_5": [
-            "client", "model_version", "prompt", "enable_random_seed", "seed",
-            "resolution", "aspect_ratio", "auto_duration", "duration",
-            "generate_audio", "draft_mode", "reuse_last_draft_task", "draft_task_id",
-            "camerafixed", "enable_offline_inference", "generation_count",
-            "filename_prefix", "save_last_frame_batch", "non_blocking", "image",
-            "last_frame_image",
-        ],
+        # Core-style Seedance 1.x: client, core's inputs, then this pack's extras.
+        "BytePlusSeedanceTextToVideo": SEEDANCE1_BEFORE_FRAMES + SEEDANCE1_AFTER_FRAMES,
+        "BytePlusSeedanceImageToVideo": SEEDANCE1_BEFORE_FRAMES + ["image"]
+        + SEEDANCE1_AFTER_FRAMES,
+        "BytePlusSeedanceFirstLastFrame": SEEDANCE1_BEFORE_FRAMES
+        + ["first_frame", "last_frame"] + SEEDANCE1_AFTER_FRAMES,
         "BytePlusSeedream4": [
             "client", "model_version", "prompt", "size", "width", "height", "seed",
             "enable_group_generation", "max_images", "generation_count",
@@ -217,6 +216,37 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertEqual(seedance25_node["widgets_values"][5], "720p")
         self.assertEqual(seedance25_node["widgets_values"][8], 30)
         self.assertEqual(seedance25_node["widgets_values"][12], False)  # draft_mode
+
+    def test_seedance1_template_widget_positions(self):
+        workflow = load_workflow("Seedance 1.json")
+        nodes = {node["type"]: node for node in workflow["nodes"]}
+        self.assertNotIn("BytePlusSeedance1", nodes)
+        self.assertNotIn("BytePlusSeedance1_5", nodes)
+        for node_type, model in (
+            ("BytePlusSeedanceTextToVideo", "seedance-1-0-pro-fast-251015"),
+            ("BytePlusSeedanceImageToVideo", "seedance-1-5-pro-251215"),
+            ("BytePlusSeedanceFirstLastFrame", "seedance-1-5-pro-251215"),
+        ):
+            with self.subTest(node=node_type):
+                node = nodes[node_type]
+                widget_inputs = [item["name"] for item in node["inputs"] if "widget" in item]
+                values = node["widgets_values"]
+                # One value per widget, plus control_after_generate right after seed.
+                self.assertEqual(len(values), len(widget_inputs) + 1)
+                seed_index = widget_inputs.index("seed")
+                self.assertEqual(values[0], model)
+                self.assertTrue(values[1].strip())  # prompt (core rejects an empty one)
+                self.assertEqual(values[seed_index + 1], "randomize")
+                named = dict(zip(widget_inputs[: seed_index + 1], values))
+                named.update(zip(widget_inputs[seed_index + 1 :], values[seed_index + 2 :]))
+                self.assertEqual(named["duration"], 5)
+                self.assertIs(named["draft_mode"], False)
+                self.assertEqual(named["generation_count"], 1)
+                # Core's optional inputs and this pack's extras are optional sockets.
+                optional = {item["name"] for item in node["inputs"] if item.get("shape") == 7}
+                self.assertEqual(
+                    optional, set(self.SEEDANCE1_AFTER_FRAMES[3:]), msg=node_type
+                )
 
     def test_templates_are_english_and_byteplus_only(self):
         for name in sorted(EXPECTED_WORKFLOWS):

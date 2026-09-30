@@ -1056,18 +1056,44 @@ class BytePlusVideoBase:
             raise BytePlusException(format_api_error(e))
 
 
+def build_seedance1_frame_content(helper, first_frame, last_frame):
+    """
+    Seedance 1.x content items for the first/last frames (base64 data URIs with
+    roles first_frame / last_frame), checked against the request size limits.
+    Shared by the Legacy Seedance 1.x nodes and nodes_seedance1.py.
+    """
+    content = []
+    total_image_request_bytes = helper._append_image_content(content, first_frame, "first_frame")
+
+    if last_frame is not None:
+        if first_frame is None:
+            raise BytePlusException(get_text("popup_first_frame_missing"))
+        total_image_request_bytes += helper._append_image_content(content, last_frame, "last_frame")
+
+    total_image_request_mb = float(total_image_request_bytes) / (1024.0 * 1024.0)
+    if total_image_request_mb > REF_IMAGE_MAX_TOTAL_REQUEST_MB:
+        raise BytePlusException(
+            get_text("popup_ref_image_total_size_exceeded").format(
+                max_mb=REF_IMAGE_MAX_TOTAL_REQUEST_MB, size_mb=f"{total_image_request_mb:.3f}"
+            )
+        )
+    return content
+
+
 class BytePlusSeedance1(BytePlusVideoBase, comfy_io.ComfyNode):
     """
-    Seedance 1.0 Pro / Pro Fast video node.
+    Legacy Seedance 1.0 Pro / Pro Fast video node (replaced by the nodes in
+    nodes_seedance1.py; kept so saved workflows still load).
     Text-to-video and first/last-frame image-to-video.
     """
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedance1",
-            display_name="BytePlus Seedance 1.0",
+            display_name="BytePlus Seedance 1.0 (Legacy)",
             category=GLOBAL_CATEGORY,
             is_output_node=True,
+            is_deprecated=True,
             inputs=[
                 BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input(
@@ -1133,22 +1159,7 @@ class BytePlusSeedance1(BytePlusVideoBase, comfy_io.ComfyNode):
         helper._validate_reference_image_constraints(image)
         helper._validate_reference_image_constraints(last_frame_image)
 
-        content = []
-        total_image_request_bytes = 0
-        total_image_request_bytes += helper._append_image_content(content, image, "first_frame")
-
-        if last_frame_image is not None:
-            if image is None:
-                raise BytePlusException(get_text("popup_first_frame_missing"))
-            total_image_request_bytes += helper._append_image_content(content, last_frame_image, "last_frame")
-
-        total_image_request_mb = float(total_image_request_bytes) / (1024.0 * 1024.0)
-        if total_image_request_mb > REF_IMAGE_MAX_TOTAL_REQUEST_MB:
-            raise BytePlusException(
-                get_text("popup_ref_image_total_size_exceeded").format(
-                    max_mb=REF_IMAGE_MAX_TOTAL_REQUEST_MB, size_mb=f"{total_image_request_mb:.3f}"
-                )
-            )
+        content = build_seedance1_frame_content(helper, image, last_frame_image)
 
         service_tier, execution_expires_after = helper._get_service_options(
             enable_offline_inference, VIDEO_DEFAULT_TIMEOUT
@@ -1187,16 +1198,18 @@ class BytePlusSeedance1(BytePlusVideoBase, comfy_io.ComfyNode):
 
 class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
     """
-    Seedance 1.5 Pro video node.
+    Legacy Seedance 1.5 Pro video node (replaced by the nodes in
+    nodes_seedance1.py; kept so saved workflows still load).
     Text-to-video, image-to-video, draft mode and draft reuse.
     """
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedance1_5",
-            display_name="BytePlus Seedance 1.5 Pro",
+            display_name="BytePlus Seedance 1.5 Pro (Legacy)",
             category=GLOBAL_CATEGORY,
             is_output_node=True,
+            is_deprecated=True,
             inputs=[
                 BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input(
@@ -1308,22 +1321,7 @@ class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
                 ignore_errors=ignore_errors,
             )
 
-        content = []
-        total_image_request_bytes = 0
-        total_image_request_bytes += helper._append_image_content(content, image, "first_frame")
-
-        if last_frame_image is not None:
-            if image is None:
-                raise BytePlusException(get_text("popup_first_frame_missing"))
-            total_image_request_bytes += helper._append_image_content(content, last_frame_image, "last_frame")
-
-        total_image_request_mb = float(total_image_request_bytes) / (1024.0 * 1024.0)
-        if total_image_request_mb > REF_IMAGE_MAX_TOTAL_REQUEST_MB:
-            raise BytePlusException(
-                get_text("popup_ref_image_total_size_exceeded").format(
-                    max_mb=REF_IMAGE_MAX_TOTAL_REQUEST_MB, size_mb=f"{total_image_request_mb:.3f}"
-                )
-            )
+        content = build_seedance1_frame_content(helper, image, last_frame_image)
 
         final_duration = -1.0 if auto_duration else float(duration)
 
