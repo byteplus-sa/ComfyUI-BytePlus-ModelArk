@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import binascii
 import json
 import os
 import re
@@ -11,11 +13,12 @@ from comfy_api.latest import io as comfy_io
 from .constants import (
     DEFAULT_SPEECH_REGION,
     SPEECH_API_KEYS_CONSOLE_URL,
+    SPEECH_ERROR_TEXT,
     SPEECH_REGION_BASE_URLS,
     SPEECH_REQUEST_TIMEOUT_SECONDS,
     SPEECH_SUCCESS_CODES,
 )
-from .nodes_shared import LOG_PREFIX, ApiKeyStore, BytePlusException, get_text, logger
+from .nodes_shared import LOG_PREFIX, ApiKeyStore, BytePlusException, get_text
 
 # Seed Speech keys are a different product key from ModelArk keys, so they get
 # their own file (git-ignored runtime file in the repo root) and socket type.
@@ -104,6 +107,9 @@ def describe_speech_error(code, message, status=None):
         return _plain("speech_err_empty_input_audio")
     if code == 45000151:
         return _plain("speech_err_audio_format")
+    if code in SPEECH_ERROR_TEXT:
+        text = SPEECH_ERROR_TEXT[code]
+        return f"{text} ({message})" if message and message.lower() not in text.lower() else text
     return message or "no error message"
 
 
@@ -132,6 +138,13 @@ def speech_error(operation, response=None, code=None, message=None):
         message=describe_speech_error(code, message, status),
         logid=f" (log ID: {logid})" if logid else "",
     ))
+
+
+def b64decode_audio(data):
+    try:
+        return base64.b64decode(data, validate=False)
+    except (binascii.Error, ValueError, TypeError) as e:
+        raise BytePlusException(get_text("speech_audio_decode_failed", e=e))
 
 
 def check_code(operation, response, code, message=None):
@@ -228,7 +241,9 @@ def iter_json_objects(text):
         try:
             obj, index = decoder.raw_decode(text, index)
         except ValueError:
-            logger.warning(f"{LOG_PREFIX}Skipping an unreadable part of the Seed Speech stream.")
-            return
+            # Failing beats returning silently truncated audio.
+            raise BytePlusException(get_text("speech_stream_unreadable", position=index))
         if isinstance(obj, dict):
             yield obj
+        elif isinstance(obj, list):
+            yield from (item for item in obj if isinstance(item, dict))

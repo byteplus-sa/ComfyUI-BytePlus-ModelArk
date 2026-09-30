@@ -2170,6 +2170,7 @@ class ApiKeySavedEventTests(unittest.TestCase):
         self.assertEqual(data["key_name"], "work")
         self.assertEqual(data["prompt_id"], "prompt-9")
         self.assertEqual(data["key_fingerprint"], hashlib.sha256(b"sk-123").hexdigest()[:16])
+        self.assertEqual(data["store"], "modelark")
         self.assertNotIn("sk-123", json.dumps(data))
         hidden = nodes_shared.BytePlusAPIClient.define_schema().hidden
         self.assertIn(nodes_shared.comfy_io.Hidden.unique_id, hidden)
@@ -2388,8 +2389,8 @@ class SeedAudioTests(SpeechTestBase):
         fake = self.serve((200, {}, self._wav_payload()), (200, {}, self._wav_payload()))
         await self._run(ref_image=torch.ones((1, 32, 32, 3)))
         self.assertEqual(list(fake.calls[0].body["references"][0]), ["image_data"])
-        await self._run(ref_image_url="asset://asset-1")
-        self.assertEqual(fake.calls[1].body["references"], [{"image_url": "asset://asset-1"}])
+        await self._run(ref_image_url="https://cdn.example/face.png")
+        self.assertEqual(fake.calls[1].body["references"], [{"image_url": "https://cdn.example/face.png"}])
 
     async def test_reference_validation(self):
         import torch
@@ -2401,6 +2402,7 @@ class SeedAudioTests(SpeechTestBase):
             {"ref_audio_1_source": "voice_a", "ref_image_url": "https://x/i.png"},
             {"ref_image": torch.ones((1, 8, 8, 3)), "ref_image_url": "https://x/i.png"},
             {"ref_audio_1_source": "ftp://x/a.wav"},
+            {"ref_image_url": "asset://asset-1"},  # ModelArk asset IDs are not Seed Speech URLs
             {"ref_audio_1": _sine_audio(31.0, 8000)},
             {"text_prompt": "x" * 3001},
             {"text_prompt": "   "},
@@ -2549,7 +2551,7 @@ class SeedASRTests(SpeechTestBase):
 
         fake = self.serve((200, {"X-Api-Status-Code": "20000000"}, self.RESULT))
         text, utterances, srt, duration = (await self._run(
-            audio=_sine_audio(1.0, 48000, channels=2), language="en-US", enable_speaker_info=True,
+            audio=_sine_audio(1.0, 48000, channels=2), language="zh-CN", enable_speaker_info=True,
             hotwords="Hamlet, Ophelia\nHamlet",
         )).result
         call = fake.calls[0]
@@ -2558,7 +2560,7 @@ class SeedASRTests(SpeechTestBase):
         self.assertEqual(call.headers["X-Api-Sequence"], "-1")
         audio = call.body["audio"]
         self.assertEqual({k: v for k, v in audio.items() if k != "data"}, {
-            "format": "wav", "codec": "raw", "rate": 16000, "bits": 16, "channel": 1, "language": "en-US",
+            "format": "wav", "codec": "raw", "rate": 16000, "bits": 16, "channel": 1, "language": "zh-CN",
         })
         with wave.open(io.BytesIO(base64.b64decode(audio["data"]))) as wav:
             self.assertEqual((wav.getframerate(), wav.getnchannels(), wav.getnframes()), (16000, 1, 16000))
@@ -2659,16 +2661,16 @@ class SpeechAdvancedOptionTests(SpeechTestBase):
 
     def test_asr_recognition_options(self):
         mode, _, body = self.nodes.build_asr_request(
-            "seed-asr-2.0", audio_url="https://cdn.example/call.m4a", enable_auto_lang=True, enable_lid=True,
+            "seed-asr-2.0", audio_url="https://cdn.example/call.m4a", enable_lid=True,
             enable_channel_split=True, vad_segment=True, end_window_size=800, output_zh_variant="tw",
             filter_system_sensitive_words=True, remove_words="um, uh", mask_words="secret",
-            wrap_sensitive_words=True, hotwords="BytePlus", context_text="Agent: How can I help?\nCaller: Billing.",
+            wrap_sensitive_words=True, hotwords="BytePlus", context_text="bot: How can I help?\nuser: Billing.\nA support call.",
             context_image_url="https://cdn.example/slide.png",
         )
         self.assertEqual(mode, "standard")
-        self.assertEqual(body["audio"], {"url": "https://cdn.example/call.m4a"})
+        self.assertEqual(body["audio"], {"url": "https://cdn.example/call.m4a", "format": "m4a", "channel": 2})
         request = body["request"]
-        for key, value in {"enable_auto_lang": True, "enable_lid": True, "enable_channel_split": True,
+        for key, value in {"enable_lid": True, "enable_channel_split": True,
                            "vad_segment": True, "end_window_size": 800, "output_zh_variant": "tw"}.items():
             self.assertEqual(request[key], value, key)
         self.assertEqual(json.loads(request["sensitive_words_filter"]), {
@@ -2678,7 +2680,8 @@ class SpeechAdvancedOptionTests(SpeechTestBase):
         self.assertEqual(json.loads(request["corpus"]["context"]), {
             "hotwords": [{"word": "BytePlus"}],
             "context_type": "dialog_ctx",
-            "context_data": [{"text": "Agent: How can I help?"}, {"text": "Caller: Billing."},
+            "context_data": [{"speaker": "bot", "text": "How can I help?"},
+                             {"speaker": "user", "text": "Billing."}, {"text": "A support call."},
                              {"image_url": "https://cdn.example/slide.png"}],
         })
         _, _, plain = self.nodes.build_asr_request("seed-asr-fast", audio_url="https://cdn.example/a.wav")
@@ -2718,6 +2721,303 @@ class SpeechAdvancedOptionTests(SpeechTestBase):
 
 
 @requires_comfyui
+class SpeechUploadTests(SpeechTestBase):
+    """Connected media for options that only take URLs goes through Comfy.org storage."""
+
+    def setUp(self):
+        super().setUp()
+        self.uploads = []
+        self._old_upload = self.nodes.upload_to_comfy_storage
+        self._old_poll = self.nodes.SPEECH_ASR_POLL_SECONDS
+        self.nodes.SPEECH_ASR_POLL_SECONDS = 0
+
+        async def fake_upload(node_cls, kind, data, filename, mime_type):
+            self.uploads.append((kind, data, filename, mime_type))
+            return f"https://storage.example/{filename}"
+
+        self.nodes.upload_to_comfy_storage = fake_upload
+
+    def tearDown(self):
+        self.nodes.upload_to_comfy_storage = self._old_upload
+        self.nodes.SPEECH_ASR_POLL_SECONDS = self._old_poll
+        super().tearDown()
+
+    RESULT = {"result": {"text": "Hello.", "utterances": []}, "audio_info": [{"duration": 1000}]}
+
+    async def test_standard_asr_uploads_connected_audio(self):
+        import wave
+
+        fake = self.serve(
+            (200, {"X-Api-Status-Code": "20000000"}, {}),
+            (200, {"X-Api-Status-Code": "20000000"}, self.RESULT),
+        )
+        text, _, _, duration = (await self.nodes.BytePlusSeedASR.execute(
+            self.client, "seed-asr-2.0", audio=_sine_audio(1.0, 44100, channels=2),
+        )).result
+        (kind, data, filename, mime), = self.uploads
+        self.assertEqual((kind, filename, mime), ("audio", "asr.wav", "audio/wav"))
+        with wave.open(io.BytesIO(data)) as wav:
+            self.assertEqual((wav.getframerate(), wav.getnchannels()), (16000, 1))
+        self.assertEqual(fake.calls[0].body["audio"], {
+            "url": "https://storage.example/asr.wav", "format": "wav", "codec": "raw", "rate": 16000, "bits": 16,
+        })
+        self.assertEqual((text, duration), ("Hello.", 1.0))  # audio_info as a list, like the docs
+
+    async def test_context_image_is_uploaded_as_small_jpeg(self):
+        import torch
+
+        fake = self.serve((200, {"X-Api-Status-Code": "20000000"}, self.RESULT))
+        noisy = torch.rand((1, 1600, 1600, 3))
+        await self.nodes.BytePlusSeedASR.execute(
+            self.client, "seed-asr-fast", audio=_sine_audio(), context_image=noisy,
+        )
+        (kind, data, filename, mime), = self.uploads
+        self.assertEqual((kind, filename, mime), ("image", "context.jpg", "image/jpeg"))
+        self.assertLessEqual(len(data), 500 * 1024)
+        self.assertEqual(data[:2], b"\xff\xd8")
+        context = json.loads(fake.calls[0].body["request"]["corpus"]["context"])
+        self.assertEqual(context["context_data"], [{"image_url": "https://storage.example/context.jpg"}])
+
+    async def test_upload_validation(self):
+        import torch
+
+        self.serve()
+        image = torch.ones((1, 8, 8, 3))
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.nodes.BytePlusSeedASR.execute(
+                self.client, "seed-asr-1.0", audio_url="https://x/a.wav", context_image=image)
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.nodes.BytePlusSeedASR.execute(
+                self.client, "seed-asr-fast", audio_url="https://x/a.wav", context_image=image,
+                context_image_url="https://x/i.png")
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.nodes.BytePlusSeedASR.execute(
+                self.client, "seed-asr-2.0", audio=_sine_audio(), audio_url="https://x/a.wav")
+        self.assertEqual(self.uploads, [])
+
+    async def test_comfy_storage_helper_caches_and_maps_errors(self):
+        import comfy.model_management as mm
+
+        calls = []
+        behaviour = {"raise": None}
+
+        async def upload_file_to_comfyapi(cls, file_bytes_io, filename, mime, wait_label=None):
+            calls.append((filename, mime, file_bytes_io.getvalue()))
+            if behaviour["raise"]:
+                raise behaviour["raise"]
+            return f"https://storage.example/{len(calls)}"
+
+        fake_util = types.ModuleType("comfy_api_nodes.util")
+        fake_util.upload_file_to_comfyapi = upload_file_to_comfyapi
+        old_module = sys.modules.get("comfy_api_nodes.util")
+        sys.modules["comfy_api_nodes.util"] = fake_util
+        self.nodes.SPEECH_UPLOAD_CACHE.clear()
+        upload = self._old_upload
+        try:
+            first = await upload(None, "audio", b"abc", "a.wav", "audio/wav")
+            again = await upload(None, "audio", b"abc", "a.wav", "audio/wav")
+            self.assertEqual((first, again, len(calls)), ("https://storage.example/1",) * 2 + (1,))
+            behaviour["raise"] = RuntimeError("not logged in")
+            with self.assertRaisesRegex(nodes_shared.BytePlusException, "Comfy.org"):
+                await upload(None, "image", b"other", "i.jpg", "image/jpeg")
+            behaviour["raise"] = mm.InterruptProcessingException()
+            with self.assertRaises(mm.InterruptProcessingException):
+                await upload(None, "image", b"third", "i.jpg", "image/jpeg")
+        finally:
+            self.nodes.SPEECH_UPLOAD_CACHE.clear()
+            if old_module is None:
+                sys.modules.pop("comfy_api_nodes.util", None)
+            else:
+                sys.modules["comfy_api_nodes.util"] = old_module
+
+
+@requires_comfyui
+class SeedVoiceCloneTests(SpeechTestBase):
+    def setUp(self):
+        super().setUp()
+        self._old_poll = self.nodes.SEED_VOICE_POLL_SECONDS
+        self.nodes.SEED_VOICE_POLL_SECONDS = 0
+
+    def tearDown(self):
+        self.nodes.SEED_VOICE_POLL_SECONDS = self._old_poll
+        super().tearDown()
+
+    async def _run(self, **kwargs):
+        defaults = {"speaker_id": "S_abc123", "audio": _sine_audio(2.0, 48000, channels=2)}
+        return await self.nodes.BytePlusSeedVoiceClone.execute(self.client, **{**defaults, **kwargs})
+
+    async def test_uploads_clip_trains_and_returns_speaker(self):
+        import base64
+        import wave
+
+        demo = self.audio.audio_to_wav_bytes(_sine_audio(0.5, 24000))
+        fake = self.serve(
+            (200, {}, {"code": 0, "speaker_id": "S_abc123", "status": 1}),
+            (200, {}, {"code": 0, "status": 1}),
+            (200, {}, {"code": 0, "status": 2, "speaker_status": [{"model_type": 5, "demo_audio": "https://cdn.example/demo.wav"}]}),
+            (200, {}, demo),
+        )
+        speaker, demo_audio, status_json = (await self._run(
+            language="en", reference_text="Hello there", demo_text="This is my cloned voice.",
+            disable_volume_normalization=True,
+        )).result
+        clone = fake.calls[0]
+        self.assertEqual(clone.url, "https://voice.ap-southeast-1.bytepluses.com/api/v3/tts/voice_clone")
+        self.assertEqual(clone.headers["X-Api-Key"], "speech-key-1")
+        body = clone.body
+        self.assertEqual((body["speaker_id"], body["language"], body["text"]), ("S_abc123", 1, "Hello there"))
+        self.assertNotIn("custom_speaker_id", body)
+        self.assertEqual(body["audio"]["format"], "wav")
+        with wave.open(io.BytesIO(base64.b64decode(body["audio"]["data"]))) as wav:
+            self.assertEqual((wav.getframerate(), wav.getnchannels()), (48000, 2))
+        self.assertEqual(body["extra_params"], {"demo_text": "This is my cloned voice.", "disable_volume_normalization": True})
+        self.assertEqual([c.url.rsplit("/", 1)[-1] for c in fake.calls[1:3]], ["get_voice", "get_voice"])
+        self.assertEqual(fake.calls[1].body, {"speaker_id": "S_abc123"})
+        self.assertEqual((fake.calls[3].method, fake.calls[3].url), ("GET", "https://cdn.example/demo.wav"))
+        self.assertEqual(speaker, "S_abc123")
+        self.assertEqual(demo_audio["sample_rate"], 24000)
+        self.assertEqual(json.loads(status_json)["status"], 2)
+
+    async def test_postpaid_custom_voice_id(self):
+        fake = self.serve((200, {}, {"code": 0, "status": 4}))
+        speaker, demo, _ = (await self._run(speaker_id="MyBrandVoice01")).result
+        self.assertEqual(fake.calls[0].body["speaker_id"], "custom_speaker_id")
+        self.assertEqual(fake.calls[0].body["custom_speaker_id"], "MyBrandVoice01")
+        self.assertEqual(speaker, "MyBrandVoice01")
+        self.assertEqual(tuple(demo["waveform"].shape)[:2], (1, 1))  # no demo: silence
+        for bad in ("", "short", "en_voice_one", "voice_bigtts", "ICL_voice01", "1voice_abc", "voice-name_", "bad name 1"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    self.nodes.build_voice_clone_request(bad, _sine_audio())
+        with self.assertRaises(nodes_shared.BytePlusException):
+            self.nodes.build_voice_clone_request("S_abc123", _sine_audio(), demo_text="Hi")
+
+    async def test_training_failure_and_error_codes(self):
+        self.serve(
+            (200, {}, {"code": 0, "status": 1}),
+            (200, {}, {"code": 0, "status": 3, "message": "SNR too low"}),
+            (400, {"X-Tt-Logid": "L1"}, {"code": 45001123, "message": "upload quota exhausted"}),
+        )
+        with self.assertRaisesRegex(nodes_shared.BytePlusException, "SNR too low"):
+            await self._run()
+        with self.assertRaisesRegex(nodes_shared.BytePlusException, "no training attempts left"):
+            await self._run()
+
+
+@requires_comfyui
+class SpeechRobustnessTests(SpeechTestBase):
+    def test_stream_parser_rejects_garbage_and_reads_arrays(self):
+        self.assertEqual(list(self.api.iter_json_objects('[{"a":1},{"b":2}] {"c":3}')), [{"a": 1}, {"b": 2}, {"c": 3}])
+        with self.assertRaises(nodes_shared.BytePlusException):
+            list(self.api.iter_json_objects('{"code":0,"data":"AAAA"}\n{"code":0,"data":"AA\n{"code":45000000}'))
+
+    async def test_bad_base64_is_a_plugin_error(self):
+        self.serve((200, {}, {"code": 0, "audio": "not base64!!"}),
+                   (200, {}, '{"code":0,"data":"A"}{"code":20000000}'))
+        with self.assertRaisesRegex(nodes_shared.BytePlusException, r"^\[BytePlus\]"):
+            await self.nodes.BytePlusSeedAudio.execute(self.client, "seed-audio-1.0", "Hi")
+        with self.assertRaisesRegex(nodes_shared.BytePlusException, r"^\[BytePlus\]"):
+            await self.nodes.BytePlusSeedTTS.execute(self.client, "seed-tts-2.0", "Hi", "en_female_stokie_uranus_bigtts")
+
+    async def test_asr_rejects_bodies_without_result(self):
+        self.serve((200, {}, "<html>gateway</html>"), (200, {"X-Api-Status-Code": "20000000"}, ""))
+        for _ in range(2):
+            with self.assertRaisesRegex(nodes_shared.BytePlusException, "unexpected response"):
+                await self.nodes.BytePlusSeedASR.execute(self.client, "seed-asr-fast", audio_url="https://x/a.wav")
+
+    def test_asr_format_language_and_context_rules(self):
+        build = self.nodes.build_asr_request
+        _, _, body = build("seed-asr-2.0", audio_url="https://x/talk.ogg")
+        self.assertEqual(body["audio"], {"url": "https://x/talk.ogg", "format": "ogg", "codec": "opus"})
+        _, _, body = build("seed-asr-2.0", audio_url="https://x/presigned?sig=1", audio_format="aac")
+        self.assertEqual(body["audio"]["format"], "aac")
+        _, _, body = build("seed-asr-fast", audio_url="https://x/talk.m4a")
+        self.assertNotIn("format", body["audio"])
+        _, _, body = build("seed-asr-2.0", audio_url="https://x/a.mp3", language="sk-SK")
+        self.assertEqual(body["audio"]["language"], "sk-SK")
+        cases = [
+            {"model": "seed-asr-2.0", "audio_url": "https://x/presigned?sig=1"},        # format unknown
+            {"model": "seed-asr-fast", "audio_url": "https://x/a", "audio_format": "m4a"},
+            {"model": "seed-asr-fast", "audio_url": "https://x/a.wav", "language": "sk-SK"},
+            {"model": "seed-asr-fast", "audio_url": "https://x/a.wav", "language": "en-US", "hotwords": "x"},
+            {"model": "seed-asr-fast", "audio_url": "https://x/a.wav", "enable_auto_lang": True, "context_text": "x"},
+            {"model": "seed-asr-1.0", "audio_url": "https://x/a.wav", "context_image_url": "https://x/i.png"},
+        ]
+        for kwargs in cases:
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    build(**kwargs)
+
+    def test_tts_context_text_is_tts_2_only(self):
+        with self.assertRaises(nodes_shared.BytePlusException):
+            self.nodes.build_tts_request("seed-tts-1.0", "Hi", "", custom_speaker_id="en_1", context_text="Slowly")
+
+    async def test_interrupt_cancels_request_and_passes_through(self):
+        import comfy.model_management as mm
+
+        cancelled = asyncio.Event()
+
+        async def slow_send(*_args):
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+
+        self.api._send = slow_send
+        mm.interrupt_current_processing(True)
+        try:
+            with self.assertRaises(mm.InterruptProcessingException):
+                await self.api.speech_post(self.client, "/x", {}, operation="test")
+        finally:
+            mm.interrupt_current_processing(False)
+        await asyncio.wait_for(cancelled.wait(), 2)
+
+    async def test_network_errors_are_readable(self):
+        import aiohttp
+
+        async def failing(*_args):
+            raise aiohttp.ClientConnectionError("dns failure")
+
+        self.api._send = failing
+        with self.assertRaisesRegex(nodes_shared.BytePlusException, "Could not reach Seed Speech"):
+            await self.api.speech_post(self.client, "/x", {}, operation="TTS")
+
+    def test_speech_key_saved_event_and_failed_save(self):
+        sent = []
+        server = importlib.import_module("server")
+        old_instance = getattr(server.PromptServer, "instance", None)
+        server.PromptServer.instance = SimpleNamespace(
+            send_sync=lambda event, data, sid=None: sent.append(data), client_id="c", last_prompt_id="p")
+        try:
+            nodes_shared._notify_api_key_saved("9", "voice", "sk-v", store="speech")
+        finally:
+            server.PromptServer.instance = old_instance
+        self.assertEqual(sent[0]["store"], "speech")
+        self.assertNotIn("sk-v", json.dumps(sent[0]))
+
+        notified = []
+        old = (self.nodes.SPEECH_API_KEY_STORE, self.nodes._notify_api_key_saved)
+        self.nodes.SPEECH_API_KEY_STORE = SimpleNamespace(upsert=lambda name, key: False)
+        self.nodes._notify_api_key_saved = lambda *a, **k: notified.append(a)
+        self.nodes.BytePlusSpeechClient.hidden = SimpleNamespace(unique_id="9")
+        try:
+            client = self.nodes.BytePlusSpeechClient.execute("Custom", "sk-v", "voice").result[0]
+        finally:
+            self.nodes.SPEECH_API_KEY_STORE, self.nodes._notify_api_key_saved = old
+            delattr(self.nodes.BytePlusSpeechClient, "hidden")
+        self.assertEqual(client.api_key, "sk-v")
+        self.assertEqual(notified, [])  # key stays in the node when it could not be saved
+
+    def test_asr_builder_accepts_every_schema_input(self):
+        import inspect
+
+        params = set(inspect.signature(self.nodes.build_asr_request).parameters)
+        schema_ids = {i.id for i in self.nodes.BytePlusSeedASR.define_schema().inputs}
+        self.assertEqual(schema_ids - params, {"speech_client", "context_image"})
+
+
+@requires_comfyui
 class SpeechHelperTests(unittest.TestCase):
     def setUp(self):
         self.nodes, self.api, self.audio = _speech_modules()
@@ -2737,7 +3037,8 @@ class SpeechHelperTests(unittest.TestCase):
         from tests.test_workflow_templates import WorkflowTemplateTests
 
         for node in (self.nodes.BytePlusSpeechClient, self.nodes.BytePlusSeedAudio,
-                     self.nodes.BytePlusSeedTTS, self.nodes.BytePlusSeedASR):
+                     self.nodes.BytePlusSeedTTS, self.nodes.BytePlusSeedASR,
+                     self.nodes.BytePlusSeedVoiceClone):
             schema = node.define_schema()
             self.assertEqual(
                 [item.id for item in schema.inputs],

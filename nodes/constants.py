@@ -32,6 +32,8 @@ SEED_TTS_PATH = "/api/v3/tts/unidirectional"
 SEED_ASR_FAST_PATH = "/api/v3/auc/bigmodel/recognize/flash"
 SEED_ASR_SUBMIT_PATH = "/api/v3/auc/bigmodel/submit"
 SEED_ASR_QUERY_PATH = "/api/v3/auc/bigmodel/query"
+SEED_VOICE_CLONE_PATH = "/api/v3/tts/voice_clone"
+SEED_VOICE_STATUS_PATH = "/api/v3/tts/get_voice"
 # Fixed X-Api-App-Key value required by the TTS HTTP API.
 SEED_TTS_APP_KEY = "aGjiRDfUWi"
 # Seed Audio answers code 0; TTS/ASR end with 20000000.
@@ -63,13 +65,80 @@ SEED_ASR_LANGUAGES = [
     "pt-BR", "de-DE", "fr-FR", "it-IT", "nl-NL", "pl-PL", "ro-RO", "ru-RU", "uk-UA",
     "tr-TR", "el-GR", "cs-CZ", "da-DK", "fi-FI", "hu-HU", "no-NO", "sv-SE", "bg-BG",
     "ar-SA", "az-AZ", "kk-KZ", "sw-KE",
+    # Standard models (seed-asr-2.0 / 1.0) only:
+    "sk-SK", "sl-SI", "hr-HR", "sr-RS", "lt-LT", "lv-LV", "et-EE", "fa-IR", "af-ZA",
+    "is-IS", "sq-AL", "ca-ES", "ceb-PH", "ga-IE", "jv-ID", "uz-UZ",
 ]
+SEED_ASR_STANDARD_ONLY_LANGUAGES = (
+    "sk-SK", "sl-SI", "hr-HR", "sr-RS", "lt-LT", "lv-LV", "et-EE", "fa-IR", "af-ZA",
+    "is-IS", "sq-AL", "ca-ES", "ceb-PH", "ga-IE", "jv-ID", "uz-UZ",
+)
+# Hotwords and dialogue context only work with the Chinese-English model.
+SEED_ASR_CONTEXT_LANGUAGES = ("auto", "zh-CN")
+# audio.format for URL input. The fast mode accepts only raw/wav/mp3/ogg; the
+# standard mode also pcm/spx/amr/aac/m4a (and requires the field).
+SEED_ASR_AUDIO_FORMATS = ["auto", "wav", "mp3", "ogg", "m4a", "aac", "amr", "spx", "pcm", "raw"]
+SEED_ASR_FAST_FORMATS = ("raw", "wav", "mp3", "ogg")
+SEED_ASR_EXTENSION_FORMATS = {
+    "wav": "wav", "mp3": "mp3", "ogg": "ogg", "opus": "ogg", "oga": "ogg", "m4a": "m4a",
+    "aac": "aac", "amr": "amr", "spx": "spx", "pcm": "pcm", "raw": "raw",
+}
+# Standard-mode results arrive within 3 hours.
+SEED_ASR_MAX_WAIT_SECONDS = 12600
 # context_language: reference language for Western European text.
 SEED_TTS_CONTEXT_LANGUAGES = ["default", "id", "es", "pt"]
 SEED_TTS_DEFAULT_UNSUPPORTED_CHAR_RATIO = 0.3
 SEED_ASR_ZH_VARIANTS = ["none", "traditional", "tw", "hk"]
 SEED_ASR_SAMPLE_RATE = 16000
 SEED_ASR_FAST_MAX_BYTES = 100 * 1024 * 1024
+# ASR 2.0 visual context image limit.
+SEED_ASR_CONTEXT_IMAGE_MAX_PIXELS = 768 * 768
+
+# Voice Replication 2.0 (voice cloning for TTS / Seed Audio)
+SEED_VOICE_CLONE_MAX_BYTES = 10 * 1024 * 1024
+SEED_VOICE_CLONE_LANGUAGES = {
+    "en": 1, "zh": 0, "ja": 2, "es": 3, "id": 4, "pt": 5, "de": 6, "fr": 7, "ko": 8, "it": 9,
+    "th": 10, "vi": 11, "ru": 12, "fil": 13, "ms": 14, "ar": 15, "mx": 16, "pt-br": 17,
+    "pl": 19, "tr": 20, "sv": 21,
+}
+# Training status: 0 NotFound, 1 Training, 2 Success, 3 Failed, 4 Active.
+SEED_VOICE_READY_STATUSES = (2, 4)
+SEED_VOICE_FAILED_STATUS = 3
+SEED_VOICE_NOT_FOUND_STATUS = 0
+SEED_VOICE_POLL_SECONDS = 2
+SEED_VOICE_TRAINING_TIMEOUT_SECONDS = 600
+# Postpaid custom voice IDs must not match this (reserved prefixes/suffixes, format).
+SEED_CUSTOM_VOICE_ID_REJECT = (
+    r"^((?i:S_|ICL_|MIX_|DiT_|BV)|[a-z]{2}_|(?i:(wvae|moon|mercury|venus|earth|mars|jupiter|saturn"
+    r"|uranus|neptune|pluto|umm)_)).*|.*_(?i:bigtts|bigtts_cc|tob|cs_tob|streaming)$|^[^a-zA-Z]"
+    r"|.*[-_]$|^.{0,7}$|^.{257,}$|.*[^a-zA-Z0-9_-].*"
+)
+# Uploads of connected media to Comfy.org storage (for APIs that need a URL).
+SPEECH_UPLOAD_CACHE_TTL_SECONDS = 43200
+SPEECH_UPLOAD_CACHE_MAX_ENTRIES = 128
+
+# Seed Speech error codes without a dedicated MESSAGES key (Voice Replication).
+SPEECH_ERROR_TEXT = {
+    45001001: "Invalid request parameters.",
+    45001101: "Audio upload failed. Check the audio format and size.",
+    45001102: "Transcription of the reference audio failed. Use a clearer recording.",
+    45001104: "Voiceprint check failed. Try a different sample or speaker.",
+    45001105: "Could not read the audio data.",
+    45001107: "Speaker ID not found. Check the voice slot ID in the Seed Speech console.",
+    45001108: "Audio transcoding failed. Use a different sample.",
+    45001109: "The reference audio does not match reference_text.",
+    45001112: "The reference audio is too noisy (SNR check failed).",
+    45001113: "Denoising failed. Use a different sample.",
+    45001114: "The reference audio quality is too low.",
+    45001122: "No speech was found in the reference audio.",
+    45001123: "This voice slot has no training attempts left (15 per slot). Use another speaker ID.",
+    45001124: "The reference audio content was rejected by review.",
+    45001125: "demo_text was rejected by review.",
+    45001126: "demo_text must be 4 to 80 characters.",
+    45001127: "The reference audio was rejected by review.",
+    45001128: "The reference audio text was rejected by review.",
+    55001307: "Voice cloning failed on the server. Try again.",
+}
 
 # General
 MAX_SEED = 2147483647
@@ -305,6 +374,7 @@ MESSAGES = {
     "speech_key_empty": "Paste a Seed Speech API key into new_api_key, or pick a saved key.",
     "speech_key_not_found": "Seed Speech API key '{key_name}' was not found in speech_api_keys.json.",
     "speech_env_key_missing": "The environment variable {env} is not set. Set it to your Seed Speech API key, or pick another key.",
+    "speech_key_save_failed": "Could not write speech_api_keys.json; key '{name}' was not saved and stays in the node.",
     "speech_key_saved": "Seed Speech API key '{name}' saved to speech_api_keys.json.",
     "speech_wrong_client": "Connect a BytePlus Speech Client. Seed Speech needs its own API key; the ModelArk API Client does not work here.",
     "speech_request_failed": "Seed Speech {operation} failed (HTTP {status}, code {code}): {message}{logid}",
@@ -340,8 +410,31 @@ MESSAGES = {
     "tts_sample_rate_unsupported": "seed-tts-2.0 supports the sample rates 24000, 16000 and 8000 Hz.",
     "asr_no_input": "Connect audio or fill audio_url.",
     "asr_both_inputs": "Use audio or audio_url, not both.",
-    "asr_standard_needs_url": "{model} needs a public audio_url. Use seed-asr-fast for a connected audio input.",
     "asr_audio_too_large": "The audio is {size_mb} MB as 16 kHz mono WAV; seed-asr-fast accepts up to {max_mb} MB. Use a public audio_url with seed-asr-2.0 instead.",
+    "voice_clone_speaker_empty": "speaker_id is empty: enter a voice slot ID (S_...) from the Seed Speech console, or your own postpaid custom voice ID.",
+    "voice_clone_custom_id_invalid": "'{value}' is not a valid custom voice ID: 8-256 letters, digits, - or _, starting with a letter, not ending with - or _, and without reserved prefixes (S_, ICL_, MIX_, xx_) or suffixes (_bigtts, _tob, _streaming).",
+    "voice_clone_audio_too_large": "The reference audio is {size_mb} MB; voice cloning accepts up to {max_mb} MB. Trim it to 10-15 s.",
+    "voice_clone_demo_text_length": "demo_text must be 4 to 80 characters.",
+    "voice_clone_failed": "Voice cloning failed for {speaker}: {message}",
+    "voice_clone_not_found": "Voice {speaker} was not found. Check the speaker ID.",
+    "voice_clone_timeout": "Voice {speaker} was still training after {seconds} s. Run the node again later to check it.",
+    "voice_clone_started": "Training voice {speaker}...",
+    "voice_clone_ready": "Voice {speaker} is ready (status {status}). The first TTS call with it activates the voice slot and starts its billing.",
+    "voice_clone_no_demo": "No demo audio was returned for {speaker}; outputting silence.",
+    "speech_upload_unavailable": "This Seed Speech option needs a URL, so the connected {kind} is uploaded through Comfy.org storage, which is unavailable in this ComfyUI ({e}). Pass a public URL instead.",
+    "speech_upload_failed": "Uploading the {kind} to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or pass a public URL instead.",
+    "speech_upload_done": "Uploaded the {kind} to Comfy.org storage.",
+    "asr_standard_needs_url": "{model} takes audio as a URL: connected audio is uploaded to Comfy.org storage first.",
+    "asr_language_standard_only": "{language} is only supported by seed-asr-2.0 and seed-asr-1.0.",
+    "asr_format_unknown": "Set audio_format: the audio_url has no recognizable extension and {model} requires the format.",
+    "asr_format_fast_unsupported": "seed-asr-fast accepts raw, wav, mp3 and ogg audio; use seed-asr-2.0 for {format}.",
+    "asr_context_language": "Hotwords and context only work with the Chinese-English model: set language to auto or zh-CN and turn off enable_auto_lang.",
+    "asr_context_image_2_only": "context_image needs seed-asr-2.0 or seed-asr-fast (visual context is an ASR 2.0 feature).",
+    "asr_wait_timeout": "The ASR task {task_id} had no result after {seconds} s.",
+    "tts_context_text_2_only": "context_text only works with seed-tts-2.0.",
+    "speech_stream_unreadable": "Seed Speech returned a stream that could not be read (at character {position}).",
+    "speech_unexpected_response": "Seed Speech {operation} returned an unexpected response: {body}",
+    "asr_context_image_conflict": "Use context_image or context_image_url, not both.",
     "asr_silent_audio": "No speech was found in the audio.",
     "asr_task_submitted": "ASR task submitted: {task_id}",
 

@@ -550,10 +550,24 @@
           "link": null
         },
         {
+          "name": "audio_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "audio_format"
+          },
+          "link": null
+        },
+        {
           "name": "audio",
           "type": "AUDIO",
           "shape": 7,
           "link": 4
+        },
+        {
+          "name": "context_image",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
         }
       ],
       "outputs": [
@@ -590,7 +604,7 @@
       "widgets_values": [
         "seed-asr-fast",
         "",
-        "en-US",
+        "auto",
         true,
         true,
         false,
@@ -607,7 +621,8 @@
         false,
         "",
         "",
-        false
+        false,
+        "auto"
       ]
     },
     {
@@ -699,7 +714,7 @@
       2,
       0,
       4,
-      21,
+      22,
       "AUDIO"
     ],
     [

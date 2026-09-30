@@ -49,12 +49,13 @@ function allGraphNodes() {
     return nodes;
 }
 
+// API Client node classes (ModelArk and Seed Speech keys)
+const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient"];
+
 /**
  * Widgets whose value changes drive visibility logic
  * @type {string[]}
  */
-const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient"];
-
 const TARGET_WIDGETS = [
     'model_version',
     'size',

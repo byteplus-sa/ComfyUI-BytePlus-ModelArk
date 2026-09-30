@@ -12,6 +12,7 @@ EXPECTED_WORKFLOWS = {
     "Seedance 2.json",
     "Seed Audio.json",
     "Seed Speech TTS and ASR.json",
+    "Seed Voice Clone.json",
     "Seedream 4.json",
     "Seedream 5.json",
     "VisualUnderstanding.json",
@@ -103,7 +104,11 @@ class WorkflowTemplateTests(unittest.TestCase):
             "context_image_url", "enable_auto_lang", "enable_lid", "enable_channel_split",
             "vad_segment", "end_window_size", "output_zh_variant",
             "filter_system_sensitive_words", "remove_words", "mask_words",
-            "wrap_sensitive_words", "audio",
+            "wrap_sensitive_words", "audio_format", "audio", "context_image",
+        ],
+        "BytePlusSeedVoiceClone": [
+            "speech_client", "speaker_id", "language", "reference_text", "demo_text",
+            "disable_volume_normalization", "audio",
         ],
         "BytePlusVisualUnderstanding": [
             "client", "model", "system_prompt", "user_prompt", "detail", "fps",
