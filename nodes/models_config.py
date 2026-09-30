@@ -147,6 +147,26 @@ SEED_ASR_UI_OPTIONS = list(SEED_ASR_MODELS.keys())
 # Seedream (nodes_seedream.py)
 
 # Seedance 1.x (nodes_seedance1.py)
+# Core's labels are dated IDs; behaviour branches on the label.
+SEEDANCE_1_5_PRO_MODEL = "seedance-1-5-pro-251215"
+SEEDANCE_1_MODELS = {
+    SEEDANCE_1_5_PRO_MODEL: VIDEO_MODEL_MAP["seedance-1-5-pro"],
+    "seedance-1-0-pro-250528": VIDEO_MODEL_MAP["seedance-1-0-pro"],
+    "seedance-1-0-pro-fast-251015": VIDEO_MODEL_MAP["seedance-1-0-pro-fast"],
+}
+# Text to Video and Image to Video
+SEEDANCE_1_MODEL_OPTIONS = list(SEEDANCE_1_MODELS)
+SEEDANCE_1_DEFAULT_MODEL = "seedance-1-0-pro-fast-251015"
+# First-Last-Frame to Video (1.0 Pro Fast has no last-frame support)
+SEEDANCE_1_FLF_MODEL_OPTIONS = [SEEDANCE_1_5_PRO_MODEL, "seedance-1-0-pro-250528"]
+SEEDANCE_1_FLF_DEFAULT_MODEL = SEEDANCE_1_5_PRO_MODEL
+SEEDANCE_1_RESOLUTIONS = ["480p", "720p", "1080p"]
+SEEDANCE_1_TEXT_RATIOS = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]
+SEEDANCE_1_IMAGE_RATIOS = ["adaptive"] + SEEDANCE_1_TEXT_RATIOS
+SEEDANCE_1_MIN_DURATION = 3
+SEEDANCE_1_MAX_DURATION = 12
+SEEDANCE_1_DEFAULT_DURATION = 5
+SEEDANCE_1_5_PRO_MIN_DURATION = 4
 
 # Seedance 2 / 2.5 (nodes_seedance2.py)
 

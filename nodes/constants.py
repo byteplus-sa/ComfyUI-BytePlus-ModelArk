@@ -450,6 +450,13 @@ MESSAGES = {
     # Core-style nodes: Seedance 2 / 2.5 and asset creation (nodes_seedance2.py, nodes_assets.py)
 
     # Core-style nodes: Seedance 1.x (nodes_seedance1.py)
+    "err_seedance1_prompt_empty": "prompt is empty. Describe the video to generate.",
+    "err_seedance1_min_duration": "Minimum supported duration for Seedance 1.5 Pro is {min} seconds (duration is {duration}).",
+    "err_seedance1_1_5_only": "{option} is only supported by {model}. Select that model or turn {option} off.",
+    "err_seedance1_draft_output_linked": "Only draft_mode produces a draft_task_id. Turn on draft_mode (seedance-1-5-pro-251215), or disconnect the draft_task_id output",
+    "err_seedance1_image_missing": "{name} is required.",
+    "err_seedance1_image_size": "{name}: width and height must be between {min} and {max} pixels (got {width}x{height}).",
+    "err_seedance1_image_ratio": "{name}: aspect ratio (width / height) must be between {min} and {max} (got {ratio}).",
 
     # Core-style nodes: Seedream and Layer Separation (nodes_seedream.py)
 
