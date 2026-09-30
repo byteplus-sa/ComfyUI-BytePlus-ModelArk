@@ -47,9 +47,13 @@ SEED_AUDIO_MAX_AUDIO_REFS = 3
 SEED_AUDIO_REF_MAX_SECONDS = 30.0
 SEED_AUDIO_REF_MAX_BYTES = 10 * 1024 * 1024
 SEED_AUDIO_FORMATS = ["wav", "mp3", "ogg_opus", "pcm"]
-# Raw PCM output (16-bit mono) defaults to 40 kHz, like wav.
-SEED_AUDIO_PCM_DEFAULT_RATE = 40000
-SEED_AUDIO_SAMPLE_RATES = ["default", "8000", "16000", "24000", "32000", "44100", "48000"]
+# Always sent (like ComfyUI core's node), so raw PCM output has a known rate.
+SEED_AUDIO_SAMPLE_RATES = ["8000", "16000", "24000", "32000", "44100", "48000"]
+SEED_AUDIO_DEFAULT_SAMPLE_RATE = "24000"
+# A reference image is scaled to at least this many pixels (as core does) and
+# at most 2048 x 2048 before it is sent inline.
+SEED_AUDIO_IMAGE_MIN_PIXELS = 160_000
+SEED_AUDIO_IMAGE_MAX_PIXELS = 2048 * 2048
 SEED_TTS_SAMPLE_RATES = ["24000", "16000", "8000", "22050", "32000", "44100", "48000"]
 SEED_TTS_2_SAMPLE_RATES = ("24000", "16000", "8000")
 # explicit_language values of the TTS API ("auto" sends nothing).
@@ -395,10 +399,9 @@ MESSAGES = {
     "speech_bad_url": "{field} must be an http(s):// or asset:// URL.",
     "seed_audio_prompt_empty": "text_prompt is empty.",
     "seed_audio_prompt_too_long": "text_prompt has {count} characters; the maximum is {max}.",
-    "seed_audio_slot_conflict": "Reference slot {slot}: connect ref_audio_{slot} or fill ref_audio_{slot}_source, not both.",
-    "seed_audio_slot_gap": "Fill the reference audio slots in order: slot {slot} is used but slot {missing} is empty. Slot N is @AudioN in the prompt.",
-    "seed_audio_image_and_audio": "An image reference cannot be combined with audio references.",
-    "seed_audio_image_conflict": "Use ref_image or ref_image_url, not both.",
+    "seed_audio_slot_conflict": "Reference slot {slot}: connect reference_audio_{slot} or fill ref_audio_{slot}_source, not both.",
+    "seed_audio_slot_gap": "Connect reference audio in order without gaps: reference_audio_1 (or ref_audio_1_source), then _2, then _3. Slot {slot} is used but slot {missing} is empty; slot N is @AudioN in the prompt.",
+    "seed_audio_image_conflict": "Use reference_image or ref_image_url, not both.",
     "seed_audio_ref_too_long": "Reference audio {slot} is {duration} s long; the maximum is {max} s.",
     "seed_audio_ref_too_large": "Reference {kind} is {size_mb} MB; the maximum is {max_mb} MB.",
     "tts_text_empty": "text is empty.",
@@ -481,6 +484,22 @@ MESSAGES = {
     "seedream_layers_warn_flagged": "Seedream layer separation: layer {index} ({name}) flagged {flags}.",
 
     # Core-style nodes: Seed LLM and Seed Audio (nodes_seed.py, nodes_speech.py)
+    "seed_llm_prompt_empty": "prompt is empty.",
+    "seed_llm_unknown_model": "Unknown Seed model: {model}.",
+    "seed_llm_too_many_images": "Up to {max} images are supported per request; {count} are connected.",
+    "seed_llm_too_many_videos": "Up to {max} videos are supported per request; {count} are connected.",
+    "seed_llm_video_convert_failed": "Could not convert video_{index} to MP4 for upload; re-export it as MP4 (H.264). Error: {e}",
+    "seed_llm_api_error": "Seed API error ({code}): {message}",
+    "seed_llm_refusal": "The model refused to respond: {refusal}",
+    "seed_llm_empty_response": "Empty response from the Seed model.",
+    "seed_audio_unknown_mode": "Unknown reference mode: {mode}",
+    "seed_audio_tag_text_only": "The prompt references @Audio{tag}, but reference mode is 'text only'. Switch to 'audio reference' and connect the reference clip(s).",
+    "seed_audio_needs_reference": "Reference mode 'audio reference' requires at least one reference_audio input or ref_audio_N_source (or switch to 'text only').",
+    "seed_audio_tag_out_of_range": "The prompt references @Audio{tag}, but only {count} reference audio(s) are connected.",
+    "seed_audio_image_required": "Reference mode 'image reference' requires a reference_image input (or ref_image_url).",
+    "seed_audio_tag_image_mode": "@AudioN tags are not used in 'image reference' mode; the prompt should contain only the text to synthesize.",
+    "seed_audio_preset_required": "Reference mode 'preset voice' requires selecting a preset voice.",
+    "seed_audio_tag_preset_mode": "'preset voice' mode uses a single voice, so @Audio{tag} is out of range. Remove the @AudioN tags; the whole prompt is read in the selected voice.",
 
     "api_errors": {
         "AuthenticationError": "Invalid API Key (401). Check the key in api_keys.json, and that the API Client region matches the region the key was created in.",

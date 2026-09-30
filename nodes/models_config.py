@@ -225,3 +225,21 @@ SEEDANCE_1_5_PRO_MIN_DURATION = 4
 # Seedance 2 / 2.5 (nodes_seedance2.py)
 
 # Seed LLM (nodes_seed.py)
+# Core's three labels first (core's first option is the default), then this
+# pack's other Seed models. All accept images and video through the Responses
+# API and support thinking.type enabled/disabled.
+SEED_LLM_MODEL_MAP = {
+    "Seed 2.0 Pro": VISUAL_MODEL_MAP["seed-2-0-pro"],
+    "Seed 2.0 Lite": VISUAL_MODEL_MAP["seed-2-0-lite"],
+    "Seed 2.0 Mini": VISUAL_MODEL_MAP["seed-2-0-mini"],
+    "Seed 2.1 Turbo": VISUAL_MODEL_MAP["dola-seed-2-1-turbo"],
+    "Seed 1.8": VISUAL_MODEL_MAP["seed-1-8"],
+    "Seed 1.6": VISUAL_MODEL_MAP["seed-1-6"],
+    "Seed 1.6 Flash": VISUAL_MODEL_MAP["seed-1-6-flash"],
+}
+SEED_LLM_UI_OPTIONS = list(SEED_LLM_MODEL_MAP.keys())
+# Models that reject reasoning.effort (not in the ModelArk "Adjust
+# chain-of-thought length" model table); the node does not send it for them.
+SEED_LLM_NO_REASONING_EFFORT = ("Seed 1.6 Flash",)
+SEED_LLM_MAX_IMAGES = 20
+SEED_LLM_MAX_VIDEOS = 4
