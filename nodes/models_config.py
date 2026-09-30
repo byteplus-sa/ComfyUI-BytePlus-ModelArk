@@ -140,3 +140,14 @@ SEED_ASR_MODELS = {
     "seed-asr-1.0": ("standard", "volc.bigasr.auc"),
 }
 SEED_ASR_UI_OPTIONS = list(SEED_ASR_MODELS.keys())
+
+# --- Nodes shaped like ComfyUI core's ByteDance nodes ---
+# Option labels match core's; values are BytePlus model IDs (never core's IDs).
+
+# Seedream (nodes_seedream.py)
+
+# Seedance 1.x (nodes_seedance1.py)
+
+# Seedance 2 / 2.5 (nodes_seedance2.py)
+
+# Seed LLM (nodes_seed.py)

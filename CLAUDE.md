@@ -1,6 +1,6 @@
 # ComfyUI-BytePlus-ModelArk
 
-ComfyUI custom node pack that calls **BytePlus ModelArk** directly with the user's own ModelArk API key: Seedream (image), Seedance (video), Seed (visual understanding). It also calls **BytePlus Seed Speech** (Seed Audio 1.0, TTS, ASR) with a separate Seed Speech API key. Built on the ComfyUI **V3 node API** (`comfy_api.latest`). Requires ComfyUI ≥ 0.25.1; supports Classic Canvas and Nodes 2.0 (Vue nodes).
+ComfyUI custom node pack that calls **BytePlus ModelArk** directly with the user's own ModelArk API key: Seedream (image), Seedance (video), Seed (visual understanding). It also calls **BytePlus Seed Speech** (Seed Audio 1.0, TTS, ASR) with a separate Seed Speech API key. Built on the ComfyUI **V3 node API** (`comfy_api.latest`). Requires ComfyUI ≥ 0.31.0; supports Classic Canvas and Nodes 2.0 (Vue nodes).
 
 `AGENTS.md` is a symlink to this file — edit `CLAUDE.md` only.
 

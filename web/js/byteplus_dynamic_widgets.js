@@ -312,7 +312,18 @@ function refreshAutogrowInputLabels(node) {
     }
 }
 
-const DYNAMIC_COMBO_NODES = new Set(["BytePlusSeedance2", "BytePlusSeedream5"]);
+const DYNAMIC_COMBO_NODES = new Set([
+    "BytePlusSeedance2",
+    "BytePlusSeedream5",
+    // Nodes shaped like ComfyUI core's ByteDance nodes
+    "BytePlusSeedream",
+    "BytePlusSeedreamLayerSeparation",
+    "BytePlusSeedance2TextToVideo",
+    "BytePlusSeedance2FirstLastFrame",
+    "BytePlusSeedance2Reference",
+    "BytePlusSeed",
+    "BytePlusSeedAudio",
+]);
 const SEED_CONTROL_VALUES = ["fixed", "increment", "decrement", "randomize"];
 
 // Saved widgets_values keep a control_after_generate value after each seed,

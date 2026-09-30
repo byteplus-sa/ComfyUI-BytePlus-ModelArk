@@ -491,3 +491,8 @@ class BytePlusAssetLibrary(comfy_io.ComfyNode):
             "\n".join(a["asset_uri"] for a in assets),
             json.dumps(assets, indent=2, ensure_ascii=False),
         )
+
+
+# Nodes shaped like ComfyUI core's ByteDance Create Image / Video Asset nodes.
+# Registered in __init__.py.
+CORE_STYLE_NODES = []

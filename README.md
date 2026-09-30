@@ -143,7 +143,7 @@ COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates
 
 ## Compatibility
 
-Supports ComfyUI Classic Canvas and Nodes 2.0. Minimum ComfyUI `0.25.1`.
+Supports ComfyUI Classic Canvas and Nodes 2.0. Minimum ComfyUI `0.31.0`.
 
 ## License
 

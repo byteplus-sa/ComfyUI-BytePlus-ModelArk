@@ -58,7 +58,7 @@ They appear in ComfyUI's template browser under the pack's folder name; the titl
 - It uses `Comfy-Org/publish-node-action@main` with secret `REGISTRY_ACCESS_TOKEN`; the action runs `comfy node publish` and publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.agents/`, `.claude/`, `tests/`, `CLAUDE.md`, `AGENTS.md`. `api_keys.json.example` must ship (README setup step).
 - Local equivalent: `comfy node validate`, `comfy node pack` (inspect `node.zip`), `comfy node publish --token …`.
 - `[project].name` is the immutable registry id and the install folder name for registry installs.
-- `pyproject.toml` declares `requires-python`, `classifiers = ["Operating System :: OS Independent"]` (API-only, no GPU classifier), `Issues` URL (comfy-cli reads only Homepage/Documentation/Repository/Issues), `requires-comfyui = ">=0.25.1"` (keep in sync with README), and a repository-hosted `[tool.comfy] Icon` (https URL, square ≤ 400 px).
+- `pyproject.toml` declares `requires-python`, `classifiers = ["Operating System :: OS Independent"]` (API-only, no GPU classifier), `Issues` URL (comfy-cli reads only Homepage/Documentation/Repository/Issues), `requires-comfyui = ">=0.31.0"` (keep in sync with README), and a repository-hosted `[tool.comfy] Icon` (https URL, square ≤ 400 px).
 - Keep `requirements.txt` and `[project].dependencies` identical: ComfyUI-Manager installs from `requirements.txt`; `[project].dependencies` is registry metadata. Never list torch/numpy/Pillow/aiohttp (ComfyUI ships them).
 
 ## 6. Registry standards

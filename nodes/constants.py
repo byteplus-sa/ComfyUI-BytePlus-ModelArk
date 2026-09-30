@@ -438,6 +438,23 @@ MESSAGES = {
     "asr_silent_audio": "No speech was found in the audio.",
     "asr_task_submitted": "ASR task submitted: {task_id}",
 
+    # Core-style nodes (shaped like ComfyUI core's ByteDance nodes): shared helpers in core_style.py
+    "err_output_linked": "{reason} (currently linked: {consumers}).",
+    "err_reference_value_invalid": "Not a valid reference: '{value}'. Use an asset ID, asset://<asset_id> or an https:// link.",
+    "err_reference_url_type_unknown": "Could not tell whether {url} is an image, video or audio file. Use a link ending in the file extension (for example .png, .mp4 or .mp3).",
+    "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add \"accessKey\" and \"secretKey\" to the selected entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY, then restart ComfyUI.",
+    "err_reference_asset_not_active": "Reference asset {asset_id} is not Active (status: {status}).",
+    "err_reference_asset_type_unknown": "Reference asset {asset_id} has an unknown asset type.",
+    "err_reference_type_mismatch": "'{value}' is {kind}, but this input needs {expected}.",
+
+    # Core-style nodes: Seedance 2 / 2.5 and asset creation (nodes_seedance2.py, nodes_assets.py)
+
+    # Core-style nodes: Seedance 1.x (nodes_seedance1.py)
+
+    # Core-style nodes: Seedream and Layer Separation (nodes_seedream.py)
+
+    # Core-style nodes: Seed LLM and Seed Audio (nodes_seed.py, nodes_speech.py)
+
     "api_errors": {
         "AuthenticationError": "Invalid API Key (401). Check the key in api_keys.json, and that the API Client region matches the region the key was created in.",
         "AccessDenied": "Access Denied (403). No permission or IP whitelist issue.",
