@@ -9,7 +9,6 @@ import math
 import logging
 import base64
 import io
-import wave
 import hashlib
 from urllib.parse import urlparse
 
@@ -18,11 +17,11 @@ import comfy.model_management
 from server import PromptServer
 import torch
 import PIL.Image
-import numpy
 
 from comfy_api.latest import io as comfy_io
 from comfy_api.input_impl import VideoFromFile
 
+from .audio_utils import audio_to_wav_bytes, audio_waveform
 from .nodes_shared import (
     GLOBAL_CATEGORY,
     _image_to_base64,
@@ -697,24 +696,12 @@ class BytePlusVideoBase:
         if audio is None:
             return None
 
-        waveform = audio.get("waveform")
-        sample_rate = int(audio.get("sample_rate", audio.get("sampler_rate", 0)) or 0)
-        if waveform is None or sample_rate <= 0:
+        try:
+            waveform, sample_rate = audio_waveform(audio)
+        except BytePlusException:
             raise BytePlusException(get_text("popup_audio_invalid"))
 
-        if not isinstance(waveform, torch.Tensor):
-            raise BytePlusException(get_text("popup_audio_invalid"))
-
-        if waveform.ndim != 3 or waveform.shape[0] < 1:
-            raise BytePlusException(get_text("popup_audio_invalid"))
-
-        audio_tensor = waveform[0].detach().cpu()
-        if audio_tensor.ndim != 2:
-            raise BytePlusException(get_text("popup_audio_invalid"))
-
-        audio_tensor = torch.clamp(audio_tensor, -1.0, 1.0)
-        sample_count = int(audio_tensor.shape[1])
-        duration = float(sample_count) / float(sample_rate)
+        duration = float(waveform.shape[1]) / float(sample_rate)
         if duration < REF_AUDIO_MIN_DURATION or duration > max_duration:
             raise BytePlusException(
                 get_text("popup_ref_audio_duration_out_of_range").format(
@@ -724,25 +711,14 @@ class BytePlusVideoBase:
                 )
             )
 
-        audio_np = (audio_tensor.numpy() * 32767.0).astype(numpy.int16)
-        audio_np = numpy.ascontiguousarray(audio_np.T)
-        channel_count = int(audio_np.shape[1]) if audio_np.ndim == 2 else 1
-
-        with io.BytesIO() as buffer:
-            with wave.open(buffer, "wb") as wav_file:
-                wav_file.setnchannels(channel_count)
-                wav_file.setsampwidth(2)
-                wav_file.setframerate(sample_rate)
-                wav_file.writeframes(audio_np.tobytes())
-            wav_bytes = buffer.getvalue()
-            base64_audio = base64.b64encode(wav_bytes).decode("utf-8")
-            size_mb = float(len(base64_audio.encode("utf-8"))) / (1024.0 * 1024.0)
-            if size_mb > REF_AUDIO_MAX_SIZE_MB:
-                raise BytePlusException(
-                    get_text("popup_ref_audio_size_exceeded").format(
-                        max_mb=REF_AUDIO_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}"
-                    )
+        base64_audio = base64.b64encode(audio_to_wav_bytes(audio)).decode("utf-8")
+        size_mb = float(len(base64_audio.encode("utf-8"))) / (1024.0 * 1024.0)
+        if size_mb > REF_AUDIO_MAX_SIZE_MB:
+            raise BytePlusException(
+                get_text("popup_ref_audio_size_exceeded").format(
+                    max_mb=REF_AUDIO_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}"
                 )
+            )
 
         data_uri = f"data:audio/wav;base64,{base64_audio}"
         return data_uri, duration, len(data_uri.encode("utf-8"))

@@ -49,6 +49,9 @@ function allGraphNodes() {
     return nodes;
 }
 
+// API Client node classes (ModelArk and Seed Speech keys)
+const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient"];
+
 /**
  * Widgets whose value changes drive visibility logic
  * @type {string[]}
@@ -481,8 +484,8 @@ function widgetLogic(node, widget) {
         }
     }
 
-    // API Client node
-    if (node.comfyClass === "BytePlusAPIClient") {
+    // API Client nodes (ModelArk and Seed Speech)
+    if (API_CLIENT_CLASSES.includes(node.comfyClass)) {
         if (widgetName === 'key_name') {
             const isCustom = widget.value === "Custom";
             const newKeyWidget = findWidgetByName(node, 'new_api_key');
@@ -556,6 +559,11 @@ function installWidgetWatchers(node) {
 }
 
 const API_KEY_SAVED_EVENT = "byteplus.api_key_saved";
+// Key store named in the event -> API Client class holding keys of that store.
+const API_CLIENT_CLASS_BY_STORE = {
+    modelark: "BytePlusAPIClient",
+    speech: "BytePlusSpeechClient",
+};
 
 async function sha256Hex(text) {
     const bytes = new TextEncoder().encode(text);
@@ -564,7 +572,8 @@ async function sha256Hex(text) {
 }
 
 /**
- * API Client nodes that still hold the key that was just saved: key_name is
+ * API Client nodes (of the store the key was saved to) that still hold the key
+ * that was just saved: key_name is
  * Custom, new_key_name is the saved name and the pasted key matches the
  * fingerprint. Searches the root graph and subgraphs, so the right node is
  * found even after switching tabs or inside a subgraph, and a different node
@@ -573,8 +582,9 @@ async function sha256Hex(text) {
 async function findNodesHoldingSavedKey(detail) {
     const canHash = !!(globalThis.crypto?.subtle && window.isSecureContext !== false);
     const matches = [];
+    const clientClass = API_CLIENT_CLASS_BY_STORE[detail.store || "modelark"];
     for (const node of allGraphNodes()) {
-        if (node?.comfyClass !== "BytePlusAPIClient") continue;
+        if (!clientClass || node?.comfyClass !== clientClass) continue;
         if (findWidgetByName(node, 'key_name')?.value !== "Custom") continue;
         if (String(findWidgetByName(node, 'new_key_name')?.value ?? "").trim() !== detail.key_name) continue;
         const pastedKey = String(findWidgetByName(node, 'new_api_key')?.value ?? "").trim();
