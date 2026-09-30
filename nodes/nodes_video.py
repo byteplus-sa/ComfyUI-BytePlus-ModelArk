@@ -92,24 +92,54 @@ COMFY_VIDEO_UPLOAD_CACHE_TTL_SECONDS = 43200
 COMFY_VIDEO_UPLOAD_CACHE_MAX_ENTRIES = 256
 
 
-async def upload_video_to_comfy_storage(node_cls, video) -> str:
+async def upload_video_to_comfy_storage(
+    node_cls,
+    video,
+    unavailable_key="err_comfy_upload_unavailable",
+    failed_key="err_comfy_upload_failed",
+) -> str:
     """
     Upload a reference video to Comfy.org storage and return its public URL.
 
     Seedance only accepts reference videos as URLs, so local videos go through
     ComfyUI's API-node upload helper. That helper is internal to ComfyUI, needs
     a Comfy.org login or API key, and is missing when API nodes are disabled.
+    The message keys name the bypass input of the calling node.
     """
     try:
         from comfy_api_nodes.util import upload_video_to_comfyapi
     except Exception as e:
-        raise BytePlusException(get_text("err_comfy_upload_unavailable", e=e))
+        raise BytePlusException(get_text(unavailable_key, e=e))
     try:
         return await upload_video_to_comfyapi(node_cls, video, wait_label=None)
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:
-        raise BytePlusException(get_text("err_comfy_upload_failed", e=e))
+        raise BytePlusException(get_text(failed_key, e=e))
+
+
+async def upload_videos_to_comfy_storage_cached(node_cls, videos, helper=None, **message_keys):
+    """
+    Upload local videos to Comfy.org storage, reusing links cached for the
+    same file or buffer (COMFY_VIDEO_UPLOAD_CACHE). Returns URLs in order.
+    """
+    helper = helper or BytePlusVideoBase()
+    uploaded_video_urls = []
+    for v in videos:
+        cache_key = helper._build_comfy_video_upload_cache_key(v)
+        cached_video_url = helper._get_cached_comfy_video_url(cache_key)
+        if cached_video_url:
+            uploaded_video_urls.append(cached_video_url)
+            log_msg("upload_ref_video_cache_hit")
+            continue
+        done_before = len(uploaded_video_urls)
+        pending_before = max(0, len(videos) - done_before)
+        log_msg("upload_ref_video_start", done=done_before, pending=pending_before)
+        uploaded_video_url = await upload_video_to_comfy_storage(node_cls, v, **message_keys)
+        helper._save_cached_comfy_video_url(cache_key, uploaded_video_url)
+        uploaded_video_urls.append(uploaded_video_url)
+        log_msg("upload_ref_video_done")
+    return uploaded_video_urls
 
 
 def _parse_video_urls(text) -> list[str]:
@@ -1458,9 +1488,12 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedance2",
-            display_name="BytePlus Seedance 2 / 2.5",
+            display_name="BytePlus Seedance 2 / 2.5 (Legacy)",
             category=GLOBAL_CATEGORY,
+            is_deprecated=True,
             description=(
+                "Legacy node: use BytePlus Seedance 2.5 Text to Video, First-Last-Frame "
+                "to Video or Reference to Video instead. "
                 "Generate or edit video with Dreamina Seedance 2.0, Fast, Mini, 2.5, or "
                 "2.5 Premium (4K). Seedance 2.5 supports up to 30-second output, more "
                 "references and a 480p draft mode. "
@@ -1714,20 +1747,7 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
 
         uploaded_video_urls = []
         if ref_videos:
-            for v in ref_videos:
-                cache_key = helper._build_comfy_video_upload_cache_key(v)
-                cached_video_url = helper._get_cached_comfy_video_url(cache_key)
-                if cached_video_url:
-                    uploaded_video_urls.append(cached_video_url)
-                    log_msg("upload_ref_video_cache_hit")
-                    continue
-                done_before = len(uploaded_video_urls)
-                pending_before = max(0, len(ref_videos) - done_before)
-                log_msg("upload_ref_video_start", done=done_before, pending=pending_before)
-                uploaded_video_url = await upload_video_to_comfy_storage(cls, v)
-                helper._save_cached_comfy_video_url(cache_key, uploaded_video_url)
-                uploaded_video_urls.append(uploaded_video_url)
-                log_msg("upload_ref_video_done")
+            uploaded_video_urls = await upload_videos_to_comfy_storage_cached(cls, ref_videos, helper)
 
         final_video_urls = [
             (video_url or "").strip()

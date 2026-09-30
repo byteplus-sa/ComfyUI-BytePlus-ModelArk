@@ -50,6 +50,41 @@ class WorkflowTemplateTests(unittest.TestCase):
         + SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS,
     }
 
+    # Core-style Seedance 2 / 2.5 nodes: client first, core's inputs, then our
+    # extras; the DynamicCombo children depend on the model option (widgets_values[0]).
+    CORE_STYLE_EXTRAS = [
+        "generation_count", "filename_prefix", "save_last_frame_batch", "non_blocking",
+    ]
+    CORE_STYLE_SEEDANCE2_NODES = {
+        "BytePlusSeedance2TextToVideo",
+        "BytePlusSeedance2FirstLastFrame",
+        "BytePlusSeedance2Reference",
+    }
+    AUTOGROW_SOCKET_PATTERN = (
+        r"^model\.reference_(images\.image|videos\.video|audios\.audio|assets\.asset)_\d+$"
+    )
+
+    @classmethod
+    def core_style_seedance2_inputs(cls, node_type, label):
+        is_25 = label.startswith("Seedance 2.5")
+        text = ["model.prompt", "model.resolution", "model.ratio", "model.duration", "model.generate_audio"]
+        if node_type == "BytePlusSeedance2FirstLastFrame":
+            if is_25:
+                text = [name for name in text if name != "model.ratio"] + ["model.output_format"]
+            return (
+                ["client", "model", *text, "seed", "watermark", "first_frame", "last_frame",
+                 "first_frame_asset_id", "last_frame_asset_id"]
+                + cls.CORE_STYLE_EXTRAS
+            )
+        if node_type == "BytePlusSeedance2Reference":
+            if is_25:
+                text = text + ["model.task_type", "model.output_format"]
+            # Autogrow sockets (model.reference_*) are checked separately.
+            text = text + ["model.auto_downscale", "model.auto_upscale"]
+        elif is_25:
+            text = text + ["model.output_format"]
+        return ["client", "model", *text, "seed", "watermark"] + cls.CORE_STYLE_EXTRAS
+
     CURRENT_INPUT_ORDERS = {
         "BytePlusAPIClient": ["new_api_key", "new_key_name", "key_name", "region"],
         "BytePlusQuotaSettings": [
@@ -116,6 +151,10 @@ class WorkflowTemplateTests(unittest.TestCase):
             "file_expire_seconds", "seed", "visual_input_1", "visual_input_2",
             "visual_input_3",
         ],
+        "BytePlusSeedanceDraftToFinal": [
+            "client", "draft_task_id", "watermark", "generation_count",
+            "filename_prefix", "save_last_frame_batch", "non_blocking",
+        ],
     }
 
     def test_template_set_is_current_and_has_no_third_party_nodes(self):
@@ -168,16 +207,22 @@ class WorkflowTemplateTests(unittest.TestCase):
                         self.assertEqual(node["properties"]["ver"], "0.3.0")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
+        combo_inputs = {
+            "BytePlusSeedance2": "model_version",
+            "BytePlusSeedream5": "model_version",
+            **{node_type: "model" for node_type in self.CORE_STYLE_SEEDANCE2_NODES},
+        }
         for name in ("Seedance 2.json", "Seedream 5.json", "2.5 Model Updates.json"):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
-                if node["type"] not in {"BytePlusSeedance2", "BytePlusSeedream5"}:
+                combo = combo_inputs.get(node["type"])
+                if combo is None:
                     continue
                 inputs = node["inputs"]
-                model_input = next(item for item in inputs if item["name"] == "model_version")
+                model_input = next(item for item in inputs if item["name"] == combo)
                 self.assertEqual(model_input["type"], "COMFY_DYNAMICCOMBO_V3")
                 self.assertTrue(
-                    any(item["name"].startswith("model_version.") for item in inputs)
+                    any(item["name"].startswith(combo + ".") for item in inputs)
                 )
                 self.assertFalse(any(item["name"] == "prompt" for item in inputs))
 
@@ -186,29 +231,76 @@ class WorkflowTemplateTests(unittest.TestCase):
         for name in sorted(EXPECTED_WORKFLOWS):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
+                names = [item["name"] for item in node["inputs"]]
                 if node["type"] == "BytePlusSeedance2":
                     expected = self.SEEDANCE2_INPUT_ORDERS[node["widgets_values"][0]]
+                elif node["type"] in self.CORE_STYLE_SEEDANCE2_NODES:
+                    expected = self.core_style_seedance2_inputs(
+                        node["type"], node["widgets_values"][0]
+                    )
+                    sockets = [n for n in names if n.startswith("model.reference_")]
+                    for socket in sockets:
+                        self.assertRegex(socket, self.AUTOGROW_SOCKET_PATTERN)
+                    names = [n for n in names if n not in sockets]
                 else:
                     expected = self.CURRENT_INPUT_ORDERS.get(node["type"])
                 if expected is None:
                     continue
                 found_types.add(node["type"])
-                self.assertEqual(
-                    [item["name"] for item in node["inputs"]],
-                    expected,
-                    msg=f"{name}: {node['type']}",
-                )
+                self.assertEqual(names, expected, msg=f"{name}: {node['type']}")
         self.assertEqual(
-            found_types, set(self.CURRENT_INPUT_ORDERS) | {"BytePlusSeedance2"}
+            found_types,
+            set(self.CURRENT_INPUT_ORDERS)
+            | {"BytePlusSeedance2"}
+            | self.CORE_STYLE_SEEDANCE2_NODES,
         )
+
+    def test_seedance2_template_uses_core_style_nodes(self):
+        workflow = load_workflow("Seedance 2.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        types = {node["type"] for node in nodes.values()}
+        self.assertNotIn("BytePlusSeedance2", types)  # legacy node
+        self.assertTrue(
+            {"BytePlusAPIClient", "BytePlusSeedanceDraftToFinal", "SaveVideo",
+             "LoadImage", "LoadVideo", "LoadAudio"}
+            | self.CORE_STYLE_SEEDANCE2_NODES
+            <= types
+        )
+        labels = {
+            node["widgets_values"][0]
+            for node in nodes.values()
+            if node["type"] in self.CORE_STYLE_SEEDANCE2_NODES
+        }
+        self.assertTrue(any(label.startswith("Seedance 2.0") for label in labels))
+        self.assertTrue(any(label.startswith("Seedance 2.5") for label in labels))
+        # Draft to Final is fed from the draft_task_id output (slot 1) of a Draft run.
+        final = next(n for n in nodes.values() if n["type"] == "BytePlusSeedanceDraftToFinal")
+        draft_input = next(i for i in final["inputs"] if i["name"] == "draft_task_id")
+        link = next(l for l in workflow["links"] if l[0] == draft_input["link"])
+        source = nodes[link[1]]
+        self.assertEqual(link[2], 1)
+        self.assertEqual(source["outputs"][1]["name"], "draft_task_id")
+        self.assertIn("Draft", source["widgets_values"][0])
+        # widgets_values: one value per widget input, plus control_after_generate after seed.
+        for node in nodes.values():
+            if node["type"].startswith("BytePlus"):
+                widgets = [i["name"] for i in node["inputs"] if "widget" in i]
+                self.assertEqual(
+                    len(node["widgets_values"]),
+                    len(widgets) + widgets.count("seed"),
+                    msg=node["type"],
+                )
+        # A seed widget is followed by its control_after_generate value.
+        for node in nodes.values():
+            if node["type"] in self.CORE_STYLE_SEEDANCE2_NODES:
+                values = node["widgets_values"]
+                control = next(
+                    i for i, v in enumerate(values)
+                    if v in ("fixed", "increment", "decrement", "randomize")
+                )
+                self.assertIsInstance(values[control - 1], int)
 
     def test_seedance_templates_cover_2_0_and_2_5(self):
-        seedance2 = load_workflow("Seedance 2.json")
-        standard_node = next(
-            node for node in seedance2["nodes"] if node["type"] == "BytePlusSeedance2"
-        )
-        self.assertEqual(standard_node["widgets_values"][0], "dreamina-seedance-2-0")
-
         updates = load_workflow("2.5 Model Updates.json")
         seedance25_node = next(
             node for node in updates["nodes"] if node["type"] == "BytePlusSeedance2"
