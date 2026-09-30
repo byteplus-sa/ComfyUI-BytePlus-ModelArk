@@ -1,6 +1,6 @@
 ---
 name: comfyui-release-and-testing
-description: Testing, example-workflow maintenance, versioning and Comfy Registry publishing for this node pack — how to run the unittest suites (with and without a ComfyUI checkout), how to fake the Ark SDK, keeping example_workflows JSON (input order, widgets_values, cnr_id/ver, .jpg thumbnails) in sync with node schemas, pyproject [tool.comfy] fields, the publish GitHub Action, registry security standards, and a manual smoke test in a live ComfyUI. Use before committing node schema changes, when a template test fails, when bumping the version, or when preparing a release.
+description: Test this node pack and maintain its example workflows. Use before committing node schema changes, when a template test fails, or when a release candidate needs node tests, workflow version checks, or a manual ComfyUI smoke test. Covers unittest setup, Ark SDK fakes, positional widget values, DynamicCombo inputs, and template thumbnails.
 ---
 
 # Testing, templates and releases
@@ -55,10 +55,10 @@ They appear in ComfyUI's template browser under the pack's folder name; the titl
 ## 5. Publishing
 
 - `.github/workflows/publish_action.yml` is **manual** (`workflow_dispatch`) and both jobs run only on `main`.
-- It uses `Comfy-Org/publish-node-action@main` with secret `REGISTRY_ACCESS_TOKEN`; the action runs `comfy node publish` and publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.claude/`, `tests/`, `CLAUDE.md`, `AGENTS.md`. `api_keys.json.example` must ship (README setup step).
+- It uses `Comfy-Org/publish-node-action@main` with secret `REGISTRY_ACCESS_TOKEN`; the action runs `comfy node publish` and publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.agents/`, `.claude/`, `tests/`, `CLAUDE.md`, `AGENTS.md`. `api_keys.json.example` must ship (README setup step).
 - Local equivalent: `comfy node validate`, `comfy node pack` (inspect `node.zip`), `comfy node publish --token …`.
 - `[project].name` is the immutable registry id and the install folder name for registry installs.
-- `pyproject.toml` declares `requires-python`, `classifiers = ["Operating System :: OS Independent"]` (API-only, no GPU classifier), `Issues` URL (comfy-cli reads only Homepage/Documentation/Repository/Issues) and `requires-comfyui = ">=0.25.1"` (keep in sync with README). Still missing: `[tool.comfy] Icon` (https URL, square ≤ 400 px).
+- `pyproject.toml` declares `requires-python`, `classifiers = ["Operating System :: OS Independent"]` (API-only, no GPU classifier), `Issues` URL (comfy-cli reads only Homepage/Documentation/Repository/Issues), `requires-comfyui = ">=0.25.1"` (keep in sync with README), and a repository-hosted `[tool.comfy] Icon` (https URL, square ≤ 400 px).
 - Keep `requirements.txt` and `[project].dependencies` identical: ComfyUI-Manager installs from `requirements.txt`; `[project].dependencies` is registry metadata. Never list torch/numpy/Pillow/aiohttp (ComfyUI ships them).
 
 ## 6. Registry standards

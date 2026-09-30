@@ -4,6 +4,8 @@ ComfyUI custom node pack that calls **BytePlus ModelArk** directly with the user
 
 `AGENTS.md` is a symlink to this file — edit `CLAUDE.md` only.
 
+The project release skill is `.agents/skills/comfyui-registry-release/SKILL.md`. Use it for end-to-end Comfy Registry releases, including packaging, publication, and version status checks.
+
 ## Project skills (`.claude/skills/`)
 
 | Skill | Use for |
@@ -11,7 +13,7 @@ ComfyUI custom node pack that calls **BytePlus ModelArk** directly with the user
 | `byteplus-node-maintenance` | Request lifecycle, adding models/parameters, conventions, comparison with ComfyUI core's ByteDance nodes |
 | `comfyui-v3-nodes` | ComfyUI V3 backend API: schema, inputs, DynamicCombo/Autogrow value shapes, hidden inputs, async/progress/interrupts |
 | `comfyui-frontend-extensions` | `web/js` work: hooks, widget visibility in Classic Canvas and Nodes 2.0, websocket events, deprecations |
-| `comfyui-release-and-testing` | Running tests, example-workflow sync, version bumps, registry publishing |
+| `comfyui-release-and-testing` | Running node tests, example-workflow sync, and ComfyUI smoke tests |
 
 ## Layout
 
