@@ -1,18 +1,18 @@
 {
-  "id": "5eed0a1d-0001-4c3a-9a57-5eedad10a001",
+  "id": "7f1f70c4-4e61-49be-96d1-2e3f1c490005",
   "revision": 0,
   "last_node_id": 4,
   "last_link_id": 3,
   "nodes": [
     {
       "id": 1,
-      "type": "BytePlusSpeechClient",
+      "type": "BytePlusAPIClient",
       "pos": [
         20,
         80
       ],
       "size": [
-        320,
+        300,
         130
       ],
       "flags": {},
@@ -54,8 +54,8 @@
       ],
       "outputs": [
         {
-          "name": "speech_client",
-          "type": "BYTEPLUS_SPEECH_CLIENT",
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
           "links": [
             1
           ]
@@ -64,7 +64,7 @@
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
         "ver": "0.3.0",
-        "Node name for S&R": "BytePlusSpeechClient"
+        "Node name for S&R": "BytePlusAPIClient"
       },
       "widgets_values": [
         "",
@@ -75,77 +75,113 @@
     },
     {
       "id": 2,
-      "type": "BytePlusSeedAudio",
+      "type": "LoadImage",
       "pos": [
-        380,
-        80
+        20,
+        290
       ],
       "size": [
-        460,
-        560
+        300,
+        320
       ],
       "flags": {},
       "order": 1,
       "mode": 0,
       "inputs": [
         {
-          "name": "speech_client",
-          "type": "BYTEPLUS_SPEECH_CLIENT",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "comfyui_logo.png",
+        "image"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "BytePlusSeed",
+      "pos": [
+        400,
+        80
+      ],
+      "size": [
+        440,
+        520
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
           "link": 1
         },
         {
-          "name": "text_prompt",
+          "name": "prompt",
           "type": "STRING",
           "widget": {
-            "name": "text_prompt"
+            "name": "prompt"
           },
           "link": null
         },
         {
-          "name": "reference_mode",
+          "name": "model",
           "type": "COMFY_DYNAMICCOMBO_V3",
           "widget": {
-            "name": "reference_mode"
+            "name": "model"
           },
           "link": null
         },
         {
-          "name": "reference_mode.preset_voice",
-          "type": "COMBO",
-          "widget": {
-            "name": "reference_mode.preset_voice"
-          },
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": 2
+        },
+        {
+          "name": "model.videos.video_1",
+          "type": "VIDEO",
+          "shape": 7,
           "link": null
         },
         {
-          "name": "sample_rate",
-          "type": "COMBO",
+          "name": "model.temperature",
+          "type": "FLOAT",
           "widget": {
-            "name": "sample_rate"
-          },
-          "link": null
-        },
-        {
-          "name": "speech_rate",
-          "type": "INT",
-          "widget": {
-            "name": "speech_rate"
-          },
-          "link": null
-        },
-        {
-          "name": "loudness_rate",
-          "type": "INT",
-          "widget": {
-            "name": "loudness_rate"
-          },
-          "link": null
-        },
-        {
-          "name": "pitch_rate",
-          "type": "INT",
-          "widget": {
-            "name": "pitch_rate"
+            "name": "model.temperature"
           },
           "link": null
         },
@@ -158,105 +194,80 @@
           "link": null
         },
         {
-          "name": "model",
+          "name": "system_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "detail",
           "type": "COMBO",
           "widget": {
-            "name": "model"
+            "name": "detail"
           },
           "link": null
         },
         {
-          "name": "audio_format",
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": null
+        },
+        {
+          "name": "reasoning_mode",
           "type": "COMBO",
           "widget": {
-            "name": "audio_format"
+            "name": "reasoning_mode"
           },
           "link": null
         },
         {
-          "name": "enable_subtitle",
+          "name": "reasoning_effort",
+          "type": "COMBO",
+          "widget": {
+            "name": "reasoning_effort"
+          },
+          "link": null
+        },
+        {
+          "name": "turns",
+          "type": "INT",
+          "widget": {
+            "name": "turns"
+          },
+          "link": null
+        },
+        {
+          "name": "stream",
           "type": "BOOLEAN",
           "widget": {
-            "name": "enable_subtitle"
+            "name": "stream"
           },
           "link": null
         },
         {
-          "name": "aigc_watermark",
-          "type": "BOOLEAN",
+          "name": "file_expire_seconds",
+          "type": "INT",
           "widget": {
-            "name": "aigc_watermark"
-          },
-          "link": null
-        },
-        {
-          "name": "aigc_metadata",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "aigc_metadata"
-          },
-          "link": null
-        },
-        {
-          "name": "content_producer",
-          "type": "STRING",
-          "widget": {
-            "name": "content_producer"
-          },
-          "link": null
-        },
-        {
-          "name": "produce_id",
-          "type": "STRING",
-          "widget": {
-            "name": "produce_id"
-          },
-          "link": null
-        },
-        {
-          "name": "content_propagator",
-          "type": "STRING",
-          "widget": {
-            "name": "content_propagator"
-          },
-          "link": null
-        },
-        {
-          "name": "propagate_id",
-          "type": "STRING",
-          "widget": {
-            "name": "propagate_id"
+            "name": "file_expire_seconds"
           },
           "link": null
         }
       ],
       "outputs": [
         {
-          "name": "AUDIO",
-          "type": "AUDIO",
-          "links": [
-            2
-          ]
-        },
-        {
-          "name": "subtitles_json",
-          "type": "STRING",
-          "links": null
-        },
-        {
-          "name": "srt",
+          "name": "STRING",
           "type": "STRING",
           "links": [
             3
           ]
         },
         {
-          "name": "duration",
-          "type": "FLOAT",
-          "links": null
-        },
-        {
-          "name": "url",
+          "name": "raw_json",
           "type": "STRING",
           "links": null
         }
@@ -264,68 +275,34 @@
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
         "ver": "0.3.0",
-        "Node name for S&R": "BytePlusSeedAudio"
+        "Node name for S&R": "BytePlusSeed"
       },
       "widgets_values": [
-        "A warm late-night radio host welcomes listeners over soft rain and a distant jazz piano: \"Good evening, night owls. Pour something warm, get comfortable, and stay with me for the next hour.\"",
-        "preset voice",
-        "Stokie (Female, American English)",
-        "24000",
+        "Describe this image in detail: the subject, the setting, the colors and the mood. Then suggest a short title for it.",
+        "Seed 2.0 Pro",
+        1.0,
         0,
-        0,
-        0,
-        42,
         "randomize",
-        "seed-audio-1.0",
-        "wav",
-        true,
+        "You are a helpful assistant that describes and analyzes images and videos accurately.",
+        "high",
+        1.0,
+        "auto",
+        "medium",
+        1,
         false,
-        false,
-        "",
-        "",
-        "",
-        ""
+        604800
       ]
-    },
-    {
-      "id": 3,
-      "type": "PreviewAudio",
-      "pos": [
-        900,
-        80
-      ],
-      "size": [
-        320,
-        110
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 2
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.37.4",
-        "Node name for S&R": "PreviewAudio"
-      },
-      "widgets_values": []
     },
     {
       "id": 4,
       "type": "PreviewAny",
       "pos": [
         900,
-        240
+        80
       ],
       "size": [
-        380,
-        260
+        400,
+        320
       ],
       "flags": {},
       "order": 3,
@@ -351,22 +328,22 @@
       1,
       1,
       0,
-      2,
+      3,
       0,
-      "BYTEPLUS_SPEECH_CLIENT"
+      "BYTEPLUS_CLIENT"
     ],
     [
       2,
       2,
       0,
       3,
-      0,
-      "AUDIO"
+      3,
+      "IMAGE"
     ],
     [
       3,
-      2,
-      2,
+      3,
+      0,
       4,
       0,
       "STRING"
@@ -376,9 +353,9 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.9,
+      "scale": 0.95,
       "offset": [
-        40,
+        60,
         40
       ]
     }

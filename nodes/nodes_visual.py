@@ -46,13 +46,14 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusVisualUnderstanding",
-            display_name="BytePlus Visual Understanding",
+            display_name="BytePlus Visual Understanding (Legacy)",
             category=GLOBAL_CATEGORY,
             description=(
+                "Legacy node, kept so saved workflows still load: use BytePlus Seed instead. "
                 "Understand images and video with Dola Seed 2.1 Turbo by default, "
                 "or Seed 2.0 Pro / Lite / Mini."
             ),
-            is_experimental=True,
+            is_deprecated=True,
             inputs=[
                 BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input("model", options=VISUAL_UI_OPTIONS, default=VISUAL_UI_OPTIONS[0]),

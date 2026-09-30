@@ -15,7 +15,7 @@ EXPECTED_WORKFLOWS = {
     "Seed Voice Clone.json",
     "Seedream 4.json",
     "Seedream 5.json",
-    "VisualUnderstanding.json",
+    "Seed.json",
 }
 
 
@@ -83,12 +83,15 @@ class WorkflowTemplateTests(unittest.TestCase):
         ],
         "BytePlusSpeechClient": ["new_api_key", "new_key_name", "key_name", "region"],
         "BytePlusSeedAudio": [
-            "speech_client", "model", "text_prompt", "ref_audio_1_source",
-            "ref_audio_2_source", "ref_audio_3_source", "ref_image_url", "audio_format",
-            "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "enable_subtitle",
-            "aigc_watermark", "aigc_metadata", "content_producer", "produce_id",
-            "content_propagator", "propagate_id", "seed", "ref_audio_1", "ref_audio_2",
-            "ref_audio_3", "ref_image",
+            "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
+            "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "seed", "model",
+            "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
+            "content_producer", "produce_id", "content_propagator", "propagate_id",
+        ],
+        "BytePlusSeed": [
+            "client", "prompt", "model", "model.images.image_1", "model.videos.video_1",
+            "model.temperature", "seed", "system_prompt", "detail", "fps", "reasoning_mode",
+            "reasoning_effort", "turns", "stream", "file_expire_seconds",
         ],
         "BytePlusSeedTTS": [
             "speech_client", "model", "text", "voice", "custom_speaker_id", "context_text",

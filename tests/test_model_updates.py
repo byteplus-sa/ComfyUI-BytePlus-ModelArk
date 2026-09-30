@@ -2330,6 +2330,8 @@ class SpeechClientTests(unittest.TestCase):
 
 @requires_comfyui
 class SeedAudioTests(SpeechTestBase):
+    TEXT_ONLY = {"reference_mode": "text only"}
+
     def _wav_payload(self, **extra):
         wav = self.audio.audio_to_wav_bytes(_sine_audio(0.5, 24000))
         import base64
@@ -2338,7 +2340,7 @@ class SeedAudioTests(SpeechTestBase):
                 "original_duration": 0.6, "url": "https://cdn.example/a.wav", **extra}
 
     async def _run(self, **kwargs):
-        defaults = {"model": "seed-audio-1.0", "text_prompt": "Hello there"}
+        defaults = {"model": "seed-audio-1.0", "text_prompt": "Hello there", "reference_mode": self.TEXT_ONLY}
         return await self.nodes.BytePlusSeedAudio.execute(self.client, **{**defaults, **kwargs})
 
     async def test_text_only_request_and_outputs(self):
@@ -2357,7 +2359,8 @@ class SeedAudioTests(SpeechTestBase):
         self.assertEqual(call.body, {
             "model": "seed-audio-1.0",
             "text_prompt": "Hello there",
-            "audio_config": {"format": "mp3", "sample_rate": 44100, "speech_rate": 10, "enable_subtitle": True},
+            "audio_config": {"format": "mp3", "sample_rate": 44100, "speech_rate": 10, "loudness_rate": 0,
+                             "pitch_rate": 0, "enable_subtitle": True},
             "watermark": {"aigc_watermark": True},
         })
         self.assertEqual(audio["sample_rate"], 24000)
@@ -2371,9 +2374,12 @@ class SeedAudioTests(SpeechTestBase):
         fake = self.serve((200, {}, self._wav_payload()))
         await self._run(
             text_prompt="@Audio1 greets @Audio2, then @Audio3 answers",
-            ref_audio_1_source="en_female_stokie_uranus_bigtts",
-            ref_audio_2_source="https://cdn.example/voice.mp3",
-            ref_audio_3=_sine_audio(2.0, 48000, channels=2),
+            reference_mode={
+                "reference_mode": "audio reference",
+                "ref_audio_1_source": "en_female_stokie_uranus_bigtts",
+                "ref_audio_2_source": "https://cdn.example/voice.mp3",
+                "reference_audio_3": _sine_audio(2.0, 48000, channels=2),
+            },
         )
         refs = fake.calls[0].body["references"]
         self.assertEqual(refs[0], {"speaker": "en_female_stokie_uranus_bigtts"})
@@ -2387,23 +2393,26 @@ class SeedAudioTests(SpeechTestBase):
         import torch
 
         fake = self.serve((200, {}, self._wav_payload()), (200, {}, self._wav_payload()))
-        await self._run(ref_image=torch.ones((1, 32, 32, 3)))
+        await self._run(reference_mode={"reference_mode": "image reference", "reference_image": torch.ones((1, 32, 32, 3))})
         self.assertEqual(list(fake.calls[0].body["references"][0]), ["image_data"])
-        await self._run(ref_image_url="https://cdn.example/face.png")
+        await self._run(reference_mode={"reference_mode": "image reference", "ref_image_url": "https://cdn.example/face.png"})
         self.assertEqual(fake.calls[1].body["references"], [{"image_url": "https://cdn.example/face.png"}])
 
     async def test_reference_validation(self):
         import torch
 
         self.serve()
+        audio_mode = {"reference_mode": "audio reference"}
+        image_mode = {"reference_mode": "image reference"}
         cases = [
-            {"ref_audio_2_source": "voice_a"},                                   # gap before slot 2
-            {"ref_audio_1_source": "voice_a", "ref_audio_1": _sine_audio()},     # both in one slot
-            {"ref_audio_1_source": "voice_a", "ref_image_url": "https://x/i.png"},
-            {"ref_image": torch.ones((1, 8, 8, 3)), "ref_image_url": "https://x/i.png"},
-            {"ref_audio_1_source": "ftp://x/a.wav"},
-            {"ref_image_url": "asset://asset-1"},  # ModelArk asset IDs are not Seed Speech URLs
-            {"ref_audio_1": _sine_audio(31.0, 8000)},
+            {"reference_mode": {**audio_mode, "ref_audio_2_source": "voice_a"}},             # gap before slot 2
+            {"reference_mode": {**audio_mode, "ref_audio_1_source": "voice_a",
+                                "reference_audio_1": _sine_audio()}},                          # both in one slot
+            {"reference_mode": {**image_mode, "reference_image": torch.ones((1, 8, 8, 3)),
+                                "ref_image_url": "https://x/i.png"}},
+            {"reference_mode": {**audio_mode, "ref_audio_1_source": "ftp://x/a.wav"}},
+            {"reference_mode": {**image_mode, "ref_image_url": "asset://asset-1"}},  # not a Seed Speech URL
+            {"reference_mode": {**audio_mode, "reference_audio_1": _sine_audio(31.0, 8000)}},
             {"text_prompt": "x" * 3001},
             {"text_prompt": "   "},
         ]
@@ -2625,17 +2634,19 @@ class SpeechAdvancedOptionTests(SpeechTestBase):
 
         fake = self.serve((200, {}, {"code": 0, "audio": base64.b64encode(pcm).decode()}))
         audio, *_ = (await self.nodes.BytePlusSeedAudio.execute(
-            self.client, "seed-audio-1.0", "Hi", audio_format="pcm", aigc_watermark=True,
-            aigc_metadata=True, content_producer="Studio", produce_id="p-1", content_propagator=" ",
-            propagate_id="d-9",
+            self.client, "Hi", {"reference_mode": "text only"}, model="seed-audio-1.0", audio_format="pcm",
+            sample_rate="16000", aigc_watermark=True, aigc_metadata=True, content_producer="Studio",
+            produce_id="p-1", content_propagator=" ", propagate_id="d-9",
         )).result
         self.assertEqual(fake.calls[0].body["watermark"], {
             "aigc_watermark": True,
             "aigc_metadata": {"enable": True, "content_producer": "Studio", "produce_id": "p-1",
                               "propagate_id": "d-9"},
         })
-        self.assertEqual(fake.calls[0].body["audio_config"], {"format": "pcm"})
-        self.assertEqual(audio["sample_rate"], 40000)
+        self.assertEqual(fake.calls[0].body["audio_config"], {
+            "format": "pcm", "sample_rate": 16000, "speech_rate": 0, "loudness_rate": 0, "pitch_rate": 0,
+        })
+        self.assertEqual(audio["sample_rate"], 16000)
         self.assertEqual(tuple(audio["waveform"].shape), (1, 1, 3))
 
     def test_tts_text_handling_options(self):
@@ -2915,7 +2926,7 @@ class SpeechRobustnessTests(SpeechTestBase):
         self.serve((200, {}, {"code": 0, "audio": "not base64!!"}),
                    (200, {}, '{"code":0,"data":"A"}{"code":20000000}'))
         with self.assertRaisesRegex(nodes_shared.BytePlusException, r"^\[BytePlus\]"):
-            await self.nodes.BytePlusSeedAudio.execute(self.client, "seed-audio-1.0", "Hi")
+            await self.nodes.BytePlusSeedAudio.execute(self.client, "Hi", {"reference_mode": "text only"})
         with self.assertRaisesRegex(nodes_shared.BytePlusException, r"^\[BytePlus\]"):
             await self.nodes.BytePlusSeedTTS.execute(self.client, "seed-tts-2.0", "Hi", "en_female_stokie_uranus_bigtts")
 
@@ -3036,7 +3047,8 @@ class SpeechHelperTests(unittest.TestCase):
         sys.path.insert(0, PLUGIN_ROOT)
         from tests.test_workflow_templates import WorkflowTemplateTests
 
-        for node in (self.nodes.BytePlusSpeechClient, self.nodes.BytePlusSeedAudio,
+        # BytePlusSeedAudio (DynamicCombo) is checked in tests.test_core_style_seed.
+        for node in (self.nodes.BytePlusSpeechClient,
                      self.nodes.BytePlusSeedTTS, self.nodes.BytePlusSeedASR,
                      self.nodes.BytePlusSeedVoiceClone):
             schema = node.define_schema()
