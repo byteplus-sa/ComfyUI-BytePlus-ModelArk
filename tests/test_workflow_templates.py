@@ -25,30 +25,6 @@ def load_workflow(name):
 
 
 class WorkflowTemplateTests(unittest.TestCase):
-    SEEDANCE2_INPUTS_BEFORE_REFS = [
-        "client", "model_version", "model_version.prompt",
-        "model_version.enable_random_seed", "model_version.seed",
-        "model_version.resolution", "model_version.aspect_ratio",
-        "model_version.auto_duration", "model_version.duration",
-        "model_version.generate_audio",
-    ]
-    SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS = [
-        "model_version.generation_count", "model_version.filename_prefix",
-        "model_version.save_last_frame_batch", "model_version.non_blocking",
-        "first_frame_image", "last_frame_image", "ref_images.ref_image_1",
-        "ref_videos.ref_video_1", "ref_audios.ref_audio_1", "ref_video_urls",
-        "ref_image_urls", "ref_audio_urls",
-    ]
-    SEEDANCE2_INPUT_ORDERS = {
-        "dreamina-seedance-2-0": SEEDANCE2_INPUTS_BEFORE_REFS + SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS,
-        "dreamina-seedance-2-5": SEEDANCE2_INPUTS_BEFORE_REFS
-        + [
-            "model_version.task_type", "model_version.output_format",
-            "model_version.draft_mode", "model_version.reuse_last_draft_task",
-            "model_version.draft_task_id",
-        ]
-        + SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS,
-    }
 
     SEEDANCE1_BEFORE_FRAMES = ["client", "model", "prompt"]
     SEEDANCE1_AFTER_FRAMES = [
@@ -143,13 +119,6 @@ class WorkflowTemplateTests(unittest.TestCase):
         + SEEDANCE1_AFTER_FRAMES,
         "BytePlusSeedanceFirstLastFrame": SEEDANCE1_BEFORE_FRAMES
         + ["first_frame", "last_frame"] + SEEDANCE1_AFTER_FRAMES,
-        "BytePlusSeedream5": [
-            "client", "model_version", "model_version.prompt", "model_version.size",
-            "model_version.width", "model_version.height", "model_version.seed",
-            "model_version.generation_count", "model_version.prompt_optimization",
-            "model_version.output_format", "model_version.background",
-            "model_version.watermark", "images.image_1", "reference_mask",
-        ],
         "BytePlusSpeechClient": ["new_api_key", "new_key_name", "key_name", "region"],
         "BytePlusSeedAudio": [
             "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
@@ -181,12 +150,6 @@ class WorkflowTemplateTests(unittest.TestCase):
         "BytePlusSeedVoiceClone": [
             "speech_client", "speaker_id", "language", "reference_text", "demo_text",
             "disable_volume_normalization", "audio",
-        ],
-        "BytePlusVisualUnderstanding": [
-            "client", "model", "system_prompt", "user_prompt", "detail", "fps",
-            "reasoning_mode", "reasoning_effort", "turns", "stream",
-            "file_expire_seconds", "seed", "visual_input_1", "visual_input_2",
-            "visual_input_3",
         ],
         "BytePlusSeedanceDraftToFinal": [
             "client", "draft_task_id", "watermark", "generation_count",
@@ -269,9 +232,7 @@ class WorkflowTemplateTests(unittest.TestCase):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
                 names = [item["name"] for item in node["inputs"]]
-                if node["type"] == "BytePlusSeedance2":
-                    expected = self.SEEDANCE2_INPUT_ORDERS[node["widgets_values"][0]]
-                elif node["type"] in self.MODEL_KEYED_INPUT_ORDERS:
+                if node["type"] in self.MODEL_KEYED_INPUT_ORDERS:
                     index, orders = self.MODEL_KEYED_INPUT_ORDERS[node["type"]]
                     expected = orders[node["widgets_values"][index]]
                 elif node["type"] in self.CORE_STYLE_SEEDANCE2_NODES:
@@ -291,7 +252,6 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertEqual(
             found_types,
             set(self.CURRENT_INPUT_ORDERS)
-            | {"BytePlusSeedance2"}
             | set(self.MODEL_KEYED_INPUT_ORDERS)
             | self.CORE_STYLE_SEEDANCE2_NODES,
         )
@@ -378,15 +338,17 @@ class WorkflowTemplateTests(unittest.TestCase):
                 )
                 self.assertIsInstance(values[control - 1], int)
 
-    def test_seedance_templates_cover_2_0_and_2_5(self):
+    def test_updates_template_uses_core_style_nodes(self):
         updates = load_workflow("2.5 Model Updates.json")
-        seedance25_node = next(
-            node for node in updates["nodes"] if node["type"] == "BytePlusSeedance2"
+        nodes = {node["type"]: node for node in updates["nodes"]}
+        for legacy in ("BytePlusSeedance2", "BytePlusSeedream5", "BytePlusVisualUnderstanding"):
+            self.assertNotIn(legacy, nodes)
+        # model, prompt, resolution, ratio, duration, generate_audio
+        self.assertEqual(
+            nodes["BytePlusSeedance2TextToVideo"]["widgets_values"][0:6:2], ["Seedance 2.5", "720p", 30]
         )
-        self.assertEqual(seedance25_node["widgets_values"][0], "dreamina-seedance-2-5")
-        self.assertEqual(seedance25_node["widgets_values"][5], "720p")
-        self.assertEqual(seedance25_node["widgets_values"][8], 30)
-        self.assertEqual(seedance25_node["widgets_values"][12], False)  # draft_mode
+        self.assertEqual(nodes["BytePlusSeedream"]["widgets_values"][1], "seedream 5.0 pro")
+        self.assertEqual(nodes["BytePlusSeed"]["widgets_values"][1], "Seed 2.1 Turbo")
 
     def test_seedance1_template_widget_positions(self):
         workflow = load_workflow("Seedance 1.json")

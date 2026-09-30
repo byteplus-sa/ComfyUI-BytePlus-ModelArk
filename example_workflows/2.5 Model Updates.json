@@ -1,146 +1,628 @@
 {
   "id": "7f1f70c4-4e61-49be-96d1-2e3f1c490007",
   "revision": 0,
-  "last_node_id": 4,
-  "last_link_id": 3,
+  "last_node_id": 7,
+  "last_link_id": 6,
   "nodes": [
     {
       "id": 1,
       "type": "BytePlusAPIClient",
-      "pos": [20, 40],
+      "pos": [40, 360],
       "size": [300, 130],
       "flags": {},
       "order": 0,
       "mode": 0,
       "inputs": [
-        {"name": "new_api_key", "type": "STRING", "widget": {"name": "new_api_key"}, "link": null},
-        {"name": "new_key_name", "type": "STRING", "widget": {"name": "new_key_name"}, "link": null},
-        {"name": "key_name", "type": "COMBO", "widget": {"name": "key_name"}, "link": null},
-        {"name": "region", "type": "COMBO", "widget": {"name": "region"}, "link": null}
+        {
+          "name": "new_api_key",
+          "type": "STRING",
+          "widget": {
+            "name": "new_api_key"
+          },
+          "link": null
+        },
+        {
+          "name": "new_key_name",
+          "type": "STRING",
+          "widget": {
+            "name": "new_key_name"
+          },
+          "link": null
+        },
+        {
+          "name": "key_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "key_name"
+          },
+          "link": null
+        },
+        {
+          "name": "region",
+          "type": "COMBO",
+          "widget": {
+            "name": "region"
+          },
+          "link": null
+        }
       ],
-      "outputs": [{"name": "client", "type": "BYTEPLUS_CLIENT", "links": [1, 2, 3]}],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusAPIClient"},
+      "outputs": [
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "links": [1, 2, 3]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusAPIClient"
+      },
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
       "id": 2,
-      "type": "BytePlusSeedream5",
-      "pos": [390, 20],
-      "size": [450, 500],
+      "type": "BytePlusSeedream",
+      "pos": [440, 80],
+      "size": [450, 520],
       "flags": {},
       "order": 1,
       "mode": 0,
       "inputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 1},
-        {"name": "model_version", "type": "COMFY_DYNAMICCOMBO_V3", "widget": {"name": "model_version"}, "link": null},
-        {"name": "model_version.prompt", "type": "STRING", "widget": {"name": "model_version.prompt"}, "link": null},
-        {"name": "model_version.size", "type": "COMBO", "widget": {"name": "model_version.size"}, "link": null},
-        {"name": "model_version.width", "type": "INT", "widget": {"name": "model_version.width"}, "link": null},
-        {"name": "model_version.height", "type": "INT", "widget": {"name": "model_version.height"}, "link": null},
-        {"name": "model_version.seed", "type": "INT", "widget": {"name": "model_version.seed"}, "link": null},
-        {"name": "model_version.generation_count", "type": "INT", "widget": {"name": "model_version.generation_count"}, "link": null},
-        {"name": "model_version.prompt_optimization", "type": "COMBO", "widget": {"name": "model_version.prompt_optimization"}, "link": null},
-        {"name": "model_version.output_format", "type": "COMBO", "widget": {"name": "model_version.output_format"}, "link": null},
-        {"name": "model_version.background", "type": "COMBO", "widget": {"name": "model_version.background"}, "link": null},
-        {"name": "model_version.watermark", "type": "BOOLEAN", "widget": {"name": "model_version.watermark"}, "link": null},
-        {"name": "images.image_1", "type": "IMAGE", "shape": 7, "link": null},
-        {"name": "reference_mask", "type": "MASK", "shape": 7, "link": null}
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 1
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.size_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.size_preset"
+          },
+          "link": null
+        },
+        {
+          "name": "model.width",
+          "type": "INT",
+          "widget": {
+            "name": "model.width"
+          },
+          "link": null
+        },
+        {
+          "name": "model.height",
+          "type": "INT",
+          "widget": {
+            "name": "model.height"
+          },
+          "link": null
+        },
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "model.prompt_optimization",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.prompt_optimization"
+          },
+          "link": null
+        },
+        {
+          "name": "model.seed",
+          "type": "INT",
+          "widget": {
+            "name": "model.seed"
+          },
+          "link": null
+        },
+        {
+          "name": "model.watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "model.thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.thinking"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "model.generation_count"
+          },
+          "link": null
+        },
+        {
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "name": "model.background",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.background"
+          },
+          "link": null
+        },
+        {
+          "name": "model.reference_mask",
+          "type": "MASK",
+          "shape": 7,
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "images", "type": "IMAGE", "links": null},
-        {"name": "response", "type": "STRING", "links": null},
-        {"name": "mask", "type": "MASK", "links": null}
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [4]
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": []
+        }
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusSeedream5"},
-      "widgets_values": ["dola-seedream-5-0-pro", "", "2K (adaptive)", 2048, 2048, 0, "randomize", 1, "standard", "jpeg", "opaque", false]
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusSeedream"
+      },
+      "widgets_values": ["A minimalist poster for a spring tea festival: a porcelain teapot surrounded by cherry blossoms, soft pastel colors, the title \"Spring Tea Festival\" in elegant type.", "seedream 5.0 pro", "(2K) 2048x2048 (1:1)", 2048, 2048, "standard", 42, "randomize", false, true, 1, "jpeg", "opaque"]
     },
     {
       "id": 3,
-      "type": "BytePlusSeedance2",
-      "pos": [900, 20],
-      "size": [470, 590],
+      "type": "SaveImage",
+      "pos": [940, 80],
+      "size": [300, 270],
       "flags": {},
       "order": 2,
       "mode": 0,
       "inputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 2},
-        {"name": "model_version", "type": "COMFY_DYNAMICCOMBO_V3", "widget": {"name": "model_version"}, "link": null},
-        {"name": "model_version.prompt", "type": "STRING", "widget": {"name": "model_version.prompt"}, "link": null},
-        {"name": "model_version.enable_random_seed", "type": "BOOLEAN", "widget": {"name": "model_version.enable_random_seed"}, "link": null},
-        {"name": "model_version.seed", "type": "INT", "widget": {"name": "model_version.seed"}, "link": null},
-        {"name": "model_version.resolution", "type": "COMBO", "widget": {"name": "model_version.resolution"}, "link": null},
-        {"name": "model_version.aspect_ratio", "type": "COMBO", "widget": {"name": "model_version.aspect_ratio"}, "link": null},
-        {"name": "model_version.auto_duration", "type": "BOOLEAN", "widget": {"name": "model_version.auto_duration"}, "link": null},
-        {"name": "model_version.duration", "type": "INT", "widget": {"name": "model_version.duration"}, "link": null},
-        {"name": "model_version.generate_audio", "type": "BOOLEAN", "widget": {"name": "model_version.generate_audio"}, "link": null},
-        {"name": "model_version.task_type", "type": "COMBO", "widget": {"name": "model_version.task_type"}, "link": null},
-        {"name": "model_version.output_format", "type": "COMBO", "widget": {"name": "model_version.output_format"}, "link": null},
-        {"name": "model_version.draft_mode", "type": "BOOLEAN", "widget": {"name": "model_version.draft_mode"}, "link": null},
-        {"name": "model_version.reuse_last_draft_task", "type": "BOOLEAN", "widget": {"name": "model_version.reuse_last_draft_task"}, "link": null},
-        {"name": "model_version.draft_task_id", "type": "STRING", "widget": {"name": "model_version.draft_task_id"}, "link": null},
-        {"name": "model_version.generation_count", "type": "INT", "widget": {"name": "model_version.generation_count"}, "link": null},
-        {"name": "model_version.filename_prefix", "type": "STRING", "widget": {"name": "model_version.filename_prefix"}, "link": null},
-        {"name": "model_version.save_last_frame_batch", "type": "BOOLEAN", "widget": {"name": "model_version.save_last_frame_batch"}, "link": null},
-        {"name": "model_version.non_blocking", "type": "BOOLEAN", "widget": {"name": "model_version.non_blocking"}, "link": null},
-        {"name": "first_frame_image", "type": "IMAGE", "shape": 7, "link": null},
-        {"name": "last_frame_image", "type": "IMAGE", "shape": 7, "link": null},
-        {"name": "ref_images.ref_image_1", "type": "IMAGE", "shape": 7, "link": null},
-        {"name": "ref_videos.ref_video_1", "type": "VIDEO", "shape": 7, "link": null},
-        {"name": "ref_audios.ref_audio_1", "type": "AUDIO", "shape": 7, "link": null},
-        {"name": "ref_video_urls", "type": "STRING", "widget": {"name": "ref_video_urls"}, "shape": 7, "link": null},
-        {"name": "ref_image_urls", "type": "STRING", "widget": {"name": "ref_image_urls"}, "shape": 7, "link": null},
-        {"name": "ref_audio_urls", "type": "STRING", "widget": {"name": "ref_audio_urls"}, "shape": 7, "link": null}
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
       ],
-      "outputs": [
-        {"name": "video", "type": "VIDEO", "links": null},
-        {"name": "last_frame", "type": "IMAGE", "links": null},
-        {"name": "response", "type": "STRING", "links": null}
-      ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusSeedance2"},
-      "widgets_values": ["dreamina-seedance-2-5", "", true, 0, "randomize", "720p", "adaptive", false, 30, true, "auto", "mp4", false, false, "", 1, "BytePlus/Video/Batch/Seedance", false, false, "", "", ""]
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": ["BytePlus/Image/Seedream"]
     },
     {
       "id": 4,
-      "type": "BytePlusVisualUnderstanding",
-      "pos": [1430, 20],
-      "size": [470, 620],
+      "type": "BytePlusSeedance2TextToVideo",
+      "pos": [440, 640],
+      "size": [460, 440],
       "flags": {},
       "order": 3,
       "mode": 0,
       "inputs": [
-        {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 3},
-        {"name": "model", "type": "COMBO", "widget": {"name": "model"}, "link": null},
-        {"name": "system_prompt", "type": "STRING", "widget": {"name": "system_prompt"}, "link": null},
-        {"name": "user_prompt", "type": "STRING", "widget": {"name": "user_prompt"}, "link": null},
-        {"name": "detail", "type": "COMBO", "widget": {"name": "detail"}, "link": null},
-        {"name": "fps", "type": "FLOAT", "widget": {"name": "fps"}, "link": null},
-        {"name": "reasoning_mode", "type": "COMBO", "widget": {"name": "reasoning_mode"}, "link": null},
-        {"name": "reasoning_effort", "type": "COMBO", "widget": {"name": "reasoning_effort"}, "link": null},
-        {"name": "turns", "type": "INT", "widget": {"name": "turns"}, "link": null},
-        {"name": "stream", "type": "BOOLEAN", "widget": {"name": "stream"}, "link": null},
-        {"name": "file_expire_seconds", "type": "INT", "widget": {"name": "file_expire_seconds"}, "link": null},
-        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "link": null},
-        {"name": "visual_input_1", "type": "IMAGE,VIDEO", "shape": 7, "link": null},
-        {"name": "visual_input_2", "type": "IMAGE,VIDEO", "shape": 7, "link": null},
-        {"name": "visual_input_3", "type": "IMAGE,VIDEO", "shape": 7, "link": null}
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 2
+        },
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model.resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "model.ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.duration",
+          "type": "INT",
+          "widget": {
+            "name": "model.duration"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generate_audio",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.generate_audio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "link": null
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "save_last_frame_batch",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "save_last_frame_batch"
+          },
+          "link": null
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "link": null
+        }
       ],
       "outputs": [
-        {"name": "content", "type": "STRING", "links": null},
-        {"name": "raw_json", "type": "STRING", "links": null}
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [5]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": []
+        }
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusVisualUnderstanding"},
-      "widgets_values": ["dola-seed-2-1-turbo", "You are a helpful assistant that describes and analyzes images and videos accurately.", "Describe the content of this image or video.", "high", 1.0, "auto", "medium", 1, false, 604800, 0, "randomize"]
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusSeedance2TextToVideo"
+      },
+      "widgets_values": ["Seedance 2.5", "A lighthouse keeper climbs the spiral stairs at dusk, lights the lamp and looks out over a stormy sea. Waves crash against the rocks; thunder rolls in the distance.", "720p", "16:9", 30, true, "mp4", 0, "randomize", false, 1, "BytePlus/Video/Batch/Seedance", false, false]
+    },
+    {
+      "id": 5,
+      "type": "SaveVideo",
+      "pos": [940, 640],
+      "size": [300, 130],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 5
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": ["BytePlus/Video/Seedance2_5", "auto", "auto"]
+    },
+    {
+      "id": 6,
+      "type": "BytePlusSeed",
+      "pos": [440, 1120],
+      "size": [440, 520],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 3
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "model.videos.video_1",
+          "type": "VIDEO",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "model.temperature",
+          "type": "FLOAT",
+          "widget": {
+            "name": "model.temperature"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "system_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "detail",
+          "type": "COMBO",
+          "widget": {
+            "name": "detail"
+          },
+          "link": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": null
+        },
+        {
+          "name": "reasoning_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "reasoning_mode"
+          },
+          "link": null
+        },
+        {
+          "name": "reasoning_effort",
+          "type": "COMBO",
+          "widget": {
+            "name": "reasoning_effort"
+          },
+          "link": null
+        },
+        {
+          "name": "turns",
+          "type": "INT",
+          "widget": {
+            "name": "turns"
+          },
+          "link": null
+        },
+        {
+          "name": "stream",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "stream"
+          },
+          "link": null
+        },
+        {
+          "name": "file_expire_seconds",
+          "type": "INT",
+          "widget": {
+            "name": "file_expire_seconds"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [6]
+        },
+        {
+          "name": "raw_json",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusSeed"
+      },
+      "widgets_values": ["Write a three-shot storyboard for a 15-second product video of a smart watch. For each shot give the camera move, the action and one line of voice-over.", "Seed 2.1 Turbo", 1.0, 0, "randomize", "You are a helpful assistant that describes and analyzes images and videos accurately.", "high", 1.0, "auto", "medium", 1, false, 604800]
+    },
+    {
+      "id": 7,
+      "type": "PreviewAny",
+      "pos": [940, 1120],
+      "size": [400, 320],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
     }
   ],
   "links": [
     [1, 1, 0, 2, 0, "BYTEPLUS_CLIENT"],
-    [2, 1, 0, 3, 0, "BYTEPLUS_CLIENT"],
-    [3, 1, 0, 4, 0, "BYTEPLUS_CLIENT"]
+    [2, 1, 0, 4, 0, "BYTEPLUS_CLIENT"],
+    [3, 1, 0, 6, 0, "BYTEPLUS_CLIENT"],
+    [4, 2, 0, 3, 0, "IMAGE"],
+    [5, 4, 0, 5, 0, "VIDEO"],
+    [6, 6, 0, 7, 0, "STRING"]
   ],
   "groups": [
-    {"id": 1, "title": "2.5 Model Updates", "bounding": [360, -40, 1580, 730], "color": "#3f789e", "font_size": 24, "flags": {}}
+    {
+      "id": 1,
+      "title": "2.5 Model Updates",
+      "bounding": [20, 0, 1380, 1560],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    }
   ],
   "config": {},
-  "extra": {"ds": {"scale": 0.72, "offset": [80, 80]}},
+  "extra": {
+    "ds": {
+      "scale": 0.72,
+      "offset": [80, 80]
+    }
+  },
   "version": 0.4
 }
