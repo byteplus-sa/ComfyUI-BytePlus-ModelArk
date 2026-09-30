@@ -127,6 +127,50 @@ def _split_rgba(tensor):
     return tensor, torch.zeros(tensor.shape[:3], dtype=tensor.dtype)
 
 
+async def request_url_images(session, ark_client, request_kwargs, idx, model_id, transparent=False):
+    """
+    One Seedream request with response_format="url" (5.0 Pro / Flash): download
+    every returned image. transparent keeps the alpha channel (RGBA tensor).
+    Returns (tensor, metadata) for BytePlusGenerationExecutor.run_parallel_requests.
+    """
+    download = (
+        download_url_to_rgba_tensor_async
+        if transparent
+        else download_url_to_image_tensor_async
+    )
+    try:
+        comfy.model_management.throw_exception_if_processing_interrupted()
+        response = await asyncio.to_thread(ark_client.images.generate, **request_kwargs)
+        comfy.model_management.throw_exception_if_processing_interrupted()
+
+        urls = [
+            getattr(item, "url", None)
+            for item in (getattr(response, "data", None) or [])
+        ]
+        urls = [url for url in urls if url]
+        if not urls:
+            raise BytePlusException(get_text("err_download_img"))
+
+        downloaded = await asyncio.gather(*[download(session, url) for url in urls])
+        downloaded = [tensor for tensor in downloaded if tensor is not None]
+        if not downloaded:
+            raise BytePlusException(get_text("err_download_img"))
+
+        metadata = {
+            "batch_index": idx,
+            "model": getattr(response, "model", model_id),
+            "created": getattr(response, "created", None),
+            "urls": urls,
+        }
+        return safe_cat_tensors(downloaded), metadata
+    except comfy.model_management.InterruptProcessingException:
+        raise
+    except Exception as exc:
+        if isinstance(exc, BytePlusException):
+            raise
+        raise BytePlusException(format_api_error(exc))
+
+
 def validate_custom_size(width, height, min_pixels, max_pixels):
     """
     Check a custom width/height against the model's pixel and aspect-ratio limits.
@@ -254,8 +298,9 @@ class BytePlusSeedream4(comfy_io.ComfyNode):
         )
         return comfy_io.Schema(
             node_id="BytePlusSeedream4",
-            display_name="BytePlus Seedream 4",
+            display_name="BytePlus Seedream 4 (Legacy)",
             category=GLOBAL_CATEGORY,
+            is_deprecated=True,
             inputs=[
                 BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input(
@@ -444,8 +489,9 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedream5",
-            display_name="BytePlus Seedream 5",
+            display_name="BytePlus Seedream 5 (Legacy)",
             category=GLOBAL_CATEGORY,
+            is_deprecated=True,
             description=(
                 "Generate images with Seedream 5.0 Pro, Flash or Lite. Pro supports "
                 "standard and fast prompt optimization; Pro and Flash support PNG "
@@ -619,48 +665,10 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
                     request_kwargs["image"] = image_param
                 if transparent:
                     request_kwargs["extra_body"] = {"background": "transparent"}
-                download = (
-                    download_url_to_rgba_tensor_async
-                    if transparent
-                    else download_url_to_image_tensor_async
+                return await request_url_images(
+                    session, ark_client, request_kwargs, idx, model_id, transparent
                 )
 
-                try:
-                    comfy.model_management.throw_exception_if_processing_interrupted()
-                    response = await asyncio.to_thread(
-                        ark_client.images.generate, **request_kwargs
-                    )
-                    comfy.model_management.throw_exception_if_processing_interrupted()
-
-                    urls = [
-                        getattr(item, "url", None)
-                        for item in (getattr(response, "data", None) or [])
-                    ]
-                    urls = [url for url in urls if url]
-                    if not urls:
-                        raise BytePlusException(get_text("err_download_img"))
-
-                    downloaded = await asyncio.gather(
-                        *[download(session, url) for url in urls]
-                    )
-                    downloaded = [tensor for tensor in downloaded if tensor is not None]
-                    if not downloaded:
-                        raise BytePlusException(get_text("err_download_img"))
-
-                    metadata = {
-                        "batch_index": idx,
-                        "model": getattr(response, "model", model_id),
-                        "created": getattr(response, "created", None),
-                        "urls": urls,
-                    }
-                    return safe_cat_tensors(downloaded), metadata
-                except comfy.model_management.InterruptProcessingException:
-                    raise
-                except Exception as exc:
-                    if isinstance(exc, BytePlusException):
-                        raise
-                    raise BytePlusException(format_api_error(exc))
-            
             request_kwargs = {
                 "model": model_id,
                 "prompt": prompt,
@@ -746,8 +754,9 @@ class BytePlusSeedreamLayers(comfy_io.ComfyNode):
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedreamLayers",
-            display_name="BytePlus Seedream Layer Decomposition",
+            display_name="BytePlus Seedream Layer Decomposition (Legacy)",
             category=GLOBAL_CATEGORY,
+            is_deprecated=True,
             # Runs even with nothing connected, so save_layers alone is useful.
             is_output_node=True,
             description=(

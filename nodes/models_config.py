@@ -145,6 +145,60 @@ SEED_ASR_UI_OPTIONS = list(SEED_ASR_MODELS.keys())
 # Option labels match core's; values are BytePlus model IDs (never core's IDs).
 
 # Seedream (nodes_seedream.py)
+SEEDREAM_PRO = "seedream 5.0 pro"
+SEEDREAM_FLASH = "seedream 5.0 flash"
+SEEDREAM_LITE = "seedream 5.0 lite"
+SEEDREAM_4_5 = "seedream-4-5-251128"
+SEEDREAM_4_0 = "seedream-4-0-250828"
+
+# BytePlus Seedream: core's option label -> BytePlus model ID.
+SEEDREAM_MODELS = {
+    SEEDREAM_PRO: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_PRO_UI_MODEL],
+    SEEDREAM_FLASH: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_FLASH_UI_MODEL],
+    SEEDREAM_LITE: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_LITE_UI_MODEL],
+    SEEDREAM_4_5: SEEDREAM_4_MODEL_MAP["seedream-4-5"],
+    SEEDREAM_4_0: SEEDREAM_4_MODEL_MAP["seedream-4-0"],
+}
+
+# Per model: core's reference-image cap and custom width/height maximum, whether
+# it batches (max_images, streamed b64) or returns one image by URL (pro/flash),
+# prompt optimization options, custom-size pixel range, and the ModelArk
+# resolution levels offered as extra "(adaptive)" size presets.
+SEEDREAM_MODEL_CAPS = {
+    SEEDREAM_PRO: {
+        "max_refs": 10, "max_width": 4514, "max_height": 4514, "batch": False,
+        "fast": True, "thinking": True, "min_pixels": 921_600, "max_pixels": 4_624_220,
+        "adaptive_sizes": ["1K", "1.5K", "2K"],
+    },
+    SEEDREAM_FLASH: {
+        "max_refs": 10, "max_width": 4514, "max_height": 4514, "batch": False,
+        "fast": False, "thinking": False, "min_pixels": 921_600, "max_pixels": 4_624_220,
+        "adaptive_sizes": ["1K", "1.5K", "2K"],
+    },
+    SEEDREAM_LITE: {
+        "max_refs": 14, "max_width": 6240, "max_height": 4992, "batch": True,
+        "fast": False, "thinking": True, "min_pixels": 3_686_400, "max_pixels": 16_777_216,
+        "adaptive_sizes": ["2K", "3K", "4K"],
+    },
+    SEEDREAM_4_5: {
+        "max_refs": 10, "max_width": 6240, "max_height": 4992, "batch": True,
+        "fast": False, "thinking": True, "min_pixels": 3_686_400, "max_pixels": 16_777_216,
+        "adaptive_sizes": ["2K", "4K"],
+    },
+    SEEDREAM_4_0: {
+        "max_refs": 10, "max_width": 6240, "max_height": 4992, "batch": True,
+        "fast": False, "thinking": True, "min_pixels": 921_600, "max_pixels": 16_777_216,
+        "adaptive_sizes": ["1K", "2K", "4K"],
+    },
+}
+# Reference images plus generated images per request when batching.
+SEEDREAM_MAX_TOTAL_IMAGES = 15
+
+# BytePlus Seedream 5.0 Layer Separation: core's option label -> BytePlus model ID.
+SEEDREAM_LAYER_SEPARATION_MODELS = {
+    SEEDREAM_PRO: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_PRO_UI_MODEL],
+    SEEDREAM_FLASH: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_FLASH_UI_MODEL],
+}
 
 # Seedance 1.x (nodes_seedance1.py)
 

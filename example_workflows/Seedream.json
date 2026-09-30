@@ -1,5 +1,5 @@
 {
-  "id": "7f1f70c4-4e61-49be-96d1-2e3f1c490002",
+  "id": "1e8caba4-c666-404f-af5e-f33cc312d6a1",
   "revision": 0,
   "last_node_id": 4,
   "last_link_id": 3,
@@ -43,38 +43,45 @@
     },
     {
       "id": 3,
-      "type": "BytePlusSeedream4",
+      "type": "BytePlusSeedream",
       "pos": [390, 100],
-      "size": [430, 560],
+      "size": [450, 520],
       "flags": {},
       "order": 2,
       "mode": 0,
       "inputs": [
         {"name": "client", "type": "BYTEPLUS_CLIENT", "link": 1},
-        {"name": "model_version", "type": "COMBO", "widget": {"name": "model_version"}, "link": null},
         {"name": "prompt", "type": "STRING", "widget": {"name": "prompt"}, "link": null},
-        {"name": "size", "type": "COMBO", "widget": {"name": "size"}, "link": null},
-        {"name": "width", "type": "INT", "widget": {"name": "width"}, "link": null},
-        {"name": "height", "type": "INT", "widget": {"name": "height"}, "link": null},
-        {"name": "seed", "type": "INT", "widget": {"name": "seed"}, "link": null},
-        {"name": "enable_group_generation", "type": "BOOLEAN", "widget": {"name": "enable_group_generation"}, "link": null},
-        {"name": "max_images", "type": "INT", "widget": {"name": "max_images"}, "link": null},
-        {"name": "generation_count", "type": "INT", "widget": {"name": "generation_count"}, "link": null},
-        {"name": "prompt_optimization", "type": "COMBO", "widget": {"name": "prompt_optimization"}, "link": null},
-        {"name": "watermark", "type": "BOOLEAN", "widget": {"name": "watermark"}, "link": null},
-        {"name": "images.image_1", "type": "IMAGE", "shape": 7, "link": 2}
+        {"name": "model", "type": "COMFY_DYNAMICCOMBO_V3", "widget": {"name": "model"}, "link": null},
+        {"name": "model.size_preset", "type": "COMBO", "widget": {"name": "model.size_preset"}, "link": null},
+        {"name": "model.width", "type": "INT", "widget": {"name": "model.width"}, "link": null},
+        {"name": "model.height", "type": "INT", "widget": {"name": "model.height"}, "link": null},
+        {"name": "model.images.image_1", "type": "IMAGE", "shape": 7, "link": 2},
+        {"name": "model.prompt_optimization", "type": "COMBO", "widget": {"name": "model.prompt_optimization"}, "link": null},
+        {"name": "model.seed", "type": "INT", "widget": {"name": "model.seed"}, "link": null},
+        {"name": "model.watermark", "type": "BOOLEAN", "widget": {"name": "model.watermark"}, "link": null},
+        {"name": "model.thinking", "type": "BOOLEAN", "widget": {"name": "model.thinking"}, "link": null},
+        {"name": "model.generation_count", "type": "INT", "widget": {"name": "model.generation_count"}, "link": null},
+        {"name": "model.output_format", "type": "COMBO", "widget": {"name": "model.output_format"}, "link": null},
+        {"name": "model.background", "type": "COMBO", "widget": {"name": "model.background"}, "link": null},
+        {"name": "model.reference_mask", "type": "MASK", "shape": 7, "link": null}
       ],
       "outputs": [
-        {"name": "images", "type": "IMAGE", "links": [3]},
-        {"name": "response", "type": "STRING", "links": null}
+        {"name": "IMAGE", "type": "IMAGE", "links": [3]},
+        {"name": "response", "type": "STRING", "links": null},
+        {"name": "mask", "type": "MASK", "links": null}
       ],
-      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusSeedream4"},
-      "widgets_values": ["seedream-4-0", "", "2K (adaptive)", 2048, 2048, 0, "randomize", false, 1, 1, "standard", false]
+      "properties": {"cnr_id": "ComfyUI-BytePlus-ModelArk", "ver": "0.3.0", "Node name for S&R": "BytePlusSeedream"},
+      "widgets_values": [
+        "Turn this logo into a glossy 3D badge on a clean white studio background with soft shadows.",
+        "seedream 5.0 pro", "(2K) 2048x2048 (1:1)", 2048, 2048, "standard", 42, "randomize",
+        false, true, 1, "jpeg", "opaque"
+      ]
     },
     {
       "id": 4,
       "type": "SaveImage",
-      "pos": [890, 100],
+      "pos": [910, 100],
       "size": [300, 270],
       "flags": {},
       "order": 3,
@@ -85,12 +92,12 @@
       ],
       "outputs": [],
       "properties": {"cnr_id": "comfy-core", "ver": "0.33.2", "Node name for S&R": "SaveImage"},
-      "widgets_values": ["BytePlus/Image/Seedream4"]
+      "widgets_values": ["BytePlus/Image/Seedream"]
     }
   ],
   "links": [
     [1, 1, 0, 3, 0, "BYTEPLUS_CLIENT"],
-    [2, 2, 0, 3, 12, "IMAGE"],
+    [2, 2, 0, 3, 6, "IMAGE"],
     [3, 3, 0, 4, 0, "IMAGE"]
   ],
   "groups": [],

@@ -452,6 +452,26 @@ MESSAGES = {
     # Core-style nodes: Seedance 1.x (nodes_seedance1.py)
 
     # Core-style nodes: Seedream and Layer Separation (nodes_seedream.py)
+    "seedream_err_prompt_empty": "Prompt cannot be empty.",
+    "seedream_err_unknown_model": "Unknown Seedream model: {model}.",
+    "seedream_err_min_pixels": "Minimum image resolution for the selected model is {min_mp:.2f}MP, but {mp:.2f}MP provided.",
+    "seedream_err_max_pixels": "Maximum image resolution for the selected model is {max_mp:.2f}MP, but {mp:.2f}MP provided.",
+    "seedream_err_ref_count": "Maximum of {max} reference images are supported, but {count} received.",
+    "seedream_err_refs_plus_outputs": "The maximum number of generated images ({max_images}) plus the number of reference images ({count}) cannot exceed {limit}.",
+    "seedream_err_thinking_with_refs": "'thinking' can only be disabled for text-to-image; enable it when using reference images.",
+    "seedream_err_ref_aspect": "Reference image {index} has aspect ratio {ratio:.3f}; it must be between 1:16 and 16:1.",
+    "seedream_err_partial": "Only {received} of {requested} images were generated before error.",
+    "seedream_err_partial_generations": "Only {received} of {requested} generations succeeded (fail_on_partial is on).",
+    "seedream_layers_err_single_image": "Only a single input image is supported.",
+    "seedream_layers_err_min_size": "Image must be at least {min}x{min} pixels, got {width}x{height}.",
+    "seedream_layers_err_aspect": "Image aspect ratio {ratio:.3f} must be between 1:16 and 16:1.",
+    "seedream_layers_err_no_base": "Unexpected response: no base image returned.",
+    "seedream_layers_err_first_not_base": "Unexpected response: the first item is not the base image.",
+    "seedream_layers_err_no_layers": "The model returned no layers. Try a different prompt or input image.",
+    "seedream_layers_err_decode": "Could not decode layer {index} of {count} (name={name}): {error}",
+    "seedream_layers_warn_base_bbox": "Seedream layer separation: base item unexpectedly carries a bounding_box; ignoring it.",
+    "seedream_layers_warn_dropped": "Seedream layer separation: {dropped} of {count} returned elements had no image data and were dropped.",
+    "seedream_layers_warn_flagged": "Seedream layer separation: layer {index} ({name}) flagged {flags}.",
 
     # Core-style nodes: Seed LLM and Seed Audio (nodes_seed.py, nodes_speech.py)
 
