@@ -11,7 +11,9 @@ videos are uploaded to Comfy.org storage (needs a Comfy.org login).
 import asyncio
 import json
 import math
+import os
 import re
+import time
 from io import BytesIO
 
 import comfy.model_management
@@ -30,8 +32,10 @@ from .constants import (
     REF_MEDIA_MIN_DURATION,
     REF_VIDEO_MAX_FPS,
     REF_VIDEO_MAX_PIXELS,
+    REF_VIDEO_MAX_SIZE_MB,
     REF_VIDEO_MIN_FPS,
     REF_VIDEO_MIN_PIXELS,
+    SEEDANCE_2_5_EDIT_MIN_DURATION,
     VIDEO_DEFAULT_TIMEOUT,
 )
 from .core_style import (
@@ -45,7 +49,7 @@ from .core_style import (
 from .models_config import (
     SEEDANCE2_CORE_DRAFT_OPTIONS,
     SEEDANCE2_CORE_MODEL_OPTIONS,
-    SEEDANCE2_REF_VIDEO_PIXEL_LIMITS,
+    SEEDANCE2_REF_VIDEO_DOWNSCALE_TARGETS,
     SEEDANCE_1_5_DRAFT_FINAL_RESOLUTION,
     SEEDANCE_1_5_UI_MODEL,
     SEEDANCE_2_5_FAMILY,
@@ -556,10 +560,17 @@ def resize_to_exact(image, width, height):
 # --------------------------------------------------------------------------
 
 def ref_video_pixel_limits(model_key, resolution):
-    limits = SEEDANCE2_REF_VIDEO_PIXEL_LIMITS.get(model_key, {}).get(resolution)
-    if limits:
-        return limits
-    return {"min": REF_VIDEO_MIN_PIXELS, "max": REF_VIDEO_MAX_PIXELS}
+    """
+    Total-pixel range for reference videos: the documented BytePlus range, the
+    same for every 2.x model and resolution. `max_target` is what auto_downscale
+    aims for (core's per-resolution budget where it has one).
+    """
+    target = SEEDANCE2_REF_VIDEO_DOWNSCALE_TARGETS.get(model_key, {}).get(resolution)
+    return {
+        "min": REF_VIDEO_MIN_PIXELS,
+        "max": REF_VIDEO_MAX_PIXELS,
+        "max_target": min(target or REF_VIDEO_MAX_PIXELS, REF_VIDEO_MAX_PIXELS),
+    }
 
 
 def compute_downscale_dims(src_w, src_h, total_pixels):
@@ -667,7 +678,7 @@ def _fit_reference_video(video, index, model_key, resolution, auto_downscale, au
         return video
     dims = None
     if auto_downscale:
-        dims = compute_downscale_dims(width, height, limits["max"])
+        dims = compute_downscale_dims(width, height, limits["max_target"])
     if dims is None and auto_upscale:
         dims = compute_upscale_dims(width, height, limits["min"])
     if dims is None:
@@ -678,14 +689,43 @@ def _fit_reference_video(video, index, model_key, resolution, auto_downscale, au
         raise BytePlusException(get_text("err_seedance2_ref_video_resize_failed", index=index, e=e))
 
 
-def validate_reference_video(video, index, model_key, resolution):
-    """Core's pixel / duration checks plus BytePlus's frame-rate and aspect limits. Returns the duration."""
+def _video_size_bytes(video):
+    """Size of the video file that will be uploaded, or None when unknown."""
+    try:
+        source = _video_stream_source(video)
+    except Exception:
+        return None
+    if isinstance(source, str):
+        try:
+            return os.path.getsize(source)
+        except OSError:
+            return None
+    if hasattr(source, "getbuffer"):
+        return source.getbuffer().nbytes
+    return None
+
+
+def validate_reference_video(video, index, model_key, resolution, task_type="auto"):
+    """
+    BytePlus reference-video limits (sides, total pixels, aspect, fps, size,
+    duration; edit tasks on 2.5 need 4 s). Returns the duration.
+    """
     limits = ref_video_pixel_limits(model_key, resolution)
     try:
         width, height = video.get_dimensions()
     except Exception:
         width = height = None
     if width and height:
+        if not (IMAGE_MIN_EDGE <= width <= IMAGE_MAX_EDGE and IMAGE_MIN_EDGE <= height <= IMAGE_MAX_EDGE):
+            raise BytePlusException(
+                get_text(
+                    "popup_ref_video_hw_out_of_range",
+                    min=IMAGE_MIN_EDGE,
+                    max=IMAGE_MAX_EDGE,
+                    width=width,
+                    height=height,
+                )
+            )
         pixels = int(width) * int(height)
         details = {
             "index": index,
@@ -734,6 +774,24 @@ def validate_reference_video(video, index, model_key, resolution):
                 index=index,
                 duration=f"{duration:.1f}",
                 min=REF_MEDIA_MIN_DURATION,
+            )
+        )
+    if task_type == "edit" and model_key in SEEDANCE_2_5_FAMILY and duration < SEEDANCE_2_5_EDIT_MIN_DURATION:
+        raise BytePlusException(
+            get_text(
+                "err_seedance2_edit_video_too_short",
+                index=index,
+                duration=f"{duration:.1f}",
+                min=SEEDANCE_2_5_EDIT_MIN_DURATION,
+            )
+        )
+    size_bytes = _video_size_bytes(video)
+    if size_bytes is not None and size_bytes > REF_VIDEO_MAX_SIZE_MB * 1024 * 1024:
+        raise BytePlusException(
+            get_text(
+                "popup_ref_video_size_exceeded",
+                max_mb=REF_VIDEO_MAX_SIZE_MB,
+                size_mb=f"{size_bytes / (1024.0 * 1024.0):.3f}",
             )
         )
     return duration
@@ -1088,7 +1146,7 @@ class BytePlusSeedance2Reference(comfy_io.ComfyNode):
             for index, video in enumerate(videos, 1)
         ]
         total_video_duration = sum(
-            validate_reference_video(video, index, model_key, resolution)
+            validate_reference_video(video, index, model_key, resolution, task_type=task_type)
             for index, video in enumerate(videos, 1)
         )
         if total_video_duration > max_seconds:
@@ -1185,6 +1243,8 @@ class BytePlusSeedance2Reference(comfy_io.ComfyNode):
 # --------------------------------------------------------------------------
 
 _FAILED_TASK_STATUSES = ("failed", "cancelled", "expired")
+# A draft can be rendered for 7 days after it was created.
+DRAFT_TASK_VALID_SECONDS = 7 * 24 * 3600
 
 
 def video_model_key_for_id(model_id):
@@ -1223,8 +1283,22 @@ async def describe_drafts(client, draft_ids):
     tasks = await asyncio.gather(*[_get_draft_task(client, task_id) for task_id in draft_ids])
     model_keys = []
     for task_id, task in zip(draft_ids, tasks):
+        # The query API documents `draft` only for Seedance 1.5 Pro (2.5 returns it
+        # too), so also reject finals and non-480p tasks, and drafts past 7 days.
         if getattr(task, "draft", None) is False:
             raise BytePlusException(get_text("err_draft_not_a_draft", task_id=task_id))
+        source_draft = getattr(task, "draft_task_id", None)
+        if source_draft:
+            raise BytePlusException(
+                get_text("err_draft_is_final", task_id=task_id, draft_task_id=source_draft)
+            )
+        task_resolution = str(getattr(task, "resolution", "") or "")
+        if task_resolution and task_resolution != SEEDANCE_DRAFT_RESOLUTION:
+            raise BytePlusException(get_text("err_draft_not_a_draft", task_id=task_id))
+        created_at = getattr(task, "created_at", None)
+        if isinstance(created_at, (int, float)) and created_at > 0:
+            if time.time() - float(created_at) > DRAFT_TASK_VALID_SECONDS:
+                raise BytePlusException(get_text("err_draft_expired", task_id=task_id))
         status = str(getattr(task, "status", "") or "")
         if status in _FAILED_TASK_STATUSES:
             raise BytePlusException(get_text("err_draft_failed", task_id=task_id, status=status))

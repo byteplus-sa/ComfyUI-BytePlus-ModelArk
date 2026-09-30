@@ -372,7 +372,9 @@ class BytePlusSeed(comfy_io.ComfyNode):
                     path = await asyncio.to_thread(video_file, video)
                 except Exception as e:
                     raise BytePlusException(get_text("seed_llm_video_convert_failed", index=index, e=e))
-                file_id = await upload_file_to_ark(client, path, fps=fps, expire_seconds=expire_seconds)
+                file_id = await upload_file_to_ark(
+                    client, path, fps=fps, expire_seconds=expire_seconds, model=model_id
+                )
                 content.append({"type": "input_video", "file_id": file_id})
         content.append({"type": "input_text", "text": prompt})
 

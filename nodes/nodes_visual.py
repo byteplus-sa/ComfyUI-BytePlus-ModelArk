@@ -187,7 +187,8 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
                     client,
                     file_path,
                     fps=fps if input_type == "input_video" else None,
-                    expire_seconds=normalized_file_expire_seconds
+                    expire_seconds=normalized_file_expire_seconds,
+                    model=VISUAL_MODEL_MAP.get(model, model),
                 )
 
             if file_id:

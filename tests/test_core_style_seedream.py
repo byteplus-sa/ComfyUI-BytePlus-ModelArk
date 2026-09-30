@@ -185,6 +185,22 @@ def default_stream_events(kwargs):
     return [image_event(i) for i in range(count)] + [completed_event(kwargs["model"], count)]
 
 
+# Inputs whose limits follow the BytePlus docs instead of core: 14 reference
+# images on 4.5 / 4.0, max_images up to 15, and the layer-separation input
+# (262,144 total pixels) and <bbox> range (0-999).
+BYTEPLUS_LIMIT_DEVIATIONS = {
+    ("BytePlusSeedream", LITE, "max_images"),
+    ("BytePlusSeedream", V45, "max_images"),
+    ("BytePlusSeedream", V45, "images"),
+    ("BytePlusSeedream", V40, "max_images"),
+    ("BytePlusSeedream", V40, "images"),
+    ("BytePlusSeedreamLayerSeparation", PRO, "image"),
+    ("BytePlusSeedreamLayerSeparation", PRO, "prompt"),
+    ("BytePlusSeedreamLayerSeparation", FLASH, "image"),
+    ("BytePlusSeedreamLayerSeparation", FLASH, "prompt"),
+}
+
+
 @requires_comfyui
 class SeedreamSchemaTests(unittest.TestCase):
     def test_top_level_order_and_outputs(self):
@@ -236,9 +252,9 @@ class SeedreamSchemaTests(unittest.TestCase):
         caps = {
             PRO: (10, 4514, 4514, None),
             FLASH: (10, 4514, 4514, None),
-            LITE: (14, 6240, 4992, 14),
-            V45: (10, 6240, 4992, 10),
-            V40: (10, 6240, 4992, 10),
+            LITE: (14, 6240, 4992, 15),
+            V45: (14, 6240, 4992, 15),
+            V40: (14, 6240, 4992, 15),
         }
         first_presets = {
             PRO: "(1K) 1024x1024 (1:1)",
@@ -340,6 +356,21 @@ class SeedreamSchemaTests(unittest.TestCase):
             [nodes_seedream.BytePlusSeedream, nodes_seedream.BytePlusSeedreamLayerSeparation],
         )
 
+    def test_documented_byteplus_limits(self):
+        """Where BytePlus documents other limits than core uses, ours follow BytePlus."""
+        schema = nodes_seedream.BytePlusSeedream.define_schema()
+        options = {o.key: o for o in schema.inputs[2].options}
+        for key, refs in ((LITE, 14), (V45, 14), (V40, 14), (PRO, 10), (FLASH, 10)):
+            inputs = {i.id: i for i in options[key].inputs}
+            self.assertEqual(len(inputs["images"].template.names), refs, key)
+            if "max_images" in inputs:
+                self.assertEqual(inputs["max_images"].max, 15, key)
+        layers = nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema()
+        for option in layers.inputs[1].options:
+            inputs = {i.id: i for i in option.inputs}
+            self.assertIn("262,144 pixels", inputs["image"].tooltip)
+            self.assertIn("0-999", inputs["prompt"].tooltip)
+
     def test_matches_core_schema(self):
         """Every core input (id, type, default, limits, tooltip, advanced) is copied as is."""
         try:
@@ -380,6 +411,8 @@ class SeedreamSchemaTests(unittest.TestCase):
                         [i.id for i in core_option.inputs], [i.id for i in ours], core_option.key
                     )
                     for core_item, our_item in zip(core_option.inputs, ours):
+                        if (our_schema.node_id, core_option.key, core_item.id) in BYTEPLUS_LIMIT_DEVIATIONS:
+                            continue  # checked in test_documented_byteplus_limits
                         with self.subTest(node=our_schema.node_id, option=core_option.key, input=core_item.id):
                             self.assertEqual(describe(core_item), describe(our_item))
                             if core_item.io_type == "COMBO":
@@ -822,8 +855,8 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
             await self.run_node([self.base_item()])
         with self.assertRaisesRegex(Exception, "Only a single input image"):
             await self.run_node([self.base_item(), leaf], image=torch.ones((2, 600, 600, 3)))
-        with self.assertRaisesRegex(Exception, "at least 512x512"):
-            await self.run_node([self.base_item(), leaf], image=torch.ones((1, 600, 500, 3)))
+        with self.assertRaisesRegex(Exception, "at least 262,144 pixels"):
+            await self.run_node([self.base_item(), leaf], image=torch.ones((1, 600, 400, 3)))
         with self.assertRaisesRegex(Exception, "between 1:16 and 16:1"):
             await self.run_node([self.base_item(), leaf], image=torch.ones((1, 2000, 100, 3)))
 

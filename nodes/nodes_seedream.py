@@ -75,7 +75,8 @@ LAYER_SEPARATION_DESCRIPTION = (
 )
 
 URL_MODELS = (SEEDREAM_PRO, SEEDREAM_FLASH)
-LAYER_MIN_SIDE = 512
+# Layer decomposition input: at least 262,144 total pixels (512x512), any shape.
+LAYER_MIN_PIXELS = 262_144
 # Core downscales the layer-separation input to about 4 MP before upload.
 LAYER_INPUT_MAX_PIXELS = 2048 * 2048
 # z_index_of() value for a missing or unreadable z_index (core's sentinel).
@@ -128,7 +129,7 @@ def _seedream_model_inputs(model):
                 "max_images",
                 default=1,
                 min=1,
-                max=max_refs,
+                max=SEEDREAM_MAX_TOTAL_IMAGES,
                 step=1,
                 display_mode=comfy_io.NumberDisplay.number,
                 tooltip="Maximum number of images to generate. With 1, exactly one image is produced. "
@@ -517,7 +518,7 @@ def _layer_separation_inputs(supports_fast):
         comfy_io.Image.Input(
             "image",
             tooltip=(
-                "The image to separate. Exactly one image, at least 512x512 pixels, aspect ratio "
+                "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio "
                 "between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload."
             ),
         ),
@@ -528,7 +529,7 @@ def _layer_separation_inputs(supports_fast):
             tooltip=(
                 "How to separate the image. Leave empty to auto-detect and separate all major elements. "
                 "Describe elements in natural language to control the separation, or target exact regions "
-                "with <bbox>left top right bottom</bbox> tags (0-1000 per-mille coordinates)."
+                "with <bbox>left top right bottom</bbox> tags (coordinates 0-999, relative to the image)."
             ),
         ),
         comfy_io.Combo.Input(
@@ -919,9 +920,9 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
         image = image if image.ndim >= 4 else image.unsqueeze(0)
         height, width = int(image.shape[1]), int(image.shape[2])
         _check_aspect_ratio(image, "seedream_layers_err_aspect")
-        if width < LAYER_MIN_SIDE or height < LAYER_MIN_SIDE:
+        if width * height < LAYER_MIN_PIXELS:
             raise BytePlusException(
-                get_text("seedream_layers_err_min_size", min=LAYER_MIN_SIDE, width=width, height=height)
+                get_text("seedream_layers_err_min_size", min=f"{LAYER_MIN_PIXELS:,}", width=width, height=height)
             )
 
         output_format = model.get("output_format", "png")

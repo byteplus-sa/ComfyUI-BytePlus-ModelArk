@@ -250,10 +250,10 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.uploads = []
 
-        async def fake_upload(client, path, fps=None, expire_seconds=604800, return_meta=False):
+        async def fake_upload(client, path, fps=None, expire_seconds=604800, return_meta=False, model=None):
             with open(path, "rb") as f:
                 head = f.read(3)
-            self.uploads.append({"path": path, "fps": fps, "expire": expire_seconds, "head": head})
+            self.uploads.append({"path": path, "fps": fps, "expire": expire_seconds, "head": head, "model": model})
             return f"file-{len(self.uploads)}"
 
         self._old = (nodes_seed.upload_file_to_ark, nodes_seed._media_cache_dir)
@@ -316,6 +316,8 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         # Every image of each batch is uploaded as JPEG; videos as MP4 with the fps.
         self.assertEqual([u["head"] for u in self.uploads[:3]], [b"\xff\xd8\xff"] * 3)
         self.assertEqual([u["fps"] for u in self.uploads], [None, None, None, 2.0])
+        # Videos are preprocessed with the frame-sampling strategy of the model used.
+        self.assertEqual(self.uploads[-1]["model"], "seed-2-0-lite-260428")
         self.assertEqual({u["expire"] for u in self.uploads}, {86400})
         self.assertTrue(self.uploads[3]["path"].endswith(".mp4"))
         from comfy_api.latest import Types

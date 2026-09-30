@@ -543,15 +543,17 @@ class BytePlusAssetLibrary(comfy_io.ComfyNode):
 # --------------------------------------------------------------------------
 
 DEFAULT_GROUP_NAME = "ComfyUI Virtual Portraits"
-# Core's CreateImageAsset / CreateVideoAsset validations.
+# BytePlus CreateAsset limits (Create Asset API / real-person asset guide).
+# Core's own checks are stricter for video (2-15 s, 409,600-927,408 px).
 ASSET_IMAGE_MIN_EDGE = 300
 ASSET_IMAGE_MAX_EDGE = 6000
 ASSET_MIN_RATIO = 0.4
 ASSET_MAX_RATIO = 2.5
 ASSET_VIDEO_MIN_SECONDS = 2.0
-ASSET_VIDEO_MAX_SECONDS = 15.0
-ASSET_VIDEO_MIN_PIXELS = 409_600
-ASSET_VIDEO_MAX_PIXELS = 927_408
+ASSET_VIDEO_MAX_SECONDS = 30.0
+ASSET_VIDEO_MIN_PIXELS = 407_696
+ASSET_VIDEO_MAX_PIXELS = 8_295_044
+ASSET_VIDEO_MAX_BYTES = 200 * 1024 * 1024
 ASSET_VIDEO_MIN_FPS = 24.0
 ASSET_VIDEO_MAX_FPS = 60.0
 # BytePlus audio asset limits: wav/mp3, 2-30 s, up to 15 MB.
@@ -660,6 +662,22 @@ def validate_asset_image(image):
         )
 
 
+def _video_file_size(video):
+    """Size of the connected video's file in bytes, or None when unknown."""
+    try:
+        source = video.get_stream_source()
+    except Exception:
+        return None
+    if isinstance(source, str):
+        try:
+            return os.path.getsize(source)
+        except OSError:
+            return None
+    if hasattr(source, "getbuffer"):
+        return source.getbuffer().nbytes
+    return None
+
+
 def validate_asset_video(video):
     duration = float(video.get_duration())
     if not (ASSET_VIDEO_MIN_SECONDS <= duration <= ASSET_VIDEO_MAX_SECONDS):
@@ -707,6 +725,15 @@ def validate_asset_video(video):
                 pixels=f"{pixels:,}",
                 width=width,
                 height=height,
+            )
+        )
+    size_bytes = _video_file_size(video)
+    if size_bytes is not None and size_bytes > ASSET_VIDEO_MAX_BYTES:
+        raise BytePlusException(
+            get_text(
+                "err_asset_video_too_large",
+                max_mb=ASSET_VIDEO_MAX_BYTES // (1024 * 1024),
+                size_mb=f"{size_bytes / (1024.0 * 1024.0):.1f}",
             )
         )
     fps = float(video.get_frame_rate())

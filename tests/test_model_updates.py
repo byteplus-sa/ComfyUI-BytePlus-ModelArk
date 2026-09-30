@@ -1528,6 +1528,19 @@ class SdkContractTests(unittest.IsolatedAsyncioTestCase):
             nodes_shared.save_files_upload_cache = old_save
         self.assertEqual(file_id, "file-1")
         self.assertIn("expires_at", created[0])
+        self.assertNotIn("preprocess_configs", created[0])
+
+        nodes_shared.save_files_upload_cache = lambda: None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as tmp:
+                tmp.write(os.urandom(64))
+                tmp.flush()
+                await nodes_shared.upload_file_to_ark(client, tmp.name, fps=2.0, model="seed-2-0-lite-260428")
+        finally:
+            nodes_shared.save_files_upload_cache = old_save
+        self.assertEqual(
+            created[-1]["preprocess_configs"], {"video": {"fps": 2.0, "model": "seed-2-0-lite-260428"}}
+        )
 
 
 @requires_comfyui

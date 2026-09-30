@@ -160,7 +160,8 @@ SEEDREAM_MODELS = {
     SEEDREAM_4_0: SEEDREAM_4_MODEL_MAP["seedream-4-0"],
 }
 
-# Per model: core's reference-image cap and custom width/height maximum, whether
+# Per model: reference-image cap (BytePlus docs: 14 on 5.0 Lite, 4.5 and 4.0;
+# core caps 4.5 / 4.0 at 10) and custom width/height maximum, whether
 # it batches (max_images, streamed b64) or returns one image by URL (pro/flash),
 # prompt optimization options, custom-size pixel range, and the ModelArk
 # resolution levels offered as extra "(adaptive)" size presets.
@@ -181,12 +182,12 @@ SEEDREAM_MODEL_CAPS = {
         "adaptive_sizes": ["2K", "3K", "4K"],
     },
     SEEDREAM_4_5: {
-        "max_refs": 10, "max_width": 6240, "max_height": 4992, "batch": True,
+        "max_refs": 14, "max_width": 6240, "max_height": 4992, "batch": True,
         "fast": False, "thinking": True, "min_pixels": 3_686_400, "max_pixels": 16_777_216,
         "adaptive_sizes": ["2K", "4K"],
     },
     SEEDREAM_4_0: {
-        "max_refs": 10, "max_width": 6240, "max_height": 4992, "batch": True,
+        "max_refs": 14, "max_width": 6240, "max_height": 4992, "batch": True,
         "fast": False, "thinking": True, "min_pixels": 921_600, "max_pixels": 16_777_216,
         "adaptive_sizes": ["1K", "2K", "4K"],
     },
@@ -236,32 +237,15 @@ SEEDANCE2_CORE_MODEL_OPTIONS = {
 }
 SEEDANCE2_CORE_DRAFT_OPTIONS = ("Seedance 2.5 Draft", "Seedance 2.5 Premium Draft")
 
-# Reference video pixel count (width x height) per model and output
-# resolution, from core's SEEDANCE2_REF_VIDEO_PIXEL_LIMITS (Premium: the
-# documented general range). Unlisted pairs use REF_VIDEO_MIN/MAX_PIXELS.
-SEEDANCE2_REF_VIDEO_PIXEL_LIMITS = {
-    "dreamina-seedance-2-0": {
-        "480p": {"min": 409_600, "max": 927_408},
-        "720p": {"min": 409_600, "max": 927_408},
-        "1080p": {"min": 409_600, "max": 2_073_600},
-    },
-    "dreamina-seedance-2-0-fast": {
-        "480p": {"min": 409_600, "max": 927_408},
-        "720p": {"min": 409_600, "max": 927_408},
-    },
-    "dreamina-seedance-2-0-mini": {
-        "480p": {"min": 409_600, "max": 927_408},
-        "720p": {"min": 409_600, "max": 927_408},
-    },
-    "dreamina-seedance-2-5": {
-        "480p": {"min": 409_600, "max": 8_295_044},
-        "720p": {"min": 409_600, "max": 8_295_044},
-        "1080p": {"min": 409_600, "max": 8_295_044},
-    },
-    "dreamina-seedance-2-5-premium": {
-        "480p": {"min": 409_600, "max": 8_295_044},
-        "4k": {"min": 409_600, "max": 8_295_044},
-    },
+# auto_downscale targets for reference videos (total pixels), per model and
+# output resolution, from ComfyUI core's SEEDANCE2_REF_VIDEO_PIXEL_LIMITS. They
+# are not API limits: BytePlus documents one range for every 2.x model and
+# resolution (constants.REF_VIDEO_MIN/MAX_PIXELS), which is what is enforced.
+# Unlisted pairs downscale to REF_VIDEO_MAX_PIXELS.
+SEEDANCE2_REF_VIDEO_DOWNSCALE_TARGETS = {
+    "dreamina-seedance-2-0": {"480p": 927_408, "720p": 927_408, "1080p": 2_073_600},
+    "dreamina-seedance-2-0-fast": {"480p": 927_408, "720p": 927_408},
+    "dreamina-seedance-2-0-mini": {"480p": 927_408, "720p": 927_408},
 }
 
 # Final resolution for Seedance 1.5 Pro drafts in the Draft to Final node

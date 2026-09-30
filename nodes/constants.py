@@ -180,7 +180,9 @@ REF_VIDEO_MIN_DURATION = REF_MEDIA_MIN_DURATION
 REF_VIDEO_MAX_DURATION = REF_MEDIA_MAX_DURATION
 REF_VIDEO_MAX_TOTAL_DURATION = REF_MEDIA_MAX_DURATION
 REF_VIDEO_MAX_SIZE_MB = 200.0
-REF_VIDEO_MIN_PIXELS = 409600
+# Seedance 2.5 edit tasks need a reference video of at least 4 s.
+SEEDANCE_2_5_EDIT_MIN_DURATION = 4.0
+REF_VIDEO_MIN_PIXELS = 407696
 REF_VIDEO_MAX_PIXELS = 8295044
 REF_VIDEO_MIN_FPS = 24.0
 REF_VIDEO_MAX_FPS = 60.0
@@ -463,12 +465,15 @@ MESSAGES = {
     "err_seedance2_ref_video_too_large": "Reference video {index} is too large: {width}x{height} = {pixels} total pixels. Maximum for this model and resolution is {max} total pixels. Turn on auto_downscale or downscale the video.",
     "err_seedance2_ref_video_resize_failed": "Could not resize reference video {index}: {e}",
     "err_seedance2_ref_media_too_short": "Reference {kind} {index} is too short: {duration}s. Minimum duration is {min} seconds.",
+    "err_seedance2_edit_video_too_short": "Reference video {index} is {duration}s long. Seedance 2.5 edit tasks need a video of at least {min} seconds.",
     "err_seedance2_ref_media_total_too_long": "Total reference {kind} duration is {duration}s. Maximum is {max} seconds.",
     "err_comfy_upload_unavailable_reference": "Connected reference videos are uploaded through Comfy.org storage, which is unavailable in this ComfyUI ({e}). Update ComfyUI, remove --disable-api-nodes, or put a public mp4/mov link or an asset ID in a reference_assets slot instead.",
     "err_comfy_upload_failed_reference": "Uploading the reference video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or put a public mp4/mov link or an asset ID in a reference_assets slot instead.",
     "err_draft_task_id_empty": "Enter a draft task ID: the draft_task_id output of a Seedance 2.5 Draft run, or a pasted ID.",
     "err_draft_lookup_failed": "Could not look up draft task {task_id}: {e}",
     "err_draft_not_a_draft": "Task {task_id} is not a draft. Use the draft_task_id of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run, or of a Seedance 1.5 Pro draft.",
+    "err_draft_is_final": "Task {task_id} is a final video rendered from draft {draft_task_id}, not a draft. Use the draft task ID.",
+    "err_draft_expired": "Draft task {task_id} is more than 7 days old; drafts can only be rendered for 7 days. Generate a new draft.",
     "err_draft_not_ready": "Draft task {task_id} is {status}. Render the final video after the draft has succeeded.",
     "err_draft_failed": "Draft task {task_id} is {status} and cannot be rendered. Generate a new draft.",
     "err_draft_model_unsupported": "Draft task {task_id} was made with {model}, which cannot render a final from a draft. Supported: Seedance 2.5, Seedance 2.5 Premium and Seedance 1.5 Pro drafts.",
@@ -483,6 +488,7 @@ MESSAGES = {
     "err_asset_video_size": "Asset video width and height must be between {min} and {max} px. Current: {width}x{height}.",
     "err_asset_video_ratio": "Asset video aspect ratio (W/H) must be between {min} and {max}. Current: {ratio} ({width}x{height}).",
     "err_asset_video_pixels": "Asset video total pixels (W x H) must be between {min} and {max}. Current: {pixels} ({width}x{height}).",
+    "err_asset_video_too_large": "The video is {size_mb} MB; video assets can be at most {max_mb} MB.",
     "err_asset_video_fps": "Asset video frame rate must be between {min} and {max} FPS. Current: {fps}.",
     "err_asset_audio_duration": "Asset audio must be {min} to {max} seconds long. Current: {duration}s.",
     "err_asset_audio_size": "Asset audio must be at most {max_mb} MB (WAV). Current: {size_mb} MB. Trim it, or pass a public mp3 link in audio_url.",
@@ -514,7 +520,7 @@ MESSAGES = {
     "seedream_err_partial": "Only {received} of {requested} images were generated before error.",
     "seedream_err_partial_generations": "Only {received} of {requested} generations succeeded (fail_on_partial is on).",
     "seedream_layers_err_single_image": "Only a single input image is supported.",
-    "seedream_layers_err_min_size": "Image must be at least {min}x{min} pixels, got {width}x{height}.",
+    "seedream_layers_err_min_size": "Image must have at least {min} pixels in total, got {width}x{height}.",
     "seedream_layers_err_aspect": "Image aspect ratio {ratio:.3f} must be between 1:16 and 16:1.",
     "seedream_layers_err_no_base": "Unexpected response: no base image returned.",
     "seedream_layers_err_first_not_base": "Unexpected response: the first item is not the base image.",

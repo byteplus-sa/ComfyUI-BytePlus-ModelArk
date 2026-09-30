@@ -11,6 +11,7 @@ import io
 import json
 import os
 import sys
+import time
 import types
 import unittest
 from fractions import Fraction
@@ -904,10 +905,18 @@ class ReferenceTests(_ExecutorHarness):
             self.assertEqual(scaled[-1][1], (1280, 720))
             self.assertLessEqual(1280 * 720, 927_408)
             nodes_video.NON_BLOCKING_TASK_CACHE.clear()
+            # Without auto_downscale only the documented range applies: 1080p passes...
+            await self.run_node(
+                self.REF,
+                model=self.model("Seedance 2.0", auto_downscale=False, reference_videos={"video_1": FakeVideo(1920, 1080)}),
+                seed=1,
+            )
+            nodes_video.NON_BLOCKING_TASK_CACHE.clear()
+            # ...and anything above 8,295,044 pixels is rejected.
             with self.assertRaises(Exception) as ctx:
                 await self.run_node(
                     self.REF,
-                    model=self.model("Seedance 2.0", auto_downscale=False, reference_videos={"video_1": FakeVideo(1920, 1080)}),
+                    model=self.model("Seedance 2.0", auto_downscale=False, reference_videos={"video_1": FakeVideo(4096, 2160)}),
                     seed=1,
                 )
             self.assertIn("too large", str(ctx.exception))
@@ -920,13 +929,15 @@ class ReferenceTests(_ExecutorHarness):
                 self.REF, model=self.model(auto_upscale=True, reference_videos={"video_1": FakeVideo(640, 480)}), seed=1
             )
             width, height = scaled[-1][1]
-            self.assertGreaterEqual(width * height, 409_600)
+            self.assertGreaterEqual(width * height, 407_696)
             self.assertEqual((width % 2, height % 2), (0, 0))
         cases = [
             (self.model(reference_videos={"video_1": FakeVideo(duration=1.5)}), "too short"),
             (self.model("Seedance 2.0", reference_videos={"video_1": FakeVideo(854, 480, 8), "video_2": FakeVideo(854, 480, 8)}),
              "Total reference video duration"),
             (self.model(reference_videos={"video_1": FakeVideo(fps=20)}), "frame rate"),
+            (self.model(reference_videos={"video_1": FakeVideo(200, 2000)}), "width/height"),
+            (self.model(task_type="edit", reference_videos={"video_1": FakeVideo(duration=3)}), "at least 4.0 seconds"),
             (self.model(reference_audios={"audio_1": sine_audio(1)}), "audio duration"),
             (self.model("Seedance 2.0", reference_images={"image_1": image(320, 320)},
                         reference_audios={"audio_1": sine_audio(8), "audio_2": sine_audio(8)}),
@@ -940,11 +951,14 @@ class ReferenceTests(_ExecutorHarness):
 
     def test_pixel_limit_table(self):
         limits = nodes_seedance2.ref_video_pixel_limits
-        self.assertEqual(limits("dreamina-seedance-2-0", "720p"), {"min": 409_600, "max": 927_408})
-        self.assertEqual(limits("dreamina-seedance-2-0", "1080p")["max"], 2_073_600)
-        self.assertEqual(limits("dreamina-seedance-2-5", "1080p")["max"], 8_295_044)
-        self.assertEqual(limits("dreamina-seedance-2-5-premium", "4k")["max"], 8_295_044)
-        self.assertEqual(limits("dreamina-seedance-2-0", "4k"), {"min": 409_600, "max": 8_295_044})
+        # BytePlus documents one range for every model and resolution; core's
+        # per-resolution budgets are only auto_downscale targets.
+        documented = {"min": 407_696, "max": 8_295_044}
+        self.assertEqual(limits("dreamina-seedance-2-0", "720p"), {**documented, "max_target": 927_408})
+        self.assertEqual(limits("dreamina-seedance-2-0", "1080p")["max_target"], 2_073_600)
+        self.assertEqual(limits("dreamina-seedance-2-5", "1080p"), {**documented, "max_target": 8_295_044})
+        self.assertEqual(limits("dreamina-seedance-2-5-premium", "4k"), {**documented, "max_target": 8_295_044})
+        self.assertEqual(limits("dreamina-seedance-2-0", "4k"), {**documented, "max_target": 8_295_044})
 
     def test_label_and_rewrite_helpers(self):
         labels = nodes_seedance2.build_asset_labels(
@@ -1001,6 +1015,7 @@ class DraftToFinalTests(_ExecutorHarness):
         values = dict(id=task_id, model=model_id, status="succeeded", draft=True, duration=6, output_format="mp4")
         values.update(overrides)
         self.task_lookups[task_id] = SimpleNamespace(**values)
+        return self.task_lookups[task_id]
 
     def test_model_key_mapping(self):
         mapping = nodes_seedance2.video_model_key_for_id
@@ -1057,7 +1072,20 @@ class DraftToFinalTests(_ExecutorHarness):
         self.draft("dreamina-seedance-2-0-260128", "cgt-20")
         self.draft("seedance-1-5-pro-251215", "cgt-15")
         self.task_lookups["cgt-missing"] = RuntimeError("ResourceNotFound: task not found")
+        # `draft` is only documented for 1.5 Pro: a task without it is still checked.
+        final = self.draft("dreamina-seedance-2-5-260628", "cgt-final")
+        del final.draft
+        final.draft_task_id = "cgt-ok"
+        final.resolution = "1080p"
+        not_480p = self.draft("dreamina-seedance-2-5-260628", "cgt-720p")
+        del not_480p.draft
+        not_480p.resolution = "720p"
+        old = self.draft("dreamina-seedance-2-5-260628", "cgt-old")
+        old.created_at = time.time() - 8 * 24 * 3600
         cases = [
+            ("cgt-final", "is a final video rendered from draft cgt-ok"),
+            ("cgt-720p", "is not a draft"),
+            ("cgt-old", "more than 7 days old"),
             ("", "Enter a draft task ID"),
             ("cgt-normal", "is not a draft"),
             ("cgt-running", "is running"),
@@ -1244,9 +1272,9 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_video_asset(self):
         for video, message in (
-            (FakeVideo(duration=1.5), "2 to 15 seconds"),
-            (FakeVideo(duration=16), "2 to 15 seconds"),
-            (FakeVideo(1920, 1080), "total pixels"),
+            (FakeVideo(duration=1.5), "2 to 30 seconds"),
+            (FakeVideo(duration=31), "2 to 30 seconds"),
+            (FakeVideo(4096, 2160), "total pixels"),
             (FakeVideo(640, 480), "total pixels"),
             (FakeVideo(1300, 500), "aspect ratio"),
             (FakeVideo(fps=15), "frame rate"),

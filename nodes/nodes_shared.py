@@ -439,18 +439,24 @@ def save_files_upload_cache():
 load_files_upload_cache()
 
 
-async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, return_meta=False):
+async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, return_meta=False, model=None):
     """
-    Upload a file with client.ark.files.create (cached by content).
+    Upload a file with client.ark.files.create (cached by content). For videos
+    (fps set), `model` selects the frame-sampling strategy of that model; without
+    it ModelArk uses the strategy of models older than seed-1-8.
     """
     expire_seconds = _normalize_expire_seconds(expire_seconds)
     if fps is None:
+        model = None
         try:
             file_identity = f"sha256:{await asyncio.to_thread(_compute_file_sha256, file_path)}"
         except Exception:
             file_identity = file_path
     else:
         file_identity = file_path
+    if model:
+        # Preprocessing depends on the model, so the upload is cached per model.
+        file_identity = f"{file_identity}|model={model}"
     cache_key = (file_identity, float(fps) if fps is not None else None, expire_seconds)
     cache_fps = float(fps) if fps is not None else None
     now_ts = int(time.time())
@@ -554,7 +560,10 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
                 "expires_at": expire_at,
             }
             if fps is not None:
-                upload_kwargs["preprocess_configs"] = {"video": {"fps": float(fps)}}
+                video_config = {"fps": float(fps)}
+                if model:
+                    video_config["model"] = model
+                upload_kwargs["preprocess_configs"] = {"video": video_config}
             file_obj = await asyncio.to_thread(client.ark.files.create, **upload_kwargs)
 
         file_id = getattr(file_obj, "id", None)
