@@ -18,6 +18,59 @@ ASSET_URI_PREFIX = "asset://"
 ASSET_POLL_SECONDS = 3
 ASSET_ACTIVE_TIMEOUT_SECONDS = 600
 
+# Seed Speech (Seed Audio 1.0, TTS, ASR): a separate BytePlus product with its
+# own API key (Seed Speech console -> Settings -> API Keys), sent as X-Api-Key.
+# ModelArk keys are not accepted. Singapore is the only endpoint.
+SPEECH_REGION_BASE_URLS = {
+    "ap-southeast-1": "https://voice.ap-southeast-1.bytepluses.com",
+}
+DEFAULT_SPEECH_REGION = "ap-southeast-1"
+SPEECH_API_KEY_ENV = "BYTEPLUS_SEED_SPEECH_API_KEY"
+SPEECH_API_KEYS_CONSOLE_URL = "https://console.byteplus.com/voice/new/setting/apikeys"
+SEED_AUDIO_PATH = "/api/v3/tts/create"
+SEED_TTS_PATH = "/api/v3/tts/unidirectional"
+SEED_ASR_FAST_PATH = "/api/v3/auc/bigmodel/recognize/flash"
+SEED_ASR_SUBMIT_PATH = "/api/v3/auc/bigmodel/submit"
+SEED_ASR_QUERY_PATH = "/api/v3/auc/bigmodel/query"
+# Fixed X-Api-App-Key value required by the TTS HTTP API.
+SEED_TTS_APP_KEY = "aGjiRDfUWi"
+# Seed Audio answers code 0; TTS/ASR end with 20000000.
+SPEECH_SUCCESS_CODES = (0, 20000000)
+SPEECH_ASR_PENDING_CODES = (20000001, 20000002)
+SPEECH_ASR_SILENT_AUDIO_CODE = 20000003
+SPEECH_REQUEST_TIMEOUT_SECONDS = 600
+SPEECH_ASR_POLL_SECONDS = 2
+SEED_AUDIO_MAX_PROMPT_CHARS = 3000
+SEED_AUDIO_MAX_AUDIO_REFS = 3
+SEED_AUDIO_REF_MAX_SECONDS = 30.0
+SEED_AUDIO_REF_MAX_BYTES = 10 * 1024 * 1024
+SEED_AUDIO_FORMATS = ["wav", "mp3", "ogg_opus", "pcm"]
+# Raw PCM output (16-bit mono) defaults to 40 kHz, like wav.
+SEED_AUDIO_PCM_DEFAULT_RATE = 40000
+SEED_AUDIO_SAMPLE_RATES = ["default", "8000", "16000", "24000", "32000", "44100", "48000"]
+SEED_TTS_SAMPLE_RATES = ["24000", "16000", "8000", "22050", "32000", "44100", "48000"]
+SEED_TTS_2_SAMPLE_RATES = ("24000", "16000", "8000")
+# explicit_language values of the TTS API ("auto" sends nothing).
+SEED_TTS_LANGUAGES = [
+    "auto", "en", "zh-cn", "ja", "ko", "id", "th", "vi", "ms", "fil", "es", "es-mx",
+    "pt", "pt-br", "de", "fr", "it", "ru", "pl", "tr", "sv", "ar",
+]
+# ASR audio.language values ("auto" sends nothing: Chinese, English and Chinese
+# dialects are recognized without a language).
+SEED_ASR_LANGUAGES = [
+    "auto", "en-US", "zh-CN", "yue-CN", "ja-JP", "ko-KR", "id-ID", "ms-MY", "th-TH",
+    "vi-VN", "fil-PH", "hi-IN", "bn-BD", "ur-PK", "pa-PK", "km-KH", "my-MM", "es-MX",
+    "pt-BR", "de-DE", "fr-FR", "it-IT", "nl-NL", "pl-PL", "ro-RO", "ru-RU", "uk-UA",
+    "tr-TR", "el-GR", "cs-CZ", "da-DK", "fi-FI", "hu-HU", "no-NO", "sv-SE", "bg-BG",
+    "ar-SA", "az-AZ", "kk-KZ", "sw-KE",
+]
+# context_language: reference language for Western European text.
+SEED_TTS_CONTEXT_LANGUAGES = ["default", "id", "es", "pt"]
+SEED_TTS_DEFAULT_UNSUPPORTED_CHAR_RATIO = 0.3
+SEED_ASR_ZH_VARIANTS = ["none", "traditional", "tw", "hk"]
+SEED_ASR_SAMPLE_RATE = 16000
+SEED_ASR_FAST_MAX_BYTES = 100 * 1024 * 1024
+
 # General
 MAX_SEED = 2147483647
 MIN_SEED = -1
@@ -247,6 +300,50 @@ MESSAGES = {
     "visual_polling": "Polling Response Task: {id}",
     "visual_task_complete": "Task {id} completed.",
     "visual_task_failed": "Task {id} failed: {msg}",
+
+    # Seed Speech (Seed Audio, TTS, ASR)
+    "speech_key_empty": "Paste a Seed Speech API key into new_api_key, or pick a saved key.",
+    "speech_key_not_found": "Seed Speech API key '{key_name}' was not found in speech_api_keys.json.",
+    "speech_env_key_missing": "The environment variable {env} is not set. Set it to your Seed Speech API key, or pick another key.",
+    "speech_key_saved": "Seed Speech API key '{name}' saved to speech_api_keys.json.",
+    "speech_wrong_client": "Connect a BytePlus Speech Client. Seed Speech needs its own API key; the ModelArk API Client does not work here.",
+    "speech_request_failed": "Seed Speech {operation} failed (HTTP {status}, code {code}): {message}{logid}",
+    "speech_network_error": "Could not reach Seed Speech ({operation}): {e}",
+    "speech_timeout": "Seed Speech {operation} timed out after {seconds} s.",
+    "speech_err_auth": "Invalid Seed Speech API key. Create one in the Seed Speech console ({url}) and activate the service there; ModelArk API keys do not work with Seed Speech.",
+    "speech_err_speaker": "The voice is not available for this key or model. Check the speaker ID and that the model matches it (TTS 2.0 voices need seed-tts-2.0, cloned voices seed-icl-*).",
+    "speech_err_text_limit": "The text is longer than the model accepts.",
+    "speech_err_busy": "Seed Speech is busy. Try again later.",
+    "speech_err_concurrency": "Seed Speech concurrency limit reached. Wait for running requests to finish, then try again.",
+    "speech_err_params": "Invalid request parameters",
+    "speech_err_empty_input_audio": "The input audio is empty.",
+    "speech_err_audio_format": "The audio format is not supported.",
+    "speech_empty_audio": "Seed Speech {operation} returned no audio.",
+    "speech_audio_decode_failed": "Could not decode the audio returned by Seed Speech: {e}",
+    "speech_audio_invalid": "Invalid audio input. Connect a ComfyUI AUDIO output.",
+    "seed_audio_done": "Seed Audio generated {duration} s of audio (billed duration: {billed} s).",
+    "speech_bad_url": "{field} must be an http(s):// or asset:// URL.",
+    "seed_audio_prompt_empty": "text_prompt is empty.",
+    "seed_audio_prompt_too_long": "text_prompt has {count} characters; the maximum is {max}.",
+    "seed_audio_slot_conflict": "Reference slot {slot}: connect ref_audio_{slot} or fill ref_audio_{slot}_source, not both.",
+    "seed_audio_slot_gap": "Fill the reference audio slots in order: slot {slot} is used but slot {missing} is empty. Slot N is @AudioN in the prompt.",
+    "seed_audio_image_and_audio": "An image reference cannot be combined with audio references.",
+    "seed_audio_image_conflict": "Use ref_image or ref_image_url, not both.",
+    "seed_audio_ref_too_long": "Reference audio {slot} is {duration} s long; the maximum is {max} s.",
+    "seed_audio_ref_too_large": "Reference {kind} is {size_mb} MB; the maximum is {max_mb} MB.",
+    "tts_text_empty": "text is empty.",
+    "tts_voice_required": "{model} needs custom_speaker_id: the voice list only holds TTS 2.0 voices.",
+    "tts_tone_fidelity_icl2_only": "tone_fidelity only works with seed-icl-2.0 cloned voices.",
+    "asr_lid_standard_only": "enable_lid needs seed-asr-2.0 or seed-asr-1.0 (not seed-asr-fast).",
+    "asr_end_window_out_of_range": "end_window_size must be 0 (off) or between 300 and 5000 ms.",
+    "asr_channel_split_needs_stereo": "enable_channel_split needs stereo audio (2 channels).",
+    "tts_sample_rate_unsupported": "seed-tts-2.0 supports the sample rates 24000, 16000 and 8000 Hz.",
+    "asr_no_input": "Connect audio or fill audio_url.",
+    "asr_both_inputs": "Use audio or audio_url, not both.",
+    "asr_standard_needs_url": "{model} needs a public audio_url. Use seed-asr-fast for a connected audio input.",
+    "asr_audio_too_large": "The audio is {size_mb} MB as 16 kHz mono WAV; seed-asr-fast accepts up to {max_mb} MB. Use a public audio_url with seed-asr-2.0 instead.",
+    "asr_silent_audio": "No speech was found in the audio.",
+    "asr_task_submitted": "ASR task submitted: {task_id}",
 
     "api_errors": {
         "AuthenticationError": "Invalid API Key (401). Check the key in api_keys.json, and that the API Client region matches the region the key was created in.",

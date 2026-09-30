@@ -150,6 +150,7 @@ if _dependencies_ready:
     from .nodes.nodes_visual import BytePlusVisualUnderstanding
     from .nodes.quota import BytePlusQuotaSettings
     from .nodes.nodes_assets import BytePlusVirtualPortraitAsset, BytePlusAssetLibrary
+    from .nodes.nodes_speech import BytePlusSpeechClient, BytePlusSeedAudio, BytePlusSeedTTS, BytePlusSeedASR
 
     _registered_nodes = [
         BytePlusAPIClient,
@@ -165,6 +166,10 @@ if _dependencies_ready:
         BytePlusQuotaSettings,
         BytePlusVirtualPortraitAsset,
         BytePlusAssetLibrary,
+        BytePlusSpeechClient,
+        BytePlusSeedAudio,
+        BytePlusSeedTTS,
+        BytePlusSeedASR,
     ]
 else:
     _registered_nodes = []

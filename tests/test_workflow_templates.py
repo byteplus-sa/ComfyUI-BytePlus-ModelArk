@@ -10,6 +10,8 @@ EXPECTED_WORKFLOWS = {
     "QuotaSettings.json",
     "Seedance 1.json",
     "Seedance 2.json",
+    "Seed Audio.json",
+    "Seed Speech TTS and ASR.json",
     "Seedream 4.json",
     "Seedream 5.json",
     "VisualUnderstanding.json",
@@ -78,6 +80,31 @@ class WorkflowTemplateTests(unittest.TestCase):
             "model_version.output_format", "model_version.background",
             "model_version.watermark", "images.image_1", "reference_mask",
         ],
+        "BytePlusSpeechClient": ["new_api_key", "new_key_name", "key_name", "region"],
+        "BytePlusSeedAudio": [
+            "speech_client", "model", "text_prompt", "ref_audio_1_source",
+            "ref_audio_2_source", "ref_audio_3_source", "ref_image_url", "audio_format",
+            "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "enable_subtitle",
+            "aigc_watermark", "aigc_metadata", "content_producer", "produce_id",
+            "content_propagator", "propagate_id", "seed", "ref_audio_1", "ref_audio_2",
+            "ref_audio_3", "ref_image",
+        ],
+        "BytePlusSeedTTS": [
+            "speech_client", "model", "text", "voice", "custom_speaker_id", "context_text",
+            "emotion", "emotion_scale", "speech_rate", "loudness_rate", "pitch",
+            "sample_rate", "explicit_language", "silence_duration", "filter_markdown",
+            "enable_subtitle", "detect_language", "context_language", "read_emoji",
+            "read_latex", "read_parentheses", "unsupported_char_ratio", "use_cache",
+            "tone_fidelity", "seed",
+        ],
+        "BytePlusSeedASR": [
+            "speech_client", "model", "audio_url", "language", "enable_punc", "enable_itn",
+            "enable_ddc", "enable_speaker_info", "hotwords", "context_text",
+            "context_image_url", "enable_auto_lang", "enable_lid", "enable_channel_split",
+            "vad_segment", "end_window_size", "output_zh_variant",
+            "filter_system_sensitive_words", "remove_words", "mask_words",
+            "wrap_sensitive_words", "audio",
+        ],
         "BytePlusVisualUnderstanding": [
             "client", "model", "system_prompt", "user_prompt", "detail", "fps",
             "reasoning_mode", "reasoning_effort", "turns", "stream",
@@ -122,7 +149,9 @@ class WorkflowTemplateTests(unittest.TestCase):
                     self.assertLess(origin_slot, len(origin.get("outputs", [])))
                     self.assertLess(target_slot, len(target.get("inputs", [])))
                     self.assertEqual(target["inputs"][target_slot]["link"], link_id)
-                    self.assertEqual(target["inputs"][target_slot]["type"].split(",")[0], link_type)
+                    target_type = target["inputs"][target_slot]["type"].split(",")[0]
+                    if target_type != "*":  # wildcard inputs, e.g. PreviewAny
+                        self.assertEqual(target_type, link_type)
                     self.assertIn(link_id, origin["outputs"][origin_slot]["links"])
 
                 self.assertGreaterEqual(
@@ -131,7 +160,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 for node in workflow["nodes"]:
                     if node["type"].startswith("BytePlus"):
                         self.assertEqual(node["properties"]["cnr_id"], "ComfyUI-BytePlus-ModelArk")
-                        self.assertEqual(node["properties"]["ver"], "0.2.2")
+                        self.assertEqual(node["properties"]["ver"], "0.3.0")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
         for name in ("Seedance 2.json", "Seedream 5.json", "2.5 Model Updates.json"):
@@ -197,7 +226,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         for name in sorted(EXPECTED_WORKFLOWS):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
-                if node["type"] == "BytePlusAPIClient":
+                if node["type"] in ("BytePlusAPIClient", "BytePlusSpeechClient"):
                     self.assertEqual(node["widgets_values"][0], "")
 
 

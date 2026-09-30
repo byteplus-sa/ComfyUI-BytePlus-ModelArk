@@ -1,4 +1,4 @@
-# BytePlus ModelArk model catalog.
+# BytePlus ModelArk and Seed Speech model catalog.
 # UI names are the ModelArk model names; values are the dated model IDs sent
 # to the API. To pick up a new model version, change the value only.
 
@@ -121,3 +121,22 @@ VISUAL_MODEL_MAP = {
     "seed-1-6-flash": "seed-1-6-flash-250715",
 }
 VISUAL_UI_OPTIONS = list(VISUAL_MODEL_MAP.keys())
+
+# Seed Speech models (separate API key, see constants.SPEECH_REGION_BASE_URLS).
+# Seed Audio 1.0: the model ID goes in the request body.
+SEED_AUDIO_MODELS = ["seed-audio-1.0"]
+
+# TTS: the UI name is the X-Api-Resource-Id header. Voice replication (ICL)
+# resources are for cloned voices (speaker IDs starting with S_).
+SEED_TTS_MODELS = ["seed-tts-2.0", "seed-tts-1.0", "seed-icl-2.0", "seed-icl-1.0"]
+SEED_TTS_2_UI_MODEL = "seed-tts-2.0"
+
+# ASR: UI name -> (mode, X-Api-Resource-Id). "fast" answers in one request
+# (audio up to 2 h / 100 MB); "standard" submits a task and polls for the
+# result (public audio URL only, up to 5 h / 512 MB).
+SEED_ASR_MODELS = {
+    "seed-asr-fast": ("fast", "volc.seedasr.auc_turbo"),
+    "seed-asr-2.0": ("standard", "volc.seedasr.auc"),
+    "seed-asr-1.0": ("standard", "volc.bigasr.auc"),
+}
+SEED_ASR_UI_OPTIONS = list(SEED_ASR_MODELS.keys())

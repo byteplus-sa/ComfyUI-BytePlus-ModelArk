@@ -802,7 +802,7 @@ def api_key_fingerprint(api_key):
     return hashlib.sha256(api_key.strip().encode("utf-8")).hexdigest()[:16]
 
 
-def _notify_api_key_saved(node_id, key_name, api_key):
+def _notify_api_key_saved(node_id, key_name, api_key, store="modelark"):
     """
     Tell the frontend a Custom key was saved, so the node switches to the saved
     name and clears the raw key. Otherwise the key stays in the workflow and in
@@ -811,7 +811,8 @@ def _notify_api_key_saved(node_id, key_name, api_key):
     Sent only to the browser client that queued the prompt (not broadcast), with
     a fingerprint of the key: the frontend switches only API Client nodes whose
     pasted key matches, wherever they are (other tabs, subgraphs), and never
-    receives the key itself.
+    receives the key itself. ``store`` tells ModelArk keys ("modelark") from
+    Seed Speech keys ("speech"), which live in separate files and nodes.
     """
     if not node_id:
         return
@@ -825,6 +826,7 @@ def _notify_api_key_saved(node_id, key_name, api_key):
                 "node": str(node_id),
                 "key_name": key_name,
                 "key_fingerprint": api_key_fingerprint(api_key),
+                "store": store,
                 "prompt_id": getattr(server, "last_prompt_id", None),
             },
             getattr(server, "client_id", None),
