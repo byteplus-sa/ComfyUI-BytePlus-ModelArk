@@ -35,14 +35,14 @@ They appear in ComfyUI's template browser under the pack's folder name; the titl
 - `widgets_values` is **positional**. Adding/removing/reordering a widget — including the hidden `control_after_generate` value after a `seed` — shifts every later value. DynamicCombo nodes serialize children as `model_version.<name>` and the set changes with the selected model.
 - Best way to update after a schema change: load the old workflow in a live ComfyUI with the new code, fix values, **re-export**, then update `tests/test_workflow_templates.py` expected orders (`CURRENT_INPUT_ORDERS`, `SEEDANCE2_INPUT_ORDERS`, index checks).
 - Keep the API Client key widget empty, no third-party nodes (rgthree/pysssss/Note), no CJK / "Jimeng" / "doubao" text — all tested.
-- New template file → add it to `EXPECTED_WORKFLOWS` in the test. `BytePlusSeedreamLayers` has no template yet.
+- New template file → add it to `EXPECTED_WORKFLOWS` in the test. Templates use only the core-style nodes (Legacy nodes stay out of them). Hand-written templates load correctly, but the frontend re-saves required sockets before widget inputs and adds a trailing `control_after_generate` value for seeds inside a DynamicCombo (core's nodes do the same in frontend 1.52.7).
 - Optional offline check: `comfy workflow validate --workflow <api-format.json> --input object_info.json` (comfy-cli) validates class types, inputs, enums and wiring against a saved `/object_info` dump.
 
 ## 3. Manual smoke test in ComfyUI
 
 1. Symlink or clone the pack into `ComfyUI/custom_nodes/`, restart ComfyUI (new/changed Python needs a restart; JS needs only a hard browser reload). A throwaway instance: `python main.py --base-directory <scratch dir> --port 8201 --cpu --disable-auto-launch`. ⚠️ On first start with a fresh base directory ComfyUI **moves** the install's `user/comfyui.db` into it ("Renamed legacy database …") — if the install is someone's real ComfyUI, rename `comfyui.db.bak` back afterwards, or pre-create `<base>/user/comfyui.db`.
 2. Startup log: no "Error while calling comfy_entrypoint" / "Cannot import" for the pack.
-3. `curl -s localhost:8188/object_info/BytePlusSeedance2 | head` — node registered with expected inputs.
+3. `curl -s localhost:8188/object_info/BytePlusSeedance2Reference | head` — node registered with expected inputs.
 4. Load each changed example workflow in **Classic Canvas and Nodes 2.0**; check widget visibility rules, values, and that a run shows progress and can be cancelled (Cancel should delete pending ModelArk tasks).
 
 ## 4. Version bump checklist
