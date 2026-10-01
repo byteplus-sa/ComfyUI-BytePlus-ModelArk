@@ -375,6 +375,7 @@
         {
           "name": "VIDEO",
           "type": "VIDEO",
+          "shape": 6,
           "links": [5]
         },
         {

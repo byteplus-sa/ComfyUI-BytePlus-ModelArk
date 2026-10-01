@@ -37,11 +37,13 @@ from .constants import (
     SEEDANCE_2_5_EDIT_MIN_DURATION,
 )
 from .core_style import (
+    last_frame_batch_output,
     raise_if_output_linked,
     resolve_reference_values,
     resolve_typed_reference,
     seed_input,
     video_extra_inputs,
+    video_list_output,
     watermark_input,
 )
 from .models_config import (
@@ -335,9 +337,9 @@ def _model_input(option_inputs):
 
 def _generation_outputs():
     return [
-        comfy_io.Video.Output(),
+        video_list_output(),
         comfy_io.String.Output("draft_task_id", tooltip=DRAFT_TASK_ID_OUTPUT_TOOLTIP),
-        comfy_io.Image.Output("last_frame", tooltip="Last frame of the (first) generated video."),
+        last_frame_batch_output(),
         comfy_io.String.Output("response", tooltip="Task responses as JSON."),
     ]
 
@@ -458,6 +460,7 @@ async def _generate(cls, client, model, label, content, prompt, ratio, seed, wat
         return_last_frame=not _is_draft(label),
         node_class_type=cls.NODE_ID,
         workflow_prompt=getattr(cls.hidden, "prompt", None),
+        as_list=True,
     )
     video, last_frame, response = result.args
     return comfy_io.NodeOutput(video, task_ids_from_response(response), last_frame, response)
@@ -1331,8 +1334,8 @@ class BytePlusSeedanceDraftToFinal(comfy_io.ComfyNode):
                 *video_extra_inputs(),
             ],
             outputs=[
-                comfy_io.Video.Output(),
-                comfy_io.Image.Output("last_frame", tooltip="Last frame of the (first) final video."),
+                video_list_output(),
+                last_frame_batch_output(),
                 comfy_io.String.Output("response", tooltip="Task responses as JSON."),
             ],
             hidden=[comfy_io.Hidden.unique_id, comfy_io.Hidden.prompt],
@@ -1380,6 +1383,8 @@ class BytePlusSeedanceDraftToFinal(comfy_io.ComfyNode):
             service_tier=service_tier,
             execution_expires_after=execution_expires_after,
             ignore_errors=node_count > 1,
+            as_list=True,
+            workflow_prompt=getattr(cls.hidden, "prompt", None),
         )
         return comfy_io.NodeOutput(*result.args)
 

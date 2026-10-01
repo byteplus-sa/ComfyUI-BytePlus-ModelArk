@@ -42,6 +42,7 @@ if COMFY_ROOT:
     nodes_seedance2 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance2")
     core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
+    from comfy_execution.graph_utils import ExecutionBlocker  # noqa: E402
 
 ASSET_ENV_KEYS = (
     "BYTEPLUS_ACCESS_KEY", "BYTEPLUS_SECRET_KEY", "BYTEPLUS_ACCESSKEY", "BYTEPLUS_SECRETKEY",
@@ -259,8 +260,11 @@ class SchemaTests(unittest.TestCase):
             info = node_cls.GET_NODE_INFO_V1()
             self.assertEqual(info["output"], ["VIDEO", "STRING", "IMAGE", "STRING"])
             self.assertEqual(info["output_name"], ["VIDEO", "draft_task_id", "last_frame", "response"])
+            # Every video of a generation_count batch; their last frames are one IMAGE batch.
+            self.assertEqual(info["output_is_list"], [True, False, False, False])
         info = nodes_seedance2.BytePlusSeedanceDraftToFinal.GET_NODE_INFO_V1()
         self.assertEqual(info["output_name"], ["VIDEO", "last_frame", "response"])
+        self.assertEqual(info["output_is_list"], [True, False, False])
         for node_cls in nodes_assets.CORE_STYLE_NODES:
             info = node_cls.GET_NODE_INFO_V1()
             self.assertEqual(info["output_name"], ["asset_id", "group_id", "asset_uri", "info"])
@@ -510,7 +514,7 @@ class TextToVideoTests(_ExecutorHarness):
         for absent in ("draft", "omni_reference_task_type", "service_tier", "execution_expires_after"):
             self.assertNotIn(absent, request)
         self.assertEqual(result.args[1], "cgt-1")
-        self.assertIsNone(result.args[0])
+        self.assertIsInstance(result.args[0], ExecutionBlocker)  # pending: nodes using it are skipped
         self.assertEqual(json.loads(result.args[3])["task_ids"], ["cgt-1"])
 
     async def test_seed_zero_and_watermark_are_sent(self):
@@ -522,6 +526,7 @@ class TextToVideoTests(_ExecutorHarness):
             self.T2V, model=self.model("Seedance 2.5 Draft", resolution="480p"), seed=1, generation_count=2
         )
         self.assertEqual(len(self.submitted), 2)
+        self.assertCountEqual([r["seed"] for r in self.submitted], [1, 2])  # one seed per draft
         for request in self.submitted:
             self.assertTrue(request["draft"])
             self.assertEqual(request["resolution"], "480p")

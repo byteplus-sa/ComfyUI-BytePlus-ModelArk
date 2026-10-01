@@ -42,6 +42,7 @@ if COMFY_ROOT:
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
     seedance1 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance1")
     from comfy_api.latest import io as comfy_io  # noqa: E402
+    from comfy_execution.graph_utils import ExecutionBlocker  # noqa: E402
 
     T2V = seedance1.BytePlusSeedanceTextToVideo
     I2V = seedance1.BytePlusSeedanceImageToVideo
@@ -189,6 +190,8 @@ class Seedance1SchemaTests(unittest.TestCase):
             with self.subTest(node=info["name"]):
                 self.assertEqual(info["output"], ["VIDEO", "IMAGE", "STRING"])
                 self.assertEqual(info["output_name"], ["VIDEO", "last_frame", "response"])
+                # Every video of a generation_count batch; their last frames are one IMAGE batch.
+                self.assertEqual(info["output_is_list"], [True, False, False])
 
     def _core_pairs(self):
         try:
@@ -368,10 +371,10 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(absent, request)
         self.assertEqual(self.quota_checks[0][0], "seedance-1-0-pro-fast-251015")
 
-        # Pending non_blocking run: no video yet, task IDs in response.
+        # Pending non_blocking run: no video yet (nodes using it are skipped), task IDs in response.
         video, last_frame, response = result.args
-        self.assertIsNone(video)
-        self.assertIsNone(last_frame)
+        self.assertIsInstance(video, ExecutionBlocker)
+        self.assertIsInstance(last_frame, ExecutionBlocker)
         self.assertEqual(json.loads(response)["task_ids"], ["cgt-1"])
 
     async def test_minimum_duration_is_two_seconds(self):
@@ -438,6 +441,30 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(len(self.submitted), 3)
         self.assertEqual({r["service_tier"] for r in self.submitted}, {"flex"})
+
+    async def test_batch_offsets_the_seed_per_task(self):
+        # Tasks are submitted in parallel threads, so their order is not fixed.
+        await self._run(T2V, model="seedance-1-0-pro-fast-251015", seed=10, generation_count=3)
+        self.assertCountEqual([r["seed"] for r in self.submitted], [10, 11, 12])
+
+    async def test_batch_seed_wraps_at_the_maximum(self):
+        top = executor.VIDEO_MAX_SEED
+        await self._run(T2V, model="seedance-1-0-pro-fast-251015", seed=top, generation_count=2)
+        self.assertCountEqual([r["seed"] for r in self.submitted], [top, 0])
+
+    async def test_single_generation_keeps_the_seed(self):
+        await self._run(T2V, model="seedance-1-0-pro-fast-251015", seed=10, generation_count=1)
+        self.assertEqual([r["seed"] for r in self.submitted], [10])
+
+    async def test_batch_keeps_random_seed(self):
+        # Legacy nodes send -1 (random) when enable_random_seed is on: every task stays random.
+        await nodes_video.BytePlusVideoBase()._common_generation_logic(
+            self._client(), "a fox in the snow", 5, "720p", "16:9", 10, 3, "test", False, True,
+            f"s1-{uuid.uuid4().hex[:8]}",
+            model_name="seedance-1-0-pro-fast-251015", content=[], forbidden_params=[],
+            enable_random_seed=True,
+        )
+        self.assertEqual([r["seed"] for r in self.submitted], [-1, -1, -1])
 
 
 @requires_comfyui
@@ -563,10 +590,119 @@ class Seedance1OutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             for name, original in stubs.items():
                 setattr(nodes_video, name, original)
         video, last_frame, response = result.args
-        self.assertEqual(video, ("video", "/tmp/v.mp4"))
-        self.assertIs(last_frame, frame)
+        self.assertEqual(video, [("video", "/tmp/v.mp4")])  # list output
+        self.assertTrue(torch.equal(last_frame, frame))
         self.assertEqual(json.loads(response)[0]["id"], "cgt-1")
         self.assertNotIn("draft", self.submitted[0])
+
+
+@requires_comfyui
+class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
+    """generation_count above 1: every video, paired last frames, and where videos are saved."""
+
+    # Task ID -> seed; results are ordered by seed: cgt-2, cgt-3, cgt-1.
+    SEEDS = {"cgt-1": 12, "cgt-2": 10, "cgt-3": 11}
+
+    def setUp(self):
+        super().setUp()
+        self.saved = []
+        self.frames = {f"/tmp/{tid}.mp4": torch.full((1, 8, 8, 3), seed / 100) for tid, seed in self.SEEDS.items()}
+        replacements = {
+            "download_video_to_temp": self._fake_download,
+            "extract_last_frame_tensor": lambda path: self.frames.get(path),
+            "VideoFromFile": lambda path: ("video", path),
+            "save_to_output": lambda path, prefix: self.saved.append((path, prefix)),
+        }
+        for name, replacement in replacements.items():
+            self.addCleanup(setattr, nodes_video, name, getattr(nodes_video, name))
+            setattr(nodes_video, name, replacement)
+
+    @staticmethod
+    async def _fake_download(_session, url, _prefix, _seed, _folder):
+        return f"/tmp/{os.path.basename(url)}"
+
+    def _tasks(self):
+        return [
+            SimpleNamespace(
+                id=tid,
+                status="succeeded",
+                seed=seed,
+                content=SimpleNamespace(video_url=f"https://example.invalid/{tid}.mp4"),
+                model_dump=lambda tid=tid: {"id": tid},
+            )
+            for tid, seed in self.SEEDS.items()
+        ]
+
+    async def _handle(self, as_list, generation_count=3, save_videos=None):
+        return await nodes_video.BytePlusVideoBase()._handle_batch_success_async(
+            self._tasks(), "BytePlus/Test", generation_count, False, None,
+            as_list=as_list, save_videos=save_videos,
+        )
+
+    async def test_every_video_with_its_last_frame_in_seed_order(self):
+        video, last_frame, response = (await self._handle(as_list=True)).args
+        order = ["cgt-2", "cgt-3", "cgt-1"]
+        self.assertEqual(video, [("video", f"/tmp/{tid}.mp4") for tid in order])
+        self.assertEqual(tuple(last_frame.shape), (3, 8, 8, 3))
+        for index, tid in enumerate(order):
+            self.assertTrue(torch.equal(last_frame[index:index + 1], self.frames[f"/tmp/{tid}.mp4"]))
+        self.assertEqual([item["id"] for item in json.loads(response)], order)
+        # Batches are saved when nothing downstream receives the videos.
+        self.assertEqual([path for path, _ in self.saved], [f"/tmp/{tid}.mp4" for tid in order])
+
+    async def test_missing_last_frame_is_left_out_of_the_batch(self):
+        del self.frames["/tmp/cgt-2.mp4"]
+        video, last_frame, _ = (await self._handle(as_list=True)).args
+        self.assertEqual(len(video), 3)
+        self.assertEqual(tuple(last_frame.shape), (2, 8, 8, 3))
+        self.assertTrue(torch.equal(last_frame[0:1], self.frames["/tmp/cgt-3.mp4"]))
+
+    async def test_legacy_outputs_pair_the_first_video_with_its_own_frame(self):
+        video, last_frame, _ = (await self._handle(as_list=False)).args
+        self.assertEqual(video, ("video", "/tmp/cgt-2.mp4"))
+        self.assertTrue(torch.equal(last_frame, self.frames["/tmp/cgt-2.mp4"]))
+        # Its frame missing: no frame, not the frame of another video.
+        del self.frames["/tmp/cgt-2.mp4"]
+        video, last_frame, _ = (await self._handle(as_list=False)).args
+        self.assertEqual(video, ("video", "/tmp/cgt-2.mp4"))
+        self.assertIsNone(last_frame)
+
+    async def test_no_downloaded_video_blocks_the_list_outputs(self):
+        async def no_video(*_args):
+            return None
+
+        nodes_video.download_video_to_temp = no_video
+        video, last_frame, response = (await self._handle(as_list=True)).args
+        self.assertIsInstance(video, ExecutionBlocker)
+        self.assertIsInstance(last_frame, ExecutionBlocker)
+        self.assertEqual(len(json.loads(response)), 3)
+
+    async def test_single_video_is_not_saved_here(self):
+        await self._handle(as_list=True, generation_count=1)
+        self.assertEqual(self.saved, [])
+
+    async def _run_batch(self, prompt_graph):
+        return await self._run(
+            T2V,
+            client=self._client(tasks={task.id: task for task in self._tasks()}),
+            prompt_graph=prompt_graph,
+            node_id="7",
+            model="seedance-1-0-pro-fast-251015",
+            generation_count=3,
+            non_blocking=False,
+        )
+
+    async def test_batch_is_saved_when_the_video_output_is_unconnected(self):
+        # Only last_frame (output 1) is connected.
+        result = await self._run_batch({"9": {"class_type": "PreviewImage", "inputs": {"images": ["7", 1]}}})
+        self.assertEqual(len(result.args[0]), 3)
+        self.assertEqual(len(self.saved), 3)
+
+    async def test_batch_is_not_saved_when_the_video_output_is_connected(self):
+        # Save Video receives every video, so saving them here would duplicate them.
+        result = await self._run_batch({"8": {"class_type": "SaveVideo", "inputs": {"video": ["7", 0]}}})
+        self.assertEqual(len(result.args[0]), 3)
+        self.assertEqual(self.saved, [])
 
 
 @requires_comfyui

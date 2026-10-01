@@ -270,6 +270,7 @@ MESSAGES = {
     "batch_finished_stats": "Batch finished. Success: {success}, Failed: {failed}.",
     "batch_handling": "Handling {count} successful tasks. Sorting by seed and downloading...",
     "batch_copying": "Copying files to output directory: {path}",
+    "batch_last_frame_missing": "No last frame for {missing} of {total} videos; the last_frame batch leaves them out.",
     "err_download_url": "Async download failed, URL: {url}, Error: {e}",
     "check_status": "Checking status of {count} pending task(s)...",
     "err_create_dummy_video": "Failed to create placeholder video: {e}",

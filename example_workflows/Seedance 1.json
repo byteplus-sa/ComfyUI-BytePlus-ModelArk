@@ -191,6 +191,7 @@
         {
           "name": "VIDEO",
           "type": "VIDEO",
+          "shape": 6,
           "links": [8]
         },
         {
@@ -454,6 +455,7 @@
         {
           "name": "VIDEO",
           "type": "VIDEO",
+          "shape": 6,
           "links": [9]
         },
         {
@@ -767,6 +769,7 @@
         {
           "name": "VIDEO",
           "type": "VIDEO",
+          "shape": 6,
           "links": [10]
         },
         {
