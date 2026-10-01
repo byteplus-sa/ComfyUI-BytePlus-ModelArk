@@ -66,7 +66,8 @@ def generation_count_input():
         "generation_count",
         default=1,
         min=1,
-        tooltip="Number of separate generations to run in parallel.",
+        tooltip="Number of separate generations to run in parallel. With several, generation N uses "
+        "seed + N so the results differ.",
         advanced=True,
     )
 
@@ -75,7 +76,8 @@ def filename_prefix_input():
     return comfy_io.String.Input(
         "filename_prefix",
         default=DEFAULT_FILENAME_PREFIX,
-        tooltip="Results are also saved to the output folder with this prefix.",
+        tooltip="With generation_count above 1, the videos are also saved to the output folder with this "
+        "prefix, unless the video output is connected (the connected node gets every video).",
         advanced=True,
     )
 
@@ -99,7 +101,7 @@ def video_extra_inputs(include_offline=False):
             comfy_io.Boolean.Input(
                 "save_last_frame_batch",
                 default=False,
-                tooltip="Also save the last frame of every generated video.",
+                tooltip="With generation_count above 1, also save the last frame of every generated video.",
                 advanced=True,
             ),
             comfy_io.Boolean.Input(
@@ -114,6 +116,25 @@ def video_extra_inputs(include_offline=False):
         ]
     )
     return inputs
+
+
+def video_list_output():
+    """
+    Core's VIDEO output as a list output: every video of a generation_count batch
+    reaches the next node (which runs once per video), not only the first.
+    """
+    return comfy_io.Video.Output(
+        is_output_list=True,
+        tooltip="The generated video, or every video of a generation_count batch "
+        "(the next node runs once per video).",
+    )
+
+
+def last_frame_batch_output():
+    return comfy_io.Image.Output(
+        "last_frame",
+        tooltip="Last frame of each generated video, as one image batch in the same order as the videos.",
+    )
 
 
 def raise_if_model_retired(model):

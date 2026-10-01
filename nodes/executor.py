@@ -21,7 +21,7 @@ except ImportError:
 import comfy.model_management
 from server import PromptServer
 from .nodes_shared import log_msg, format_api_error, get_text, BytePlusException, create_white_image_tensor, safe_cat_tensors
-from .constants import SEEDANCE_REQUEST_MAX_BYTES
+from .constants import SEEDANCE_REQUEST_MAX_BYTES, VIDEO_MAX_SEED
 from .models_config import VIDEO_MODEL_MAP, VIDEO_2_UI_OPTIONS
 from .utils_download import b64_image_to_tensor_async
 
@@ -499,6 +499,11 @@ class BytePlusGenerationExecutor:
         submitted_task_kwargs = []
         for i in range(generation_count):
             task_kwargs = request_kwargs.copy()
+            # Same seed, same prompt: the tasks would be near-duplicates. Offset a
+            # fixed seed per task like Seedream does; -1 (random) and no seed stay as is.
+            seed = task_kwargs.get("seed")
+            if generation_count > 1 and isinstance(seed, int) and seed >= 0:
+                task_kwargs["seed"] = (seed + i) % (VIDEO_MAX_SEED + 1)
             if is_multi_content:
                 task_kwargs["content"] = content[i % len(content)]
             if "seedance-2-" in str(model_name).lower():

@@ -22,7 +22,9 @@ from comfy_api.latest import io as comfy_io
 from comfy_api.input_impl import VideoFromFile
 
 from .audio_utils import audio_to_wav_bytes, audio_waveform
-from .core_style import raise_if_model_retired
+from comfy_execution.graph_utils import ExecutionBlocker
+
+from .core_style import get_output_consumers, raise_if_model_retired
 from .nodes_shared import (
     GLOBAL_CATEGORY,
     _image_to_base64,
@@ -36,6 +38,7 @@ from .nodes_shared import (
     create_white_video,
     probe_video_file,
     extract_last_frame_tensor,
+    safe_cat_tensors,
 )
 from .nodes_video_schema import (
     get_common_video_seed_inputs,
@@ -346,6 +349,17 @@ from .constants import (
     VIDEO_FRAME_RATE,
     VIDEO_RESOLUTION_PIXELS,
 )
+
+
+def _save_batch_videos(generation_count, as_list, workflow_prompt, node_id):
+    """
+    Batches are written to the output folder, except when a node reads the video
+    list output (e.g. Save Video): it gets every video, so saving here duplicates them.
+    """
+    if generation_count <= 1:
+        return False
+    return not (as_list and get_output_consumers(workflow_prompt, node_id, 0))
+
 
 class BytePlusVideoBase:
     """
@@ -770,6 +784,27 @@ class BytePlusVideoBase:
         )
         return duration, request_bytes
 
+    @staticmethod
+    def _pending_outputs(state, as_list):
+        """
+        A non_blocking run without videos yet: the task IDs in the response. List
+        outputs get ExecutionBlockers (a list output cannot be None), so nodes using
+        them are skipped.
+        """
+        empty = ExecutionBlocker(None) if as_list else None
+        return comfy_io.NodeOutput(empty, empty, json.dumps(state, ensure_ascii=False, indent=2))
+
+    @staticmethod
+    def _ignored_failure_outputs(as_list):
+        """Placeholders when every task failed in a workflow with several such nodes."""
+        dummy_video = create_white_video(1024, 1024)
+        dummy_frame = create_white_image_tensor(1024, 1024)
+        return comfy_io.NodeOutput(
+            [dummy_video] if as_list else dummy_video,
+            dummy_frame,
+            json.dumps({"error": "All tasks failed but ignored. Returning dummy video/image."}),
+        )
+
     async def _handle_batch_success_async(
         self,
         successful_tasks,
@@ -777,9 +812,14 @@ class BytePlusVideoBase:
         generation_count,
         save_last_frame_batch,
         session,
+        as_list=False,
+        save_videos=None,
     ):
         """
         Download the videos and last frames of succeeded tasks and build the outputs.
+        as_list: every video (for a list output) and a batch of their last frames in
+        the same order; otherwise the first video and its own last frame (Legacy nodes).
+        save_videos: also write the videos to the output folder (default: when batching).
         """
         # t_start = time.time()
         if generation_count > 1:
@@ -836,35 +876,45 @@ class BytePlusVideoBase:
             valid_results.append(res)
 
         valid_results.sort(key=lambda x: x["seed"])
+        if save_videos is None:
+            save_videos = generation_count > 1
 
         all_responses = []
-        first_video = None
-        first_frame = None
+        # One entry per downloaded video, so videos[i] and frames[i] are the same task.
+        videos = []
+        frames = []
 
         for res in valid_results:
-            if res["frame_tensor"] is None and res["video_path"]:
-                res["frame_tensor"] = extract_last_frame_tensor(res["video_path"])
-
             all_responses.append(res["response"])
             v_path = res["video_path"]
+            if not v_path:
+                continue
             f_tensor = res["frame_tensor"]
-            f_path = res["frame_path"]
+            if f_tensor is None:
+                f_tensor = extract_last_frame_tensor(v_path)
+            videos.append(VideoFromFile(v_path))
+            frames.append(f_tensor)
 
-            if first_video is None and v_path:
-                first_video = VideoFromFile(v_path)
-            if first_frame is None and f_tensor is not None:
-                first_frame = f_tensor
-
-            if generation_count > 1:
+            if save_videos:
                 save_to_output(v_path, filename_prefix)
-                if save_last_frame_batch and f_path:
-                    save_to_output(f_path, filename_prefix)
+            if generation_count > 1 and save_last_frame_batch and res["frame_path"]:
+                save_to_output(res["frame_path"], filename_prefix)
 
         # t_end = time.time()
         # print(f"[BytePlus Debug] Batch handling finished in {t_end - t_start:.2f}s")
-        
+        response = json.dumps(all_responses, indent=2)
+
+        if not as_list:
+            return comfy_io.NodeOutput(
+                videos[0] if videos else None, frames[0] if frames else None, response
+            )
+        if not videos:
+            return comfy_io.NodeOutput(ExecutionBlocker(None), ExecutionBlocker(None), response)
+        found = [frame for frame in frames if frame is not None]
+        if len(found) < len(frames):
+            log_msg("batch_last_frame_missing", missing=len(frames) - len(found), total=len(frames))
         return comfy_io.NodeOutput(
-            first_video, first_frame, json.dumps(all_responses, indent=2)
+            videos, safe_cat_tensors(found) if found else ExecutionBlocker(None), response
         )
 
     @staticmethod
@@ -912,10 +962,13 @@ class BytePlusVideoBase:
         service_tier=None,
         execution_expires_after=None,
         ignore_errors=False,
+        as_list=False,
+        workflow_prompt=None,
     ):
         """
         Submit tasks whose content is already built (e.g. a draft_task
         reference for a final video) and collect the results.
+        as_list: outputs for a list VIDEO output (see _handle_batch_success_async).
         """
         client.check_quota(
             model_name,
@@ -938,14 +991,10 @@ class BytePlusVideoBase:
         )
 
         if isinstance(successful_tasks, dict) and successful_tasks.get("non_blocking"):
-            return comfy_io.NodeOutput(
-                None, None, json.dumps(successful_tasks, ensure_ascii=False, indent=2)
-            )
+            return self._pending_outputs(successful_tasks, as_list)
 
         if not successful_tasks and ignore_errors:
-            dummy_video = create_white_video(1024, 1024)
-            dummy_frame = create_white_image_tensor(1024, 1024)
-            return comfy_io.NodeOutput(dummy_video, dummy_frame, json.dumps({"error": "All tasks failed but ignored. Returning dummy video/image."}))
+            return self._ignored_failure_outputs(as_list)
 
         async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(force_close=True)
@@ -956,6 +1005,8 @@ class BytePlusVideoBase:
                 generation_count,
                 save_last_frame_batch,
                 session,
+                as_list=as_list,
+                save_videos=_save_batch_videos(generation_count, as_list, workflow_prompt, node_id),
             )
             await asyncio.sleep(0.25)
         self._record_usage(client, model_name, ret_results)
@@ -986,9 +1037,11 @@ class BytePlusVideoBase:
         on_tasks_created=None,
         node_class_type=None,
         workflow_prompt=None,
+        as_list=False,
     ):
         """
         Shared video generation flow: build parameters, submit, poll and collect results.
+        as_list: outputs for a list VIDEO output (see _handle_batch_success_async).
         """
         try:
             _raise_if_text_params(prompt, forbidden_params)
@@ -1053,16 +1106,10 @@ class BytePlusVideoBase:
             if isinstance(successful_tasks, dict) and successful_tasks.get(
                 "non_blocking"
             ):
-                return comfy_io.NodeOutput(
-                    None,
-                    None,
-                    json.dumps(successful_tasks, ensure_ascii=False, indent=2),
-                )
+                return self._pending_outputs(successful_tasks, as_list)
 
             if not successful_tasks and ignore_errors:
-                 dummy_video = create_white_video(1024, 1024)
-                 dummy_frame = create_white_image_tensor(1024, 1024)
-                 return comfy_io.NodeOutput(dummy_video, dummy_frame, json.dumps({"error": "All tasks failed but ignored. Returning dummy video/image."}))
+                return self._ignored_failure_outputs(as_list)
 
             ret_results = None
             async with aiohttp.ClientSession() as session:
@@ -1072,6 +1119,8 @@ class BytePlusVideoBase:
                     generation_count,
                     save_last_frame_batch,
                     session,
+                    as_list=as_list,
+                    save_videos=_save_batch_videos(generation_count, as_list, workflow_prompt, node_id),
                 )
                 await asyncio.sleep(0.25)
             

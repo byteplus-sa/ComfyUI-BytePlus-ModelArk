@@ -21,7 +21,13 @@ from .constants import (
     IMAGE_MIN_RATIO,
     VIDEO_DEFAULT_TIMEOUT,
 )
-from .core_style import seed_input, video_extra_inputs, watermark_input
+from .core_style import (
+    last_frame_batch_output,
+    seed_input,
+    video_extra_inputs,
+    video_list_output,
+    watermark_input,
+)
 from .models_config import (
     SEEDANCE_1_DEFAULT_DURATION,
     SEEDANCE_1_DEFAULT_MODEL,
@@ -177,8 +183,8 @@ def _extra_inputs():
 
 def _outputs():
     return [
-        comfy_io.Video.Output(),
-        comfy_io.Image.Output("last_frame", tooltip="Last frame of the generated video."),
+        video_list_output(),
+        last_frame_batch_output(),
         comfy_io.String.Output(
             "response",
             tooltip="Task results as JSON, or the pending task IDs of a non_blocking run.",
@@ -268,6 +274,7 @@ async def generate_seedance1_video(
         return_last_frame=True,
         node_class_type=cls.NODE_ID,
         workflow_prompt=cls.hidden.prompt,
+        as_list=True,
     )
 
 

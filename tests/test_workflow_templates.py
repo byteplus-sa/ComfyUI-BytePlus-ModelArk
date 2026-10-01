@@ -442,6 +442,24 @@ class WorkflowTemplateTests(unittest.TestCase):
         targets = {(link[2], nodes[link[3]]["type"], link[4]) for link in workflow["links"] if link[1] == enhance["id"]}
         self.assertEqual(targets, {(0, "SaveImage", 0), (1, "ImageCompare", 0), (0, "ImageCompare", 1)})
 
+    def test_seedance_video_outputs_are_list_slots(self):
+        # VIDEO is a list output (every video of a generation_count batch); the frontend
+        # saves list outputs with the grid slot shape (LiteGraph GRID_SHAPE = 6).
+        seedance_nodes = self.CORE_STYLE_SEEDANCE2_NODES | {
+            "BytePlusSeedanceTextToVideo", "BytePlusSeedanceImageToVideo",
+            "BytePlusSeedanceFirstLastFrame", "BytePlusSeedanceDraftToFinal",
+        }
+        found = set()
+        for name in sorted(EXPECTED_WORKFLOWS):
+            for node in load_workflow(name)["nodes"]:
+                if node["type"] in seedance_nodes:
+                    found.add(node["type"])
+                    with self.subTest(workflow=name, node=node["id"]):
+                        video = node["outputs"][0]
+                        self.assertEqual((video["name"], video.get("shape")), ("VIDEO", 6))
+                        self.assertTrue(all("shape" not in o for o in node["outputs"][1:]))
+        self.assertEqual(found, seedance_nodes)
+
     def test_templates_do_not_embed_api_keys(self):
         for name in sorted(EXPECTED_WORKFLOWS):
             workflow = load_workflow(name)
