@@ -39,7 +39,7 @@ Rules: every await on the network goes through `nodes_shared.wait_interruptible`
 
 ## 4. Media in and out
 
-- Inputs: images/audio inline as base64 when the API takes it; otherwise upload through Comfy.org storage (`nodes_mediakit.upload_source` / `upload_image_source`, `nodes_speech.upload_to_comfy_storage`), which lazily imports `comfy_api_nodes.util` and needs a Comfy.org login. Cache uploads by content. Never register local media as a private asset.
+- Inputs: images/audio inline as base64 when the API takes it; otherwise upload through Comfy.org storage with the shared, cached `nodes_shared.upload_bytes_to_comfy_storage` (wrapped per product by `nodes_mediakit.upload_source` / `upload_image_source` and `nodes_speech.upload_to_comfy_storage`). It lazily imports `comfy_api_nodes.util` and needs a Comfy.org login. Build on it rather than writing a new upload path. Never register local media as a private asset.
 - Validate limits **before** uploading (`validate_source_video`, `plan_image_enhance`) so the user doesn't pay for an upload that the API rejects.
 - Offer both a socket and a `*_url` input where the API accepts links; `check_source` rejects both-at-once.
 - Local video work uses PyAV (`_render_synced`, `nodes_shared.probe_video_file`); no OpenCV.

@@ -59,7 +59,7 @@ Keep these invariants while editing:
 
 ## 4. Raising the ComfyUI floor
 
-Only when a parity change needs a newer core API (a new `comfy_io` type, a new Schema field). Then: `requires-comfyui` in `pyproject.toml`, the two README mentions, and recheck the lazy `comfy_api_nodes.util.upload_*_to_comfyapi` signatures we wrap (`nodes_video.upload_video_to_comfy_storage`, `nodes_speech.upload_to_comfy_storage`, `nodes_mediakit.upload_source`) — that module is not a stable API.
+Only when a parity change needs a newer core API (a new `comfy_io` type, a new Schema field). Then: `requires-comfyui` in `pyproject.toml`, the two README mentions, and recheck the lazy `comfy_api_nodes.util.upload_*_to_comfyapi` signatures we wrap (`nodes_video.upload_video_to_comfy_storage`, `nodes_shared.upload_bytes_to_comfy_storage`) — that module is not a stable API.
 
 ## 5. Finish
 
