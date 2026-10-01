@@ -2,11 +2,13 @@
 BytePlus VOD AI MediaKit: the MediaKit Client, vCube Video Enhance (the UI
 shape of ComfyUI core's ByteDanceVideoEnhanceNode, this pack's requests to
 MediaKit, task polling, and the before/after comparison) and Video Smoothness
-Enhance (requests, limits, pass-through without a repair, side-by-side video).
+Enhance (requests, limits, pass-through without a repair, side-by-side video)
+and Image Quality Enhance (requests, per-version limits, uploads, batches).
 
 Needs a ComfyUI checkout and a Python env with torch, PyAV and the BytePlus SDK:
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_mediakit
 """
+import asyncio
 import importlib
 import json
 import os
@@ -68,12 +70,14 @@ class FakeMediaKit:
 
     def __init__(self, task_statuses=("running", "completed"), submit=None, result=None):
         self.calls = []
+        self.timeouts = []
         self.statuses = list(task_statuses)
         self.submit = submit or (200, {"success": True, "task_id": "amk-tool-enhance-video-1", "request_id": "r1"})
         self.result = self.VCUBE_RESULT if result is None else result
 
-    async def __call__(self, client, method, path, body=None):
+    async def __call__(self, client, method, path, body=None, timeout_seconds=None):
         self.calls.append((method, path, body))
+        self.timeouts.append(timeout_seconds)
         if method == "POST":
             return self.submit
         status = self.statuses.pop(0) if self.statuses else "completed"
@@ -240,7 +244,7 @@ class NodeFixture(unittest.IsolatedAsyncioTestCase):
         self.downloads = []
         test = self
 
-        async def fake_download(url, prefix):
+        async def fake_download(url, prefix, ext="mp4"):
             test.downloads.append((url, prefix))
             return test.enhanced if prefix in ("vcube_enhanced", "smooth_repaired") else test.source
 
@@ -519,6 +523,237 @@ class SmoothnessNodeTests(NodeFixture):
         self.assertEqual(nodes_mediakit.side_by_side_size(3840, 2160), (1920, 1080))
         self.assertEqual(nodes_mediakit.side_by_side_size(1080, 1920), (1080, 1920))
         self.assertEqual(nodes_mediakit.side_by_side_size(2560, 1080), (1920, 810))
+
+
+def write_image(path, width, height, channel):
+    import numpy
+    from PIL import Image
+
+    array = numpy.zeros((height, width, 3), numpy.uint8)
+    array[..., channel] = 200
+    Image.fromarray(array).save(path)
+
+
+def solid(width, height, channel, batch=1):
+    import torch
+
+    image = torch.zeros((batch, height, width, 3))
+    image[..., channel] = 0.8
+    return image
+
+
+@requires_comfyui
+class ImageEnhanceRequestTests(unittest.TestCase):
+    URL = "https://cdn.example/source.jpg"
+    TWO_X = {"output_size": "multiple", "multiple": 2.0}
+
+    def build(self, tool=None, size=None):
+        return nodes_mediakit.build_image_enhance_request(
+            self.URL, tool or {"tool_version": "standard"}, size or self.TWO_X
+        )
+
+    def plan(self, version, size=None, output=None, **tool):
+        body = self.build({"tool_version": version, **tool}, output)
+        return nodes_mediakit.plan_image_enhance(body, size)
+
+    def test_schema(self):
+        info = nodes_mediakit.BytePlusImageEnhance.GET_NODE_INFO_V1()
+        self.assertEqual(info["display_name"], "BytePlus Image Quality Enhance")
+        schema = nodes_mediakit.BytePlusImageEnhance.define_schema()
+        self.assertEqual([i.id for i in schema.inputs],
+                         ["mediakit_client", "image", "tool_version", "output_size", "image_url"])
+        self.assertTrue(info["input"]["optional"]["image_url"][1]["advanced"])
+        versions = info["input"]["required"]["tool_version"][1]["options"]
+        self.assertEqual([o["key"] for o in versions], ["standard", "professional", "max"])
+        sizes = info["input"]["required"]["output_size"][1]["options"]
+        self.assertEqual([o["key"] for o in sizes], ["multiple", "target size"])
+        self.assertEqual(info["output_name"], ["IMAGE", "original", "response"])
+
+    def test_requests(self):
+        self.assertEqual(self.build(), {"image_url": self.URL, "tool_version": "standard", "multiple": 2.0})
+        # Options of other versions left in the DynamicCombo value are not sent.
+        stale = self.build({"tool_version": "standard", "generative_enhance_mode": "fidelity_first"})
+        self.assertNotIn("generative_enhance_mode", stale)
+        pro = self.build({"tool_version": "professional", "generative_enhance_mode": "fidelity_first",
+                          "enable_correct_color": False})
+        self.assertEqual(pro["generative_enhance_mode"], "fidelity_first")
+        self.assertNotIn("enable_correct_color", pro)
+        best = self.build({"tool_version": "max", "generative_enhance_mode": "generative_first",
+                           "enable_correct_color": False}, {"output_size": "multiple", "multiple": 2.5})
+        self.assertEqual((best["enable_correct_color"], best["multiple"]), (False, 2.5))
+        width_only = self.build(size={"output_size": "target size", "target_width": 1920, "target_height": 0})
+        self.assertEqual(width_only, {"image_url": self.URL, "tool_version": "standard", "target_width": 1920})
+        both = self.build(size={"output_size": "target size", "target_width": 1200, "target_height": 900})
+        self.assertEqual((both["target_width"], both["target_height"]), (1200, 900))
+        self.assertNotIn("multiple", both)
+
+    def test_version_limits(self):
+        self.assertEqual(self.plan("standard", (1000, 800)), (2000, 1600))
+        with self.assertRaisesRegex(Exception, "16-1440 px on the short side"):
+            self.plan("standard", (1500, 1500))
+        with self.assertRaisesRegex(Exception, "would be 4320x6480"):
+            self.plan("standard", (1440, 2160), {"output_size": "multiple", "multiple": 3.0})
+        with self.assertRaisesRegex(Exception, "between 1 and 8 for the standard"):
+            self.plan("standard", (100, 100), {"output_size": "multiple", "multiple": 9.0})
+        with self.assertRaisesRegex(Exception, "at least 256 px"):
+            self.plan("professional", (200, 400))
+        with self.assertRaisesRegex(Exception, "at most 2048 px"):
+            self.plan("professional", (300, 2100))
+        self.assertEqual(self.plan("professional", (256, 341), {"output_size": "multiple", "multiple": 30.0}),
+                         (7680, 10230))
+        with self.assertRaisesRegex(Exception, "ratio up to 32:1"):
+            self.plan("max", (66, 2178))
+        with self.assertRaisesRegex(Exception, "long side of at most 10240"):
+            self.plan("max", (1000, 1000), {"output_size": "multiple", "multiple": 11.0})
+
+    def test_target_size_limits(self):
+        target = lambda w=0, h=0: {"output_size": "target size", "target_width": w, "target_height": h}
+        # Both sides: the largest size inside the box at the source aspect ratio.
+        self.assertEqual(self.plan("professional", (400, 400), target(1200, 900)), (900, 900))
+        self.assertEqual(self.plan("standard", (500, 250), target(h=1000)), (2000, 1000))
+        with self.assertRaisesRegex(Exception, "target_width must be between 500 and 6144"):
+            self.plan("standard", (500, 500), target(400))
+        with self.assertRaisesRegex(Exception, "between 1 and 8"):
+            self.plan("standard", (500, 500), target(4500))  # 9x
+        with self.assertRaisesRegex(Exception, "Set target_width, target_height or both"):
+            self.plan("max", (500, 500), target())
+        # image_url: the source size is unknown, so only the ranges are checked.
+        self.assertIsNone(self.plan("professional", None, target(1920)))
+        with self.assertRaisesRegex(Exception, "between 64 and 10240"):
+            self.plan("max", None, target(50))
+
+    def test_upload_encoding(self):
+        import torch
+
+        torch.manual_seed(0)
+        image = torch.rand(48, 64, 3)  # noise: the PNG is bigger than a JPEG
+        data, name, mime = nodes_mediakit.encode_image_for_upload(image)
+        self.assertEqual((name, mime), ("image.png", "image/png"))
+        self.assertTrue(data.startswith(b"\x89PNG"))
+        data, name, mime = nodes_mediakit.encode_image_for_upload(image, max_bytes=len(data) - 1)
+        self.assertEqual((name, mime), ("image.jpg", "image/jpeg"))
+        with self.assertRaisesRegex(Exception, "larger than 10 MB"):
+            nodes_mediakit.encode_image_for_upload(image, max_bytes=10)
+
+
+@requires_comfyui
+class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
+    RESULT = {"image_url": "https://cdn.example/out.png?auth_key=x", "image_size": 100,
+              "image_format": "png", "image_width": 80, "image_height": 60}
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.enhanced = os.path.join(self.tmp.name, "enhanced.png")
+        self.source = os.path.join(self.tmp.name, "source.png")
+        write_image(self.enhanced, 80, 60, 2)
+        write_image(self.source, 40, 30, 0)
+        self.downloads, self.uploads = [], []
+        test = self
+
+        async def fake_download(url, prefix, ext="mp4"):
+            test.downloads.append((prefix, ext))
+            return test.enhanced if prefix == "image_enhanced" else test.source
+
+        async def fake_upload(cls, data, filename, mime_type, wait_label=None):
+            test.uploads.append((len(data.getvalue()), filename, mime_type))
+            return f"https://storage.example/{len(test.uploads)}.png"
+
+        self._patches = [
+            mock.patch.object(nodes_mediakit, "_download", fake_download),
+            mock.patch("comfy_api_nodes.util.upload_file_to_comfyapi", fake_upload, create=True),
+            mock.patch.dict(nodes_mediakit.IMAGE_UPLOAD_CACHE, clear=True),
+        ]
+        for patcher in self._patches:
+            patcher.start()
+        self.node = nodes_mediakit.BytePlusImageEnhance
+        self.node.hidden = SimpleNamespace(unique_id="9", prompt={})
+        self.client = nodes_mediakit.MediaKitClient("test-key")
+        self.fake = FakeMediaKit(submit=(200, {
+            "success": True, "task_id": "amk-tool-enhance-image-1", "task_type": "enhance-image",
+            "request_id": "r1", "result": self.RESULT, "expires_at": 1,
+        }))
+
+    def tearDown(self):
+        for patcher in self._patches:
+            patcher.stop()
+        self.tmp.cleanup()
+
+    async def run_node(self, **kwargs):
+        args = dict(tool_version={"tool_version": "standard"}, output_size={"output_size": "multiple", "multiple": 2.0})
+        args.update(kwargs)
+        with mock.patch.object(nodes_mediakit, "_send", self.fake):
+            return await self.node.execute(self.client, **args)
+
+    async def test_connected_batch(self):
+        import torch
+
+        batch = torch.cat([solid(96, 72, 0), solid(96, 72, 1)])  # max: short side at least 64 px
+        tool = {"tool_version": "max", "generative_enhance_mode": "fidelity_first", "enable_correct_color": True}
+        result = await self.run_node(image=batch, tool_version=tool)
+        enhanced, original, response = result.args
+        self.assertEqual(tuple(enhanced.shape), (2, 60, 80, 3))
+        self.assertEqual(tuple(original.shape), (2, 60, 80, 3))  # resized for Compare Images
+        self.assertGreater(float(original[0, 30, 40, 0]), 0.7)  # first input: red
+        self.assertGreater(float(original[1, 30, 40, 1]), 0.7)  # second input: green
+        self.assertEqual(len(json.loads(response)), 2)
+        self.assertEqual(len(self.uploads), 2)
+        self.assertEqual({c[1] for c in self.fake.calls}, {"/tools-sync/enhance-image"})
+        bodies = sorted(c[2]["image_url"] for c in self.fake.calls)
+        self.assertEqual(bodies, ["https://storage.example/1.png", "https://storage.example/2.png"])
+        self.assertEqual(self.fake.calls[0][2]["generative_enhance_mode"], "fidelity_first")
+        self.assertEqual(set(self.fake.timeouts), {nodes_mediakit.MEDIAKIT_SYNC_TIMEOUT_SECONDS})
+        self.assertEqual([d for d in self.downloads if d[0] != "image_enhanced"], [])
+        # The same images again reuse the uploads.
+        await self.run_node(image=batch, tool_version=tool)
+        self.assertEqual(len(self.uploads), 2)
+
+    async def test_image_url(self):
+        result = await self.run_node(image_url="https://cdn.example/in.jpg")
+        enhanced, original, response = result.args
+        self.assertEqual(self.fake.calls[0][2]["image_url"], "https://cdn.example/in.jpg")
+        self.assertEqual(tuple(original.shape), tuple(enhanced.shape))
+        self.assertEqual(json.loads(response)["task_id"], "amk-tool-enhance-image-1")
+        self.assertEqual([d[0] for d in self.downloads], ["image_enhanced", "image_source"])
+        self.assertEqual(self.uploads, [])
+
+    async def test_checks_before_any_upload(self):
+        with self.assertRaisesRegex(Exception, "not both"):
+            await self.run_node(image=solid(40, 30, 0), image_url="https://cdn.example/in.jpg")
+        with self.assertRaisesRegex(Exception, "Connect an image"):
+            await self.run_node()
+        with self.assertRaisesRegex(Exception, "image_url must be a public http"):
+            await self.run_node(image_url="file:///tmp/a.png")
+        with self.assertRaisesRegex(Exception, "16-1440 px on the short side"):
+            await self.run_node(image=solid(1500, 1500, 0))
+        self.assertEqual((self.fake.calls, self.uploads), ([], []))
+
+    async def test_failure_is_readable(self):
+        self.fake.submit = (200, {"success": False, "request_id": "r2", "error": {
+            "code": "AbilityError", "message": "super resolution multiple ratio should be between 0 and 8"}})
+        with self.assertRaisesRegex(Exception, "AbilityError.*between 0 and 8.*r2"):
+            await self.run_node(image_url="https://cdn.example/in.jpg")
+
+    async def test_interrupt_cancels_the_request(self):
+        import comfy.model_management
+
+        started = asyncio.Event()
+
+        async def slow_send(client, method, path, body=None, timeout_seconds=None):
+            started.set()
+            await asyncio.sleep(30)
+
+        async def interrupt_soon():
+            await started.wait()
+            comfy.model_management.interrupt_current_processing(True)
+
+        try:
+            with mock.patch.object(nodes_mediakit, "_send", slow_send):
+                waiter = asyncio.ensure_future(interrupt_soon())
+                with self.assertRaises(comfy.model_management.InterruptProcessingException):
+                    await nodes_mediakit.mediakit_request(self.client, "POST", "/tools-sync/enhance-image", {})
+                await waiter
+        finally:
+            comfy.model_management.interrupt_current_processing(False)
 
 
 @requires_comfyui

@@ -1,20 +1,24 @@
 """
 BytePlus VOD AI MediaKit nodes: the MediaKit Client (its own API key),
 vCube Video Enhance, shaped like ComfyUI core's ByteDanceVideoEnhanceNode
-(comfy_api_nodes/nodes_bytedance.py), and Video Smoothness Enhance (not in
-core).
+(comfy_api_nodes/nodes_bytedance.py), and Video Smoothness Enhance and Image
+Quality Enhance (not in core).
 
 Core calls MediaKit through the Comfy.org proxy; these nodes call
 https://mediakit.<region>.bytepluses.com/api/v1 directly with a MediaKit API key
 (Authorization: Bearer), which is a different key from the ModelArk and Seed
-Speech keys. Each tool is an asynchronous task: POST /tools/<tool>, then poll
-GET /tasks/{task_id} until completed.
+Speech keys. Video tools are asynchronous tasks: POST /tools/<tool>, then poll
+GET /tasks/{task_id} until completed. Image Quality Enhance is synchronous
+(POST /tools-sync/enhance-image answers with the result).
 
 This pack adds before/after comparisons: for vCube, a video whose divider
 sweeps across the frame plus a frame pair for ComfyUI's Compare Images slider;
-for Smoothness, the source and the repaired video side by side.
+for Smoothness, the source and the repaired video side by side; for images,
+the original resized to the result for the Compare Images slider.
 """
 import asyncio
+import hashlib
+import io
 import json
 import math
 import os
@@ -38,6 +42,7 @@ from .constants import (
     MEDIAKIT_POLL_SECONDS,
     MEDIAKIT_REGION_BASE_URLS,
     MEDIAKIT_REQUEST_TIMEOUT_SECONDS,
+    MEDIAKIT_SYNC_TIMEOUT_SECONDS,
 )
 from .nodes_shared import (
     GLOBAL_CATEGORY,
@@ -127,9 +132,9 @@ def describe_mediakit_error(error, status=None, request_id=None):
     )
 
 
-async def _send(client, method, path, body=None):
+async def _send(client, method, path, body=None, timeout_seconds=None):
     """One HTTP call to MediaKit; returns (status, parsed JSON or None). Tests replace this."""
-    timeout = aiohttp.ClientTimeout(total=MEDIAKIT_REQUEST_TIMEOUT_SECONDS)
+    timeout = aiohttp.ClientTimeout(total=timeout_seconds or MEDIAKIT_REQUEST_TIMEOUT_SECONDS)
     headers = {"Authorization": f"Bearer {client.api_key}"}
     if body is not None:
         headers["Content-Type"] = "application/json"
@@ -143,10 +148,23 @@ async def _send(client, method, path, body=None):
             return response.status, data
 
 
-async def mediakit_request(client, method, path, body=None):
+async def _interruptible(coroutine):
+    """Await coroutine, cancelling it when the user interrupts the run."""
+    task = asyncio.ensure_future(coroutine)
+    try:
+        while not task.done():
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            await asyncio.wait({task}, timeout=0.5)
+        return task.result()
+    finally:
+        if not task.done():
+            task.cancel()
+
+
+async def mediakit_request(client, method, path, body=None, timeout_seconds=None):
     """Call MediaKit; raise BytePlusException unless the response reports success."""
     try:
-        status, data = await _send(client, method, path, body)
+        status, data = await _interruptible(_send(client, method, path, body, timeout_seconds=timeout_seconds))
     except comfy.model_management.InterruptProcessingException:
         raise
     except (aiohttp.ClientError, asyncio.TimeoutError) as e:
@@ -422,10 +440,10 @@ def _temp_path(prefix, ext="mp4"):
     return os.path.join(folder, f"{prefix}_{uuid.uuid4().hex[:12]}.{ext}")
 
 
-async def _download(url, prefix):
+async def _download(url, prefix, ext="mp4"):
     from .utils_download import _download_to_file_stream_async
 
-    path = _temp_path(prefix)
+    path = _temp_path(prefix, ext)
     timeout = aiohttp.ClientTimeout(total=None, sock_read=120)
     async with aiohttp.ClientSession(timeout=timeout) as session:
         ok = await _download_to_file_stream_async(session, url, path)
@@ -436,15 +454,16 @@ async def _download(url, prefix):
 
 # --- Source video and tasks (shared by the MediaKit tools) --------------------
 
-def check_source(video, video_url):
-    """The video_url link ("" for a connected video). Exactly one source is required."""
-    link = str(video_url or "").strip()
-    if video is not None and link:
-        raise BytePlusException(get_text("err_mediakit_source_both"))
-    if video is None and not link:
-        raise BytePlusException(get_text("err_mediakit_source_missing"))
+def check_source(media, url, name="video_url", both_key="err_mediakit_source_both",
+                 missing_key="err_mediakit_source_missing"):
+    """The url link ("" for connected media). Exactly one source is required."""
+    link = str(url or "").strip()
+    if media is not None and link:
+        raise BytePlusException(get_text(both_key))
+    if media is None and not link:
+        raise BytePlusException(get_text(missing_key))
     if link and not link.lower().startswith(("http://", "https://")):
-        raise BytePlusException(get_text("err_mediakit_url_invalid", url=link))
+        raise BytePlusException(get_text("err_mediakit_url_invalid", name=name, url=link))
     return link
 
 
@@ -1097,5 +1116,392 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
         )
 
 
+# --------------------------------------------------------------------------
+# Image Quality Enhance (synchronous)
+# --------------------------------------------------------------------------
+
+IMAGE_VERSIONS = ["standard", "professional", "max"]
+IMAGE_GENERATIVE_MODES = ["generative_first", "fidelity_first"]
+IMAGE_SIZE_MULTIPLE = "multiple"
+IMAGE_SIZE_TARGET = "target size"
+IMAGE_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+IMAGE_MAX_PARALLEL = 3
+IMAGE_MAX_RECOMMENDED_SIDE = 8000  # max version: larger outputs can time out
+
+# Per tool_version (AI MediaKit docs): input short/long side, long:short ratio,
+# multiple, output short/long side, target_width/height range (None: the
+# original size), and the final magnification cap of a target size.
+IMAGE_VERSION_LIMITS = {
+    "standard": {
+        "in_short": (16, 1440), "in_long": (16, 2160), "max_ratio": None, "multiple": 8.0,
+        "out_short": 6144, "out_long": 6144, "target": (None, 6144), "target_scale": 8.0,
+        "in_rule": "16-1440 px on the short side and 16-2160 px on the long side",
+        "out_rule": "at most 6144 px on each side",
+    },
+    "professional": {
+        "in_short": (256, None), "in_long": (None, 2048), "max_ratio": None, "multiple": 30.0,
+        "out_short": None, "out_long": 10240, "target": (64, 10240), "target_scale": None,
+        "in_rule": "a short side of at least 256 px and a long side of at most 2048 px",
+        "out_rule": "a long side of at most 10240 px",
+    },
+    "max": {
+        "in_short": (64, None), "in_long": (None, 6240), "max_ratio": 32.0, "multiple": 30.0,
+        "out_short": None, "out_long": 10240, "target": (64, 10240), "target_scale": None,
+        "in_rule": "a short side of at least 64 px, a long side of at most 6240 px and a ratio up to 32:1",
+        "out_rule": "a long side of at most 10240 px",
+    },
+}
+IMAGE_UPLOAD_CACHE = {}
+IMAGE_UPLOAD_CACHE_MAX_ENTRIES = 64
+
+
+def _image_tool_version_input():
+    mode = comfy_io.Combo.Input(
+        "generative_enhance_mode",
+        options=IMAGE_GENERATIVE_MODES,
+        default="generative_first",
+        tooltip="'generative_first' adds richer, natural texture: for compressed, blurry or old images. "
+        "'fidelity_first' keeps existing detail (faces, textures, text) as close to the original as "
+        "possible: for portraits, product shots and screenshots.",
+    )
+    return comfy_io.DynamicCombo.Input(
+        "tool_version",
+        options=[
+            comfy_io.DynamicCombo.Option("standard", []),
+            comfy_io.DynamicCombo.Option("professional", [mode]),
+            comfy_io.DynamicCombo.Option(
+                "max",
+                [
+                    mode,
+                    comfy_io.Boolean.Input(
+                        "enable_correct_color",
+                        default=True,
+                        tooltip="Keep the colours close to the original. Turn off if the result looks "
+                        "over-sharpened.",
+                    ),
+                ],
+            ),
+        ],
+        tooltip="'standard' (up to 8x, PNG output): fast clean-up for thumbnails, UGC and OCR input. "
+        "'professional' (up to 30x): fine texture for AIGC fixes, product and portrait photos, old photos. "
+        "'max' (up to 30x): a generative model for the most detail on low-quality images. Pricing differs "
+        "per version.",
+    )
+
+
+def _image_output_size_input():
+    return comfy_io.DynamicCombo.Input(
+        "output_size",
+        options=[
+            comfy_io.DynamicCombo.Option(
+                IMAGE_SIZE_MULTIPLE,
+                [
+                    comfy_io.Float.Input(
+                        "multiple",
+                        default=2.0,
+                        min=1.0,
+                        max=30.0,
+                        step=0.01,
+                        tooltip="Scale factor for width and height: 1-8 for standard, 1-30 for professional "
+                        "and max.",
+                    ),
+                ],
+            ),
+            comfy_io.DynamicCombo.Option(
+                IMAGE_SIZE_TARGET,
+                [
+                    comfy_io.Int.Input(
+                        "target_width",
+                        default=1920,
+                        min=0,
+                        max=10240,
+                        tooltip="Output width in px; 0 follows target_height and the aspect ratio. Standard: "
+                        "from the original width to 6144 px (at most 8x); professional and max: 64-10240 px.",
+                    ),
+                    comfy_io.Int.Input(
+                        "target_height",
+                        default=0,
+                        min=0,
+                        max=10240,
+                        tooltip="Output height in px; 0 follows target_width and the aspect ratio. With both "
+                        "set, the image fits inside the box at its own aspect ratio.",
+                    ),
+                ],
+            ),
+        ],
+        tooltip="Scale by a factor, or set a target width and/or height.",
+    )
+
+
+def build_image_enhance_request(image_url, tool_version, output_size):
+    """The POST /tools-sync/enhance-image body; version options only for the versions that take them."""
+    version = tool_version.get("tool_version", "standard")
+    body = {"image_url": image_url, "tool_version": version}
+    if version in ("professional", "max") and tool_version.get("generative_enhance_mode"):
+        body["generative_enhance_mode"] = tool_version["generative_enhance_mode"]
+    if version == "max":
+        body["enable_correct_color"] = bool(tool_version.get("enable_correct_color", True))
+    if output_size.get("output_size", IMAGE_SIZE_MULTIPLE) == IMAGE_SIZE_TARGET:
+        for name in ("target_width", "target_height"):
+            if int(output_size.get(name) or 0) > 0:
+                body[name] = int(output_size[name])
+    else:
+        body["multiple"] = round(float(output_size.get("multiple", 2.0)), 2)
+    return body
+
+
+def _in_range(value, bounds):
+    low, high = bounds
+    return (low is None or value >= low) and (high is None or value <= high)
+
+
+def plan_image_enhance(body, size=None):
+    """
+    Check the request against the version's documented limits and return the
+    expected output size (None when the source size is unknown, as for
+    image_url). Raises BytePlusException with the rule that is broken.
+    """
+    version = body["tool_version"]
+    limits = IMAGE_VERSION_LIMITS[version]
+    if "multiple" in body and not 1.0 <= body["multiple"] <= limits["multiple"]:
+        raise BytePlusException(
+            get_text("err_image_enhance_multiple", max=int(limits["multiple"]), version=version, value=body["multiple"])
+        )
+    targets = {name: body[name] for name in ("target_width", "target_height") if name in body}
+    if "multiple" not in body and not targets:
+        raise BytePlusException(get_text("err_image_enhance_target_missing"))
+    if size is None:
+        for name, value in targets.items():
+            low, high = limits["target"]
+            if not _in_range(value, (low, high)):
+                raise BytePlusException(
+                    get_text("err_image_enhance_target_range", name=name, min=low or 1, max=high,
+                             version=version, value=value)
+                )
+        return None
+
+    width, height = size
+    short, long_ = min(width, height), max(width, height)
+    ratio_ok = limits["max_ratio"] is None or long_ / float(short) <= limits["max_ratio"]
+    if not (_in_range(short, limits["in_short"]) and _in_range(long_, limits["in_long"]) and ratio_ok):
+        raise BytePlusException(
+            get_text("err_image_enhance_input_size", version=version, rule=limits["in_rule"], width=width, height=height)
+        )
+    if "multiple" in body:
+        scale = body["multiple"]
+    else:
+        for name, value in targets.items():
+            original = width if name == "target_width" else height
+            low, high = limits["target"]
+            low = original if low is None else low
+            if not _in_range(value, (low, high)):
+                raise BytePlusException(
+                    get_text("err_image_enhance_target_range", name=name, min=low, max=high,
+                             version=version, value=value)
+                )
+        scale = min(
+            targets.get("target_width", float("inf")) / float(width),
+            targets.get("target_height", float("inf")) / float(height),
+        )
+        if limits["target_scale"] and scale > limits["target_scale"] + 1e-9:
+            raise BytePlusException(
+                get_text("err_image_enhance_multiple", max=int(limits["target_scale"]), version=version,
+                         value=round(scale, 2))
+            )
+    out_w, out_h = int(round(width * scale)), int(round(height * scale))
+    if (limits["out_long"] and max(out_w, out_h) > limits["out_long"]) or (
+        limits["out_short"] and min(out_w, out_h) > limits["out_short"]
+    ):
+        raise BytePlusException(
+            get_text("err_image_enhance_output_size", version=version, width=out_w, height=out_h,
+                     rule=limits["out_rule"])
+        )
+    return out_w, out_h
+
+
+def encode_image_for_upload(image, max_bytes=IMAGE_MAX_UPLOAD_BYTES):
+    """
+    (bytes, filename, mime type) for one [H, W, C] image: PNG, or JPEG when
+    the PNG is over MediaKit's 10 MB limit. Professional and max keep the
+    input format in their output.
+    """
+    import numpy
+    from PIL import Image
+
+    array = numpy.clip(image[..., :3].cpu().numpy() * 255.0, 0, 255).astype(numpy.uint8)
+    picture = Image.fromarray(array, "RGB")
+    with io.BytesIO() as buffer:
+        picture.save(buffer, format="PNG", compress_level=6)
+        data = buffer.getvalue()
+    if len(data) <= max_bytes:
+        return data, "image.png", "image/png"
+    for quality in (95, 90, 85, 80):
+        with io.BytesIO() as buffer:
+            picture.save(buffer, format="JPEG", quality=quality)
+            data = buffer.getvalue()
+        if len(data) <= max_bytes:
+            return data, "image.jpg", "image/jpeg"
+    raise BytePlusException(get_text("err_image_enhance_too_big", size=len(data)))
+
+
+async def upload_image_source(node_cls, data, filename, mime_type):
+    """Comfy.org storage URL for image bytes, reused for the same bytes (links last about 24 h)."""
+    key = hashlib.sha256(data).hexdigest()
+    cached = IMAGE_UPLOAD_CACHE.get(key)
+    if cached and time.time() - cached[1] < 12 * 3600:
+        return cached[0]
+    try:
+        from comfy_api_nodes.util import upload_file_to_comfyapi
+    except Exception as e:
+        raise BytePlusException(get_text("err_comfy_image_upload_unavailable_mediakit", e=e))
+    try:
+        url = await upload_file_to_comfyapi(node_cls, io.BytesIO(data), filename, mime_type, wait_label=None)
+    except comfy.model_management.InterruptProcessingException:
+        raise
+    except Exception as e:
+        raise BytePlusException(get_text("err_comfy_image_upload_failed_mediakit", e=e))
+    IMAGE_UPLOAD_CACHE.pop(key, None)
+    IMAGE_UPLOAD_CACHE[key] = (url, time.time())
+    while len(IMAGE_UPLOAD_CACHE) > IMAGE_UPLOAD_CACHE_MAX_ENTRIES:
+        IMAGE_UPLOAD_CACHE.pop(next(iter(IMAGE_UPLOAD_CACHE)))
+    return url
+
+
+def _load_image(path):
+    """[1, H, W, 3] float tensor from an image file."""
+    import numpy
+    from PIL import Image, ImageOps
+
+    with Image.open(path) as picture:
+        rgb = ImageOps.exif_transpose(picture).convert("RGB")
+        array = numpy.asarray(rgb, dtype=numpy.float32) / 255.0
+    return torch.from_numpy(array).unsqueeze(0)
+
+
+def resize_like(image, height, width):
+    """[1, H, W, C] image resized (bicubic) to height x width, for side-by-side comparison."""
+    resized = torch.nn.functional.interpolate(
+        image.movedim(-1, 1), size=(height, width), mode="bicubic", align_corners=False, antialias=True
+    )
+    return resized.movedim(1, -1).clamp(0.0, 1.0)
+
+
+class BytePlusImageEnhance(comfy_io.ComfyNode):
+    """AI MediaKit Image Quality Enhancement: upscales and restores images in one synchronous call."""
+
+    NODE_ID = "BytePlusImageEnhance"
+
+    @classmethod
+    def define_schema(cls) -> comfy_io.Schema:
+        return comfy_io.Schema(
+            node_id=cls.NODE_ID,
+            display_name="BytePlus Image Quality Enhance",
+            category=MEDIAKIT_CATEGORY,
+            description="Upscales and restores images: super-resolution, artifact and noise removal, deblurring, "
+            "sharpening, portrait, text and colour enhancement, picked per image. For AIGC post-processing, "
+            "old photos, OCR input and product images.",
+            inputs=[
+                BytePlusMediaKitClientType.Input("mediakit_client"),
+                comfy_io.Image.Input(
+                    "image",
+                    tooltip="Image(s) to enhance; each image in a batch is enhanced separately. Uploaded to "
+                    "Comfy.org storage first (needs a Comfy.org login); or set image_url instead.",
+                    optional=True,
+                ),
+                _image_tool_version_input(),
+                _image_output_size_input(),
+                # This pack's extras.
+                comfy_io.String.Input(
+                    "image_url",
+                    default="",
+                    optional=True,
+                    advanced=True,
+                    tooltip="Public http(s) link to the image (png, jpg, jpeg or webp, up to 10 MB), instead of "
+                    "connecting an image. Nothing is uploaded to Comfy.org.",
+                ),
+            ],
+            outputs=[
+                comfy_io.Image.Output(tooltip="The enhanced image(s)."),
+                comfy_io.Image.Output(
+                    "original",
+                    tooltip="The input resized to the enhanced size; connect it and the enhanced image to "
+                    "Compare Images for a slider.",
+                ),
+                comfy_io.String.Output("response", tooltip="The MediaKit result as JSON (a list for a batch)."),
+            ],
+            hidden=[
+                comfy_io.Hidden.auth_token_comfy_org,
+                comfy_io.Hidden.api_key_comfy_org,
+                comfy_io.Hidden.unique_id,
+            ],
+        )
+
+    @classmethod
+    async def execute(cls, mediakit_client, tool_version, output_size, image=None, image_url="") -> comfy_io.NodeOutput:
+        link = check_source(
+            image,
+            image_url,
+            name="image_url",
+            both_key="err_mediakit_image_source_both",
+            missing_key="err_mediakit_image_source_missing",
+        )
+        template = build_image_enhance_request(link, tool_version or {}, output_size or {})
+        version = template["tool_version"]
+        if image is not None:
+            sources = [image[i:i + 1] for i in range(image.shape[0])]
+            plans = [plan_image_enhance(template, (int(s.shape[2]), int(s.shape[1]))) for s in sources]
+        else:
+            sources, plans = [None], [plan_image_enhance(template)]
+        for plan in plans:
+            if version == "max" and plan and max(plan) > IMAGE_MAX_RECOMMENDED_SIDE:
+                log_msg("image_enhance_max_slow", width=plan[0], height=plan[1])
+
+        semaphore = asyncio.Semaphore(IMAGE_MAX_PARALLEL)
+
+        async def enhance(index, source):
+            async with semaphore:
+                body = dict(template)
+                if source is not None:
+                    body["image_url"] = await upload_image_source(cls, *encode_image_for_upload(source[0]))
+                _send_progress_text(
+                    cls.hidden.unique_id,
+                    _plain("image_enhance_submitted", version=version, index=index + 1, count=len(sources)),
+                )
+                response = await mediakit_request(
+                    mediakit_client, "POST", "/tools-sync/enhance-image", body,
+                    timeout_seconds=MEDIAKIT_SYNC_TIMEOUT_SECONDS,
+                )
+                result = task_result(response)
+                if not result.get("image_url"):
+                    raise BytePlusException(get_text("err_mediakit_unexpected", status="no result image_url"))
+                log_msg(
+                    "image_enhance_done",
+                    width=result.get("image_width", "?"),
+                    height=result.get("image_height", "?"),
+                    format=result.get("image_format", "?"),
+                    task_id=response.get("task_id", ""),
+                )
+                extension = str(result.get("image_format") or "png").lower().replace("jpeg", "jpg")
+                enhanced = await asyncio.to_thread(
+                    _load_image, await _download(result["image_url"], "image_enhanced", extension)
+                )
+                if source is None:
+                    source = await asyncio.to_thread(_load_image, await _download(link, "image_source", "img"))
+                return enhanced, source, {k: v for k, v in response.items() if k != "request_id"}
+
+        done = await asyncio.gather(*(enhance(i, s) for i, s in enumerate(sources)))
+        enhanced = [item[0] for item in done]
+        height, width = enhanced[0].shape[1:3]
+        # A batch is one tensor: results of another size are resized to the first one.
+        enhanced = [e if e.shape[1:3] == (height, width) else resize_like(e, height, width) for e in enhanced]
+        originals = [resize_like(item[1], height, width) for item in done]
+        responses = [item[2] for item in done]
+        return comfy_io.NodeOutput(
+            torch.cat(enhanced),
+            torch.cat(originals),
+            json.dumps(responses[0] if len(responses) == 1 else responses, ensure_ascii=False),
+        )
+
+
 # Registered in __init__.py.
-NODES = [BytePlusMediaKitClient, BytePlusVideoEnhance, BytePlusVideoSmoothness]
+NODES = [BytePlusMediaKitClient, BytePlusVideoEnhance, BytePlusVideoSmoothness, BytePlusImageEnhance]

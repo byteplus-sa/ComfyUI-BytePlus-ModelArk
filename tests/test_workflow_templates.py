@@ -18,6 +18,7 @@ EXPECTED_WORKFLOWS = {
     "Seed.json",
     "vCube Video Enhance.json",
     "Video Smoothness Enhance.json",
+    "Image Quality Enhance.json",
 }
 
 
@@ -133,6 +134,9 @@ class WorkflowTemplateTests(unittest.TestCase):
             "mediakit_client", "video", "periodic_stutter.align_source_fps",
             "periodic_stutter.insert_frame_indices", "periodic_stutter", "duplicate_frames",
             "video_url", "comparison",
+        ],
+        "BytePlusImageEnhance": [
+            "mediakit_client", "image", "tool_version", "output_size.multiple", "output_size", "image_url",
         ],
         "BytePlusSeedAudio": [
             "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
@@ -428,6 +432,15 @@ class WorkflowTemplateTests(unittest.TestCase):
         # Repaired video and side-by-side comparison to Save Video; the task JSON to Preview Any.
         targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == smooth["id"]}
         self.assertEqual(targets, {(0, "SaveVideo"), (1, "SaveVideo"), (4, "PreviewAny")})
+
+    def test_image_quality_enhance_template(self):
+        workflow = load_workflow("Image Quality Enhance.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        enhance = next(node for node in nodes.values() if node["type"] == "BytePlusImageEnhance")
+        self.assertEqual(enhance["widgets_values"], ["standard", "multiple", 2, ""])
+        # The enhanced image to Save Image; original (image_a) and enhanced (image_b) to Compare Images.
+        targets = {(link[2], nodes[link[3]]["type"], link[4]) for link in workflow["links"] if link[1] == enhance["id"]}
+        self.assertEqual(targets, {(0, "SaveImage", 0), (1, "ImageCompare", 0), (0, "ImageCompare", 1)})
 
     def test_templates_do_not_embed_api_keys(self):
         for name in sorted(EXPECTED_WORKFLOWS):

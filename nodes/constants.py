@@ -37,6 +37,9 @@ MEDIAKIT_API_KEY_ENV = "BYTEPLUS_VOD_MEDIAKIT_API_KEY"
 MEDIAKIT_API_KEYS_CONSOLE_URL = "https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey"
 MEDIAKIT_REQUEST_TIMEOUT_SECONDS = 60
 MEDIAKIT_POLL_SECONDS = 10
+# Synchronous tools (Image Quality Enhance) answer when done; max-version
+# images can take minutes.
+MEDIAKIT_SYNC_TIMEOUT_SECONDS = 600
 MEDIAKIT_MAX_POLL_ERRORS = 5
 SEED_AUDIO_PATH = "/api/v3/tts/create"
 SEED_TTS_PATH = "/api/v3/tts/unidirectional"
@@ -576,7 +579,9 @@ MESSAGES = {
     "vcube_task_submitted": "vCube enhancement task submitted: {task_id}",
     "err_mediakit_source_both": "Connect a video or set video_url, not both.",
     "err_mediakit_source_missing": "Connect a video, or set video_url to a public link.",
-    "err_mediakit_url_invalid": "video_url must be a public http(s) link, got '{url}'.",
+    "err_mediakit_url_invalid": "{name} must be a public http(s) link, got '{url}'.",
+    "err_mediakit_image_source_both": "Connect an image or set image_url, not both.",
+    "err_mediakit_image_source_missing": "Connect an image, or set image_url to a public link.",
     "err_vcube_too_long": "The video is {duration}s long; vCube accepts at most {max}s.",
     "err_vcube_input_too_large": "Video resolution must be at most {max_w}x{max_h} (2K), got {width}x{height}. Scale the video down before enhancing it.",
     "err_mediakit_comparison_failed": "Building the before/after comparison failed: {e}. Turn off comparison to skip it.",
@@ -586,6 +591,17 @@ MESSAGES = {
     "err_smooth_too_long": "The video is {duration}s long; Video Smoothness repairs videos up to {max}s. Set both repairs to 'detect only' to analyse a longer video.",
     "err_smooth_input_too_large": "Video resolution must be at most {max_w}x{max_h} (4K), got {width}x{height}.",
     "err_smooth_frame_indices": "insert_frame_indices takes distinct zero-based frame numbers separated by commas (for example 80, 120); got '{value}'.",
+    "image_enhance_submitted": "Image Quality Enhance ({version}): image {index}/{count}",
+    "image_enhance_done": "Image Quality Enhance: {width}x{height} {format} ({task_id}).",
+    "image_enhance_max_slow": "Image Quality Enhance: a max-version output of {width}x{height} can time out; MediaKit recommends staying within 8000x8000.",
+    "err_image_enhance_input_size": "The {version} version takes images with {rule}; this one is {width}x{height}.",
+    "err_image_enhance_output_size": "The {version} output would be {width}x{height}, but {version} allows {rule}. Lower the scale.",
+    "err_image_enhance_multiple": "multiple must be between 1 and {max} for the {version} version, got {value}.",
+    "err_image_enhance_target_missing": "Set target_width, target_height or both (0 leaves a side to follow the aspect ratio).",
+    "err_image_enhance_target_range": "{name} must be between {min} and {max} px for the {version} version, got {value}.",
+    "err_image_enhance_too_big": "The image is larger than 10 MB even as a JPEG ({size} bytes); scale it down first.",
+    "err_comfy_image_upload_unavailable_mediakit": "Connected images are uploaded through Comfy.org storage to get the public URL MediaKit needs, which is unavailable in this ComfyUI ({e}). Set image_url to a public link instead.",
+    "err_comfy_image_upload_failed_mediakit": "Uploading the image to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set image_url to a public link instead.",
     "err_comfy_video_upload_unavailable_mediakit": "Connected videos are uploaded through Comfy.org storage to get the public URL MediaKit needs, which is unavailable in this ComfyUI ({e}). Set video_url to a public link instead.",
     "err_comfy_video_upload_failed_mediakit": "Uploading the video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set video_url to a public link instead.",
 

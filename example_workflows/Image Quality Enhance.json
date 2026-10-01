@@ -1,0 +1,290 @@
+{
+  "id": "67fb6f23-7f0c-4175-a757-497b39f5f257",
+  "revision": 0,
+  "last_node_id": 5,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "BytePlusMediaKitClient",
+      "pos": [20, 80],
+      "size": [300, 138],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "new_api_key",
+          "name": "new_api_key",
+          "type": "STRING",
+          "widget": {
+            "name": "new_api_key"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "new_key_name",
+          "name": "new_key_name",
+          "type": "STRING",
+          "widget": {
+            "name": "new_key_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "key_name",
+          "name": "key_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "key_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "region",
+          "name": "region",
+          "type": "COMBO",
+          "widget": {
+            "name": "region"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "mediakit_client",
+          "name": "mediakit_client",
+          "type": "BYTEPLUS_MEDIAKIT_CLIENT",
+          "links": [1]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusMediaKitClient"
+      },
+      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [20, 290],
+      "size": [300, 326],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [2]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": ["comfyui_logo.png", "image"]
+    },
+    {
+      "id": 3,
+      "type": "BytePlusImageEnhance",
+      "pos": [380, 80],
+      "size": [400, 190],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "mediakit_client",
+          "name": "mediakit_client",
+          "type": "BYTEPLUS_MEDIAKIT_CLIENT",
+          "link": 1
+        },
+        {
+          "localized_name": "image",
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "localized_name": "tool_version",
+          "name": "tool_version",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "tool_version"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "multiple",
+          "name": "output_size.multiple",
+          "type": "FLOAT",
+          "widget": {
+            "name": "output_size.multiple"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_size",
+          "name": "output_size",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "output_size"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "image_url",
+          "name": "image_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "image_url"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [3, 5]
+        },
+        {
+          "localized_name": "original",
+          "name": "original",
+          "type": "IMAGE",
+          "links": [4]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusImageEnhance"
+      },
+      "widgets_values": ["standard", "multiple", 2, ""]
+    },
+    {
+      "id": 4,
+      "type": "SaveImage",
+      "pos": [860, 80],
+      "size": [300, 270],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": ["BytePlus/Image/enhanced"],
+      "title": "Save Enhanced Image"
+    },
+    {
+      "id": 5,
+      "type": "ImageCompare",
+      "pos": [860, 420],
+      "size": [400, 330],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image_a",
+          "name": "image_a",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "localized_name": "image_b",
+          "name": "image_b",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 5
+        },
+        {
+          "localized_name": "compare_view",
+          "name": "compare_view",
+          "type": "IMAGECOMPARE",
+          "widget": {
+            "name": "compare_view"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "ImageCompare"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [1, 1, 0, 3, 0, "BYTEPLUS_MEDIAKIT_CLIENT"],
+    [2, 2, 0, 3, 1, "IMAGE"],
+    [3, 3, 0, 4, 0, "IMAGE"],
+    [4, 3, 1, 5, 0, "IMAGE"],
+    [5, 3, 0, 5, 1, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8,
+      "offset": [20, 20]
+    }
+  },
+  "version": 0.4
+}

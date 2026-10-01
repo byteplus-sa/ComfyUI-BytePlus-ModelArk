@@ -325,6 +325,7 @@ const DYNAMIC_COMBO_NODES = new Set([
     "BytePlusSeedAudio",
     "BytePlusVideoEnhance",
     "BytePlusVideoSmoothness",
+    "BytePlusImageEnhance",
 ]);
 const SEED_CONTROL_VALUES = ["fixed", "increment", "decrement", "randomize"];
 
