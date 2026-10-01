@@ -31,6 +31,8 @@ Modes: `non_blocking` (task IDs cached per node id; re-run to collect), draft mo
 
 ## Adding or updating a model
 
+Full step-by-step workflow (retirement, region limits, LLM/Speech/MediaKit tables, finish checklist): `byteplus-model-update`. Summary:
+
 1. **New dated version of an existing model** → change only the value in `nodes/models_config.py` (UI name stays; saved workflows keep working).
 2. **New model** → add to the right map and option list in `models_config.py`:
    - Seedance 2-family: `VIDEO_MODEL_MAP`, `VIDEO_2_UI_OPTIONS`, `VIDEO_2_MODEL_RESOLUTIONS`, `VIDEO_2_MODEL_MAX_DURATIONS`, `VIDEO_2_MODEL_REFERENCE_LIMITS`; if it has 2.5 features also `SEEDANCE_2_5_FAMILY` and `SEEDANCE_DRAFT_FINAL_RESOLUTIONS` (missing → KeyError while building the schema → **whole pack fails to load**).
