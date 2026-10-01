@@ -32,6 +32,7 @@ env.bak/
 venv.bak/
 api_keys.json
 speech_api_keys.json
+mediakit_api_keys.json
 files_upload_cache.json
 ARCHITECTURE.md
 .artifacts/

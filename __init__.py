@@ -157,6 +157,7 @@ if _dependencies_ready:
     from .nodes.nodes_seedance2 import NODES as SEEDANCE2_NODES
     from .nodes.nodes_seed import NODES as SEED_LLM_NODES
     from .nodes.nodes_assets import CORE_STYLE_NODES as ASSET_NODES
+    from .nodes.nodes_mediakit import NODES as MEDIAKIT_NODES
 
     _registered_nodes = [
         BytePlusAPIClient,
@@ -165,6 +166,7 @@ if _dependencies_ready:
         *SEEDANCE2_NODES,
         *ASSET_NODES,
         *SEED_LLM_NODES,
+        *MEDIAKIT_NODES,
         BytePlusSeedream4,
         BytePlusSeedream5,
         BytePlusSeedreamLayers,

@@ -16,6 +16,7 @@ EXPECTED_WORKFLOWS = {
     "Seedream.json",
     "Seedream Layer Separation.json",
     "Seed.json",
+    "vCube Video Enhance.json",
 }
 
 
@@ -120,6 +121,13 @@ class WorkflowTemplateTests(unittest.TestCase):
         "BytePlusSeedanceFirstLastFrame": SEEDANCE1_BEFORE_FRAMES
         + ["first_frame", "last_frame"] + SEEDANCE1_AFTER_FRAMES,
         "BytePlusSpeechClient": ["new_api_key", "new_key_name", "key_name", "region"],
+        "BytePlusMediaKitClient": ["new_api_key", "new_key_name", "key_name", "region"],
+        # As the frontend saves it: sockets, then the DynamicCombo children before their parent.
+        "BytePlusVideoEnhance": [
+            "mediakit_client", "video", "tool_version.scene", "tool_version.enhance_style",
+            "tool_version", "resolution", "fps", "bitrate_level", "video_url", "bitrate",
+            "comparison", "compare_time",
+        ],
         "BytePlusSeedAudio": [
             "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
             "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "seed", "model",
@@ -397,11 +405,20 @@ class WorkflowTemplateTests(unittest.TestCase):
                 self.assertNotIn("doubao", text)
                 self.assertNotIn("Jimeng", text)
 
+    def test_vcube_template(self):
+        workflow = load_workflow("vCube Video Enhance.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        enhance = next(node for node in nodes.values() if node["type"] == "BytePlusVideoEnhance")
+        self.assertEqual(enhance["widgets_values"], ["standard", "aigc", "hd", "1080p", "source", "medium", "", 0, True, -1])
+        # Enhanced video and comparison to Save Video; the frame pair to ComfyUI's Compare Images.
+        targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == enhance["id"]}
+        self.assertEqual(targets, {(0, "SaveVideo"), (1, "SaveVideo"), (2, "ImageCompare"), (3, "ImageCompare")})
+
     def test_templates_do_not_embed_api_keys(self):
         for name in sorted(EXPECTED_WORKFLOWS):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
-                if node["type"] in ("BytePlusAPIClient", "BytePlusSpeechClient"):
+                if node["type"] in ("BytePlusAPIClient", "BytePlusSpeechClient", "BytePlusMediaKitClient"):
                     self.assertEqual(node["widgets_values"][0], "")
 
 

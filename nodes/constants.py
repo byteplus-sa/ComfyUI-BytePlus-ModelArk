@@ -27,6 +27,17 @@ SPEECH_REGION_BASE_URLS = {
 DEFAULT_SPEECH_REGION = "ap-southeast-1"
 SPEECH_API_KEY_ENV = "BYTEPLUS_SEED_SPEECH_API_KEY"
 SPEECH_API_KEYS_CONSOLE_URL = "https://console.byteplus.com/voice/new/setting/apikeys"
+
+# BytePlus VOD AI MediaKit (vCube Video Enhance): its own API key (Bearer).
+MEDIAKIT_REGION_BASE_URLS = {
+    "ap-southeast-1": "https://mediakit.ap-southeast-1.bytepluses.com/api/v1",
+}
+DEFAULT_MEDIAKIT_REGION = "ap-southeast-1"
+MEDIAKIT_API_KEY_ENV = "BYTEPLUS_VOD_MEDIAKIT_API_KEY"
+MEDIAKIT_API_KEYS_CONSOLE_URL = "https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey"
+MEDIAKIT_REQUEST_TIMEOUT_SECONDS = 60
+MEDIAKIT_POLL_SECONDS = 10
+MEDIAKIT_MAX_POLL_ERRORS = 5
 SEED_AUDIO_PATH = "/api/v3/tts/create"
 SEED_TTS_PATH = "/api/v3/tts/unidirectional"
 SEED_ASR_FAST_PATH = "/api/v3/auc/bigmodel/recognize/flash"
@@ -548,6 +559,29 @@ MESSAGES = {
     "seed_audio_tag_image_mode": "@AudioN tags are not used in 'image reference' mode; the prompt should contain only the text to synthesize.",
     "seed_audio_preset_required": "Reference mode 'preset voice' requires selecting a preset voice.",
     "seed_audio_tag_preset_mode": "'preset voice' mode uses a single voice, so @Audio{tag} is out of range. Remove the @AudioN tags; the whole prompt is read in the selected voice.",
+
+    # BytePlus VOD AI MediaKit (nodes_mediakit.py)
+    "mediakit_key_empty": "MediaKit Client: key_name is Custom but new_api_key is empty.",
+    "mediakit_key_saved": "MediaKit API key '{name}' saved to mediakit_api_keys.json.",
+    "mediakit_key_save_failed": "Could not write mediakit_api_keys.json; key '{name}' was not saved and stays in the node.",
+    "mediakit_key_not_found": "MediaKit API key '{key_name}' was not found in mediakit_api_keys.json.",
+    "mediakit_env_key_missing": "Environment variable {env} is not set. Set it to your AI MediaKit API key and restart ComfyUI, or pick Custom.",
+    "mediakit_hint_auth": " Check the MediaKit API key (AI MediaKit console > Settings > API key: {url}); ModelArk and Seed Speech keys do not work here.",
+    "err_mediakit_api": "MediaKit request failed: {code}{param}: {message}.{request_id}{hint}",
+    "err_mediakit_network": "Could not reach AI MediaKit: {e}",
+    "err_mediakit_unexpected": "AI MediaKit returned an unexpected response ({status}).",
+    "err_mediakit_task_failed": "vCube task {task_id} failed: {detail}",
+    "err_mediakit_download_failed": "Could not download {url}.",
+    "mediakit_task_waiting": "vCube task {task_id}: {status} ({elapsed}s)",
+    "vcube_task_submitted": "vCube enhancement task submitted: {task_id}",
+    "err_vcube_source_both": "Connect a video or set video_url, not both.",
+    "err_vcube_source_missing": "Connect a video to enhance, or set video_url to a public link.",
+    "err_vcube_url_invalid": "video_url must be a public http(s) link, got '{url}'.",
+    "err_vcube_too_long": "The video is {duration}s long; vCube accepts at most {max}s.",
+    "err_vcube_input_too_large": "Video resolution must be at most {max_w}x{max_h} (2K), got {width}x{height}. Scale the video down before enhancing it.",
+    "err_vcube_comparison_failed": "Building the before/after comparison failed: {e}. Turn off comparison to skip it.",
+    "err_comfy_video_upload_unavailable_vcube": "Connected videos are uploaded through Comfy.org storage to get the public URL MediaKit needs, which is unavailable in this ComfyUI ({e}). Set video_url to a public link instead.",
+    "err_comfy_video_upload_failed_vcube": "Uploading the video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set video_url to a public link instead.",
 
     "api_errors": {
         "AuthenticationError": "Invalid API Key (401). Check the key in api_keys.json, and that the API Client region matches the region the key was created in.",

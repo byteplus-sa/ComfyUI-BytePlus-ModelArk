@@ -50,7 +50,7 @@ function allGraphNodes() {
 }
 
 // API Client node classes (ModelArk and Seed Speech keys)
-const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient"];
+const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient", "BytePlusMediaKitClient"];
 
 /**
  * Widgets whose value changes drive visibility logic
@@ -323,6 +323,7 @@ const DYNAMIC_COMBO_NODES = new Set([
     "BytePlusSeedance2Reference",
     "BytePlusSeed",
     "BytePlusSeedAudio",
+    "BytePlusVideoEnhance",
 ]);
 const SEED_CONTROL_VALUES = ["fixed", "increment", "decrement", "randomize"];
 
@@ -495,7 +496,7 @@ function widgetLogic(node, widget) {
         }
     }
 
-    // API Client nodes (ModelArk and Seed Speech)
+    // API Client nodes (ModelArk, Seed Speech and MediaKit)
     if (API_CLIENT_CLASSES.includes(node.comfyClass)) {
         if (widgetName === 'key_name') {
             const isCustom = widget.value === "Custom";
@@ -574,6 +575,7 @@ const API_KEY_SAVED_EVENT = "byteplus.api_key_saved";
 const API_CLIENT_CLASS_BY_STORE = {
     modelark: "BytePlusAPIClient",
     speech: "BytePlusSpeechClient",
+    mediakit: "BytePlusMediaKitClient",
 };
 
 async function sha256Hex(text) {

@@ -1,12 +1,12 @@
 # ComfyUI BytePlus ModelArk
 
-ComfyUI custom nodes for **BytePlus ModelArk**: Seedance video generation, Seedream image generation, and Seed multimodal understanding. Plus **BytePlus Seed Speech**: Seed Audio 1.0 generation, text to speech (TTS) and speech recognition (ASR).
+ComfyUI custom nodes for **BytePlus ModelArk**: Seedance video generation, Seedream image generation, and Seed multimodal understanding. Plus **BytePlus Seed Speech**: Seed Audio 1.0 generation, text to speech (TTS) and speech recognition (ASR), and **BytePlus VOD AI MediaKit**: vCube video enhancement.
 
-Generation calls go directly to ModelArk with **your own ModelArk API key**, so usage is billed to your BytePlus account (including contract pricing and resource packs). No Comfy credits are used. Seed Speech nodes use a separate Seed Speech API key (see [Seed Speech API Key](#seed-speech-api-key)). The one exception is local reference videos for Seedance 2 / 2.5 (and media for new private assets), which pass through Comfy.org storage (see [Reference Videos](#reference-videos)).
+Generation calls go directly to ModelArk with **your own ModelArk API key**, so usage is billed to your BytePlus account (including contract pricing and resource packs). No Comfy credits are used. Seed Speech nodes use a separate Seed Speech API key (see [Seed Speech API Key](#seed-speech-api-key)), and vCube Video Enhance an AI MediaKit API key (see [AI MediaKit API Key](#ai-mediakit-api-key)). The one exception is local videos for Seedance 2 / 2.5 references and vCube (and media for new private assets), which pass through Comfy.org storage (see [Reference Videos](#reference-videos)).
 
 > **Status: in development (v0.3.0).** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
 
-**v0.3.0:** The image, video, understanding and asset nodes now have the same layout as ComfyUI's built-in ByteDance nodes (same node split, inputs, defaults and outputs), plus an `API Client` input and this pack's extras under advanced inputs. The previous nodes stay available as "(Legacy)" so saved workflows still load. Also adds Seed Speech nodes: `Seed Audio 1.0`, `Seed Speech TTS`, `Seed Speech ASR`, `Seed Voice Clone` and the `Speech Client` that holds the Seed Speech API key. Requires ComfyUI 0.31.0 or later.
+**v0.3.0:** The image, video, understanding and asset nodes now have the same layout as ComfyUI's built-in ByteDance nodes (same node split, inputs, defaults and outputs), plus an `API Client` input and this pack's extras under advanced inputs. The previous nodes stay available as "(Legacy)" so saved workflows still load. Also adds Seed Speech nodes: `Seed Audio 1.0`, `Seed Speech TTS`, `Seed Speech ASR`, `Seed Voice Clone` and the `Speech Client` that holds the Seed Speech API key, and `vCube Video Enhance` (ComfyUI's built-in ByteDance vCube node, on AI MediaKit) with the `MediaKit Client`. Requires ComfyUI 0.31.0 or later.
 
 **v0.2.2:** Seedance 2.5 Premium accepts 4K normal renders only; draft mode submits at 480p. Unsupported normal resolutions are rejected before submission.
 
@@ -44,6 +44,9 @@ The generation nodes match ComfyUI's built-in ByteDance nodes input for input, s
   - `Seed Voice Clone`: upload a 10–15 s reference clip (`Load Audio`) to train a cloned voice (Voice Replication 2.0) into a voice slot (`S_…`, bought in the Seed Speech console) or a postpaid custom voice ID. Waits until the voice is ready and outputs its `speaker_id` (connect it to TTS `custom_speaker_id` with model `seed-icl-2.0`, or to a Seed Audio reference slot) plus a demo clip. Each slot can be trained 15 times; the first TTS call with the voice starts the slot's billing.
   - `Seed Speech TTS`: text to speech with the TTS 2.0 voice list (`seed-tts-2.0`), TTS 1.0 speaker IDs (`seed-tts-1.0`) or cloned voices (`seed-icl-2.0` / `seed-icl-1.0`). Style instructions (`context_text`), emotion and intensity, speed, volume, pitch, sample rate, language, trailing silence and subtitles/timestamps. Advanced: language detection, context language, Markdown/emoji/LaTeX/parentheses handling, unsupported-language threshold, 1-hour cache and tone fidelity for cloned voices.
   - `Seed Speech ASR`: speech to text in 50+ languages from an uploaded clip (`Load Audio`) or a public audio URL. `seed-asr-fast` sends the clip inline; the standard models (`seed-asr-2.0` / `1.0`, up to 5 h) only take URLs, so a connected clip is uploaded to Comfy.org storage first (Comfy.org login required, like Seedance reference videos). A context image (`Load Image`) is uploaded the same way. Punctuation, number formatting, filler-word removal, speaker labels and hotwords. Advanced: dialogue/scene context and an image for visual context (ASR 2.0), automatic language detection and per-utterance language labels, stereo channel split, silence-based segmentation, Traditional Chinese output and sensitive-word filtering. Outputs the transcript, utterance timings and SRT subtitles.
+- **Video enhancement** (BytePlus VOD AI MediaKit; needs an [AI MediaKit API key](#ai-mediakit-api-key))
+  - `MediaKit Client` (required for vCube): picks the AI MediaKit API key.
+  - `vCube Video Enhance`: the same inputs as ComfyUI's built-in ByteDance vCube node. Super-resolution up to 8K, compression-artifact and noise removal, and frame interpolation up to 120 fps. `standard` (scene presets `aigc`, `common`, `ugc`, `short_series`, `old_film`) or `professional`; `hd` or `natural` style; a resolution preset, `source` or a custom short side; `fps` and `bitrate_level`. Sources up to 2560×1440 and 10 minutes. A connected video is uploaded to Comfy.org storage first (Comfy.org login required, like Seedance reference videos); advanced `video_url` takes a public link instead. Also outputs a before/after **comparison video** (original on the left, enhanced on the right, with a divider sweeping across the frame) and a `source_frame` / `enhanced_frame` pair: connect both to ComfyUI's `Compare Images` node for a slider comparison (the slider needs Nodes 2.0; Classic Canvas shows "Node 2.0 only"). Advanced: exact `bitrate`, `comparison` on/off and `compare_time`.
 
 Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_config.py). Activate each model in the ModelArk console for the region you use.
 
@@ -81,6 +84,15 @@ Seed Speech (Seed Audio, TTS, ASR) is a separate BytePlus product with its own A
 2. Add the `Speech Client` node and either choose **Custom**, paste the key and set `new_key_name` (saved to `speech_api_keys.json`, then cleared from the node like the ModelArk key), or set the `BYTEPLUS_SEED_SPEECH_API_KEY` environment variable and choose **Environment**.
 
 Seed Speech runs in `ap-southeast-1` (Singapore) only. Never commit `speech_api_keys.json`.
+
+### AI MediaKit API Key
+
+vCube Video Enhance runs on BytePlus VOD AI MediaKit, which has its own API key; ModelArk and Seed Speech keys are rejected.
+
+1. In the [AI MediaKit console](https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey), create a key under **Settings → API key**.
+2. Add the `MediaKit Client` node and either choose **Custom**, paste the key and set `new_key_name` (saved to `mediakit_api_keys.json`, then cleared from the node like the ModelArk key), or set the `BYTEPLUS_VOD_MEDIAKIT_API_KEY` environment variable and choose **Environment**.
+
+AI MediaKit runs in `ap-southeast-1` (Singapore). Enhanced video links expire after 24 hours; the node downloads the result right away. Never commit `mediakit_api_keys.json`.
 
 ### Reference Videos
 
@@ -134,7 +146,7 @@ python -m unittest tests.test_workflow_templates
 The node tests need a ComfyUI checkout and a Python environment with torch and the BytePlus SDK; they are skipped otherwise:
 
 ```bash
-COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed
+COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed tests.test_mediakit
 ```
 
 ## Roadmap
@@ -149,6 +161,7 @@ COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates tests.
 - [x] `asset://` references for images, videos and audio; Virtual Portrait asset library nodes
 - [x] Seedream 5.0 Flash
 - [x] Seed Speech: Seed Audio 1.0, TTS and ASR
+- [x] vCube Video Enhance on AI MediaKit, with a before/after comparison
 - [x] Same node layout as ComfyUI's built-in ByteDance nodes
 
 ## Compatibility
