@@ -182,31 +182,36 @@ SEEDREAM_MODELS = {
 # resolution levels offered as extra "(adaptive)" size presets.
 SEEDREAM_MODEL_CAPS = {
     SEEDREAM_PRO: {
-        "max_refs": 10, "max_width": 4514, "max_height": 4514, "batch": False,
+        "max_refs": 10, "min_side": 240, "max_side": 8600, "batch": False,
         "fast": True, "thinking": True, "min_pixels": 921_600, "max_pixels": 4_624_220,
         "adaptive_sizes": ["1K", "1.5K", "2K"],
     },
     SEEDREAM_FLASH: {
-        "max_refs": 10, "max_width": 4514, "max_height": 4514, "batch": False,
+        "max_refs": 10, "min_side": 240, "max_side": 8600, "batch": False,
         "fast": False, "thinking": False, "min_pixels": 921_600, "max_pixels": 4_624_220,
         "adaptive_sizes": ["1K", "1.5K", "2K"],
     },
     SEEDREAM_LITE: {
-        "max_refs": 14, "max_width": 6240, "max_height": 4992, "batch": True,
+        "max_refs": 14, "min_side": 480, "max_side": 16384, "batch": True,
         "fast": False, "thinking": True, "min_pixels": 3_686_400, "max_pixels": 16_777_216,
         "adaptive_sizes": ["2K", "3K", "4K"],
     },
     SEEDREAM_4_5: {
-        "max_refs": 14, "max_width": 6240, "max_height": 4992, "batch": True,
+        "max_refs": 14, "min_side": 480, "max_side": 16384, "batch": True,
         "fast": False, "thinking": True, "min_pixels": 3_686_400, "max_pixels": 16_777_216,
         "adaptive_sizes": ["2K", "4K"],
     },
     SEEDREAM_4_0: {
-        "max_refs": 14, "max_width": 6240, "max_height": 4992, "batch": True,
+        "max_refs": 14, "min_side": 240, "max_side": 16384, "batch": True,
         "fast": False, "thinking": True, "min_pixels": 921_600, "max_pixels": 16_777_216,
         "adaptive_sizes": ["1K", "2K", "4K"],
     },
 }
+# Custom width / height follow the BytePlus size rule (total pixels in the
+# model's range, aspect ratio 1:16 to 16:1), not core's 1024 minimum:
+# min_side = ceil(sqrt(min_pixels / 16)), max_side = floor(sqrt(max_pixels * 16)),
+# both even. The total-pixel and aspect checks run at execution.
+SEEDREAM_MAX_ASPECT = 16
 # Reference images plus generated images per request when batching.
 SEEDREAM_MAX_TOTAL_IMAGES = 15
 

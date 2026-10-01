@@ -35,6 +35,7 @@ from .models_config import (
     SEEDREAM_FLASH,
     SEEDREAM_MODELS,
     SEEDREAM_MODEL_CAPS,
+    SEEDREAM_MAX_ASPECT,
     SEEDREAM_MAX_TOTAL_IMAGES,
     SEEDREAM_LAYER_SEPARATION_MODELS,
     SEEDREAM_LAYER_SIZES,
@@ -115,16 +116,16 @@ def _seedream_model_inputs(model):
         comfy_io.Int.Input(
             "width",
             default=2048,
-            min=1024,
-            max=caps["max_width"],
+            min=caps["min_side"],
+            max=caps["max_side"],
             step=2,
             tooltip="Custom width for image. Value is working only if `size_preset` is set to `Custom`",
         ),
         comfy_io.Int.Input(
             "height",
             default=2048,
-            min=1024,
-            max=caps["max_height"],
+            min=caps["min_side"],
+            max=caps["max_side"],
             step=2,
             tooltip="Custom height for image. Value is working only if `size_preset` is set to `Custom`",
         ),
@@ -246,6 +247,11 @@ def resolve_seedream_size(model, size_preset, width, height):
     if w is None or h is None:
         w, h = int(width), int(height)
 
+    ratio = w / h if h else 0.0
+    if not (1.0 / SEEDREAM_MAX_ASPECT <= ratio <= SEEDREAM_MAX_ASPECT):
+        raise BytePlusException(
+            get_text("seedream_err_size_aspect", width=w, height=h, max=SEEDREAM_MAX_ASPECT)
+        )
     pixels = w * h
     if pixels < caps["min_pixels"]:
         raise BytePlusException(

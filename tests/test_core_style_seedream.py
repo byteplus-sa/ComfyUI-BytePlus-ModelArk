@@ -186,7 +186,8 @@ def default_stream_events(kwargs):
 
 
 # Inputs whose limits follow the BytePlus docs instead of core: 14 reference
-# images on 4.5 / 4.0, max_images up to 15, and the layer-separation input
+# images on 4.5 / 4.0, max_images up to 15, custom width/height bounds from the
+# pixel range and aspect limit (core: min 1024), and the layer-separation input
 # (262,144 total pixels) and <bbox> range (0-999).
 BYTEPLUS_LIMIT_DEVIATIONS = {
     ("BytePlusSeedream", LITE, "max_images"),
@@ -194,6 +195,7 @@ BYTEPLUS_LIMIT_DEVIATIONS = {
     ("BytePlusSeedream", V45, "images"),
     ("BytePlusSeedream", V40, "max_images"),
     ("BytePlusSeedream", V40, "images"),
+    *(("BytePlusSeedream", option, side) for option in (PRO, FLASH, LITE, V45, V40) for side in ("width", "height")),
     ("BytePlusSeedreamLayerSeparation", PRO, "image"),
     ("BytePlusSeedreamLayerSeparation", PRO, "prompt"),
     ("BytePlusSeedreamLayerSeparation", FLASH, "image"),
@@ -250,11 +252,13 @@ class SeedreamSchemaTests(unittest.TestCase):
     def test_per_model_caps_and_presets(self):
         schema = nodes_seedream.BytePlusSeedream.define_schema()
         caps = {
-            PRO: (10, 4514, 4514, None),
-            FLASH: (10, 4514, 4514, None),
-            LITE: (14, 6240, 4992, 15),
-            V45: (14, 6240, 4992, 15),
-            V40: (14, 6240, 4992, 15),
+            # (refs, custom side min, custom side max, max_images): sides follow the
+            # BytePlus pixel range and the 1:16-16:1 aspect limit.
+            PRO: (10, 240, 8600, None),
+            FLASH: (10, 240, 8600, None),
+            LITE: (14, 480, 16384, 15),
+            V45: (14, 480, 16384, 15),
+            V40: (14, 240, 16384, 15),
         }
         first_presets = {
             PRO: "(1K) 1024x1024 (1:1)",
@@ -270,14 +274,14 @@ class SeedreamSchemaTests(unittest.TestCase):
             V45: ["2K (adaptive)", "4K (adaptive)"],
             V40: ["1K (adaptive)", "2K (adaptive)", "4K (adaptive)"],
         }
-        for model, (max_refs, max_w, max_h, max_images) in caps.items():
+        for model, (max_refs, min_side, max_side, max_images) in caps.items():
             with self.subTest(model=model):
                 inputs, _ids = option_inputs(schema, model)
                 names = inputs["images"].template.names
                 self.assertEqual(names, [f"image_{i}" for i in range(1, max_refs + 1)])
                 self.assertEqual(inputs["images"].template.min, 0)
-                self.assertEqual((inputs["width"].min, inputs["width"].max, inputs["width"].step), (1024, max_w, 2))
-                self.assertEqual((inputs["height"].min, inputs["height"].max), (1024, max_h))
+                self.assertEqual((inputs["width"].min, inputs["width"].max, inputs["width"].step), (min_side, max_side, 2))
+                self.assertEqual((inputs["height"].min, inputs["height"].max), (min_side, max_side))
                 self.assertEqual(inputs["width"].default, 2048)
                 if max_images is None:
                     self.assertNotIn("max_images", inputs)
@@ -625,6 +629,19 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
                 legacy.hidden = old_hidden
         self.assertTrue(fake.calls[0]["stream"])
         self.assertEqual(json.loads(response)[0]["usage"]["generated_images"], 1)
+
+    async def test_custom_sizes_follow_byteplus(self):
+        resolve = nodes_seedream.resolve_seedream_size
+        # Valid BytePlus sizes below core's 1024 minimum side.
+        self.assertEqual(resolve(PRO, "Custom", 1280, 720), "1280x720")
+        self.assertEqual(resolve(FLASH, "Custom", 720, 1280), "720x1280")
+        self.assertEqual(resolve(PRO, "Custom", 240, 3840), "240x3840")  # 1:16, 921,600 px
+        self.assertEqual(resolve(V40, "Custom", 4096, 256), "4096x256")  # 16:1
+        self.assertEqual(resolve(LITE, "Custom", 2560, 1440), "2560x1440")
+        with self.assertRaisesRegex(Exception, "aspect ratio range"):
+            resolve(PRO, "Custom", 200, 4608)  # 921,600 px but narrower than 1:16
+        with self.assertRaisesRegex(Exception, "Minimum image resolution"):
+            resolve(LITE, "Custom", 1920, 1080)  # Lite / 4.5 need 3.69 MP
 
     async def test_size_validation(self):
         resolve = nodes_seedream.resolve_seedream_size
