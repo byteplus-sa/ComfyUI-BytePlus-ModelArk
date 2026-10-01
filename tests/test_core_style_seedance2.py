@@ -48,7 +48,7 @@ ASSET_ENV_KEYS = (
     "BYTEPLUS_ACCESS_KEY", "BYTEPLUS_SECRET_KEY", "BYTEPLUS_ACCESSKEY", "BYTEPLUS_SECRETKEY",
     "BYTEPLUS_SESSION_TOKEN",
 )
-EXTRAS = ["generation_count", "filename_prefix", "save_last_frame_batch", "non_blocking"]
+EXTRAS = ["generation_count", "non_blocking"]
 MODEL_LABELS = [
     "Seedance 2.5", "Seedance 2.5 Draft", "Seedance 2.5 Premium", "Seedance 2.5 Premium Draft",
     "Seedance 2.0", "Seedance 2.0 Fast", "Seedance 2.0 Mini",
@@ -352,6 +352,8 @@ class SchemaTests(unittest.TestCase):
             n = len(core_info["output"])
             self.assertEqual(our_outputs["output"][:n], core_info["output"])
             self.assertEqual(our_outputs["output_name"][:n], core_info["output_name"])
+            # Not an output node, like core's: an unconnected node does not run (and is not billed).
+            self.assertEqual(our_outputs["output_node"], core_info["output_node"], ours_cls.NODE_ID)
 
         for ours_cls, core_cls in (
             (nodes_assets.BytePlusCreateImageAsset, core.ByteDanceCreateImageAsset),
@@ -360,6 +362,7 @@ class SchemaTests(unittest.TestCase):
             core_info = core_cls.GET_NODE_INFO_V1()
             info = ours_cls.GET_NODE_INFO_V1()
             self.assertEqual(info["output_name"][:2], core_info["output_name"])
+            self.assertEqual(info["output_node"], core_info["output_node"], ours_cls.NODE_ID)
             core_inputs = [i.id for i in core_cls.define_schema().inputs]
             our_inputs = [i.id for i in ours_cls.define_schema().inputs]
             self.assertEqual(our_inputs[1 : 1 + len(core_inputs)], core_inputs)

@@ -125,6 +125,9 @@ class SchemaTests(unittest.TestCase):
         for name in EXTRAS:
             self.assertTrue(our_inputs[name][1]["advanced"], name)
         self.assertEqual(ours["output"][:1], theirs["output"])
+        # Not an output node, like core's: an unconnected node does not run (and is not billed).
+        self.assertEqual(ours["output_node"], theirs["output_node"])
+        self.assertFalse(ours["output_node"])
         self.assertEqual(ours["output_name"], ["VIDEO", "comparison", "source_frame", "enhanced_frame", "response"])
 
     def test_client_node(self):
@@ -504,6 +507,7 @@ class SmoothnessRequestTests(unittest.TestCase):
         self.assertEqual(
             info["output_name"], ["VIDEO", "comparison", "inserted_frame_count", "duplicate_frame_count", "response"]
         )
+        self.assertFalse(info["output_node"])  # runs only when something uses its outputs, like vCube
 
     def test_default_request_repairs_both(self):
         body = nodes_mediakit.build_smoothness_request(self.URL, REPAIR, "remove")

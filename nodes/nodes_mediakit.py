@@ -898,7 +898,6 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
                 comfy_io.Hidden.api_key_comfy_org,
                 comfy_io.Hidden.unique_id,
             ],
-            is_output_node=True,
         )
 
     @classmethod
@@ -1128,7 +1127,6 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
                 comfy_io.Hidden.api_key_comfy_org,
                 comfy_io.Hidden.unique_id,
             ],
-            is_output_node=True,
         )
 
     @classmethod

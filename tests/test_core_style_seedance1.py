@@ -68,10 +68,7 @@ CORE_INPUTS = [
     "model", "prompt", "resolution", "aspect_ratio", "duration",
     "seed", "camera_fixed", "watermark",
 ]
-EXTRA_INPUTS = [
-    "enable_offline_inference", "generation_count",
-    "filename_prefix", "save_last_frame_batch", "non_blocking",
-]
+EXTRA_INPUTS = ["enable_offline_inference", "generation_count", "non_blocking"]
 CORE_ADVANCED = {"camera_fixed", "watermark"}
 CORE_OPTIONAL = {"seed", "camera_fixed", "watermark"}
 
@@ -227,6 +224,9 @@ class Seedance1SchemaTests(unittest.TestCase):
                     info["display_name"],
                     core_info["display_name"].replace("ByteDance", "BytePlus Seedance"),
                 )
+                # Not an output node, like core's: an unconnected node does not run (and is not billed).
+                self.assertFalse(info["output_node"])
+                self.assertEqual(info["output_node"], core_info["output_node"])
 
     def test_documented_byteplus_deviations(self):
         """Where these nodes differ from core's (BYTEPLUS_DEVIATIONS), and nowhere else."""
@@ -647,8 +647,6 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         for index, tid in enumerate(order):
             self.assertTrue(torch.equal(last_frame[index:index + 1], self.frames[f"/tmp/{tid}.mp4"]))
         self.assertEqual([item["id"] for item in json.loads(response)], order)
-        # Batches are saved when nothing downstream receives the videos.
-        self.assertEqual([path for path, _ in self.saved], [f"/tmp/{tid}.mp4" for tid in order])
 
     async def test_missing_last_frame_is_left_out_of_the_batch(self):
         del self.frames["/tmp/cgt-2.mp4"]
@@ -692,17 +690,25 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             non_blocking=False,
         )
 
-    async def test_batch_is_saved_when_the_video_output_is_unconnected(self):
-        # Only last_frame (output 1) is connected.
-        result = await self._run_batch({"9": {"class_type": "PreviewImage", "inputs": {"images": ["7", 1]}}})
-        self.assertEqual(len(result.args[0]), 3)
-        self.assertEqual(len(self.saved), 3)
-
-    async def test_batch_is_not_saved_when_the_video_output_is_connected(self):
-        # Save Video receives every video, so saving them here would duplicate them.
+    # Like core's nodes, the core-style nodes save nothing: every video reaches
+    # the VIDEO output and Save Video keeps it. (One run per test: runs of the
+    # same node share task state.)
+    async def test_batch_into_save_video_is_not_saved_here(self):
         result = await self._run_batch({"8": {"class_type": "SaveVideo", "inputs": {"video": ["7", 0]}}})
         self.assertEqual(len(result.args[0]), 3)
         self.assertEqual(self.saved, [])
+
+    async def test_batch_without_a_video_consumer_is_not_saved_either(self):
+        # Only last_frame (output 1) is connected.
+        result = await self._run_batch({"9": {"class_type": "PreviewImage", "inputs": {"images": ["7", 1]}}})
+        self.assertEqual(len(result.args[0]), 3)
+        self.assertEqual(self.saved, [])
+
+    def test_only_legacy_batches_are_saved(self):
+        # Legacy nodes output only the first video, so they keep writing the batch to the output folder.
+        self.assertTrue(nodes_video._save_batch_videos(3, as_list=False))
+        self.assertFalse(nodes_video._save_batch_videos(1, as_list=False))
+        self.assertFalse(nodes_video._save_batch_videos(3, as_list=True))
 
 
 @requires_comfyui
@@ -752,11 +758,9 @@ class Seedance1TemplateTests(unittest.TestCase):
                 self.assertIn(named["resolution"], ["480p", "720p", "1080p"])
                 self.assertIsInstance(named["duration"], int)
                 self.assertIsInstance(named["seed"], int)
-                for name in ("camera_fixed", "watermark", "enable_offline_inference",
-                             "save_last_frame_batch", "non_blocking"):
+                for name in ("camera_fixed", "watermark", "enable_offline_inference", "non_blocking"):
                     self.assertIsInstance(named[name], bool, name)
                 self.assertIsInstance(named["generation_count"], int)
-                self.assertIsInstance(named["filename_prefix"], str)
         self.assertEqual(checked, set(classes))
 
 

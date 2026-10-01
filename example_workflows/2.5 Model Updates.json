@@ -256,7 +256,7 @@
       "id": 4,
       "type": "BytePlusSeedance2TextToVideo",
       "pos": [440, 640],
-      "size": [460, 468],
+      "size": [460, 420],
       "flags": {},
       "order": 3,
       "mode": 0,
@@ -347,22 +347,6 @@
           "link": null
         },
         {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "link": null
-        },
-        {
-          "name": "save_last_frame_batch",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "save_last_frame_batch"
-          },
-          "link": null
-        },
-        {
           "name": "non_blocking",
           "type": "BOOLEAN",
           "widget": {
@@ -411,8 +395,6 @@
         "randomize",
         false,
         1,
-        "BytePlus/Video/Batch/Seedance",
-        false,
         false
       ]
     },

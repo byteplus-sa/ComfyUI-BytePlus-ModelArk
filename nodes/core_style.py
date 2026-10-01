@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import aiohttp
 from comfy_api.latest import io as comfy_io
 
-from .constants import ASSET_URI_PREFIX, DEFAULT_FILENAME_PREFIX
+from .constants import ASSET_URI_PREFIX
 from .models_config import MODEL_REGION_EXCLUSIONS, RETIRED_MODELS
 from .nodes_shared import BytePlusException, get_text
 
@@ -72,18 +72,12 @@ def generation_count_input():
     )
 
 
-def filename_prefix_input():
-    return comfy_io.String.Input(
-        "filename_prefix",
-        default=DEFAULT_FILENAME_PREFIX,
-        tooltip="With generation_count above 1, the videos are also saved to the output folder with this "
-        "prefix, unless the video output is connected (the connected node gets every video).",
-        advanced=True,
-    )
-
-
 def video_extra_inputs(include_offline=False):
-    """This pack's video extras, placed after core's inputs."""
+    """
+    This pack's video extras, placed after core's inputs. Like core's nodes,
+    the core-style nodes save nothing themselves: every video reaches the
+    VIDEO output, and Save Video keeps it.
+    """
     inputs = []
     if include_offline:
         inputs.append(
@@ -97,13 +91,6 @@ def video_extra_inputs(include_offline=False):
     inputs.extend(
         [
             generation_count_input(),
-            filename_prefix_input(),
-            comfy_io.Boolean.Input(
-                "save_last_frame_batch",
-                default=False,
-                tooltip="With generation_count above 1, also save the last frame of every generated video.",
-                advanced=True,
-            ),
             comfy_io.Boolean.Input(
                 "non_blocking",
                 default=False,

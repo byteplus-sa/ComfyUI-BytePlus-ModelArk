@@ -64,7 +64,7 @@
       "id": 2,
       "type": "BytePlusSeedance2TextToVideo",
       "pos": [380, 80],
-      "size": [460, 468],
+      "size": [460, 420],
       "flags": {},
       "order": 5,
       "mode": 0,
@@ -155,22 +155,6 @@
           "link": null
         },
         {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "link": null
-        },
-        {
-          "name": "save_last_frame_batch",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "save_last_frame_batch"
-          },
-          "link": null
-        },
-        {
           "name": "non_blocking",
           "type": "BOOLEAN",
           "widget": {
@@ -219,8 +203,6 @@
         "fixed",
         false,
         1,
-        "BytePlus/Video/Batch/Seedance",
-        false,
         false
       ]
     },
@@ -275,7 +257,7 @@
       "id": 4,
       "type": "BytePlusSeedanceDraftToFinal",
       "pos": [880, 260],
-      "size": [340, 226],
+      "size": [340, 178],
       "flags": {},
       "order": 7,
       "mode": 4,
@@ -306,22 +288,6 @@
           "type": "INT",
           "widget": {
             "name": "generation_count"
-          },
-          "link": null
-        },
-        {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "link": null
-        },
-        {
-          "name": "save_last_frame_batch",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "save_last_frame_batch"
           },
           "link": null
         },
@@ -357,7 +323,7 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusSeedanceDraftToFinal"
       },
-      "widgets_values": ["", false, 1, "BytePlus/Video/Batch/Seedance", false, false]
+      "widgets_values": ["", false, 1, false]
     },
     {
       "id": 5,
@@ -455,7 +421,7 @@
       "id": 7,
       "type": "BytePlusSeedance2FirstLastFrame",
       "pos": [380, 712],
-      "size": [460, 492],
+      "size": [460, 444],
       "flags": {},
       "order": 9,
       "mode": 4,
@@ -569,24 +535,6 @@
           "shape": 7
         },
         {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "link": null,
-          "shape": 7
-        },
-        {
-          "name": "save_last_frame_batch",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "save_last_frame_batch"
-          },
-          "link": null,
-          "shape": 7
-        },
-        {
           "name": "non_blocking",
           "type": "BOOLEAN",
           "widget": {
@@ -637,8 +585,6 @@
         "",
         "",
         1,
-        "BytePlus/Video/Batch/Seedance",
-        false,
         false
       ]
     },
@@ -826,7 +772,7 @@
       "id": 12,
       "type": "BytePlusSeedance2Reference",
       "pos": [380, 1368],
-      "size": [460, 660],
+      "size": [460, 572],
       "flags": {},
       "order": 11,
       "mode": 4,
@@ -985,22 +931,6 @@
           "link": null
         },
         {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "link": null
-        },
-        {
-          "name": "save_last_frame_batch",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "save_last_frame_batch"
-          },
-          "link": null
-        },
-        {
           "name": "non_blocking",
           "type": "BOOLEAN",
           "widget": {
@@ -1052,8 +982,6 @@
         "randomize",
         false,
         1,
-        "BytePlus/Video/Batch/Seedance",
-        false,
         false
       ]
     },

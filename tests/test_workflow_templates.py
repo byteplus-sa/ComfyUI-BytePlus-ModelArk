@@ -32,8 +32,7 @@ class WorkflowTemplateTests(unittest.TestCase):
     SEEDANCE1_BEFORE_FRAMES = ["client", "model", "prompt"]
     SEEDANCE1_AFTER_FRAMES = [
         "resolution", "aspect_ratio", "duration", "seed", "camera_fixed", "watermark",
-        "enable_offline_inference", "generation_count", "filename_prefix",
-        "save_last_frame_batch", "non_blocking",
+        "enable_offline_inference", "generation_count", "non_blocking",
     ]
     # BytePlusSeedream / BytePlusSeedreamLayerSeparation (core-style): inputs per
     # selected model; widgets_values index of the model value.
@@ -78,9 +77,7 @@ class WorkflowTemplateTests(unittest.TestCase):
     }
     # Core-style Seedance 2 / 2.5 nodes: client first, core's inputs, then our
     # extras; the DynamicCombo children depend on the model option (widgets_values[0]).
-    CORE_STYLE_EXTRAS = [
-        "generation_count", "filename_prefix", "save_last_frame_batch", "non_blocking",
-    ]
+    CORE_STYLE_EXTRAS = ["generation_count", "non_blocking"]
     CORE_STYLE_SEEDANCE2_NODES = {
         "BytePlusSeedance2TextToVideo",
         "BytePlusSeedance2FirstLastFrame",
@@ -170,8 +167,7 @@ class WorkflowTemplateTests(unittest.TestCase):
             "disable_volume_normalization", "audio",
         ],
         "BytePlusSeedanceDraftToFinal": [
-            "client", "draft_task_id", "watermark", "generation_count",
-            "filename_prefix", "save_last_frame_batch", "non_blocking",
+            "client", "draft_task_id", "watermark", "generation_count", "non_blocking",
         ],
     }
 

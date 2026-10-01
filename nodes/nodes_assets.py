@@ -889,7 +889,6 @@ class BytePlusCreateImageAsset(comfy_io.ComfyNode):
             description="Create a Seedance 2.0 / 2.5 personal image asset in your private asset library "
             "(Advanced Creation Rights) and output its asset_id and group_id."
             + _ASSET_NODE_NOTE.format(media="image", url_input="image_url"),
-            is_output_node=True,
             inputs=_core_asset_inputs(
                 comfy_io.Image.Input(
                     "image",
@@ -956,7 +955,6 @@ class BytePlusCreateVideoAsset(comfy_io.ComfyNode):
             description="Create a Seedance 2.0 / 2.5 personal video asset in your private asset library "
             "(Advanced Creation Rights) and output its asset_id and group_id."
             + _ASSET_NODE_NOTE.format(media="video", url_input="video_url"),
-            is_output_node=True,
             inputs=_core_asset_inputs(
                 comfy_io.Video.Input(
                     "video",
@@ -1022,7 +1020,6 @@ class BytePlusCreateAudioAsset(comfy_io.ComfyNode):
             description="Create a Seedance 2.0 / 2.5 personal audio asset (wav/mp3, 2-30 s, up to 15 MB) in "
             "your private asset library (Advanced Creation Rights) and output its asset_id and group_id."
             + _ASSET_NODE_NOTE.format(media="audio clip (as WAV)", url_input="audio_url"),
-            is_output_node=True,
             inputs=_core_asset_inputs(
                 comfy_io.Audio.Input(
                     "audio",

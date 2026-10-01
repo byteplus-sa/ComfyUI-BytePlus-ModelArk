@@ -211,7 +211,6 @@ def _schema(node_id, display_name, description, model_options, default_model, fr
         ],
         outputs=_outputs(),
         hidden=[comfy_io.Hidden.unique_id, comfy_io.Hidden.prompt],
-        is_output_node=True,
     )
 
 
@@ -231,8 +230,6 @@ async def generate_seedance1_video(
     watermark,
     enable_offline_inference,
     generation_count,
-    filename_prefix,
-    save_last_frame_batch,
     non_blocking,
 ):
     """
@@ -261,8 +258,8 @@ async def generate_seedance1_video(
         aspect_ratio,
         seed,
         generation_count,
-        filename_prefix,
-        save_last_frame_batch,
+        DEFAULT_FILENAME_PREFIX,  # unused: core-style nodes save nothing themselves
+        False,
         non_blocking,
         cls.hidden.unique_id,
         model_name=model_id,
@@ -309,8 +306,6 @@ class BytePlusSeedanceTextToVideo(comfy_io.ComfyNode):
         watermark=False,
         enable_offline_inference=False,
         generation_count=1,
-        filename_prefix=DEFAULT_FILENAME_PREFIX,
-        save_last_frame_batch=False,
         non_blocking=False,
     ) -> comfy_io.NodeOutput:
         return await generate_seedance1_video(
@@ -328,8 +323,6 @@ class BytePlusSeedanceTextToVideo(comfy_io.ComfyNode):
             watermark=watermark,
             enable_offline_inference=enable_offline_inference,
             generation_count=generation_count,
-            filename_prefix=filename_prefix,
-            save_last_frame_batch=save_last_frame_batch,
             non_blocking=non_blocking,
         )
 
@@ -371,8 +364,6 @@ class BytePlusSeedanceImageToVideo(comfy_io.ComfyNode):
         watermark=False,
         enable_offline_inference=False,
         generation_count=1,
-        filename_prefix=DEFAULT_FILENAME_PREFIX,
-        save_last_frame_batch=False,
         non_blocking=False,
     ) -> comfy_io.NodeOutput:
         return await generate_seedance1_video(
@@ -390,8 +381,6 @@ class BytePlusSeedanceImageToVideo(comfy_io.ComfyNode):
             watermark=watermark,
             enable_offline_inference=enable_offline_inference,
             generation_count=generation_count,
-            filename_prefix=filename_prefix,
-            save_last_frame_batch=save_last_frame_batch,
             non_blocking=non_blocking,
         )
 
@@ -438,8 +427,6 @@ class BytePlusSeedanceFirstLastFrame(comfy_io.ComfyNode):
         watermark=False,
         enable_offline_inference=False,
         generation_count=1,
-        filename_prefix=DEFAULT_FILENAME_PREFIX,
-        save_last_frame_batch=False,
         non_blocking=False,
     ) -> comfy_io.NodeOutput:
         return await generate_seedance1_video(
@@ -457,8 +444,6 @@ class BytePlusSeedanceFirstLastFrame(comfy_io.ComfyNode):
             watermark=watermark,
             enable_offline_inference=enable_offline_inference,
             generation_count=generation_count,
-            filename_prefix=filename_prefix,
-            save_last_frame_batch=save_last_frame_batch,
             non_blocking=non_blocking,
         )
 

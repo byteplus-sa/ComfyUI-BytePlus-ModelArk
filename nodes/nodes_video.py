@@ -24,7 +24,7 @@ from comfy_api.input_impl import VideoFromFile
 from .audio_utils import audio_to_wav_bytes, audio_waveform
 from comfy_execution.graph_utils import ExecutionBlocker
 
-from .core_style import get_output_consumers, raise_if_model_retired
+from .core_style import raise_if_model_retired
 from .nodes_shared import (
     GLOBAL_CATEGORY,
     _image_to_base64,
@@ -351,14 +351,13 @@ from .constants import (
 )
 
 
-def _save_batch_videos(generation_count, as_list, workflow_prompt, node_id):
+def _save_batch_videos(generation_count, as_list):
     """
-    Batches are written to the output folder, except when a node reads the video
-    list output (e.g. Save Video): it gets every video, so saving here duplicates them.
+    Legacy nodes write a batch to the output folder (only the first video reaches
+    their output). Core-style nodes (list output) save nothing, like core's nodes:
+    every video reaches the VIDEO output and Save Video keeps it.
     """
-    if generation_count <= 1:
-        return False
-    return not (as_list and get_output_consumers(workflow_prompt, node_id, 0))
+    return generation_count > 1 and not as_list
 
 
 class BytePlusVideoBase:
@@ -897,7 +896,7 @@ class BytePlusVideoBase:
 
             if save_videos:
                 save_to_output(v_path, filename_prefix)
-            if generation_count > 1 and save_last_frame_batch and res["frame_path"]:
+            if save_videos and save_last_frame_batch and res["frame_path"]:
                 save_to_output(res["frame_path"], filename_prefix)
 
         # t_end = time.time()
@@ -963,7 +962,6 @@ class BytePlusVideoBase:
         execution_expires_after=None,
         ignore_errors=False,
         as_list=False,
-        workflow_prompt=None,
     ):
         """
         Submit tasks whose content is already built (e.g. a draft_task
@@ -1006,7 +1004,7 @@ class BytePlusVideoBase:
                 save_last_frame_batch,
                 session,
                 as_list=as_list,
-                save_videos=_save_batch_videos(generation_count, as_list, workflow_prompt, node_id),
+                save_videos=_save_batch_videos(generation_count, as_list),
             )
             await asyncio.sleep(0.25)
         self._record_usage(client, model_name, ret_results)
@@ -1120,7 +1118,7 @@ class BytePlusVideoBase:
                     save_last_frame_batch,
                     session,
                     as_list=as_list,
-                    save_videos=_save_batch_videos(generation_count, as_list, workflow_prompt, node_id),
+                    save_videos=_save_batch_videos(generation_count, as_list),
                 )
                 await asyncio.sleep(0.25)
             

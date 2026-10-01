@@ -64,7 +64,7 @@
       "id": 2,
       "type": "BytePlusSeedanceTextToVideo",
       "pos": [390, 80],
-      "size": [440, 448],
+      "size": [440, 400],
       "flags": {},
       "order": 1,
       "mode": 0,
@@ -160,24 +160,6 @@
           "link": null
         },
         {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "shape": 7,
-          "link": null
-        },
-        {
-          "name": "save_last_frame_batch",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "save_last_frame_batch"
-          },
-          "shape": 7,
-          "link": null
-        },
-        {
           "name": "non_blocking",
           "type": "BOOLEAN",
           "widget": {
@@ -222,8 +204,6 @@
         false,
         false,
         1,
-        "BytePlus/Video/Batch/Seedance",
-        false,
         false
       ]
     },
@@ -323,7 +303,7 @@
       "id": 5,
       "type": "BytePlusSeedanceImageToVideo",
       "pos": [390, 692],
-      "size": [440, 448],
+      "size": [440, 400],
       "flags": {},
       "order": 4,
       "mode": 4,
@@ -424,24 +404,6 @@
           "link": null
         },
         {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "shape": 7,
-          "link": null
-        },
-        {
-          "name": "save_last_frame_batch",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "save_last_frame_batch"
-          },
-          "shape": 7,
-          "link": null
-        },
-        {
           "name": "non_blocking",
           "type": "BOOLEAN",
           "widget": {
@@ -486,8 +448,6 @@
         false,
         false,
         1,
-        "BytePlus/Video/Batch/Seedance",
-        false,
         false
       ]
     },
@@ -632,7 +592,7 @@
       "id": 9,
       "type": "BytePlusSeedanceFirstLastFrame",
       "pos": [390, 1304],
-      "size": [440, 460],
+      "size": [440, 400],
       "flags": {},
       "order": 8,
       "mode": 4,
@@ -738,24 +698,6 @@
           "link": null
         },
         {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "shape": 7,
-          "link": null
-        },
-        {
-          "name": "save_last_frame_batch",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "save_last_frame_batch"
-          },
-          "shape": 7,
-          "link": null
-        },
-        {
           "name": "non_blocking",
           "type": "BOOLEAN",
           "widget": {
@@ -800,8 +742,6 @@
         false,
         false,
         1,
-        "BytePlus/Video/Batch/Seedance",
-        false,
         false
       ]
     },

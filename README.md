@@ -20,7 +20,9 @@ Generation calls go directly to ModelArk with **your own ModelArk API key**, so 
 
 ## Nodes
 
-The generation nodes match ComfyUI's built-in ByteDance nodes input for input, so workflows look the same as with Comfy's partner nodes. The differences: every node takes the `API Client` as its first input (calls go to ModelArk with your key), BytePlus model IDs are used, and this pack's extras (parallel generations, saving to the output folder, non-blocking runs, and so on) sit under advanced inputs after the built-in ones.
+The generation nodes match ComfyUI's built-in ByteDance nodes input for input, so workflows look the same as with Comfy's partner nodes. The differences: every node takes the `API Client` as its first input (calls go to ModelArk with your key), BytePlus model IDs are used, and this pack's extras (parallel generations, non-blocking runs, and so on) sit under advanced inputs after the built-in ones.
+
+Like the built-in nodes, the generation, asset and MediaKit nodes save nothing themselves and only run when something uses their output: connect `Save Video` / `Save Image` to keep the results. A node with nothing connected does not run and is not billed. With `generation_count` above 1, every video reaches the `VIDEO` output (each with its own seed, the next node runs once per video) and `last_frame` holds their last frames as one batch. The Legacy nodes keep their old behaviour, including saving batches to the output folder.
 
 - **Setup**
   - `API Client` (required): creates the ModelArk client used by all other nodes. Pick the key and the region.
