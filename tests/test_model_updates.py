@@ -2513,7 +2513,7 @@ class ApiKeySavedEventTests(unittest.TestCase):
         saved = {}
         patches = {
             "validate_api_key": lambda key, url: True,
-            "save_api_key": lambda name, key: saved.update({name: key}),
+            "save_api_key": lambda name, key, access_key="", secret_key="": saved.update({name: key}),
             "Ark": lambda **kwargs: SimpleNamespace(**kwargs),
         }
         old = {name: getattr(nodes_shared, name) for name in patches}
@@ -2542,6 +2542,83 @@ class ApiKeySavedEventTests(unittest.TestCase):
         self.assertNotIn("sk-123", json.dumps(data))
         hidden = nodes_shared.BytePlusAPIClient.define_schema().hidden
         self.assertIn(nodes_shared.comfy_io.Hidden.unique_id, hidden)
+
+    def _run_custom_client(self, **kwargs):
+        """Run the API Client on a Custom key against a throwaway store; returns (client, store, events)."""
+        import tempfile
+
+        events = []
+        tmp = tempfile.mkdtemp()
+        store = nodes_shared.ApiKeyStore(os.path.join(tmp, "api_keys.json"))
+        patches = {
+            "validate_api_key": lambda key, url: True,
+            "Ark": lambda **kw: SimpleNamespace(**kw),
+            "API_KEY_STORE": store,
+            "_notify_api_key_saved": lambda *args, **kw: events.append(args),
+        }
+        old = {name: getattr(nodes_shared, name) for name in patches}
+        for name, value in patches.items():
+            setattr(nodes_shared, name, value)
+        nodes_shared.BytePlusAPIClient.hidden = SimpleNamespace(unique_id="7")
+        try:
+            client = nodes_shared.BytePlusAPIClient.execute("Custom", **kwargs).args[0]
+        finally:
+            for name, value in old.items():
+                setattr(nodes_shared, name, value)
+            delattr(nodes_shared.BytePlusAPIClient, "hidden")
+        return client, store, events
+
+    def test_api_client_saves_iam_ak_sk_with_the_key(self):
+        client, store, events = self._run_custom_client(
+            new_api_key=" sk-1 ", new_key_name="work", new_access_key=" AKLT1 ", new_secret_key=" s3cret "
+        )
+        expected = {"access_key": "AKLT1", "secret_key": "s3cret", "session_token": ""}
+        self.assertEqual(client.asset_credentials, expected)
+        self.assertEqual(
+            store.get_items(),
+            [{"customName": "work", "apiKey": "sk-1", "accessKey": "AKLT1", "secretKey": "s3cret"}],
+        )
+        self.assertEqual(store.find_asset_credentials("work"), expected)
+        # The frontend event names the key and carries no AK/SK, only the key's fingerprint.
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0][1], "work")
+        self.assertNotIn("s3cret", json.dumps(events))
+        self.assertNotIn("AKLT1", json.dumps(events))
+
+    def test_api_client_uses_ak_sk_without_saving_them(self):
+        client, store, events = self._run_custom_client(
+            new_api_key="sk-1", new_access_key="AKLT1", new_secret_key="s3cret"
+        )
+        self.assertEqual(client.asset_credentials["access_key"], "AKLT1")
+        self.assertEqual(store.get_items(), [])
+        self.assertEqual(events, [])
+
+    def test_api_client_needs_both_ak_and_sk(self):
+        for kwargs in ({"new_access_key": "AKLT1"}, {"new_secret_key": "s3cret"}):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaisesRegex(Exception, "go together"):
+                    self._run_custom_client(new_api_key="sk-1", new_key_name="work", **kwargs)
+
+    def test_key_store_keeps_ak_sk_on_update_and_drops_a_stale_session_token(self):
+        import tempfile
+
+        store = nodes_shared.ApiKeyStore(os.path.join(tempfile.mkdtemp(), "api_keys.json"))
+        store.upsert("work", "sk-1", "AKLT1", "s1")
+        store._items[0]["sessionToken"] = "old-token"
+        # Re-saving the key alone (a rotated API key) leaves the IAM pair and its token alone.
+        store.upsert("work", "sk-2")
+        self.assertEqual(store.find_api_key("work"), "sk-2")
+        self.assertEqual(store.find_asset_credentials("work")["access_key"], "AKLT1")
+        self.assertEqual(store.find_asset_credentials("work")["session_token"], "old-token")
+        # A new pair replaces the old one and the token that belonged to it.
+        store.upsert("work", "sk-2", "AKLT2", "s2")
+        self.assertEqual(
+            store.find_asset_credentials("work"),
+            {"access_key": "AKLT2", "secret_key": "s2", "session_token": ""},
+        )
+        # Only half a pair is ignored.
+        store.upsert("other", "sk-3", "AKLT3", "")
+        self.assertIsNone(store.find_asset_credentials("other"))
 
 
 @requires_comfyui

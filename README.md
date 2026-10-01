@@ -4,7 +4,7 @@ ComfyUI custom nodes for **BytePlus ModelArk**: Seedance video generation, Seedr
 
 Generation calls go directly to ModelArk with **your own ModelArk API key**, so usage is billed to your BytePlus account (including contract pricing and resource packs). No Comfy credits are used. Seed Speech nodes use a separate Seed Speech API key (see [Seed Speech API Key](#seed-speech-api-key)), and the MediaKit nodes an AI MediaKit API key (see [AI MediaKit API Key](#ai-mediakit-api-key)). The one exception is local videos for Seedance 2 / 2.5 references, local media for the MediaKit nodes (and media for new private assets), which pass through Comfy.org storage (see [Reference Videos](#reference-videos)).
 
-> **Status: in development (v0.3.0).** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
+> **Status: v0.3.0.** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
 
 **v0.3.0:** The image, video, understanding and asset nodes now have the same layout as ComfyUI's built-in ByteDance nodes (same node split, inputs, defaults and outputs), plus an `API Client` input and this pack's extras under advanced inputs. The previous nodes stay available as "(Legacy)" so saved workflows still load. Also adds Seed Speech nodes: `Seed Audio 1.0`, `Seed Speech TTS`, `Seed Speech ASR`, `Seed Voice Clone` and the `Speech Client` that holds the Seed Speech API key, and, on AI MediaKit, `vCube Video Enhance` (ComfyUI's built-in ByteDance vCube node), `Video Smoothness Enhance` and `Image Quality Enhance` with the `MediaKit Client`. Requires ComfyUI 0.31.0 or later.
 
@@ -22,7 +22,7 @@ Generation calls go directly to ModelArk with **your own ModelArk API key**, so 
 
 The generation nodes match ComfyUI's built-in ByteDance nodes input for input, so workflows look the same as with Comfy's partner nodes. The differences: every node takes the `API Client` as its first input (calls go to ModelArk with your key), BytePlus model IDs are used, and this pack's extras (parallel generations, non-blocking runs, and so on) sit under advanced inputs after the built-in ones.
 
-Like the built-in nodes, the generation, asset and MediaKit nodes save nothing themselves and only run when something uses their output: connect `Save Video` / `Save Image` to keep the results. A node with nothing connected does not run and is not billed. With `generation_count` above 1, every video reaches the `VIDEO` output (each with its own seed, the next node runs once per video) and `last_frame` holds their last frames as one batch. The Legacy nodes keep their old behaviour, including saving batches to the output folder.
+Like the built-in nodes, the generation, asset and MediaKit nodes save nothing themselves (the one exception is the opt-in `save_layers` of `Seedream 5.0 Layer Separation`) and only run when something uses their output: connect `Save Video` / `Save Image` to keep the results. A node with nothing connected does not run and is not billed. With `generation_count` above 1, every video reaches the `VIDEO` output (each with its own seed, the next node runs once per video) and `last_frame` holds their last frames as one batch. The Legacy nodes keep their old behaviour, including saving batches to the output folder.
 
 - **Setup**
   - `API Client` (required): creates the ModelArk client used by all other nodes. Pick the key and the region.
@@ -42,7 +42,7 @@ Like the built-in nodes, the generation, asset and MediaKit nodes save nothing t
   - `LLM` (formerly `Seed`; saved workflows keep working): text answers with Seed 2.0 Pro / Lite / Mini, Seed 2.1 Turbo, DeepSeek V4.1 Flash or GLM 5.3 Flash, with up to 20 images and 4 videos as context (Seed 2.0 Lite and Mini also take up to 4 audio clips, 120 minutes in total; the other models do not hear audio), temperature and a system prompt. Advanced: image detail, video fps, deep thinking and effort (minimal to max), multi-turn conversations, streaming; a second output returns the raw response JSON.
 - **Speech** (Seed Speech; needs a [Seed Speech API key](#seed-speech-api-key), not the ModelArk key)
   - `Speech Client` (required for the speech nodes): picks the Seed Speech API key.
-  - `Seed Audio 1.0`: `seed-audio-1.0`. Speech, voiceovers, music and sound effects up to 120 s from a natural-language prompt in 20 languages, laid out like ComfyUI's built-in Seed Audio node. `reference_mode`: text only; audio reference (up to three clips from `Load Audio` up to 30 s, or speaker IDs, cloned voice IDs or audio URLs, referred to as `@Audio1`–`@Audio3` in the prompt); image reference (`Load Image` or a URL); or a preset TTS 2.0 voice. Sample rate, speed, loudness and pitch controls. Advanced: output format (wav, mp3, ogg_opus, pcm), sentence/word subtitles, audible and metadata watermarks. Uploaded clips and images are sent inline.
+  - `Seed Audio 1.0`: `seed-audio-1.0`. Speech, voiceovers, music and sound effects up to 120 s from a natural-language prompt in 20 languages, laid out like ComfyUI's built-in Seed Audio node. `reference_mode`: text only; audio reference (up to three clips from `Load Audio` up to 30 s, or speaker IDs, cloned voice IDs or audio URLs, referred to as `@Audio1`–`@Audio3` in the prompt); image reference (`Load Image` or a URL); or a preset TTS 2.0 voice. Sample rate, speed, loudness and pitch controls. Advanced: output format (wav, mp3, ogg_opus, pcm), sentence/word subtitles, audible and metadata watermarks, and `generation_count` (up to 16 parallel takes of the same prompt, each billed as its own request, since the API has no seed or variation setting; every output is a list in the same order, so the next node runs once per clip, and failed takes are skipped unless all fail). Uploaded clips and images are sent inline.
   - `Seed Voice Clone`: upload a 10–15 s reference clip (`Load Audio`) to train a cloned voice (Voice Replication 2.0) into a voice slot (`S_…`, bought in the Seed Speech console) or a postpaid custom voice ID. Waits until the voice is ready and outputs its `speaker_id` (connect it to TTS `custom_speaker_id` with model `seed-icl-2.0`, or to a Seed Audio reference slot) plus a demo clip. Each slot can be trained 15 times; the first TTS call with the voice starts the slot's billing.
   - `Seed Speech TTS`: text to speech with the TTS 2.0 voice list (`seed-tts-2.0`), TTS 1.0 speaker IDs (`seed-tts-1.0`) or cloned voices (`seed-icl-2.0` / `seed-icl-1.0`). Style instructions (`context_text`), emotion and intensity, speed, volume, pitch, sample rate, language, trailing silence and subtitles/timestamps. Advanced: language detection, context language, Markdown/emoji/LaTeX/parentheses handling, unsupported-language threshold, 1-hour cache and tone fidelity for cloned voices.
   - `Seed Speech ASR`: speech to text in 50+ languages from an uploaded clip (`Load Audio`) or a public audio URL. `seed-asr-fast` sends the clip inline; the standard models (`seed-asr-2.0` / `1.0`, up to 5 h) only take URLs, so a connected clip is uploaded to Comfy.org storage first (Comfy.org login required, like Seedance reference videos). A context image (`Load Image`) is uploaded the same way. Punctuation, number formatting, filler-word removal, speaker labels and hotwords. Advanced: dialogue/scene context and an image for visual context (ASR 2.0), automatic language detection and per-utterance language labels, stereo channel split, silence-based segmentation, Traditional Chinese output and sensitive-word filtering. Outputs the transcript, utterance timings and SRT subtitles.
@@ -58,7 +58,13 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 
 **Retired models.** BytePlus deprecated `seedance-1-5-pro`, `seed-1-8`, `seed-1-6` and `seed-1-6-flash` and shuts them down on 2026-11-11, so no node offers them (ComfyUI's built-in Seedance nodes still list Seedance 1.5 Pro). Saved workflows that use them still load; running them names the replacement (`dreamina-seedance-2-0-mini` for Seedance 1.5 Pro, `seed-2-0-lite` / `seed-2-0-mini` for Seed 1.x).
 
-Example workflows are in [`example_workflows/`](./example_workflows).
+Example workflows are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser. Besides templates for each node (and `2.5 Model Updates`, one workflow with Seedream, Seedance 2.5 and the LLM), there are pipelines that chain the services:
+
+- `Text to Image to Video`: Seedream makes the first frame and Seedance animates it.
+- `Seedance Video Extension`: three Seedance clips, each starting from the previous clip's `last_frame`, joined into one video (the join step uses ComfyUI's `Concatenate Video`, which needs ComfyUI 0.36 or later).
+- `Seed Prompt Writer`: BytePlus LLM turns a short idea into a detailed prompt for Seedream.
+- `Generate and Enhance`: Seedream, then Image Quality Enhance; Seedance, then vCube Video Enhance (needs a ModelArk key and a MediaKit key).
+- `Private Asset Library`: registers an image as a private asset and uses it as an `asset_N` reference in Seedance 2.5 (needs IAM AK/SK and Advanced Creation Rights).
 
 ## Installation
 
@@ -77,6 +83,8 @@ Run `pip` with the same Python that runs ComfyUI, then restart ComfyUI. ComfyUI-
    - Copy `api_keys.json.example` to `api_keys.json` and add your key, or
    - Add the `API Client` node, choose **Custom** in `key_name`, paste your key and set `new_key_name`. After the first run the key is saved to `api_keys.json`, the node switches to the saved name, and the pasted key is cleared.
 3. In the `API Client` node, set `region` to the region the key belongs to.
+
+For the private asset library nodes the `API Client` also takes IAM AK/SK (`new_access_key`, `new_secret_key`); see [Private Assets](#private-assets).
 
 While `key_name` is **Custom**, the raw key is part of the workflow and of the prompt metadata that ComfyUI embeds in saved images and videos. Save the key under a name (or use `api_keys.json`) before sharing workflows or outputs. Never commit `api_keys.json`.
 
@@ -124,7 +132,12 @@ ComfyUI's built-in Create Asset nodes run real-person verification inside the no
 
 Already have assets? Use `Asset Library` to list them (virtual portraits, or `LivenessFace` groups for people verified in the ModelArk console). Using an existing asset in Seedance only needs the API key, except that `asset_N` looks up the asset's type with AK/SK.
 
-Managing assets uses the signed ModelArk OpenAPI, which needs **IAM AK/SK** with asset-library permission, not the API key. Add them to the key's entry in `api_keys.json`, or set `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` (and `BYTEPLUS_SESSION_TOKEN` for STS keys) before starting ComfyUI:
+Managing assets uses the signed ModelArk OpenAPI, which needs **IAM AK/SK** with asset-library permission, not the API key. Use an IAM sub-user whose policy only allows the asset library. To set them:
+
+- **In the node (easiest, also in ComfyUI Desktop):** on the `API Client`, set `key_name` to **Custom**, paste the API key, give it a `new_key_name`, and fill in `new_access_key` and `new_secret_key`. After the first run they are saved with the key in `api_keys.json` and cleared from the node. To add AK/SK to a key you already saved, do the same with that key and the same name; nothing else about the entry changes.
+- **In the file:** add them to the key's entry in `api_keys.json`, or set `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` (and `BYTEPLUS_SESSION_TOKEN` for STS keys) before starting ComfyUI. `sessionToken` for STS keys can only be set this way.
+
+Like the pasted API key, the AK/SK are part of the workflow until the first run saves them, so run once before sharing the workflow or its outputs. The file entry looks like this:
 
 ```json
 {"customName": "My key", "apiKey": "…", "accessKey": "AKLT…", "secretKey": "…"}
@@ -144,7 +157,7 @@ Final videos from a Seedance 2.5 draft are 1080p; from a 2.5 Premium draft, 4K. 
 ## Development
 
 ```bash
-python -m unittest tests.test_workflow_templates
+python3 -m unittest tests.test_workflow_templates
 ```
 
 The node tests need a ComfyUI checkout and a Python environment with torch and the BytePlus SDK; they are skipped otherwise:
@@ -152,6 +165,8 @@ The node tests need a ComfyUI checkout and a Python environment with torch and t
 ```bash
 COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed tests.test_mediakit
 ```
+
+CI runs both on every push and pull request, and weekly against ComfyUI's latest release and `master`, because the core-style nodes are compared with ComfyUI's built-in ByteDance nodes. See [`CLAUDE.md`](./CLAUDE.md) for the project layout and conventions.
 
 ## Roadmap
 
@@ -169,6 +184,8 @@ COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates tests.
 - [x] Video Smoothness Enhance on AI MediaKit, with a side-by-side comparison
 - [x] Image Quality Enhance on AI MediaKit
 - [x] Same node layout as ComfyUI's built-in ByteDance nodes
+- [x] DeepSeek V4.1 Flash and GLM 5.3 Flash in the LLM node, audio input on Seed 2.0 Lite and Mini
+- [x] Example pipelines that chain Seedream, Seedance, the LLM, MediaKit and the asset library
 
 ## Compatibility
 

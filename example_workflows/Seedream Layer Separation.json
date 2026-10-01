@@ -8,7 +8,7 @@
       "id": 1,
       "type": "BytePlusAPIClient",
       "pos": [20, 100],
-      "size": [300, 138],
+      "size": [300, 190],
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -44,6 +44,24 @@
             "name": "region"
           },
           "link": null
+        },
+        {
+          "name": "new_access_key",
+          "type": "STRING",
+          "shape": 7,
+          "widget": {
+            "name": "new_access_key"
+          },
+          "link": null
+        },
+        {
+          "name": "new_secret_key",
+          "type": "STRING",
+          "shape": 7,
+          "widget": {
+            "name": "new_secret_key"
+          },
+          "link": null
         }
       ],
       "outputs": [
@@ -58,7 +76,7 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusAPIClient"
       },
-      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
+      "widgets_values": ["", "", "Custom", "ap-southeast-1", "", ""]
     },
     {
       "id": 2,

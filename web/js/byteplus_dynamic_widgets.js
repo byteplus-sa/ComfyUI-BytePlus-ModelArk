@@ -52,6 +52,10 @@ function allGraphNodes() {
 // API Client node classes (ModelArk and Seed Speech keys)
 const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient", "BytePlusMediaKitClient"];
 
+// API Client widgets shown only while key_name is Custom. They hold secrets until
+// the first run saves them, then onApiKeySaved clears them.
+const CUSTOM_KEY_WIDGETS = ['new_api_key', 'new_key_name', 'new_access_key', 'new_secret_key'];
+
 /**
  * Widgets whose value changes drive visibility logic
  * @type {string[]}
@@ -502,13 +506,13 @@ function widgetLogic(node, widget) {
     if (API_CLIENT_CLASSES.includes(node.comfyClass)) {
         if (widgetName === 'key_name') {
             const isCustom = widget.value === "Custom";
-            const newKeyWidget = findWidgetByName(node, 'new_api_key');
-            const newNameWidget = findWidgetByName(node, 'new_key_name');
+            // new_access_key / new_secret_key exist on the ModelArk client only.
+            let changed = false;
+            for (const name of CUSTOM_KEY_WIDGETS) {
+                if (toggleWidget(node, findWidgetByName(node, name), isCustom)) changed = true;
+            }
 
-            const changedKey = toggleWidget(node, newKeyWidget, isCustom);
-            const changedName = toggleWidget(node, newNameWidget, isCustom);
-
-            if (changedKey || changedName) shouldResize = true;
+            if (changed) shouldResize = true;
         }
     }
 
@@ -644,7 +648,7 @@ async function onApiKeySaved({ detail }) {
             }
             keyNameWidget.value = detail.key_name;
         }
-        for (const name of ['new_api_key', 'new_key_name']) {
+        for (const name of CUSTOM_KEY_WIDGETS) {
             const widget = findWidgetByName(node, name);
             if (widget) widget.value = "";
         }

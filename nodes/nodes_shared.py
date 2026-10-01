@@ -99,17 +99,23 @@ class ApiKeyStore:
             return False
         return True
 
-    def upsert(self, name, key):
+    def upsert(self, name, key, access_key="", secret_key=""):
+        """
+        Add or update a key entry. IAM AK/SK (asset library) are stored with the
+        entry only when both are given; an update without them keeps the ones
+        already saved. New AK/SK replace an old session token, which belonged
+        to the old pair.
+        """
         with self._lock:
-            updated = False
-            for item in self._items:
-                if item["customName"] == name:
-                    item["apiKey"] = key
-                    updated = True
-                    break
-
-            if not updated:
-                self._items.append({"customName": name, "apiKey": key})
+            entry = next((item for item in self._items if item["customName"] == name), None)
+            if entry is None:
+                entry = {"customName": name, "apiKey": key}
+                self._items.append(entry)
+            entry["apiKey"] = key
+            if access_key and secret_key:
+                entry["accessKey"] = access_key
+                entry["secretKey"] = secret_key
+                entry.pop("sessionToken", None)
 
         return self.save()
 
@@ -305,11 +311,11 @@ def load_api_keys():
     API_KEY_STORE.load()
 
 
-def save_api_key(name, key):
+def save_api_key(name, key, access_key="", secret_key=""):
     """
-    Save a new API key to api_keys.json.
+    Save a new API key (and optional IAM AK/SK) to api_keys.json.
     """
-    if API_KEY_STORE.upsert(name, key):
+    if API_KEY_STORE.upsert(name, key, access_key, secret_key):
         logger.info(f"Saved API Key: {name}")
 
 
@@ -1014,6 +1020,24 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
                     default=DEFAULT_REGION,
                     tooltip="ModelArk region. API keys and model activation are per region.",
                 ),
+                comfy_io.String.Input(
+                    "new_access_key",
+                    default="",
+                    optional=True,
+                    tooltip=(
+                        "Optional IAM access key (AK), only for the asset library nodes "
+                        "(Create Image / Video / Audio Asset, Asset Library, and asset_N references). "
+                        "Use it with new_secret_key while key_name is Custom: it is saved with the key "
+                        "under new_key_name and then cleared from this node. Use an IAM sub-user "
+                        "whose policy only allows the asset library."
+                    ),
+                ),
+                comfy_io.String.Input(
+                    "new_secret_key",
+                    default="",
+                    optional=True,
+                    tooltip="Optional IAM secret key (SK) that goes with new_access_key. Cleared from this node after it is saved.",
+                ),
             ],
             outputs=[BytePlusClientType.Output(display_name="client")],
             hidden=[comfy_io.Hidden.unique_id],
@@ -1021,7 +1045,8 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
 
     @classmethod
     def execute(
-        cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_REGION
+        cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_REGION,
+        new_access_key="", new_secret_key="",
     ) -> comfy_io.NodeOutput:
         api_key = None
         asset_credentials = None
@@ -1032,13 +1057,23 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
                 raise BytePlusException(get_text("err_new_key_empty"))
             
             api_key = new_api_key.strip()
-            
+            access_key = (new_access_key or "").strip()
+            secret_key = (new_secret_key or "").strip()
+            if bool(access_key) != bool(secret_key):
+                raise BytePlusException(get_text("err_new_asset_credentials_incomplete"))
+
             if not validate_api_key(api_key, base_url):
                 raise BytePlusException(get_text("err_new_key_invalid"))
-            
+
+            if access_key:
+                # Usable in this run even when the key is not saved.
+                asset_credentials = {"access_key": access_key, "secret_key": secret_key, "session_token": ""}
+
             if new_key_name and new_key_name.strip():
-                save_api_key(new_key_name.strip(), api_key)
+                save_api_key(new_key_name.strip(), api_key, access_key, secret_key)
                 print(get_text("info_new_key_saved", name=new_key_name.strip()))
+                if access_key:
+                    print(get_text("info_new_asset_credentials_saved", name=new_key_name.strip()))
                 _notify_api_key_saved(cls.hidden.unique_id, new_key_name.strip(), api_key)
 
         else:

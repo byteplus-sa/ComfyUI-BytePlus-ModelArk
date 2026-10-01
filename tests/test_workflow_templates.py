@@ -20,6 +20,11 @@ EXPECTED_WORKFLOWS = {
     "vCube Video Enhance.json",
     "Video Smoothness Enhance.json",
     "Image Quality Enhance.json",
+    "Text to Image to Video.json",
+    "Seedance Video Extension.json",
+    "Seed Prompt Writer.json",
+    "Generate and Enhance.json",
+    "Private Asset Library.json",
 }
 
 
@@ -119,7 +124,9 @@ class WorkflowTemplateTests(unittest.TestCase):
         return ["client", "model", *text, "seed", "watermark"] + cls.CORE_STYLE_EXTRAS
 
     CURRENT_INPUT_ORDERS = {
-        "BytePlusAPIClient": ["new_api_key", "new_key_name", "key_name", "region"],
+        "BytePlusAPIClient": [
+            "new_api_key", "new_key_name", "key_name", "region", "new_access_key", "new_secret_key",
+        ],
         "BytePlusQuotaSettings": [
             "client", "image_model", "image_limit", "video_model", "video_limit"
         ],
@@ -144,6 +151,10 @@ class WorkflowTemplateTests(unittest.TestCase):
         ],
         "BytePlusImageEnhance": [
             "mediakit_client", "image", "tool_version", "output_size.multiple", "output_size", "image_url",
+        ],
+        "BytePlusCreateImageAsset": [
+            "client", "image", "group_id", "image_url", "group_name", "asset_name",
+            "project_name", "wait_until_active",
         ],
         "BytePlusSeedAudio": [
             "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
@@ -448,6 +459,94 @@ class WorkflowTemplateTests(unittest.TestCase):
         targets = {(link[2], nodes[link[3]]["type"], link[4]) for link in workflow["links"] if link[1] == enhance["id"]}
         self.assertEqual(targets, {(0, "SaveImage", 0), (1, "ImageCompare", 0), (0, "ImageCompare", 1)})
 
+    @staticmethod
+    def edges(workflow):
+        """Links as (origin type, origin slot, target type, target input name)."""
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        return {
+            (nodes[o]["type"], os_, nodes[t]["type"], nodes[t]["inputs"][ts]["name"])
+            for _id, o, os_, t, ts, _type in workflow["links"]
+        }
+
+    def test_text_to_image_to_video_template(self):
+        workflow = load_workflow("Text to Image to Video.json")
+        # Seedream's image is saved and is the first frame of the Seedance clip.
+        self.assertEqual(self.edges(workflow), {
+            ("BytePlusAPIClient", 0, "BytePlusSeedream", "client"),
+            ("BytePlusAPIClient", 0, "BytePlusSeedance2FirstLastFrame", "client"),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("BytePlusSeedream", 0, "BytePlusSeedance2FirstLastFrame", "first_frame"),
+            ("BytePlusSeedance2FirstLastFrame", 0, "SaveVideo", "video"),
+        })
+
+    def test_video_extension_template(self):
+        workflow = load_workflow("Seedance Video Extension.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        clips = [n for n in nodes.values() if n["type"].startswith("BytePlusSeedance2")]
+        self.assertEqual(len(clips), 3)
+        # Each clip starts from the previous clip's last_frame (output 2)...
+        chained = [
+            (nodes[o]["type"], os_, nodes[t]["type"], nodes[t]["inputs"][ts]["name"], o, t)
+            for _id, o, os_, t, ts, _type in workflow["links"]
+            if nodes[t]["inputs"][ts]["name"] == "first_frame"
+        ]
+        self.assertEqual(len(chained), 2)
+        self.assertTrue(all(link[1] == 2 for link in chained))
+        self.assertEqual({(link[4], link[5]) for link in chained}, {(clips[0]["id"], clips[1]["id"]), (clips[1]["id"], clips[2]["id"])})
+        # ...and all three videos are joined, in order, into the one Save Video.
+        concat = next(n for n in nodes.values() if n["type"] == "ConcatenateVideo")
+        joined = {
+            nodes[t]["inputs"][ts]["name"]: o
+            for _id, o, _slot, t, ts, _type in workflow["links"] if t == concat["id"]
+        }
+        self.assertEqual(joined, {f"videos.video{i}": clip["id"] for i, clip in enumerate(clips)})
+        # Only the joined video is saved, not the three intermediate clips.
+        self.assertEqual(sum(n["type"] == "SaveVideo" for n in nodes.values()), 1)
+
+    def test_seed_prompt_writer_template(self):
+        workflow = load_workflow("Seed Prompt Writer.json")
+        # The LLM text is Seedream's prompt (its widget is replaced by the link) and is shown.
+        self.assertEqual(self.edges(workflow), {
+            ("BytePlusAPIClient", 0, "BytePlusSeed", "client"),
+            ("BytePlusAPIClient", 0, "BytePlusSeedream", "client"),
+            ("BytePlusSeed", 0, "PreviewAny", "source"),
+            ("BytePlusSeed", 0, "BytePlusSeedream", "prompt"),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+        })
+
+    def test_generate_and_enhance_template(self):
+        workflow = load_workflow("Generate and Enhance.json")
+        edges = self.edges(workflow)
+        # Two products, two keys: ModelArk generates, MediaKit enhances.
+        self.assertIn(("BytePlusMediaKitClient", 0, "BytePlusImageEnhance", "mediakit_client"), edges)
+        self.assertIn(("BytePlusMediaKitClient", 0, "BytePlusVideoEnhance", "mediakit_client"), edges)
+        self.assertIn(("BytePlusSeedream", 0, "BytePlusImageEnhance", "image"), edges)
+        self.assertIn(("BytePlusSeedance2TextToVideo", 0, "BytePlusVideoEnhance", "video"), edges)
+        self.assertNotIn(("BytePlusAPIClient", 0, "BytePlusImageEnhance", "mediakit_client"), edges)
+        # The image branch runs by default; the (paid, slow) video branch is bypassed.
+        modes = {}
+        for node in workflow["nodes"]:
+            modes.setdefault(node["type"], set()).add(node["mode"])
+        self.assertEqual(modes["BytePlusImageEnhance"], {0})
+        self.assertEqual(modes["BytePlusSeedance2TextToVideo"], {4})
+        self.assertEqual(modes["BytePlusVideoEnhance"], {4})
+
+    def test_private_asset_library_template(self):
+        workflow = load_workflow("Private Asset Library.json")
+        # The registered asset (asset_uri, output 2) is a reference of the Seedance node.
+        self.assertEqual(self.edges(workflow), {
+            ("BytePlusAPIClient", 0, "BytePlusCreateImageAsset", "client"),
+            ("BytePlusAPIClient", 0, "BytePlusSeedance2Reference", "client"),
+            ("LoadImage", 0, "BytePlusCreateImageAsset", "image"),
+            ("BytePlusCreateImageAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"),
+            ("BytePlusCreateImageAsset", 3, "PreviewAny", "source"),
+            ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
+        })
+        asset = next(n for n in workflow["nodes"] if n["type"] == "BytePlusCreateImageAsset")
+        self.assertEqual(asset["widgets_values"], ["", "", "ComfyUI Virtual Portraits", "ComfyUI portrait", "default", True])
+        reference = next(n for n in workflow["nodes"] if n["type"] == "BytePlusSeedance2Reference")
+        self.assertIn("asset1", reference["widgets_values"][1])
+
     def test_seedance_video_outputs_are_list_slots(self):
         # VIDEO is a list output (every video of a generation_count batch); the frontend
         # saves list outputs with the grid slot shape (LiteGraph GRID_SHAPE = 6).
@@ -514,6 +613,9 @@ class WorkflowTemplateTests(unittest.TestCase):
             for node in workflow["nodes"]:
                 if node["type"] in ("BytePlusAPIClient", "BytePlusSpeechClient", "BytePlusMediaKitClient"):
                     self.assertEqual(node["widgets_values"][0], "")
+                if node["type"] == "BytePlusAPIClient":
+                    # IAM AK/SK (new_access_key, new_secret_key) are secrets too.
+                    self.assertEqual(node["widgets_values"][4:], ["", ""])
 
 
 if __name__ == "__main__":

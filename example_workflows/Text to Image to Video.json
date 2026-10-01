@@ -1,14 +1,20 @@
 {
-  "id": "7f1f70c4-4e61-49be-96d1-2e3f1c490007",
+  "id": "702485d9-c542-4117-88b9-f3940ad43eaf",
   "revision": 0,
-  "last_node_id": 7,
-  "last_link_id": 6,
+  "last_node_id": 5,
+  "last_link_id": 5,
   "nodes": [
     {
       "id": 1,
       "type": "BytePlusAPIClient",
-      "pos": [40, 360],
-      "size": [300, 190],
+      "pos": [
+        20,
+        100
+      ],
+      "size": [
+        300,
+        190
+      ],
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -68,7 +74,10 @@
         {
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
-          "links": [1, 2, 3]
+          "links": [
+            1,
+            2
+          ]
         }
       ],
       "properties": {
@@ -76,13 +85,26 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusAPIClient"
       },
-      "widgets_values": ["", "", "Custom", "ap-southeast-1", "", ""]
+      "widgets_values": [
+        "",
+        "",
+        "Custom",
+        "ap-southeast-1",
+        "",
+        ""
+      ]
     },
     {
       "id": 2,
       "type": "BytePlusSeedream",
-      "pos": [440, 80],
-      "size": [450, 520],
+      "pos": [
+        390,
+        100
+      ],
+      "size": [
+        450,
+        450
+      ],
       "flags": {},
       "order": 1,
       "mode": 0,
@@ -205,17 +227,20 @@
         {
           "name": "IMAGE",
           "type": "IMAGE",
-          "links": [4]
+          "links": [
+            3,
+            4
+          ]
         },
         {
           "name": "response",
           "type": "STRING",
-          "links": []
+          "links": null
         },
         {
           "name": "mask",
           "type": "MASK",
-          "links": []
+          "links": null
         }
       ],
       "properties": {
@@ -224,11 +249,11 @@
         "Node name for S&R": "BytePlusSeedream"
       },
       "widgets_values": [
-        "A minimalist poster for a spring tea festival: a porcelain teapot surrounded by cherry blossoms, soft pastel colors, the title \"Spring Tea Festival\" in elegant type.",
+        "A lone astronaut standing on a red desert dune at sunrise, a huge ringed planet filling the sky, cinematic wide shot, soft haze, fine film grain.",
         "seedream 5.0 pro",
-        "(2K) 2048x2048 (1:1)",
+        "(1.5K) 2048x1152 (16:9)",
         2048,
-        2048,
+        1152,
         "standard",
         42,
         "randomize",
@@ -242,8 +267,14 @@
     {
       "id": 3,
       "type": "SaveImage",
-      "pos": [940, 80],
-      "size": [300, 270],
+      "pos": [
+        900,
+        100
+      ],
+      "size": [
+        300,
+        270
+      ],
       "flags": {},
       "order": 2,
       "mode": 0,
@@ -251,7 +282,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 4
+          "link": 3
         },
         {
           "name": "filename_prefix",
@@ -268,13 +299,22 @@
         "ver": "0.33.2",
         "Node name for S&R": "SaveImage"
       },
-      "widgets_values": ["BytePlus/Image/Seedream"]
+      "widgets_values": [
+        "BytePlus/Image/Seedream_frame"
+      ],
+      "title": "Save First Frame"
     },
     {
       "id": 4,
-      "type": "BytePlusSeedance2TextToVideo",
-      "pos": [440, 640],
-      "size": [460, 420],
+      "type": "BytePlusSeedance2FirstLastFrame",
+      "pos": [
+        900,
+        420
+      ],
+      "size": [
+        460,
+        450
+      ],
       "flags": {},
       "order": 3,
       "mode": 0,
@@ -333,14 +373,6 @@
           "link": null
         },
         {
-          "name": "model.output_format",
-          "type": "COMBO",
-          "widget": {
-            "name": "model.output_format"
-          },
-          "link": null
-        },
-        {
           "name": "seed",
           "type": "INT",
           "widget": {
@@ -357,12 +389,43 @@
           "link": null
         },
         {
+          "name": "first_frame",
+          "type": "IMAGE",
+          "link": 4,
+          "shape": 7
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "first_frame_asset_id",
+          "type": "STRING",
+          "widget": {
+            "name": "first_frame_asset_id"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "last_frame_asset_id",
+          "type": "STRING",
+          "widget": {
+            "name": "last_frame_asset_id"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
           "name": "generation_count",
           "type": "INT",
           "widget": {
             "name": "generation_count"
           },
-          "link": null
+          "link": null,
+          "shape": 7
         },
         {
           "name": "non_blocking",
@@ -370,7 +433,8 @@
           "widget": {
             "name": "non_blocking"
           },
-          "link": null
+          "link": null,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -378,40 +442,43 @@
           "name": "VIDEO",
           "type": "VIDEO",
           "shape": 6,
-          "links": [5]
+          "links": [
+            5
+          ]
         },
         {
           "name": "draft_task_id",
           "type": "STRING",
-          "links": []
+          "links": null
         },
         {
           "name": "last_frame",
           "type": "IMAGE",
-          "links": []
+          "links": null
         },
         {
           "name": "response",
           "type": "STRING",
-          "links": []
+          "links": null
         }
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
         "ver": "0.3.0",
-        "Node name for S&R": "BytePlusSeedance2TextToVideo"
+        "Node name for S&R": "BytePlusSeedance2FirstLastFrame"
       },
       "widgets_values": [
-        "Seedance 2.5",
-        "A lighthouse keeper climbs the spiral stairs at dusk, lights the lamp and looks out over a stormy sea. Waves crash against the rocks; thunder rolls in the distance.",
+        "Seedance 2.0",
+        "The astronaut slowly turns toward the camera as dust drifts across the dune and the planet's rings glow in the rising light. The camera pushes in gently.",
         "720p",
-        "16:9",
-        30,
+        "adaptive",
+        5,
         true,
-        "mp4",
         0,
         "randomize",
         false,
+        "",
+        "",
         1,
         false
       ]
@@ -419,8 +486,14 @@
     {
       "id": 5,
       "type": "SaveVideo",
-      "pos": [940, 640],
-      "size": [300, 106],
+      "pos": [
+        1420,
+        420
+      ],
+      "size": [
+        300,
+        106
+      ],
       "flags": {},
       "order": 4,
       "mode": 0,
@@ -461,211 +534,64 @@
         "ver": "0.33.2",
         "Node name for S&R": "SaveVideo"
       },
-      "widgets_values": ["BytePlus/Video/Seedance2_5", "auto", "auto"]
-    },
-    {
-      "id": 6,
-      "type": "BytePlusSeed",
-      "pos": [440, 1160],
-      "size": [440, 520],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "link": 3
-        },
-        {
-          "name": "prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "prompt"
-          },
-          "link": null
-        },
-        {
-          "name": "model",
-          "type": "COMFY_DYNAMICCOMBO_V3",
-          "widget": {
-            "name": "model"
-          },
-          "link": null
-        },
-        {
-          "name": "model.images.image_1",
-          "type": "IMAGE",
-          "shape": 7,
-          "link": null
-        },
-        {
-          "name": "model.videos.video_1",
-          "type": "VIDEO",
-          "shape": 7,
-          "link": null
-        },
-        {
-          "name": "model.temperature",
-          "type": "FLOAT",
-          "widget": {
-            "name": "model.temperature"
-          },
-          "link": null
-        },
-        {
-          "name": "seed",
-          "type": "INT",
-          "widget": {
-            "name": "seed"
-          },
-          "link": null
-        },
-        {
-          "name": "system_prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "system_prompt"
-          },
-          "link": null
-        },
-        {
-          "name": "detail",
-          "type": "COMBO",
-          "widget": {
-            "name": "detail"
-          },
-          "link": null
-        },
-        {
-          "name": "fps",
-          "type": "FLOAT",
-          "widget": {
-            "name": "fps"
-          },
-          "link": null
-        },
-        {
-          "name": "reasoning_mode",
-          "type": "COMBO",
-          "widget": {
-            "name": "reasoning_mode"
-          },
-          "link": null
-        },
-        {
-          "name": "reasoning_effort",
-          "type": "COMBO",
-          "widget": {
-            "name": "reasoning_effort"
-          },
-          "link": null
-        },
-        {
-          "name": "turns",
-          "type": "INT",
-          "widget": {
-            "name": "turns"
-          },
-          "link": null
-        },
-        {
-          "name": "stream",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "stream"
-          },
-          "link": null
-        },
-        {
-          "name": "file_expire_seconds",
-          "type": "INT",
-          "widget": {
-            "name": "file_expire_seconds"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "STRING",
-          "type": "STRING",
-          "links": [6]
-        },
-        {
-          "name": "raw_json",
-          "type": "STRING",
-          "links": []
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
-        "Node name for S&R": "BytePlusSeed"
-      },
       "widgets_values": [
-        "Write a three-shot storyboard for a 15-second product video of a smart watch. For each shot give the camera move, the action and one line of voice-over.",
-        "Seed 2.1 Turbo",
-        1.0,
-        0,
-        "randomize",
-        "You are a helpful assistant that describes and analyzes images and videos accurately.",
-        "high",
-        1.0,
+        "BytePlus/Video/Seedream_to_Seedance",
         "auto",
-        "medium",
-        1,
-        false,
-        604800
+        "auto"
       ]
-    },
-    {
-      "id": 7,
-      "type": "PreviewAny",
-      "pos": [940, 1160],
-      "size": [400, 320],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "source",
-          "type": "*",
-          "link": 6
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.37.4",
-        "Node name for S&R": "PreviewAny"
-      },
-      "widgets_values": []
     }
   ],
   "links": [
-    [1, 1, 0, 2, 0, "BYTEPLUS_CLIENT"],
-    [2, 1, 0, 4, 0, "BYTEPLUS_CLIENT"],
-    [3, 1, 0, 6, 0, "BYTEPLUS_CLIENT"],
-    [4, 2, 0, 3, 0, "IMAGE"],
-    [5, 4, 0, 5, 0, "VIDEO"],
-    [6, 6, 0, 7, 0, "STRING"]
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "BYTEPLUS_CLIENT"
+    ],
+    [
+      2,
+      1,
+      0,
+      4,
+      0,
+      "BYTEPLUS_CLIENT"
+    ],
+    [
+      3,
+      2,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      2,
+      0,
+      4,
+      9,
+      "IMAGE"
+    ],
+    [
+      5,
+      4,
+      0,
+      5,
+      0,
+      "VIDEO"
+    ]
   ],
-  "groups": [
-    {
-      "id": 1,
-      "title": "2.5 Model Updates",
-      "bounding": [20, -4, 1340, 1704],
-      "color": "#3f789e",
-      "font_size": 24,
-      "flags": {}
-    }
-  ],
+  "groups": [],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.72,
-      "offset": [80, 80]
+      "scale": 0.7,
+      "offset": [
+        40,
+        40
+      ]
     }
   },
   "version": 0.4
