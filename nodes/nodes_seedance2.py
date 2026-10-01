@@ -11,7 +11,6 @@ videos are uploaded to Comfy.org storage (needs a Comfy.org login).
 import asyncio
 import json
 import math
-import os
 import re
 import time
 from io import BytesIO
@@ -68,6 +67,7 @@ from .nodes_shared import (
     get_node_count_in_workflow,
     get_text,
     log_msg,
+    video_source_size_bytes,
 )
 from .nodes_video import (
     BytePlusVideoBase,
@@ -82,7 +82,7 @@ from .nodes_video_schema import resolve_model_id
 SEEDANCE_MODEL_TOOLTIP = (
     "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; "
     "Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final "
-    "in the BytePlus Seedance Draft to Final Video node; "
+    "in the BytePlus Seedance 2.5 Draft to Final Video node; "
     "Seedance 2.5 Premium for 4k output, and Seedance 2.5 Premium Draft for its 480p preview "
     "(rendered in 4k); "
     "Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; "
@@ -90,7 +90,7 @@ SEEDANCE_MODEL_TOOLTIP = (
 )
 DRAFT_TASK_ID_OUTPUT_TOOLTIP = (
     "Task ID of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. Connect it to the "
-    "BytePlus Seedance Draft to Final Video node to render the final (1080p, or 4k for Premium). "
+    "BytePlus Seedance 2.5 Draft to Final Video node to render the final (1080p, or 4k for Premium). "
     "Several drafts (generation_count above 1) give one ID per line."
 )
 RATIO_OPTIONS = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"]
@@ -689,22 +689,6 @@ def _fit_reference_video(video, index, model_key, resolution, auto_downscale, au
         raise BytePlusException(get_text("err_seedance2_ref_video_resize_failed", index=index, e=e))
 
 
-def _video_size_bytes(video):
-    """Size of the video file that will be uploaded, or None when unknown."""
-    try:
-        source = _video_stream_source(video)
-    except Exception:
-        return None
-    if isinstance(source, str):
-        try:
-            return os.path.getsize(source)
-        except OSError:
-            return None
-    if hasattr(source, "getbuffer"):
-        return source.getbuffer().nbytes
-    return None
-
-
 def validate_reference_video(video, index, model_key, resolution, task_type="auto"):
     """
     BytePlus reference-video limits (sides, total pixels, aspect, fps, size,
@@ -785,7 +769,7 @@ def validate_reference_video(video, index, model_key, resolution, task_type="aut
                 min=SEEDANCE_2_5_EDIT_MIN_DURATION,
             )
         )
-    size_bytes = _video_size_bytes(video)
+    size_bytes = video_source_size_bytes(video)
     if size_bytes is not None and size_bytes > REF_VIDEO_MAX_SIZE_MB * 1024 * 1024:
         raise BytePlusException(
             get_text(
@@ -822,16 +806,14 @@ def rewrite_asset_refs(prompt, labels):
 
 
 async def _resolve_reference_assets(client, reference_assets):
-    """[(slot, kind, uri)] for the filled asset slots, in slot order."""
-    entries = []
-    for key in sorted(reference_assets or {}, key=_slot_number):
-        value = reference_assets[key]
-        if not str(value or "").strip():
-            continue
-        resolved = await resolve_reference_values(client, [value])
-        if resolved:
-            entries.append((_slot_number(key), resolved[0]["kind"], resolved[0]["uri"]))
-    return entries
+    """[(slot, kind, uri)] for the filled asset slots, in slot order (resolved in parallel)."""
+    slots = [
+        (_slot_number(key), reference_assets[key])
+        for key in sorted(reference_assets or {}, key=_slot_number)
+        if str(reference_assets[key] or "").strip()
+    ]
+    resolved = await resolve_reference_values(client, [value for _slot, value in slots])
+    return [(slot, item["kind"], item["uri"]) for (slot, _value), item in zip(slots, resolved)]
 
 
 # --------------------------------------------------------------------------

@@ -7,6 +7,7 @@ from .models_config import (
     VIDEO_2_UI_OPTIONS,
     VIDEO_2_MODEL_RESOLUTIONS,
     QUERY_TASKS_MODEL_LIST,
+    RETIRED_MODELS,
 )
 from .constants import (
     VIDEO_MAX_SEED,
@@ -42,6 +43,8 @@ def resolve_query_models(model_version: str) -> list:
         target_models = [None]
     elif model_version in VIDEO_MODEL_MAP:
         target_models.append(VIDEO_MODEL_MAP[model_version])
+    elif model_version in RETIRED_MODELS:
+        target_models.append(RETIRED_MODELS[model_version][0])
     else:
         target_models.append(model_version)
     

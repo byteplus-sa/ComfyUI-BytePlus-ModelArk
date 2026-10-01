@@ -32,6 +32,8 @@ _URL_EXTENSION_KINDS = {
 }
 _ASSET_TYPE_KINDS = {"Image": "image", "Video": "video", "Audio": "audio"}
 _URL_PROBE_TIMEOUT_SECONDS = 15
+# Parallel GetAsset / link probes per node run.
+_REFERENCE_LOOKUP_CONCURRENCY = 8
 
 
 def seed_input(default=0, tooltip=SEEDANCE_SEED_TOOLTIP, optional=False):
@@ -168,12 +170,15 @@ def split_reference_value(value):
     text = str(value or "").strip()
     if not text:
         return None
+    if any(ch.isspace() for ch in text):
+        # Several references in one value, e.g. the Asset Library's newline-joined asset_uris.
+        raise BytePlusException(get_text("err_reference_value_multiple", value=text))
     lowered = text.lower()
     if lowered.startswith("https://"):
         return ("url", text)
     if lowered.startswith(ASSET_URI_PREFIX):
-        asset_id = text[len(ASSET_URI_PREFIX):].strip()
-    elif "://" in text or any(ch.isspace() for ch in text):
+        asset_id = text[len(ASSET_URI_PREFIX):]
+    elif "://" in text:
         raise BytePlusException(get_text("err_reference_value_invalid", value=text))
     else:
         asset_id = text
@@ -188,24 +193,33 @@ def reference_kind_from_url(url):
     return _URL_EXTENSION_KINDS.get(ext)
 
 
-async def _probe_url_kind(url):
-    """image / video / audio from the Content-Type of a HEAD request, else None."""
-    timeout = aiohttp.ClientTimeout(total=_URL_PROBE_TIMEOUT_SECONDS)
-    try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.head(url, allow_redirects=True) as response:
-                content_type = response.headers.get("Content-Type", "")
-    except (aiohttp.ClientError, asyncio.TimeoutError):
-        return None
-    major = content_type.split("/", 1)[0].strip().lower()
+def _kind_from_content_type(content_type):
+    major = str(content_type or "").split("/", 1)[0].strip().lower()
     return major if major in REFERENCE_KINDS else None
 
 
-def _get_asset(client, asset_id, project_name):
-    from .nodes_assets import AssetLibrary
-
-    library = AssetLibrary(client)
-    return library.call("GetAsset", {"Id": asset_id, "ProjectName": project_name})
+async def _probe_url_kind(url):
+    """
+    image / video / audio from the link's Content-Type: a HEAD request, then a
+    one-byte ranged GET for servers that refuse HEAD (e.g. presigned GET URLs).
+    """
+    timeout = aiohttp.ClientTimeout(total=_URL_PROBE_TIMEOUT_SECONDS)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            try:
+                async with session.head(url, allow_redirects=True) as response:
+                    if response.status < 400:
+                        kind = _kind_from_content_type(response.headers.get("Content-Type"))
+                        if kind:
+                            return kind
+            except (aiohttp.ClientError, asyncio.TimeoutError):
+                pass
+            async with session.get(url, headers={"Range": "bytes=0-0"}, allow_redirects=True) as response:
+                if response.status >= 400:
+                    return None
+                return _kind_from_content_type(response.headers.get("Content-Type"))
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        return None
 
 
 def _has_asset_credentials(client):
@@ -218,8 +232,16 @@ def _has_asset_credentials(client):
     return True
 
 
-async def _lookup_asset_kind(client, asset_id, project_name):
-    asset = await asyncio.to_thread(_get_asset, client, asset_id, project_name)
+def _asset_library(client):
+    from .nodes_assets import AssetLibrary
+
+    return AssetLibrary(client)
+
+
+async def _lookup_asset_kind(library, asset_id, project_name):
+    asset = await asyncio.to_thread(
+        library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name}
+    )
     status = str(asset.get("Status") or "")
     if status != "Active":
         raise BytePlusException(
@@ -236,29 +258,37 @@ async def _lookup_asset_kind(client, asset_id, project_name):
 async def resolve_reference_values(client, values, project_name="default"):
     """
     Reference strings (asset IDs, asset:// URIs, https links) -> list of
-    {"kind": image|video|audio, "uri": str, "source": original value}, in input order.
+    {"kind": image|video|audio, "uri": str, "source": original value}, in input
+    order (empty values are skipped).
 
     Asset types come from GetAsset, which needs IAM AK/SK on the API Client
     entry (or BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY). Link types come from
-    the file extension, else the Content-Type of a HEAD request.
+    the file extension, else the link's Content-Type. Lookups run in parallel
+    through one asset-library client.
     """
-    resolved = []
-    for value in values:
-        parts = split_reference_value(value)
-        if parts is None:
-            continue
-        form, target = parts
-        if form == "url":
-            kind = reference_kind_from_url(target) or await _probe_url_kind(target)
-            if kind is None:
-                raise BytePlusException(get_text("err_reference_url_type_unknown", url=target))
-            resolved.append({"kind": kind, "uri": target, "source": value})
-            continue
+    entries = [(value, split_reference_value(value)) for value in values]
+    entries = [(value, parts) for value, parts in entries if parts is not None]
+    asset_ids = [target for _value, (form, target) in entries if form == "asset"]
+    library = None
+    if asset_ids:
         if not _has_asset_credentials(client):
-            raise BytePlusException(get_text("err_reference_asset_needs_credentials", asset_id=target))
-        kind = await _lookup_asset_kind(client, target, project_name)
-        resolved.append({"kind": kind, "uri": ASSET_URI_PREFIX + target, "source": value})
-    return resolved
+            raise BytePlusException(
+                get_text("err_reference_asset_needs_credentials", asset_id=asset_ids[0])
+            )
+        library = _asset_library(client)
+    limit = asyncio.Semaphore(_REFERENCE_LOOKUP_CONCURRENCY)
+
+    async def resolve(value, form, target):
+        async with limit:
+            if form == "url":
+                kind = reference_kind_from_url(target) or await _probe_url_kind(target)
+                if kind is None:
+                    raise BytePlusException(get_text("err_reference_url_type_unknown", url=target))
+                return {"kind": kind, "uri": target, "source": value}
+            kind = await _lookup_asset_kind(library, target, project_name)
+            return {"kind": kind, "uri": ASSET_URI_PREFIX + target, "source": value}
+
+    return list(await asyncio.gather(*(resolve(value, *parts) for value, parts in entries)))
 
 
 async def resolve_typed_reference(client, value, expected_kind, project_name="default"):
@@ -279,7 +309,7 @@ async def resolve_typed_reference(client, value, expected_kind, project_name="de
             )
         return target
     if _has_asset_credentials(client):
-        kind = await _lookup_asset_kind(client, target, project_name)
+        kind = await _lookup_asset_kind(_asset_library(client), target, project_name)
         if kind != expected_kind:
             raise BytePlusException(
                 get_text("err_reference_type_mismatch", value=target, kind=kind, expected=expected_kind)

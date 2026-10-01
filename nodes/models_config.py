@@ -65,6 +65,10 @@ RETIRED_MODELS = {
     "seed-1-6-flash": ("seed-1-6-flash-250715", "seed-2-0-mini-260428"),
 }
 
+# Retired names that nodes still list so saved workflows load.
+RETIRED_VIDEO_UI_OPTIONS = [name for name in RETIRED_MODELS if name.startswith("seedance-")]
+RETIRED_SEED_UI_OPTIONS = [name for name in RETIRED_MODELS if name.startswith("seed-")]
+
 # Legacy Seedance 1.5 Pro node options (kept so saved workflows load; the
 # model is retired, see RETIRED_MODELS)
 VIDEO_1_5_UI_OPTIONS = [
@@ -126,7 +130,8 @@ SEEDANCE_2_5_TASK_TYPES = ["auto", "reference", "edit", "extend"]
 SEEDANCE_2_5_OUTPUT_FORMATS = ["mp4", "mov"]
 
 # Model list for the task query node
-QUERY_TASKS_MODEL_LIST = ["all"] + VIDEO_1_UI_OPTIONS + VIDEO_2_UI_OPTIONS
+# Retired models stay last so their task history can still be queried.
+QUERY_TASKS_MODEL_LIST = ["all"] + VIDEO_1_UI_OPTIONS + VIDEO_2_UI_OPTIONS + RETIRED_VIDEO_UI_OPTIONS
 
 # Visual understanding models
 VISUAL_MODEL_MAP = {

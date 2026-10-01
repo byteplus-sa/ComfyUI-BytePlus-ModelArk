@@ -745,6 +745,32 @@ def probe_video_file(path):
         return {}
 
 
+def video_source_size_bytes(video):
+    """
+    Size in bytes of a VIDEO's own file (path or in-memory buffer), without
+    encoding anything. None when it has no source or is trimmed, since the
+    uploaded file is then a re-encode of unknown size.
+    """
+    try:
+        start, duration = video.get_active_trim_window()
+    except Exception:
+        start, duration = 0, 0
+    if start or duration:
+        return None
+    try:
+        source = video.get_stream_source()
+    except Exception:
+        return None
+    if isinstance(source, str):
+        try:
+            return os.path.getsize(source)
+        except OSError:
+            return None
+    if hasattr(source, "getbuffer"):
+        return source.getbuffer().nbytes
+    return None
+
+
 def extract_last_frame_tensor(path):
     """
     Decode the last frame of a local video as an IMAGE tensor [1, H, W, 3],

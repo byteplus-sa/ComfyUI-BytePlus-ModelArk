@@ -41,7 +41,7 @@ from .nodes_shared import (
     BytePlusException,
     get_text,
 )
-from .nodes_video import BytePlusVideoBase, _raise_if_text_params, build_seedance1_frame_content
+from .nodes_video import BytePlusVideoBase, build_seedance1_frame_content
 
 # Flags ModelArk would also read from the prompt text; here they are widgets
 # (core's list plus the Legacy nodes' "dur" and "frames").
@@ -235,7 +235,6 @@ async def generate_seedance1_video(
     """
     model_id = resolve_seedance1_model(model, model_options)
     validate_seedance1_prompt(prompt)
-    _raise_if_text_params(prompt, FORBIDDEN_PROMPT_FLAGS)
 
     helper = BytePlusVideoBase()
     for name, image in frames:

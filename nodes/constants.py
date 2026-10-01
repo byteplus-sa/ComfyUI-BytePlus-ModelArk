@@ -446,6 +446,7 @@ MESSAGES = {
     # Core-style nodes (shaped like ComfyUI core's ByteDance nodes): shared helpers in core_style.py
     "err_output_linked": "{reason} (currently linked: {consumers}).",
     "err_reference_value_invalid": "Not a valid reference: '{value}'. Use an asset ID, asset://<asset_id> or an https:// link.",
+    "err_reference_value_multiple": "Each reference input takes one asset ID, asset://<asset_id> or https:// link, but got several (or spaces): '{value}'. Connect each reference to its own asset_N slot.",
     "err_reference_url_type_unknown": "Could not tell whether {url} is an image, video or audio file. Use a link ending in the file extension (for example .png, .mp4 or .mp3).",
     "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add \"accessKey\" and \"secretKey\" to the selected entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY, then restart ComfyUI.",
     "err_reference_asset_not_active": "Reference asset {asset_id} is not Active (status: {status}).",

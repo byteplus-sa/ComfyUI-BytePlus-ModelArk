@@ -41,6 +41,7 @@ if COMFY_ROOT:
     nodes_assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
     nodes_seedance2 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance2")
     core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
+    nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
 
 ASSET_ENV_KEYS = (
     "BYTEPLUS_ACCESS_KEY", "BYTEPLUS_SECRET_KEY", "BYTEPLUS_ACCESSKEY", "BYTEPLUS_SECRETKEY",
@@ -754,6 +755,101 @@ class ReferenceTests(_ExecutorHarness):
             values.update(task_type="auto", output_format="mp4")
         values.update(overrides)
         return values
+
+    async def test_reference_values_are_one_per_slot(self):
+        # The Asset Library's asset_uris output is newline-joined: one slot cannot take a list.
+        for value in ("asset://a\nasset://b", "https://cdn.example/a.png https://cdn.example/b.png", "asset-1 asset-2"):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(Exception, "Connect each reference to its own asset_N slot"):
+                    core_style.split_reference_value(value)
+        self.assertEqual(core_style.split_reference_value("  asset://asset-1  "), ("asset", "asset-1"))
+
+    async def test_asset_lookups_share_one_client(self):
+        self.client.asset_credentials = {"access_key": "AK", "secret_key": "SK"}
+        self.asset_types = {f"asset-{n}": ("Image", "Active") for n in range(6)}
+        created = []
+        original = nodes_assets.AssetLibrary
+
+        class CountingLibrary(original):
+            def __init__(self, client):
+                created.append(client)
+                super().__init__(client)
+
+        with mock.patch.object(nodes_assets, "AssetLibrary", CountingLibrary):
+            resolved = await core_style.resolve_reference_values(
+                self.client, [f"asset-{n}" for n in range(6)] + ["https://cdn.example/x.mp3"]
+            )
+        self.assertEqual(len(created), 1)
+        self.assertEqual([item["uri"] for item in resolved],
+                         [f"asset://asset-{n}" for n in range(6)] + ["https://cdn.example/x.mp3"])
+        self.assertEqual([item["kind"] for item in resolved], ["image"] * 6 + ["audio"])
+
+    async def test_link_kind_falls_back_to_ranged_get(self):
+        calls = []
+
+        class Response:
+            def __init__(self, status, content_type):
+                self.status, self.headers = status, {"Content-Type": content_type}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *exc):
+                return False
+
+        class Session:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *exc):
+                return False
+
+            def head(self, url, **kwargs):
+                calls.append(("HEAD", kwargs))
+                return Response(403, "application/xml")  # presigned GET-only URL
+
+            def get(self, url, **kwargs):
+                calls.append(("GET", kwargs))
+                return Response(206, "video/mp4")
+
+        with mock.patch.object(core_style.aiohttp, "ClientSession", Session):
+            kind = await core_style._probe_url_kind("https://bucket.example/obj?X-Signature=abc")
+        self.assertEqual(kind, "video")
+        self.assertEqual([method for method, _ in calls], ["HEAD", "GET"])
+        self.assertEqual(calls[1][1]["headers"], {"Range": "bytes=0-0"})
+
+    async def test_video_size_check_never_encodes(self):
+        import tempfile
+
+        class Video:
+            def __init__(self, source, trim=(0, 0)):
+                self.source, self.trim = source, trim
+
+            def get_active_trim_window(self):
+                return self.trim
+
+            def get_stream_source(self):
+                return self.source
+
+            def save_to(self, *args, **kwargs):
+                raise AssertionError("the size check must not re-encode the video")
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as tmp:
+            tmp.write(b"x" * 1234)
+            tmp.flush()
+            size = nodes_shared.video_source_size_bytes
+            self.assertEqual(size(Video(tmp.name)), 1234)
+            self.assertEqual(size(Video(io.BytesIO(b"y" * 10))), 10)
+            self.assertIsNone(size(Video(tmp.name, trim=(1.0, 2.0))))  # upload is a re-encode
+
+    def test_draft_tooltips_name_the_draft_to_final_node(self):
+        title = nodes_seedance2.BytePlusSeedanceDraftToFinal.define_schema().display_name
+        self.assertEqual(title, "BytePlus Seedance 2.5 Draft to Final Video")
+        self.assertIn(title, nodes_seedance2.SEEDANCE_MODEL_TOOLTIP)
+        self.assertIn(title, nodes_seedance2.DRAFT_TASK_ID_OUTPUT_TOOLTIP)
 
     async def test_reference_totals_follow_byteplus(self):
         """BytePlus: 50 references on 2.5 (30 + 10 + 10), 15 on 2.0 (9 + 3 + 3)."""

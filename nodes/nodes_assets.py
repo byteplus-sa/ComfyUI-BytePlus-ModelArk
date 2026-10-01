@@ -43,6 +43,7 @@ from .nodes_shared import (
     BytePlusException,
     get_text,
     log_msg,
+    video_source_size_bytes,
 )
 
 GROUP_TYPES = ["AIGC", "LivenessFace"]
@@ -662,22 +663,6 @@ def validate_asset_image(image):
         )
 
 
-def _video_file_size(video):
-    """Size of the connected video's file in bytes, or None when unknown."""
-    try:
-        source = video.get_stream_source()
-    except Exception:
-        return None
-    if isinstance(source, str):
-        try:
-            return os.path.getsize(source)
-        except OSError:
-            return None
-    if hasattr(source, "getbuffer"):
-        return source.getbuffer().nbytes
-    return None
-
-
 def validate_asset_video(video):
     duration = float(video.get_duration())
     if not (ASSET_VIDEO_MIN_SECONDS <= duration <= ASSET_VIDEO_MAX_SECONDS):
@@ -727,7 +712,7 @@ def validate_asset_video(video):
                 height=height,
             )
         )
-    size_bytes = _video_file_size(video)
+    size_bytes = video_source_size_bytes(video)
     if size_bytes is not None and size_bytes > ASSET_VIDEO_MAX_BYTES:
         raise BytePlusException(
             get_text(

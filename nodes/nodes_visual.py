@@ -28,7 +28,7 @@ from .nodes_shared import (
 from .executor import BytePlusVisualExecutor
 from .constants import DEFAULT_VISUAL_SYSTEM_PROMPT, DEFAULT_VISUAL_USER_PROMPT
 from .core_style import raise_if_model_retired
-from .models_config import RETIRED_MODELS, VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
+from .models_config import RETIRED_SEED_UI_OPTIONS, VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
 
 # Last response per Visual node, for multi-turn (previous_response_id).
 # Keyed by node id so parallel nodes keep separate conversations. A response ID
@@ -60,7 +60,7 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
                 comfy_io.Combo.Input(
                     "model",
                     # Retired models stay listed so saved workflows load; running them explains why not.
-                    options=VISUAL_UI_OPTIONS + [m for m in RETIRED_MODELS if m.startswith("seed-")],
+                    options=VISUAL_UI_OPTIONS + RETIRED_SEED_UI_OPTIONS,
                     default=VISUAL_UI_OPTIONS[0],
                 ),
                 comfy_io.String.Input("system_prompt", multiline=True, default=DEFAULT_VISUAL_SYSTEM_PROMPT),

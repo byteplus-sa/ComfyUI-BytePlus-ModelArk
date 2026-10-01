@@ -362,7 +362,6 @@ class ModelConfigurationTests(unittest.TestCase):
                     self.assertNotIn(name, mapping)
                     self.assertNotIn(model_id, mapping)
                 for options in (
-                    models_config.QUERY_TASKS_MODEL_LIST,
                     models_config.VISUAL_UI_OPTIONS,
                     models_config.SEED_LLM_UI_OPTIONS,
                     models_config.SEEDANCE_1_MODEL_OPTIONS,
@@ -373,6 +372,10 @@ class ModelConfigurationTests(unittest.TestCase):
         self.assertEqual(models_config.SEED_LLM_NO_REASONING_EFFORT, ())
         # Only the Legacy 1.5 Pro node still lists it, so saved workflows load.
         self.assertEqual(models_config.VIDEO_1_5_UI_OPTIONS, ["seedance-1-5-pro"])
+        # Nodes that saved workflows may reference keep the retired names, last.
+        self.assertEqual(models_config.QUERY_TASKS_MODEL_LIST[-1:], ["seedance-1-5-pro"])
+        quota = importlib.import_module(f"{PACKAGE_NAME}.nodes.quota")
+        self.assertEqual(quota.BytePlusQuotaSettings.VIDEO_MODELS[-1:], ["seedance-1-5-pro"])
 
 
 @requires_comfyui
@@ -1390,6 +1393,16 @@ class DeprecatedModelTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("deprecated by BytePlus", message)
         self.assertIn(model_id, message)
         self.assertIn(replacement, message)
+
+    def test_task_query_and_quota_keep_retired_seedance_1_5(self):
+        video_schema = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video_schema")
+        # Task history of the retired model can still be queried by its dated ID.
+        self.assertEqual(video_schema.resolve_query_models("seedance-1-5-pro"), ["seedance-1-5-pro-251215"])
+        quota = importlib.import_module(f"{PACKAGE_NAME}.nodes.quota")
+        client = SimpleNamespace(api_key="test-key")
+        with self.assertRaises(Exception) as ctx:
+            quota.BytePlusQuotaSettings.execute(client, "None", 0, "seedance-1-5-pro", 1000)
+        self._assert_deprecated_error(ctx.exception, "seedance-1-5-pro")
 
     def test_raise_if_model_retired(self):
         for name in models_config.RETIRED_MODELS:

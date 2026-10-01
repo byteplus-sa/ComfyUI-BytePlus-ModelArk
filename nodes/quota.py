@@ -123,7 +123,8 @@ class QuotaManager:
 
 from comfy_api.latest import io as comfy_io
 from .nodes_shared import GLOBAL_CATEGORY, BytePlusClientType
-from .models_config import SEEDREAM_4_MODEL_MAP, VIDEO_MODEL_MAP, SEEDREAM_5_MODEL_MAP
+from .core_style import raise_if_model_retired
+from .models_config import RETIRED_VIDEO_UI_OPTIONS, SEEDREAM_4_MODEL_MAP, VIDEO_MODEL_MAP, SEEDREAM_5_MODEL_MAP
 
 class BytePlusQuotaSettings(comfy_io.ComfyNode):
     """
@@ -133,7 +134,8 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
     """
     
     IMAGE_MODELS = ["None"] + list(SEEDREAM_5_MODEL_MAP.keys()) + list(SEEDREAM_4_MODEL_MAP.keys())
-    VIDEO_MODELS = ["None"] + list(VIDEO_MODEL_MAP.keys())
+    # Retired models stay listed (last) so saved workflows load; running explains the switch.
+    VIDEO_MODELS = ["None"] + list(VIDEO_MODEL_MAP.keys()) + RETIRED_VIDEO_UI_OPTIONS
 
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
@@ -183,6 +185,7 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
             manager.set_quota(api_key, real_image_model, image_limit, "image")
             
         if video_model != "None":
+            raise_if_model_retired(video_model)
             real_video_model = VIDEO_MODEL_MAP.get(video_model, video_model)
             manager.set_quota(api_key, real_video_model, video_limit, "video")
 
