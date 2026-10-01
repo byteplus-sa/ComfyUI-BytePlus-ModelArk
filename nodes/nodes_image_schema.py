@@ -57,6 +57,19 @@ _PRESETS_SEEDREAM_4K = [
     ("(4K) 4992x3328 (3:2)", 4992, 3328),
     ("(4K) 6240x2656 (21:9)", 6240, 2656),
 ]
+# 1.5K sizes from the BytePlus docs (Seedream 5.0 Pro and Flash). Core lists
+# them for Flash only; Pro gets them too, as in the ModelArk console. On Pro,
+# 1.5K costs the same as 1K and gives better quality.
+_PRESETS_SEEDREAM_1_5K = [
+    ("(1.5K) 1536x1536 (1:1)", 1536, 1536),
+    ("(1.5K) 1344x1792 (3:4)", 1344, 1792),
+    ("(1.5K) 1792x1344 (4:3)", 1792, 1344),
+    ("(1.5K) 2048x1152 (16:9)", 2048, 1152),
+    ("(1.5K) 1152x2048 (9:16)", 1152, 2048),
+    ("(1.5K) 1248x1872 (2:3)", 1248, 1872),
+    ("(1.5K) 1872x1248 (3:2)", 1872, 1248),
+    ("(1.5K) 2352x1008 (21:9)", 2352, 1008),
+]
 _PRESETS_SEEDREAM_5_FLASH = [
     ("(1K) 1024x1024 (1:1)", 1024, 1024),
     ("(1K) 864x1152 (3:4)", 864, 1152),
@@ -66,14 +79,7 @@ _PRESETS_SEEDREAM_5_FLASH = [
     ("(1K) 832x1248 (2:3)", 832, 1248),
     ("(1K) 1248x832 (3:2)", 1248, 832),
     ("(1K) 1568x672 (21:9)", 1568, 672),
-    ("(1.5K) 1536x1536 (1:1)", 1536, 1536),
-    ("(1.5K) 1344x1792 (3:4)", 1344, 1792),
-    ("(1.5K) 1792x1344 (4:3)", 1792, 1344),
-    ("(1.5K) 2048x1152 (16:9)", 2048, 1152),
-    ("(1.5K) 1152x2048 (9:16)", 1152, 2048),
-    ("(1.5K) 1248x1872 (2:3)", 1248, 1872),
-    ("(1.5K) 1872x1248 (3:2)", 1872, 1248),
-    ("(1.5K) 2352x1008 (21:9)", 2352, 1008),
+    *_PRESETS_SEEDREAM_1_5K,
     ("(2K) 2048x2048 (1:1)", 2048, 2048),
     ("(2K) 1776x2368 (3:4)", 1776, 2368),
     ("(2K) 2368x1776 (4:3)", 2368, 1776),
@@ -85,7 +91,7 @@ _PRESETS_SEEDREAM_5_FLASH = [
 ]
 SEEDREAM_CUSTOM_SIZE = "Custom"
 SEEDREAM_PRESETS = {
-    SEEDREAM_PRO: _PRESETS_SEEDREAM_1K + _PRESETS_SEEDREAM_2K,
+    SEEDREAM_PRO: _PRESETS_SEEDREAM_1K + _PRESETS_SEEDREAM_1_5K + _PRESETS_SEEDREAM_2K,
     SEEDREAM_FLASH: _PRESETS_SEEDREAM_5_FLASH,
     SEEDREAM_LITE: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_3K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_5: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,

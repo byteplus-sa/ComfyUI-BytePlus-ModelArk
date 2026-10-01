@@ -294,6 +294,12 @@ class SeedreamSchemaTests(unittest.TestCase):
                 self.assertEqual(options[-1 - len(adaptive[model]):-1], adaptive[model])
         _inputs, _ = option_inputs(schema, FLASH)
         self.assertIn("(1.5K) 2048x1152 (16:9)", _inputs["size_preset"].options)
+        # 5.0 Pro also has fixed 1.5K sizes (BytePlus docs, ModelArk console), between 1K and 2K.
+        pro_options = option_inputs(schema, PRO)[0]["size_preset"].options
+        tiers = [label.split(")")[0] + ")" for label in pro_options if label.startswith("(")]
+        self.assertEqual(tiers, ["(1K)"] * 8 + ["(1.5K)"] * 8 + ["(2K)"] * 8)
+        self.assertIn("(1.5K) 1792x1344 (4:3)", pro_options)
+        self.assertIn("(1.5K) 2352x1008 (21:9)", pro_options)
         lite, _ = option_inputs(schema, LITE)
         self.assertIn("(3K) 4704x2016 (21:9)", lite["size_preset"].options)
         self.assertIn("(4K) 6240x2656 (21:9)", lite["size_preset"].options)
@@ -566,6 +572,8 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         fake, _c, _r = await self.run_node(V40, size_preset="(1K) 1312x736 (16:9)")
         request = fake.calls[0]
         self.assertEqual(request["size"], "1312x736")
+        pro_fake, _c, _r = await self.run_node(PRO, size_preset="(1.5K) 1792x1344 (4:3)")
+        self.assertEqual(pro_fake.calls[0]["size"], "1792x1344")
         self.assertEqual(request["sequential_image_generation"], "disabled")
         self.assertNotIn("sequential_image_generation_options", request)
 
