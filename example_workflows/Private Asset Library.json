@@ -1,8 +1,8 @@
 {
   "id": "272192a0-f5e5-470e-afd1-a41063dbd46d",
   "revision": 0,
-  "last_node_id": 6,
-  "last_link_id": 6,
+  "last_node_id": 7,
+  "last_link_id": 3,
   "nodes": [
     {
       "id": 1,
@@ -75,8 +75,7 @@
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
           "links": [
-            1,
-            2
+            1
           ]
         }
       ],
@@ -92,74 +91,64 @@
         "ap-southeast-1",
         "",
         ""
-      ]
+      ],
+      "title": "API Client + IAM AK/SK"
     },
     {
-      "id": 2,
-      "type": "LoadImage",
+      "id": 7,
+      "type": "PrimitiveString",
       "pos": [
         20,
         330
       ],
       "size": [
         300,
-        326
+        110
       ],
       "flags": {},
       "order": 1,
       "mode": 0,
+      "title": "Asset ID (from your library)",
       "inputs": [
         {
-          "name": "image",
-          "type": "COMBO",
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
           "widget": {
-            "name": "image"
-          },
-          "link": null
-        },
-        {
-          "name": "upload",
-          "type": "IMAGEUPLOAD",
-          "widget": {
-            "name": "upload"
+            "name": "value"
           },
           "link": null
         }
       ],
       "outputs": [
         {
-          "name": "IMAGE",
-          "type": "IMAGE",
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
           "links": [
-            3
+            2
           ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
         }
       ],
       "properties": {
         "cnr_id": "comfy-core",
-        "ver": "0.33.2",
-        "Node name for S&R": "LoadImage"
+        "ver": "0.37.4",
+        "Node name for S&R": "PrimitiveString"
       },
       "widgets_values": [
-        "comfyui_logo.png",
-        "image"
+        "asset-xxxxxxxxxxxx"
       ]
     },
     {
-      "id": 3,
-      "type": "BytePlusCreateImageAsset",
+      "id": 4,
+      "type": "BytePlusSeedance2Reference",
       "pos": [
         390,
         100
       ],
       "size": [
-        400,
-        240
+        460,
+        540
       ],
       "flags": {},
       "order": 2,
@@ -169,121 +158,6 @@
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
           "link": 1
-        },
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "shape": 7,
-          "link": 3
-        },
-        {
-          "name": "group_id",
-          "type": "STRING",
-          "widget": {
-            "name": "group_id"
-          },
-          "link": null
-        },
-        {
-          "name": "image_url",
-          "type": "STRING",
-          "widget": {
-            "name": "image_url"
-          },
-          "link": null
-        },
-        {
-          "name": "group_name",
-          "type": "STRING",
-          "widget": {
-            "name": "group_name"
-          },
-          "link": null
-        },
-        {
-          "name": "asset_name",
-          "type": "STRING",
-          "widget": {
-            "name": "asset_name"
-          },
-          "link": null
-        },
-        {
-          "name": "project_name",
-          "type": "STRING",
-          "widget": {
-            "name": "project_name"
-          },
-          "link": null
-        },
-        {
-          "name": "wait_until_active",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "wait_until_active"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "asset_id",
-          "type": "STRING",
-          "links": null
-        },
-        {
-          "name": "group_id",
-          "type": "STRING",
-          "links": null
-        },
-        {
-          "name": "asset_uri",
-          "type": "STRING",
-          "links": [
-            4
-          ]
-        },
-        {
-          "name": "info",
-          "type": "STRING",
-          "links": [
-            5
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
-        "Node name for S&R": "BytePlusCreateImageAsset"
-      },
-      "widgets_values": [
-        "",
-        "",
-        "ComfyUI Virtual Portraits",
-        "ComfyUI portrait",
-        "default",
-        true
-      ]
-    },
-    {
-      "id": 4,
-      "type": "BytePlusSeedance2Reference",
-      "pos": [
-        860,
-        100
-      ],
-      "size": [
-        460,
-        540
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "link": 2
         },
         {
           "name": "model",
@@ -370,7 +244,7 @@
         {
           "name": "model.reference_assets.asset_1",
           "type": "STRING",
-          "link": 4,
+          "link": 2,
           "shape": 7
         },
         {
@@ -436,7 +310,7 @@
           "type": "VIDEO",
           "shape": 6,
           "links": [
-            6
+            3
           ]
         },
         {
@@ -482,7 +356,7 @@
       "id": 5,
       "type": "SaveVideo",
       "pos": [
-        1380,
+        900,
         100
       ],
       "size": [
@@ -490,13 +364,13 @@
         106
       ],
       "flags": {},
-      "order": 4,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
           "name": "video",
           "type": "VIDEO",
-          "link": 6
+          "link": 3
         },
         {
           "name": "filename_prefix",
@@ -534,36 +408,6 @@
         "auto",
         "auto"
       ]
-    },
-    {
-      "id": 6,
-      "type": "PreviewAny",
-      "pos": [
-        860,
-        680
-      ],
-      "size": [
-        420,
-        260
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "source",
-          "type": "*",
-          "link": 5
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.37.4",
-        "Node name for S&R": "PreviewAny"
-      },
-      "widgets_values": [],
-      "title": "Asset info"
     }
   ],
   "links": [
@@ -571,44 +415,20 @@
       1,
       1,
       0,
-      3,
-      0,
-      "BYTEPLUS_CLIENT"
-    ],
-    [
-      2,
-      1,
-      0,
       4,
       0,
       "BYTEPLUS_CLIENT"
     ],
     [
-      3,
       2,
+      7,
       0,
-      3,
-      1,
-      "IMAGE"
-    ],
-    [
-      4,
-      3,
-      2,
       4,
       12,
       "STRING"
     ],
     [
-      5,
       3,
-      3,
-      6,
-      0,
-      "STRING"
-    ],
-    [
-      6,
       4,
       0,
       5,

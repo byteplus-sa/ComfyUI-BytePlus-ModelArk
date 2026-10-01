@@ -64,7 +64,7 @@ Example workflows are in [`example_workflows/`](./example_workflows) and appear 
 - `Seedance Video Extension`: three Seedance clips, each starting from the previous clip's `last_frame`, joined into one video (the join step uses ComfyUI's `Concatenate Video`, which needs ComfyUI 0.36 or later).
 - `Seed Prompt Writer`: BytePlus LLM turns a short idea into a detailed prompt for Seedream.
 - `Generate and Enhance`: Seedream, then Image Quality Enhance; Seedance, then vCube Video Enhance (needs a ModelArk key and a MediaKit key).
-- `Private Asset Library`: registers an image as a private asset and uses it as an `asset_N` reference in Seedance 2.5 (needs IAM AK/SK and Advanced Creation Rights).
+- `Private Asset Library`: uses an asset ID from your private asset library as an `asset_N` reference in Seedance 2.5 (needs IAM AK/SK and Advanced Creation Rights). To add new assets, use `Create Image Asset` and the other asset nodes.
 
 ## Installation
 

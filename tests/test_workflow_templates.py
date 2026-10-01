@@ -152,10 +152,6 @@ class WorkflowTemplateTests(unittest.TestCase):
         "BytePlusImageEnhance": [
             "mediakit_client", "image", "tool_version", "output_size.multiple", "output_size", "image_url",
         ],
-        "BytePlusCreateImageAsset": [
-            "client", "image", "group_id", "image_url", "group_name", "asset_name",
-            "project_name", "wait_until_active",
-        ],
         "BytePlusSeedAudio": [
             "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
             "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "seed", "model",
@@ -533,17 +529,13 @@ class WorkflowTemplateTests(unittest.TestCase):
 
     def test_private_asset_library_template(self):
         workflow = load_workflow("Private Asset Library.json")
-        # The registered asset (asset_uri, output 2) is a reference of the Seedance node.
+        # An existing asset ID (Text node) is a reference of the Seedance node; the API Client
+        # carries the IAM AK/SK that look the asset's type up.
         self.assertEqual(self.edges(workflow), {
-            ("BytePlusAPIClient", 0, "BytePlusCreateImageAsset", "client"),
             ("BytePlusAPIClient", 0, "BytePlusSeedance2Reference", "client"),
-            ("LoadImage", 0, "BytePlusCreateImageAsset", "image"),
-            ("BytePlusCreateImageAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"),
-            ("BytePlusCreateImageAsset", 3, "PreviewAny", "source"),
+            ("PrimitiveString", 0, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"),
             ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
         })
-        asset = next(n for n in workflow["nodes"] if n["type"] == "BytePlusCreateImageAsset")
-        self.assertEqual(asset["widgets_values"], ["", "", "ComfyUI Virtual Portraits", "ComfyUI portrait", "default", True])
         reference = next(n for n in workflow["nodes"] if n["type"] == "BytePlusSeedance2Reference")
         self.assertIn("asset1", reference["widgets_values"][1])
 
