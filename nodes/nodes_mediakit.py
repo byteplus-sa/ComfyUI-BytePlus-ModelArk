@@ -1,16 +1,18 @@
 """
-BytePlus VOD AI MediaKit nodes: the MediaKit Client (its own API key) and
+BytePlus VOD AI MediaKit nodes: the MediaKit Client (its own API key),
 vCube Video Enhance, shaped like ComfyUI core's ByteDanceVideoEnhanceNode
-(comfy_api_nodes/nodes_bytedance.py).
+(comfy_api_nodes/nodes_bytedance.py), and Video Smoothness Enhance (not in
+core).
 
 Core calls MediaKit through the Comfy.org proxy; these nodes call
 https://mediakit.<region>.bytepluses.com/api/v1 directly with a MediaKit API key
 (Authorization: Bearer), which is a different key from the ModelArk and Seed
-Speech keys. Enhancement is an asynchronous task: POST /tools/enhance-video,
-then poll GET /tasks/{task_id} until completed.
+Speech keys. Each tool is an asynchronous task: POST /tools/<tool>, then poll
+GET /tasks/{task_id} until completed.
 
-This pack adds a before/after comparison: a video whose divider sweeps across
-the frame, and a matching pair of frames for ComfyUI's Compare Images slider.
+This pack adds before/after comparisons: for vCube, a video whose divider
+sweeps across the frame plus a frame pair for ComfyUI's Compare Images slider;
+for Smoothness, the source and the repaired video side by side.
 """
 import asyncio
 import json
@@ -18,6 +20,7 @@ import math
 import os
 import time
 import uuid
+from fractions import Fraction
 
 import aiohttp
 import comfy.model_management
@@ -25,6 +28,7 @@ import folder_paths
 import torch
 from comfy_api.input_impl import VideoFromFile
 from comfy_api.latest import io as comfy_io
+from comfy_execution.graph_utils import ExecutionBlocker
 
 from .constants import (
     DEFAULT_MEDIAKIT_REGION,
@@ -71,9 +75,17 @@ VCUBE_SCENES = ["aigc", "common", "ugc", "short_series", "old_film"]
 VCUBE_STYLES = ["hd", "natural"]
 VCUBE_MAX_BITRATE_KBPS = 150000
 
-# Comparison video: short side at most 1080 px, divider sweep period.
+# Video Smoothness limits (AI MediaKit docs): up to 4K; repairs up to 35 s.
+SMOOTH_MAX_SHORT_SIDE = 2160
+SMOOTH_MAX_LONG_SIDE = 4096
+SMOOTH_MAX_REPAIR_SECONDS = 35
+SMOOTH_DETECT_ONLY = "detect only"
+
+# Comparison videos: short side at most 1080 px, divider sweep period,
+# side-by-side width at most 3840 px.
 COMPARISON_MAX_SHORT_SIDE = 1080
 COMPARISON_SWEEP_SECONDS = 4.0
+SIDE_BY_SIDE_MAX_WIDTH = 3840
 
 
 class MediaKitClient:
@@ -162,12 +174,13 @@ def _send_progress_text(node_id, text):
         pass
 
 
-async def wait_for_mediakit_task(client, task_id, node_id=None, poll_seconds=MEDIAKIT_POLL_SECONDS):
+async def wait_for_mediakit_task(client, task_id, node_id=None, poll_seconds=None):
     """
     Poll GET /tasks/{task_id} until completed (returns the task) or failed
     (raises). No client-side time limit: Professional runs can take hours;
     the wait is interruptible.
     """
+    poll_seconds = MEDIAKIT_POLL_SECONDS if poll_seconds is None else poll_seconds
     started = time.monotonic()
     errors = 0
     while True:
@@ -213,7 +226,7 @@ def task_result(task):
 class BytePlusMediaKitClient(comfy_io.ComfyNode):
     """
     BytePlus VOD AI MediaKit client: picks the MediaKit API key (not a
-    ModelArk or Seed Speech key) for vCube Video Enhance.
+    ModelArk or Seed Speech key) for the MediaKit nodes.
     """
 
     @classmethod
@@ -225,8 +238,9 @@ class BytePlusMediaKitClient(comfy_io.ComfyNode):
             display_name="BytePlus MediaKit Client",
             category=MEDIAKIT_CATEGORY,
             description=(
-                "BytePlus VOD AI MediaKit API key for vCube Video Enhance. Create it on the AI MediaKit "
-                "Settings page of the VOD console; ModelArk and Seed Speech keys do not work here."
+                "BytePlus VOD AI MediaKit API key for vCube Video Enhance and Video Smoothness Enhance. "
+                "Create it on the AI MediaKit Settings page of the VOD console; ModelArk and Seed Speech "
+                "keys do not work here."
             ),
             inputs=[
                 comfy_io.String.Input("new_api_key", default=""),
@@ -277,7 +291,7 @@ class BytePlusMediaKitClient(comfy_io.ComfyNode):
 
 
 # --------------------------------------------------------------------------
-# vCube Video Enhance
+# vCube Video Enhance: inputs, request and source limits
 # --------------------------------------------------------------------------
 
 def _style_input():
@@ -420,6 +434,65 @@ async def _download(url, prefix):
     return path
 
 
+# --- Source video and tasks (shared by the MediaKit tools) --------------------
+
+def check_source(video, video_url):
+    """The video_url link ("" for a connected video). Exactly one source is required."""
+    link = str(video_url or "").strip()
+    if video is not None and link:
+        raise BytePlusException(get_text("err_mediakit_source_both"))
+    if video is None and not link:
+        raise BytePlusException(get_text("err_mediakit_source_missing"))
+    if link and not link.lower().startswith(("http://", "https://")):
+        raise BytePlusException(get_text("err_mediakit_url_invalid", url=link))
+    return link
+
+
+async def upload_source(node_cls, video):
+    """MediaKit only takes links, so a connected video goes through Comfy.org storage."""
+    from .nodes_video import upload_videos_to_comfy_storage_cached
+
+    urls = await upload_videos_to_comfy_storage_cached(
+        node_cls,
+        [video],
+        unavailable_key="err_comfy_video_upload_unavailable_mediakit",
+        failed_key="err_comfy_video_upload_failed_mediakit",
+    )
+    return urls[0]
+
+
+async def source_file(video, link, prefix):
+    """A local copy of the source video (for comparisons and pass-through)."""
+    if video is not None:
+        path = _temp_path(prefix)
+        await asyncio.to_thread(video.save_to, path)
+        return path
+    return await _download(link, prefix)
+
+
+async def submit_and_wait(client, path, body, node_id, submitted_key):
+    """POST a tool request and wait for its task; returns the completed task."""
+    created = await mediakit_request(client, "POST", path, body)
+    task_id = created.get("task_id")
+    if not task_id:
+        raise BytePlusException(get_text("err_mediakit_unexpected", status="no task_id"))
+    log_msg(submitted_key, task_id=task_id)
+    return await wait_for_mediakit_task(client, task_id, node_id)
+
+
+def task_response(task):
+    return json.dumps({k: v for k, v in task.items() if k != "request_id"}, ensure_ascii=False)
+
+
+async def _build_comparison_in_thread(build, *args):
+    try:
+        return await asyncio.to_thread(build, *args)
+    except (comfy.model_management.InterruptProcessingException, BytePlusException):
+        raise
+    except Exception as e:
+        raise BytePlusException(get_text("err_mediakit_comparison_failed", e=e))
+
+
 # --- Comparison --------------------------------------------------------------
 
 def _even(value):
@@ -430,6 +503,12 @@ def _even(value):
 def comparison_size(width, height, max_short_side=COMPARISON_MAX_SHORT_SIDE):
     """The enhanced video's size, scaled down so its short side is at most max_short_side."""
     scale = min(1.0, float(max_short_side) / float(min(width, height)))
+    return _even(width * scale), _even(height * scale)
+
+
+def side_by_side_size(width, height, max_width=SIDE_BY_SIDE_MAX_WIDTH, max_short_side=COMPARISON_MAX_SHORT_SIDE):
+    """Size of each half: short side at most max_short_side, both halves within max_width."""
+    scale = min(1.0, float(max_short_side) / float(min(width, height)), (max_width / 2.0) / float(width))
     return _even(width * scale), _even(height * scale)
 
 
@@ -451,6 +530,16 @@ def compose_comparison_frame(source_rgb, enhanced_rgb, position, line_px=2):
     frame[:, :x] = source_rgb[:, :x]
     lo, hi = max(0, x - line_px // 2), min(width, x + (line_px + 1) // 2)
     frame[:, lo:hi] = numpy.array([240, 240, 240], dtype=frame.dtype)
+    return frame
+
+
+def compose_side_by_side_frame(source_rgb, result_rgb, line_px=2):
+    """Source on the left, result on the right, a light line between them."""
+    import numpy
+
+    frame = numpy.hstack([source_rgb, result_rgb])
+    x = source_rgb.shape[1]
+    frame[:, max(0, x - line_px // 2):x + (line_px + 1) // 2] = numpy.array([240, 240, 240], dtype=frame.dtype)
     return frame
 
 
@@ -492,67 +581,150 @@ def _frame_at(container, stream, t):
     return last
 
 
+def _stream_info(container):
+    """(video stream, width, height, duration in seconds or None, frame rate)."""
+    import av
+
+    stream = container.streams.video[0]
+    duration = float(stream.duration * stream.time_base) if stream.duration else None
+    if duration is None and container.duration:
+        duration = container.duration / av.time_base
+    rate = stream.average_rate or stream.guessed_rate
+    if not rate or not 1 <= float(rate) <= 240:
+        rate = Fraction(30)
+    return stream, stream.codec_context.width, stream.codec_context.height, duration, rate
+
+
+class _FrameCursor:
+    """Walks a decoded stream in time order; rgb_at(t) is the frame on screen at time t."""
+
+    def __init__(self, container, stream):
+        container.seek(0)
+        self._frames = container.decode(stream)
+        self.current = next(self._frames, None)
+        self.upcoming = next(self._frames, None)
+        self._converted_frame = self._converted = None
+
+    def frame_at(self, t):
+        while self.upcoming is not None and self.upcoming.time is not None and self.upcoming.time <= t + 1e-6:
+            self.current, self.upcoming = self.upcoming, next(self._frames, None)
+        return self.current
+
+    def ended_before(self, t, step):
+        last = self.current
+        return self.upcoming is None and (last is None or float(last.time or 0.0) + step <= t + 1e-6)
+
+    def rgb_at(self, t, width, height):
+        frame = self.frame_at(t)
+        if frame is not None and frame is not self._converted_frame:
+            self._converted = frame.reformat(width=width, height=height, format="rgb24").to_ndarray()
+            self._converted_frame = frame
+        return self._converted if frame is not None else None
+
+
+def _render_synced(source, result, out_path, frame_size, compose):
+    """
+    Encode the result clip's timeline (its frame rate and duration), pairing
+    each output frame with the source and result frames on screen at that
+    time, so inserted, dropped or unevenly timed frames stay in sync.
+    compose(source_rgb, result_rgb, t) returns the output frame.
+    """
+    import av
+
+    r_stream, _width, _height, duration, rate = _stream_info(result)
+    s_cursor = _FrameCursor(source, source.streams.video[0])
+    r_cursor = _FrameCursor(result, r_stream)
+    step = 1.0 / float(rate)
+    count = max(1, int(round(duration * float(rate)))) if duration else None
+    width, height = frame_size
+    with av.open(out_path, mode="w") as output:
+        out_stream = None
+        index = 0
+        while count is None or index < count:
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            t = index * step
+            after = r_cursor.rgb_at(t, width, height)
+            if after is None or (count is None and r_cursor.ended_before(t, step)):
+                break
+            before = s_cursor.rgb_at(t, width, height)
+            if before is None:
+                break
+            composed = compose(before, after, t)
+            if out_stream is None:
+                out_stream = output.add_stream("libx264", rate=rate)
+                out_stream.height, out_stream.width = composed.shape[:2]
+                out_stream.pix_fmt = "yuv420p"
+                out_stream.options = {"crf": "18", "preset": "veryfast"}
+            for packet in out_stream.encode(av.VideoFrame.from_ndarray(composed, format="rgb24")):
+                output.mux(packet)
+            index += 1
+        if out_stream is None:
+            raise BytePlusException(get_text("err_mediakit_comparison_failed", e="no frames decoded"))
+        for packet in out_stream.encode():
+            output.mux(packet)
+
+
 def build_comparison(source_path, enhanced_path, compare_time=-1.0):
     """
-    (comparison video path, source frame tensor, enhanced frame tensor).
+    vCube: (comparison video path, source frame tensor, enhanced frame tensor).
     The video follows the enhanced clip's timing at a short side of at most
-    1080 px; the frames are full enhanced resolution, the source scaled to match.
+    1080 px, with a divider sweeping across; the frames are full enhanced
+    resolution, the source scaled to match.
     """
     import av
     import numpy
 
     with av.open(enhanced_path) as enhanced, av.open(source_path) as source:
-        e_stream = enhanced.streams.video[0]
-        s_stream = source.streams.video[0]
-        width, height = e_stream.codec_context.width, e_stream.codec_context.height
-        duration = float(e_stream.duration * e_stream.time_base) if e_stream.duration else None
-        if duration is None and enhanced.duration:
-            duration = enhanced.duration / av.time_base
-        rate = e_stream.average_rate or e_stream.guessed_rate or 30
+        e_stream, width, height, duration, _rate = _stream_info(enhanced)
 
         # Still pair for Compare Images.
         t = (duration or 0.0) / 2.0 if compare_time is None or compare_time < 0 else float(compare_time)
         e_frame = _frame_at(enhanced, e_stream, t)
-        s_frame = _frame_at(source, s_stream, t)
+        s_frame = _frame_at(source, source.streams.video[0], t)
         if e_frame is None or s_frame is None:
-            raise BytePlusException(get_text("err_vcube_comparison_failed", e="no frames decoded"))
+            raise BytePlusException(get_text("err_mediakit_comparison_failed", e="no frames decoded"))
         enhanced_still = e_frame.to_ndarray(format="rgb24")
         source_still = s_frame.reformat(width=width, height=height, format="rgb24").to_ndarray()
 
-        # Sweeping comparison video.
-        out_w, out_h = comparison_size(width, height)
         out_path = _temp_path("vcube_comparison")
-        enhanced.seek(0)
-        source.seek(0)
-        source_frames = source.decode(s_stream)
-        current = next(source_frames, None)
-        upcoming = next(source_frames, None)
-        with av.open(out_path, mode="w") as output:
-            out_stream = output.add_stream("libx264", rate=rate)
-            out_stream.width, out_stream.height = out_w, out_h
-            out_stream.pix_fmt = "yuv420p"
-            out_stream.options = {"crf": "18", "preset": "veryfast"}
-            for frame in enhanced.decode(e_stream):
-                comfy.model_management.throw_exception_if_processing_interrupted()
-                ft = float(frame.time or 0.0)
-                # Advance the source to the frame shown at time ft.
-                while upcoming is not None and upcoming.time is not None and upcoming.time <= ft:
-                    current, upcoming = upcoming, next(source_frames, None)
-                if current is None:
-                    break
-                after = frame.reformat(width=out_w, height=out_h, format="rgb24").to_ndarray()
-                before = current.reformat(width=out_w, height=out_h, format="rgb24").to_ndarray()
-                composed = _draw_labels(compose_comparison_frame(before, after, sweep_position(ft)))
-                for packet in out_stream.encode(av.VideoFrame.from_ndarray(composed, format="rgb24")):
-                    output.mux(packet)
-            for packet in out_stream.encode():
-                output.mux(packet)
+        _render_synced(
+            source,
+            enhanced,
+            out_path,
+            comparison_size(width, height),
+            lambda before, after, ft: _draw_labels(compose_comparison_frame(before, after, sweep_position(ft))),
+        )
 
     def to_tensor(array):
         return torch.from_numpy(numpy.ascontiguousarray(array)).float().div(255.0).unsqueeze(0)
 
     return out_path, to_tensor(source_still), to_tensor(enhanced_still)
 
+
+def build_side_by_side(source_path, result_path, labels=("Original", "Smoothed")):
+    """
+    Video Smoothness: the source (left) and the repaired video (right) side by
+    side on the repaired clip's timeline, so stutter and its repair play at
+    the same moment. Each half has a short side of at most 1080 px.
+    """
+    import av
+
+    with av.open(result_path) as result, av.open(source_path) as source:
+        _stream, width, height, _duration, _rate = _stream_info(result)
+        out_path = _temp_path("smooth_comparison")
+        _render_synced(
+            source,
+            result,
+            out_path,
+            side_by_side_size(width, height),
+            lambda before, after, _t: _draw_labels(compose_side_by_side_frame(before, after), labels),
+        )
+    return out_path
+
+
+# --------------------------------------------------------------------------
+# vCube Video Enhance
+# --------------------------------------------------------------------------
 
 class BytePlusVideoEnhance(comfy_io.ComfyNode):
     """Core's ByteDanceVideoEnhanceNode (vCube) on BytePlus VOD AI MediaKit."""
@@ -635,7 +807,8 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
                 comfy_io.Video.Output(),
                 comfy_io.Video.Output(
                     "comparison",
-                    tooltip="Before (left) and after (right) with a sweeping divider. Empty when comparison is off.",
+                    tooltip="Before (left) and after (right) with a sweeping divider. "
+                    "Nodes using it are skipped when comparison is off.",
                 ),
                 comfy_io.Image.Output(
                     "source_frame",
@@ -667,14 +840,7 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
         comparison=True,
         compare_time=-1.0,
     ) -> comfy_io.NodeOutput:
-        link = str(video_url or "").strip()
-        if video is not None and link:
-            raise BytePlusException(get_text("err_vcube_source_both"))
-        if video is None and not link:
-            raise BytePlusException(get_text("err_vcube_source_missing"))
-        if link and not link.lower().startswith(("http://", "https://")):
-            raise BytePlusException(get_text("err_vcube_url_invalid", url=link))
-
+        link = check_source(video, video_url)
         source_size = source_fps = None
         if video is not None:
             source_size = validate_source_video(video)
@@ -682,55 +848,254 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
                 source_fps = float(video.get_frame_rate())
             except Exception:
                 source_fps = None
-            from .nodes_video import upload_videos_to_comfy_storage_cached
-
-            link = (
-                await upload_videos_to_comfy_storage_cached(
-                    cls,
-                    [video],
-                    unavailable_key="err_comfy_video_upload_unavailable_vcube",
-                    failed_key="err_comfy_video_upload_failed_vcube",
-                )
-            )[0]
+            link = await upload_source(cls, video)
 
         body = build_enhance_request(
             link, tool_version or {}, resolution or {}, fps, bitrate_level, bitrate, source_size, source_fps
         )
-        created = await mediakit_request(mediakit_client, "POST", "/tools/enhance-video", body)
-        task_id = created.get("task_id")
-        if not task_id:
-            raise BytePlusException(get_text("err_mediakit_unexpected", status="no task_id"))
-        log_msg("vcube_task_submitted", task_id=task_id)
-        task = await wait_for_mediakit_task(mediakit_client, task_id, cls.hidden.unique_id)
+        task = await submit_and_wait(
+            mediakit_client, "/tools/enhance-video", body, cls.hidden.unique_id, "vcube_task_submitted"
+        )
         result_url = task_result(task).get("video_url")
         if not result_url:
             raise BytePlusException(get_text("err_mediakit_unexpected", status="completed without video_url"))
         enhanced_path = await _download(result_url, "vcube_enhanced")
-        response = json.dumps({k: v for k, v in task.items() if k != "request_id"}, ensure_ascii=False)
 
-        comparison_video = source_frame = enhanced_frame = None
+        # Without a comparison, nodes using those outputs are skipped rather than failing on None.
+        comparison_video = source_frame = enhanced_frame = ExecutionBlocker(None)
         if comparison:
-            if video is not None:
-                source_path = _temp_path("vcube_source")
-                await asyncio.to_thread(video.save_to, source_path)
-            else:
-                source_path = await _download(link, "vcube_source")
-            try:
-                comparison_path, source_frame, enhanced_frame = await asyncio.to_thread(
-                    build_comparison, source_path, enhanced_path, compare_time
-                )
-            except comfy.model_management.InterruptProcessingException:
-                raise
-            except BytePlusException:
-                raise
-            except Exception as e:
-                raise BytePlusException(get_text("err_vcube_comparison_failed", e=e))
+            source_path = await source_file(video, link, "vcube_source")
+            comparison_path, source_frame, enhanced_frame = await _build_comparison_in_thread(
+                build_comparison, source_path, enhanced_path, compare_time
+            )
             comparison_video = VideoFromFile(comparison_path)
 
         return comfy_io.NodeOutput(
-            VideoFromFile(enhanced_path), comparison_video, source_frame, enhanced_frame, response
+            VideoFromFile(enhanced_path), comparison_video, source_frame, enhanced_frame, task_response(task)
+        )
+
+
+# --------------------------------------------------------------------------
+# Video Smoothness Enhance
+# --------------------------------------------------------------------------
+
+def _periodic_stutter_input():
+    return comfy_io.DynamicCombo.Input(
+        "periodic_stutter",
+        options=[
+            comfy_io.DynamicCombo.Option(
+                "repair",
+                [
+                    comfy_io.Boolean.Input(
+                        "align_source_fps",
+                        default=False,
+                        tooltip="Keep the source frame rate, frame count and duration: for each inserted frame, "
+                        "a low-motion frame is removed. Off gives the best repair; the frame rate may rise.",
+                    ),
+                    comfy_io.String.Input(
+                        "insert_frame_indices",
+                        default="",
+                        tooltip="Extra stutter points the detector may miss: zero-based frame numbers, "
+                        "comma-separated. 80 inserts a frame between frames 80 and 81. These are always "
+                        "inserted, even when MediaKit's quality check skips the automatic repair.",
+                    ),
+                ],
+            ),
+            comfy_io.DynamicCombo.Option(SMOOTH_DETECT_ONLY, []),
+        ],
+        tooltip="Periodic stutter: sudden jumps in the motion rhythm. 'repair' generates in-between frames; "
+        "'detect only' counts them without changing the video.",
+    )
+
+
+def parse_frame_indices(text):
+    """'80, 120' -> [80, 120]: distinct zero-based frame numbers, separated by commas or spaces."""
+    value = str(text or "").strip()
+    if not value:
+        return []
+    try:
+        indices = [int(part) for part in value.replace(",", " ").split()]
+    except ValueError:
+        raise BytePlusException(get_text("err_smooth_frame_indices", value=value))
+    if any(index < 0 for index in indices) or len(set(indices)) != len(indices):
+        raise BytePlusException(get_text("err_smooth_frame_indices", value=value))
+    return sorted(indices)
+
+
+def build_smoothness_request(video_url, periodic_stutter, duplicate_frames):
+    """
+    The POST /tools/enhance-video-smoothness body. Both detection objects are
+    always sent, so the request states what is repaired; align_source_fps and
+    insert_frame_indices only apply while the stutter repair is on.
+    """
+    repair_stutter = periodic_stutter.get("periodic_stutter", "repair") != SMOOTH_DETECT_ONLY
+    stutter = {"periodic_stutter_repair": repair_stutter}
+    if repair_stutter:
+        stutter["align_source_fps"] = bool(periodic_stutter.get("align_source_fps", False))
+        indices = parse_frame_indices(periodic_stutter.get("insert_frame_indices", ""))
+        if indices:
+            stutter["insert_frame_indices"] = indices
+    return {
+        "video_url": video_url,
+        "periodic_stutter_detect": stutter,
+        "duplicate_frame_detect": {"duplicate_frame_repair": duplicate_frames != SMOOTH_DETECT_ONLY},
+    }
+
+
+def smoothness_repairs(body):
+    return bool(
+        body["periodic_stutter_detect"]["periodic_stutter_repair"]
+        or body["duplicate_frame_detect"]["duplicate_frame_repair"]
+    )
+
+
+def validate_smoothness_source(video, repair):
+    """Up to 4K; up to 35 s when anything is repaired (detection alone has no length limit)."""
+    width, height = video.get_dimensions()
+    if min(width, height) > SMOOTH_MAX_SHORT_SIDE or max(width, height) > SMOOTH_MAX_LONG_SIDE:
+        raise BytePlusException(
+            get_text(
+                "err_smooth_input_too_large",
+                max_w=SMOOTH_MAX_LONG_SIDE,
+                max_h=SMOOTH_MAX_SHORT_SIDE,
+                width=width,
+                height=height,
+            )
+        )
+    if repair:
+        try:
+            duration = float(video.get_duration())
+        except Exception:
+            duration = 0.0
+        if duration > SMOOTH_MAX_REPAIR_SECONDS:
+            raise BytePlusException(
+                get_text("err_smooth_too_long", duration=f"{duration:.1f}", max=SMOOTH_MAX_REPAIR_SECONDS)
+            )
+
+
+def _detail_count(result, detail, field):
+    value = result.get(detail)
+    try:
+        return int(value.get(field) or 0) if isinstance(value, dict) else 0
+    except (TypeError, ValueError):
+        return 0
+
+
+class BytePlusVideoSmoothness(comfy_io.ComfyNode):
+    """AI MediaKit Video Smoothness Enhancement: repairs periodic stutter and duplicate frames."""
+
+    NODE_ID = "BytePlusVideoSmoothness"
+
+    @classmethod
+    def define_schema(cls) -> comfy_io.Schema:
+        return comfy_io.Schema(
+            node_id=cls.NODE_ID,
+            display_name="BytePlus Video Smoothness Enhance",
+            category=MEDIAKIT_CATEGORY,
+            description="Repairs stutter without changing the resolution: generates in-between frames where the "
+            "motion rhythm jumps (periodic stutter) and removes repeated frames. Made for Seedance videos with "
+            "occasional stutter; also low-frame-rate or re-encoded video, screen and game recordings.",
+            inputs=[
+                BytePlusMediaKitClientType.Input("mediakit_client"),
+                comfy_io.Video.Input(
+                    "video",
+                    tooltip="Video to repair: up to 4K, and up to 35 s while a repair is on (detect only has no "
+                    "length limit). Uploaded to Comfy.org storage first (needs a Comfy.org login); or set "
+                    "video_url instead.",
+                    optional=True,
+                ),
+                _periodic_stutter_input(),
+                comfy_io.Combo.Input(
+                    "duplicate_frames",
+                    options=["remove", SMOOTH_DETECT_ONLY],
+                    default="remove",
+                    tooltip="Consecutive identical frames. 'remove' drops them; 'detect only' counts them. "
+                    "Runs after the stutter repair, on its result.",
+                ),
+                # This pack's extras.
+                comfy_io.String.Input(
+                    "video_url",
+                    default="",
+                    optional=True,
+                    advanced=True,
+                    tooltip="Public http(s) link to the source video (mp4, avi or mov), instead of connecting "
+                    "a video. Nothing is uploaded to Comfy.org.",
+                ),
+                comfy_io.Boolean.Input(
+                    "comparison",
+                    default=True,
+                    optional=True,
+                    advanced=True,
+                    tooltip="Also build a side-by-side video: the source on the left, the repaired video on "
+                    "the right, in sync.",
+                ),
+            ],
+            outputs=[
+                comfy_io.Video.Output(tooltip="The repaired video; the source video when nothing was repaired."),
+                comfy_io.Video.Output(
+                    "comparison",
+                    tooltip="Source (left) and repaired video (right) side by side. Nodes using it are skipped "
+                    "when nothing was repaired or comparison is off.",
+                ),
+                comfy_io.Int.Output(
+                    "inserted_frame_count",
+                    tooltip="Frames the detector found missing for periodic stutter (not counting "
+                    "insert_frame_indices). A detection count: the repair may have been skipped.",
+                ),
+                comfy_io.Int.Output("duplicate_frame_count", tooltip="Frames detected as repeats of the frame before."),
+                comfy_io.String.Output("response", tooltip="The MediaKit task as JSON."),
+            ],
+            hidden=[
+                comfy_io.Hidden.auth_token_comfy_org,
+                comfy_io.Hidden.api_key_comfy_org,
+                comfy_io.Hidden.unique_id,
+            ],
+            is_output_node=True,
+        )
+
+    @classmethod
+    async def execute(
+        cls,
+        mediakit_client,
+        periodic_stutter,
+        duplicate_frames,
+        video=None,
+        video_url="",
+        comparison=True,
+    ) -> comfy_io.NodeOutput:
+        link = check_source(video, video_url)
+        body = build_smoothness_request(link, periodic_stutter or {}, duplicate_frames)
+        if video is not None:
+            validate_smoothness_source(video, smoothness_repairs(body))
+            link = body["video_url"] = await upload_source(cls, video)
+
+        task = await submit_and_wait(
+            mediakit_client, "/tools/enhance-video-smoothness", body, cls.hidden.unique_id, "smooth_task_submitted"
+        )
+        result = task_result(task)
+        inserted = _detail_count(result, "inserted_frames_detail", "inserted_frame_count")
+        duplicates = _detail_count(result, "duplicate_frames_detail", "duplicate_frame_count")
+        log_msg("smooth_summary", inserted=inserted, duplicates=duplicates)
+        _send_progress_text(cls.hidden.unique_id, _plain("smooth_summary", inserted=inserted, duplicates=duplicates))
+
+        repaired_url = result.get("video_url")
+        if not repaired_url:
+            # Detection only, nothing to fix, or the repair failed MediaKit's quality check.
+            log_msg("smooth_no_repair")
+            source = video if video is not None else VideoFromFile(await source_file(None, link, "smooth_source"))
+            return comfy_io.NodeOutput(source, ExecutionBlocker(None), inserted, duplicates, task_response(task))
+
+        repaired_path = await _download(repaired_url, "smooth_repaired")
+        comparison_video = ExecutionBlocker(None)
+        if comparison:
+            source_path = await source_file(video, link, "smooth_source")
+            comparison_video = VideoFromFile(
+                await _build_comparison_in_thread(build_side_by_side, source_path, repaired_path)
+            )
+        return comfy_io.NodeOutput(
+            VideoFromFile(repaired_path), comparison_video, inserted, duplicates, task_response(task)
         )
 
 
 # Registered in __init__.py.
-NODES = [BytePlusMediaKitClient, BytePlusVideoEnhance]
+NODES = [BytePlusMediaKitClient, BytePlusVideoEnhance, BytePlusVideoSmoothness]

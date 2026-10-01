@@ -1,7 +1,8 @@
 """
-BytePlus VOD AI MediaKit: the MediaKit Client and vCube Video Enhance (the UI
+BytePlus VOD AI MediaKit: the MediaKit Client, vCube Video Enhance (the UI
 shape of ComfyUI core's ByteDanceVideoEnhanceNode, this pack's requests to
-MediaKit, task polling, and the before/after comparison).
+MediaKit, task polling, and the before/after comparison) and Video Smoothness
+Enhance (requests, limits, pass-through without a repair, side-by-side video).
 
 Needs a ComfyUI checkout and a Python env with torch, PyAV and the BytePlus SDK:
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_mediakit
@@ -35,10 +36,13 @@ if COMFY_ROOT:
 
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
+    from comfy_execution.graph_utils import ExecutionBlocker
 
 STANDARD = {"tool_version": "standard", "scene": "aigc", "enhance_style": "hd"}
 PROFESSIONAL = {"tool_version": "professional", "enhance_style": "natural"}
 EXTRAS = ["video_url", "bitrate", "comparison", "compare_time"]
+REPAIR = {"periodic_stutter": "repair", "align_source_fps": False, "insert_frame_indices": ""}
+DETECT = {"periodic_stutter": "detect only"}
 
 
 def make_video(path, width, height, fps, seconds, channel):
@@ -60,10 +64,13 @@ def make_video(path, width, height, fps, seconds, channel):
 class FakeMediaKit:
     """Replaces nodes_mediakit._send: records calls, answers from scripted responses."""
 
-    def __init__(self, task_statuses=("running", "completed"), submit=None):
+    VCUBE_RESULT = {"video_url": "https://cdn.example/enhanced.mp4?auth_key=x", "resolution": "1080p", "fps": 24}
+
+    def __init__(self, task_statuses=("running", "completed"), submit=None, result=None):
         self.calls = []
         self.statuses = list(task_statuses)
         self.submit = submit or (200, {"success": True, "task_id": "amk-tool-enhance-video-1", "request_id": "r1"})
+        self.result = self.VCUBE_RESULT if result is None else result
 
     async def __call__(self, client, method, path, body=None):
         self.calls.append((method, path, body))
@@ -74,7 +81,7 @@ class FakeMediaKit:
             return status
         task = {"success": True, "task_id": "amk-tool-enhance-video-1", "status": status}
         if status == "completed":
-            task["result"] = {"video_url": "https://cdn.example/enhanced.mp4?auth_key=x", "resolution": "1080p", "fps": 24}
+            task["result"] = self.result
         if status == "failed":
             task["error"] = {"code": "InvalidVideo", "message": "decode failed"}
         return 200, task
@@ -208,7 +215,7 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(nodes_mediakit.task_result({"output": {"video_url": "u"}}), {"video_url": "u"})
 
         with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit(task_statuses=["failed"])):
-            with self.assertRaisesRegex(Exception, "vCube task t1 failed: .*InvalidVideo"):
+            with self.assertRaisesRegex(Exception, "MediaKit task t1 failed: .*InvalidVideo"):
                 await nodes_mediakit.wait_for_mediakit_task(self.client, "t1", poll_seconds=0)
 
         # Transient query errors are retried; five in a row give up.
@@ -221,8 +228,9 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
                 await nodes_mediakit.wait_for_mediakit_task(self.client, "t1", poll_seconds=0)
 
 
-@requires_comfyui
-class NodeTests(unittest.IsolatedAsyncioTestCase):
+class NodeFixture(unittest.IsolatedAsyncioTestCase):
+    """Synthetic source (red, 320x180, 12 fps) and result (blue, 640x360, 24 fps) clips; fake downloads."""
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.source = os.path.join(self.tmp.name, "source.mp4")
@@ -234,7 +242,7 @@ class NodeTests(unittest.IsolatedAsyncioTestCase):
 
         async def fake_download(url, prefix):
             test.downloads.append((url, prefix))
-            return test.enhanced if "enhanced" in prefix else test.source
+            return test.enhanced if prefix in ("vcube_enhanced", "smooth_repaired") else test.source
 
         counter = iter(range(1000))
         self._patches = [
@@ -246,14 +254,20 @@ class NodeTests(unittest.IsolatedAsyncioTestCase):
         ]
         for patcher in self._patches:
             patcher.start()
-        self.node = nodes_mediakit.BytePlusVideoEnhance
-        self.node.hidden = SimpleNamespace(unique_id="7", prompt={})
         self.client = nodes_mediakit.MediaKitClient("test-key")
 
     def tearDown(self):
         for patcher in self._patches:
             patcher.stop()
         self.tmp.cleanup()
+
+
+@requires_comfyui
+class NodeTests(NodeFixture):
+    def setUp(self):
+        super().setUp()
+        self.node = nodes_mediakit.BytePlusVideoEnhance
+        self.node.hidden = SimpleNamespace(unique_id="7", prompt={})
 
     async def run_node(self, **kwargs):
         args = dict(tool_version=STANDARD, resolution={"resolution": "1080p"}, fps="source", bitrate_level="medium")
@@ -294,8 +308,11 @@ class NodeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(body["video_url"], "https://storage.example/upload.mp4")
         self.assertEqual((body["resolution_limit"], body["bitrate"]), (180, 6000))
         self.assertNotIn("fps", body)  # 12 fps source: below 15, so core keeps the source rate
-        self.assertEqual(uploads[0]["failed_key"], "err_comfy_video_upload_failed_vcube")
-        self.assertEqual(result.args[1:4], (None, None, None))  # comparison off
+        self.assertEqual(uploads[0]["failed_key"], "err_comfy_video_upload_failed_mediakit")
+        # Comparison off: nodes using those outputs are skipped silently, not fed None.
+        for blocked in result.args[1:4]:
+            self.assertIsInstance(blocked, ExecutionBlocker)
+            self.assertIsNone(blocked.message)
 
     async def test_source_validation(self):
         from comfy_api.input_impl import VideoFromFile
@@ -326,6 +343,182 @@ class NodeTests(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(nodes_mediakit.sweep_position(2.0), 0.9)
         self.assertEqual(nodes_mediakit.comparison_size(3840, 2160), (1920, 1080))
         self.assertEqual(nodes_mediakit.comparison_size(640, 360), (640, 360))
+
+
+@requires_comfyui
+class SmoothnessRequestTests(unittest.TestCase):
+    URL = "https://cdn.example/source.mp4"
+
+    def test_schema(self):
+        info = nodes_mediakit.BytePlusVideoSmoothness.GET_NODE_INFO_V1()
+        self.assertEqual(info["display_name"], "BytePlus Video Smoothness Enhance")
+        schema = nodes_mediakit.BytePlusVideoSmoothness.define_schema()
+        self.assertEqual(
+            [i.id for i in schema.inputs],
+            ["mediakit_client", "video", "periodic_stutter", "duplicate_frames", "video_url", "comparison"],
+        )
+        optional = info["input"]["optional"]
+        for name in ("video_url", "comparison"):
+            self.assertTrue(optional[name][1]["advanced"], name)
+        self.assertIn("video", optional)
+        options = info["input"]["required"]["periodic_stutter"][1]["options"]
+        self.assertEqual([o["key"] for o in options], ["repair", "detect only"])
+        self.assertEqual(info["input"]["required"]["duplicate_frames"][1]["options"], ["remove", "detect only"])
+        self.assertEqual(
+            info["output_name"], ["VIDEO", "comparison", "inserted_frame_count", "duplicate_frame_count", "response"]
+        )
+
+    def test_default_request_repairs_both(self):
+        body = nodes_mediakit.build_smoothness_request(self.URL, REPAIR, "remove")
+        self.assertEqual(body, {
+            "video_url": self.URL,
+            "periodic_stutter_detect": {"periodic_stutter_repair": True, "align_source_fps": False},
+            "duplicate_frame_detect": {"duplicate_frame_repair": True},
+        })
+        self.assertTrue(nodes_mediakit.smoothness_repairs(body))
+
+    def test_detect_only_and_options(self):
+        body = nodes_mediakit.build_smoothness_request(self.URL, DETECT, "detect only")
+        self.assertEqual(body["periodic_stutter_detect"], {"periodic_stutter_repair": False})
+        self.assertEqual(body["duplicate_frame_detect"], {"duplicate_frame_repair": False})
+        self.assertFalse(nodes_mediakit.smoothness_repairs(body))
+        body = nodes_mediakit.build_smoothness_request(
+            self.URL, {**REPAIR, "align_source_fps": True, "insert_frame_indices": "120, 80"}, "detect only"
+        )
+        self.assertEqual(
+            body["periodic_stutter_detect"],
+            {"periodic_stutter_repair": True, "align_source_fps": True, "insert_frame_indices": [80, 120]},
+        )
+        self.assertTrue(nodes_mediakit.smoothness_repairs(body))
+
+    def test_frame_indices(self):
+        self.assertEqual(nodes_mediakit.parse_frame_indices(" 3 1,2 "), [1, 2, 3])
+        self.assertEqual(nodes_mediakit.parse_frame_indices(""), [])
+        for bad in ("80, 80", "-1", "1.5", "a"):
+            with self.subTest(value=bad), self.assertRaisesRegex(Exception, "insert_frame_indices"):
+                nodes_mediakit.parse_frame_indices(bad)
+
+    def test_source_limits(self):
+        def video(seconds, size):
+            return SimpleNamespace(get_duration=lambda: seconds, get_dimensions=lambda: size)
+
+        nodes_mediakit.validate_smoothness_source(video(35.0, (3840, 2160)), repair=True)
+        nodes_mediakit.validate_smoothness_source(video(600.0, (1280, 720)), repair=False)  # detection: no limit
+        with self.assertRaisesRegex(Exception, "up to 35s"):
+            nodes_mediakit.validate_smoothness_source(video(35.5, (1280, 720)), repair=True)
+        with self.assertRaisesRegex(Exception, "at most 4096x2160"):
+            nodes_mediakit.validate_smoothness_source(video(5.0, (4320, 2160)), repair=True)
+
+
+@requires_comfyui
+class SmoothnessNodeTests(NodeFixture):
+    REPAIRED = {
+        "video_url": "https://cdn.example/repaired.mp4?auth_key=x",
+        "duration": 1.0,
+        "inserted_frames_detail": {"inserted_frame_count": 3},
+        "duplicate_frames_detail": {"duplicate_frame_count": 2},
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.node = nodes_mediakit.BytePlusVideoSmoothness
+        self.node.hidden = SimpleNamespace(unique_id="8", prompt={})
+
+    async def run_node(self, **kwargs):
+        args = dict(periodic_stutter=REPAIR, duplicate_frames="remove")
+        args.update(kwargs)
+        return await self.node.execute(self.client, **args)
+
+    async def test_video_url_with_comparison(self):
+        fake = FakeMediaKit(result=self.REPAIRED)
+        with mock.patch.object(nodes_mediakit, "_send", fake):
+            result = await self.run_node(video_url="https://cdn.example/source.mp4")
+        method, path, body = fake.calls[0]
+        self.assertEqual((method, path), ("POST", "/tools/enhance-video-smoothness"))
+        self.assertEqual(body["video_url"], "https://cdn.example/source.mp4")
+        repaired, comparison, inserted, duplicates, response = result.args
+        self.assertEqual((inserted, duplicates), (3, 2))
+        self.assertEqual(repaired.get_dimensions(), (640, 360))
+        self.assertEqual(comparison.get_dimensions(), (1280, 360))  # two halves
+        self.assertEqual(json.loads(response)["result"]["duplicate_frames_detail"], {"duplicate_frame_count": 2})
+        self.assertEqual([p for _u, p in self.downloads], ["smooth_repaired", "smooth_source"])
+
+    async def test_no_repair_passes_the_source_through(self):
+        from comfy_api.input_impl import VideoFromFile
+
+        detected = {"duration": 1.0, "inserted_frames_detail": {"inserted_frame_count": 4},
+                    "duplicate_frames_detail": {"duplicate_frame_count": 0}}
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit(result=detected)):
+            result = await self.run_node(video_url="https://cdn.example/source.mp4",
+                                         periodic_stutter=DETECT, duplicate_frames="detect only")
+        output, comparison, inserted, duplicates, _response = result.args
+        self.assertEqual(output.get_dimensions(), (320, 180))  # the downloaded source
+        self.assertIsInstance(comparison, ExecutionBlocker)
+        self.assertEqual((inserted, duplicates), (4, 0))
+        self.assertEqual([p for _u, p in self.downloads], ["smooth_source"])
+
+        # A connected video is returned as is: nothing to download.
+        self.downloads.clear()
+        source = VideoFromFile(self.source)
+
+        async def fake_upload(cls, videos, **keys):
+            return ["https://storage.example/upload.mp4"]
+
+        with mock.patch.object(nodes_video, "upload_videos_to_comfy_storage_cached", fake_upload), \
+                mock.patch.object(nodes_mediakit, "_send", FakeMediaKit(result={})):
+            result = await self.run_node(video=source)
+        self.assertIs(result.args[0], source)
+        self.assertEqual(result.args[2:4], (0, 0))
+        self.assertEqual(self.downloads, [])
+
+    async def test_connected_video_is_uploaded(self):
+        from comfy_api.input_impl import VideoFromFile
+
+        uploads = []
+
+        async def fake_upload(cls, videos, **keys):
+            uploads.append(keys)
+            return ["https://storage.example/upload.mp4"]
+
+        fake = FakeMediaKit(result=self.REPAIRED)
+        with mock.patch.object(nodes_video, "upload_videos_to_comfy_storage_cached", fake_upload), \
+                mock.patch.object(nodes_mediakit, "_send", fake):
+            result = await self.run_node(video=VideoFromFile(self.source), comparison=False)
+        self.assertEqual(fake.calls[0][2]["video_url"], "https://storage.example/upload.mp4")
+        self.assertEqual(uploads[0]["failed_key"], "err_comfy_video_upload_failed_mediakit")
+        self.assertIsInstance(result.args[1], ExecutionBlocker)
+        self.assertEqual([p for _u, p in self.downloads], ["smooth_repaired"])
+
+    async def test_source_validation(self):
+        from comfy_api.input_impl import VideoFromFile
+
+        long_video = SimpleNamespace(get_duration=lambda: 40.0, get_dimensions=lambda: (1280, 720))
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit()) as fake:
+            with self.assertRaisesRegex(Exception, "not both"):
+                await self.run_node(video=VideoFromFile(self.source), video_url="https://cdn.example/a.mp4")
+            with self.assertRaisesRegex(Exception, "Connect a video"):
+                await self.run_node()
+            with self.assertRaisesRegex(Exception, "up to 35s"):
+                await self.run_node(video=long_video)
+            with self.assertRaisesRegex(Exception, "insert_frame_indices"):
+                await self.run_node(video_url="https://cdn.example/a.mp4",
+                                    periodic_stutter={**REPAIR, "insert_frame_indices": "5, 5"})
+        self.assertEqual(fake.calls, [])
+
+    def test_side_by_side(self):
+        path = nodes_mediakit.build_side_by_side(self.source, self.enhanced)
+        import av
+
+        with av.open(path) as container:
+            frames = [f.to_ndarray(format="rgb24") for f in container.decode(container.streams.video[0])]
+        self.assertEqual(len(frames), 24)  # the repaired clip's timing (source is 12 fps)
+        first = frames[0]
+        self.assertEqual(first.shape, (360, 1280, 3))
+        self.assertGreater(first[300, 100, 0], first[300, 100, 2])  # left: source (red)
+        self.assertGreater(first[300, 1100, 2], first[300, 1100, 0])  # right: repaired (blue)
+        self.assertEqual(nodes_mediakit.side_by_side_size(3840, 2160), (1920, 1080))
+        self.assertEqual(nodes_mediakit.side_by_side_size(1080, 1920), (1080, 1920))
+        self.assertEqual(nodes_mediakit.side_by_side_size(2560, 1080), (1920, 810))
 
 
 @requires_comfyui

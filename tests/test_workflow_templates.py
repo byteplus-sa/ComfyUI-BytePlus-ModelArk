@@ -17,6 +17,7 @@ EXPECTED_WORKFLOWS = {
     "Seedream Layer Separation.json",
     "Seed.json",
     "vCube Video Enhance.json",
+    "Video Smoothness Enhance.json",
 }
 
 
@@ -127,6 +128,11 @@ class WorkflowTemplateTests(unittest.TestCase):
             "mediakit_client", "video", "tool_version.scene", "tool_version.enhance_style",
             "tool_version", "resolution", "fps", "bitrate_level", "video_url", "bitrate",
             "comparison", "compare_time",
+        ],
+        "BytePlusVideoSmoothness": [
+            "mediakit_client", "video", "periodic_stutter.align_source_fps",
+            "periodic_stutter.insert_frame_indices", "periodic_stutter", "duplicate_frames",
+            "video_url", "comparison",
         ],
         "BytePlusSeedAudio": [
             "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
@@ -413,6 +419,15 @@ class WorkflowTemplateTests(unittest.TestCase):
         # Enhanced video and comparison to Save Video; the frame pair to ComfyUI's Compare Images.
         targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == enhance["id"]}
         self.assertEqual(targets, {(0, "SaveVideo"), (1, "SaveVideo"), (2, "ImageCompare"), (3, "ImageCompare")})
+
+    def test_video_smoothness_template(self):
+        workflow = load_workflow("Video Smoothness Enhance.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        smooth = next(node for node in nodes.values() if node["type"] == "BytePlusVideoSmoothness")
+        self.assertEqual(smooth["widgets_values"], ["repair", False, "", "remove", "", True])
+        # Repaired video and side-by-side comparison to Save Video; the task JSON to Preview Any.
+        targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == smooth["id"]}
+        self.assertEqual(targets, {(0, "SaveVideo"), (1, "SaveVideo"), (4, "PreviewAny")})
 
     def test_templates_do_not_embed_api_keys(self):
         for name in sorted(EXPECTED_WORKFLOWS):
