@@ -121,8 +121,9 @@ AUTO_UPSCALE_TOOLTIP = (
 )
 REFERENCE_ASSETS_TOOLTIP = (
     "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to "
-    "image, video or audio files. Refer to a slot in the prompt as assetN (for example asset1); "
-    "it is rewritten to the matching Image / Video / Audio label."
+    "image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, "
+    "10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in "
+    "the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label."
 )
 
 # Supported output aspect ratios, used to pre-size FLF frames to the exact
@@ -309,11 +310,13 @@ def _reference_option_inputs(label):
             optional=True,
             tooltip=AUTO_UPSCALE_TOOLTIP,
         ),
+        # Core stops at the image cap (9 / 30), but assets can be images, videos
+        # or audio: BytePlus allows 15 references in total on 2.0 and 50 on 2.5.
         _named_autogrow(
             "reference_assets",
             comfy_io.String.Input("reference_asset"),
             "asset",
-            limits["images"],
+            limits["images"] + limits["videos"] + limits["audios"],
             tooltip=REFERENCE_ASSETS_TOOLTIP,
         ),
     ]

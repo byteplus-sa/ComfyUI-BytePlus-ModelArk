@@ -102,6 +102,8 @@ VIDEO_2_MODEL_MAX_DURATIONS = {
     "dreamina-seedance-2-5-premium": 30,
 }
 
+# Per request: images, videos and audio clips (BytePlus: 50 references in total on
+# Seedance 2.5 = 30 + 10 + 10, 15 on the 2.0 series = 9 + 3 + 3).
 VIDEO_2_MODEL_REFERENCE_LIMITS = {
     "dreamina-seedance-2-0": {"images": 9, "videos": 3, "audios": 3},
     "dreamina-seedance-2-0-fast": {"images": 9, "videos": 3, "audios": 3},

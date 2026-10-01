@@ -232,7 +232,8 @@ class SchemaTests(unittest.TestCase):
 
     def test_reference_autogrow_caps_per_model(self):
         for label in MODEL_LABELS:
-            caps = (30, 10, 10, 30) if "2.5" in label else (9, 3, 3, 9)
+            # asset_N covers every reference type: 50 in total on 2.5, 15 on 2.0.
+            caps = (30, 10, 10, 50) if "2.5" in label else (9, 3, 3, 15)
             with self.subTest(label=label):
                 req = option_inputs(nodes_seedance2.BytePlusSeedance2Reference, label)["required"]
                 names = []
@@ -297,6 +298,7 @@ class SchemaTests(unittest.TestCase):
         allowed = {
             ("output_format", "options"),
             ("reference_assets", "tooltip"),
+            ("reference_assets", "template"),
             ("first_frame_asset_id", "tooltip"),
             ("last_frame_asset_id", "tooltip"),
             ("draft_task_id", "tooltip"),
@@ -308,6 +310,11 @@ class SchemaTests(unittest.TestCase):
             if name == "output_format":
                 # Ours adds mov after core's mp4.
                 self.assertEqual(a["options"][: len(b["options"])], b["options"], where)
+            if name == "reference_assets":
+                # Ours extends core's slots (image cap) to the BytePlus total (15 / 50).
+                core_names = b["template"]["names"]
+                self.assertEqual(a["template"]["names"][: len(core_names)], core_names, where)
+                self.assertGreater(len(a["template"]["names"]), len(core_names), where)
             for key in set(a) | set(b):
                 if (name, key) in allowed or key == "options" and name == "model":
                     continue
@@ -747,6 +754,33 @@ class ReferenceTests(_ExecutorHarness):
             values.update(task_type="auto", output_format="mp4")
         values.update(overrides)
         return values
+
+    async def test_reference_totals_follow_byteplus(self):
+        """BytePlus: 50 references on 2.5 (30 + 10 + 10), 15 on 2.0 (9 + 3 + 3)."""
+
+        def links(images, videos, audios):
+            values = (
+                [f"https://cdn.example/i{n}.png" for n in range(images)]
+                + [f"https://cdn.example/v{n}.mp4" for n in range(videos)]
+                + [f"https://cdn.example/a{n}.mp3" for n in range(audios)]
+            )
+            return {f"asset_{slot}": value for slot, value in enumerate(values, 1)}
+
+        for label, caps in (("Seedance 2.5", (30, 10, 10)), ("Seedance 2.0", (9, 3, 3))):
+            with self.subTest(label=label):
+                nodes_video.NON_BLOCKING_TASK_CACHE.clear()
+                await self.run_node(self.REF, model=self.model(label, reference_assets=links(*caps)), seed=1)
+                content = self.submitted[-1]["content"]
+                kinds = [item["type"] for item in content if item["type"] != "text"]
+                self.assertEqual(
+                    (kinds.count("image_url"), kinds.count("video_url"), kinds.count("audio_url")), caps
+                )
+                self.assertEqual(len(kinds), 50 if label == "Seedance 2.5" else 15)
+                for index in range(3):
+                    over = list(caps)
+                    over[index] += 1
+                    with self.assertRaisesRegex(Exception, "Too many reference"):
+                        await self.run_node(self.REF, model=self.model(label, reference_assets=links(*over)), seed=1)
 
     async def test_content_order_labels_and_asset_resolution(self):
         self.client.asset_credentials = {"access_key": "AK", "secret_key": "SK"}
