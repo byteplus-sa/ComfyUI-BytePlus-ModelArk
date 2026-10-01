@@ -37,10 +37,10 @@ How each file compares:
 | `test_core_style_seedream` (`test_matches_core_schema`) | importing `comfy_api_nodes.nodes_bytedance` live; exceptions in `BYTEPLUS_LIMIT_DEVIATIONS` |
 | `test_core_style_seedance1` (`test_matches_core_nodes`) | live import; exceptions in `BYTEPLUS_DEVIATIONS`, `REMOVED_CORE_INPUTS`, `DEPRECATED_MODEL` |
 | `test_core_style_seedance2` (`test_matches_core_nodes`) | live import; expected order in `MODEL_LABELS`, `EXTRAS`, `REFERENCE_TAIL` |
-| `test_core_style_seed` | **hard-coded copies** of core's values (`SEED_TOOLTIP`, defaults, options) — no live import, so a core change won't fail it; diff `nodes_bytedance_llm.py` by hand |
+| `test_core_style_seed` (`test_matches_core_llm_node_live`) | live import of `ByteDanceSeedNode`: core's inputs, model options and their children; the other tests in the file pin this pack's extras with hard-coded values |
 | `test_mediakit` (`test_matches_core_vcube_node`) | `GET_NODE_INFO_V1()` of `ByteDanceVideoEnhanceNode` |
 
-A skip ("core ByteDance nodes unavailable") is not a pass — fix the env.
+A skip ("core ByteDance nodes unavailable") is not a pass — fix the env. CI (`.github/workflows/tests.yml`) runs this suite on every push and weekly against ComfyUI's latest release and `master`, and fails on any skip, so a failing scheduled run is usually the first sign that core moved.
 
 ## 3. Classify every difference
 
@@ -59,7 +59,7 @@ Keep these invariants while editing:
 
 ## 4. Raising the ComfyUI floor
 
-Only when a parity change needs a newer core API (a new `comfy_io` type, a new Schema field). Then: `requires-comfyui` in `pyproject.toml`, the two README mentions, and recheck the lazy `comfy_api_nodes.util.upload_*_to_comfyapi` signatures we wrap (`nodes_video.upload_video_to_comfy_storage`, `nodes_shared.upload_bytes_to_comfy_storage`) — that module is not a stable API.
+Only when a parity change needs a newer core API (a new `comfy_io` type, a new Schema field). Then: `requires-comfyui` in `pyproject.toml`, the two README mentions, and recheck the lazy `comfy_api_nodes.util.upload_*_to_comfyapi` signatures we wrap (`nodes_video.upload_video_to_comfy_storage`, `nodes_shared.upload_bytes_to_comfy_storage`, `nodes_assets.upload_image_to_comfy_storage` — `upload_image_to_comfyapi` with `total_pixels` — and `nodes_assets.upload_asset_audio`) — that module is not a stable API.
 
 ## 5. Finish
 

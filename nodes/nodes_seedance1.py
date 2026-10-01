@@ -22,6 +22,8 @@ from .constants import (
     VIDEO_DEFAULT_TIMEOUT,
 )
 from .core_style import (
+    NonBlockingRerun,
+    core_search_aliases,
     last_frame_batch_output,
     seed_input,
     video_extra_inputs,
@@ -196,6 +198,7 @@ def _schema(node_id, display_name, description, model_options, default_model, fr
     return comfy_io.Schema(
         node_id=node_id,
         display_name=display_name,
+        search_aliases=core_search_aliases(node_id),
         category=GLOBAL_CATEGORY,
         description=description,
         inputs=[
@@ -275,7 +278,7 @@ async def generate_seedance1_video(
     )
 
 
-class BytePlusSeedanceTextToVideo(comfy_io.ComfyNode):
+class BytePlusSeedanceTextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance Text to Video, on BytePlus ModelArk."""
 
     NODE_ID = "BytePlusSeedanceTextToVideo"
@@ -327,7 +330,7 @@ class BytePlusSeedanceTextToVideo(comfy_io.ComfyNode):
         )
 
 
-class BytePlusSeedanceImageToVideo(comfy_io.ComfyNode):
+class BytePlusSeedanceImageToVideo(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance Image to Video, on BytePlus ModelArk."""
 
     NODE_ID = "BytePlusSeedanceImageToVideo"
@@ -385,7 +388,7 @@ class BytePlusSeedanceImageToVideo(comfy_io.ComfyNode):
         )
 
 
-class BytePlusSeedanceFirstLastFrame(comfy_io.ComfyNode):
+class BytePlusSeedanceFirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance First-Last-Frame to Video, on BytePlus ModelArk."""
 
     NODE_ID = "BytePlusSeedanceFirstLastFrame"

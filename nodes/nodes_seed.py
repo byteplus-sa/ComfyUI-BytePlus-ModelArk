@@ -17,7 +17,7 @@ import uuid
 from comfy_api.latest import io as comfy_io
 
 from .audio_utils import audio_duration, audio_to_wav_bytes
-from .core_style import seed_input
+from .core_style import core_search_aliases, seed_input
 from .executor import BytePlusVisualExecutor
 from .models_config import (
     SEED_LLM_AUDIO_MODELS,
@@ -164,8 +164,9 @@ def _extra_inputs():
             max=10,
             tooltip=(
                 "1: every run starts a new conversation (the response is not stored). "
-                "2 or more: each run continues this node's last conversation with the new "
-                "prompt; images and videos from the first turn stay in the conversation."
+                "2 or more: each run continues this node's last conversation (with the same "
+                "model) with the new prompt; images, videos and audio from the first turn stay "
+                "in the conversation."
             ),
             optional=True,
             advanced=True,
@@ -183,7 +184,7 @@ def _extra_inputs():
             min=FILE_EXPIRE_MIN_SECONDS,
             max=FILE_EXPIRE_MAX_SECONDS,
             step=1,
-            tooltip="How long uploaded images and videos are kept in Ark Files (1 to 30 days).",
+            tooltip="How long uploaded images, videos and audio are kept in Ark Files (1 to 30 days).",
             optional=True,
             advanced=True,
         ),
@@ -317,7 +318,10 @@ class BytePlusSeed(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id="BytePlusSeed",
             display_name="BytePlus LLM",
-            search_aliases=["BytePlus Seed", "Seed", "DeepSeek", "GLM", "chat", "multimodal"],
+            search_aliases=core_search_aliases(
+                "BytePlusSeed", "BytePlus Seed", "Seed", "DeepSeek", "GLM", "chat", "multimodal"
+            ),
+            essentials_category="Text Generation",  # as core's ByteDance Seed node
             category=GLOBAL_CATEGORY,
             description=(
                 "Generate text responses with BytePlus ModelArk LLMs: Seed 2.0 Pro, Lite and Mini, "
@@ -407,7 +411,8 @@ class BytePlusSeed(comfy_io.ComfyNode):
             )
 
         node_id = cls.hidden.unique_id
-        owner = _conversation_owner(client)
+        # A conversation continues only on the same account, region and model.
+        owner = (*_conversation_owner(client), model_id)
         turns = int(turns or 1)
         previous_response_id = None
         if turns > 1:

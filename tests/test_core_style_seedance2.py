@@ -288,6 +288,35 @@ class SchemaTests(unittest.TestCase):
                 schema = node_cls.define_schema()
                 self.assertEqual([i.id for i in schema.inputs][:3], ["client", media, "group_id"])
 
+    def test_core_display_names_are_search_aliases(self):
+        """Every mirrored node is findable by core's name, and those names are still core's."""
+        try:
+            core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+            core_llm = importlib.import_module("comfy_api_nodes.nodes_bytedance_llm")
+        except Exception as e:  # pragma: no cover - depends on the ComfyUI checkout
+            self.skipTest(f"core ByteDance nodes unavailable: {e}")
+        core_names = set()
+        for module in (core, core_llm):
+            for name in dir(module):
+                obj = getattr(module, name)
+                if isinstance(obj, type) and name.startswith("ByteDance") and hasattr(obj, "define_schema"):
+                    schema = obj.define_schema()
+                    if not schema.is_deprecated:
+                        core_names.add(schema.display_name)
+        ours = {}
+        for module_name in ("nodes_seedream", "nodes_seedance1", "nodes_seedance2", "nodes_assets",
+                            "nodes_seed", "nodes_speech", "nodes_mediakit"):
+            module = importlib.import_module(f"{PACKAGE_NAME}.nodes.{module_name}")
+            for node in getattr(module, "NODES", []) + getattr(module, "CORE_STYLE_NODES", []):
+                ours[node.define_schema().node_id] = node.define_schema()
+        speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
+        ours["BytePlusSeedAudio"] = speech.BytePlusSeedAudio.define_schema()
+        core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
+        for node_id, core_name in core_style.CORE_DISPLAY_NAMES.items():
+            with self.subTest(node=node_id):
+                self.assertIn(core_name, core_names)
+                self.assertIn(core_name, ours[node_id].search_aliases)
+
     def test_matches_core_nodes(self):
         try:
             core = importlib.import_module("comfy_api_nodes.nodes_bytedance")

@@ -105,6 +105,46 @@ def video_extra_inputs(include_offline=False):
     return inputs
 
 
+# ComfyUI core's display name for each node this pack mirrors, added to the
+# node's search_aliases so people who know core's nodes find these.
+CORE_DISPLAY_NAMES = {
+    "BytePlusSeedream": "ByteDance Seedream 4.5 & 5.0",
+    "BytePlusSeedreamLayerSeparation": "ByteDance Seedream 5.0 Layer Separation",
+    "BytePlusSeedanceTextToVideo": "ByteDance Text to Video",
+    "BytePlusSeedanceImageToVideo": "ByteDance Image to Video",
+    "BytePlusSeedanceFirstLastFrame": "ByteDance First-Last-Frame to Video",
+    "BytePlusSeedance2TextToVideo": "ByteDance Seedance 2.5 Text to Video",
+    "BytePlusSeedance2FirstLastFrame": "ByteDance Seedance 2.5 First-Last-Frame to Video",
+    "BytePlusSeedance2Reference": "ByteDance Seedance 2.5 Reference to Video",
+    "BytePlusSeedanceDraftToFinal": "ByteDance Seedance 2.5 Draft to Final Video",
+    "BytePlusCreateImageAsset": "ByteDance Create Image Asset",
+    "BytePlusCreateVideoAsset": "ByteDance Create Video Asset",
+    "BytePlusSeed": "ByteDance Seed",
+    "BytePlusSeedAudio": "ByteDance Seed Audio 1.0",
+    "BytePlusVideoEnhance": "ByteDance vCube Video Enhance",
+}
+
+
+def core_search_aliases(node_id, *extra):
+    """search_aliases for a core-style node: core's display name, then any extras."""
+    core_name = CORE_DISPLAY_NAMES.get(node_id)
+    return [*([core_name] if core_name else []), *extra]
+
+
+class NonBlockingRerun:
+    """
+    Mixin for nodes with the non_blocking extra. A non_blocking run returns
+    the pending task IDs; the next run collects the video. ComfyUI only
+    re-runs a node whose inputs changed, so while non_blocking is on the node
+    reports a fingerprint that never repeats (NaN, as core's loop nodes do).
+    Otherwise normal caching applies.
+    """
+
+    @classmethod
+    def fingerprint_inputs(cls, non_blocking=False, **kwargs):
+        return float("nan") if non_blocking else 0
+
+
 def video_list_output():
     """
     Core's VIDEO output as a list output: every video of a generation_count batch

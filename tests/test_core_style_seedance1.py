@@ -14,6 +14,7 @@ import types
 import unittest
 import uuid
 from types import SimpleNamespace
+from unittest import mock
 
 
 COMFY_ROOT = os.environ.get("COMFYUI_ROOT")
@@ -41,6 +42,7 @@ if COMFY_ROOT:
     executor = importlib.import_module(f"{PACKAGE_NAME}.nodes.executor")
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
     seedance1 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance1")
+    seedance2 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance2")
     from comfy_api.latest import io as comfy_io  # noqa: E402
     from comfy_execution.graph_utils import ExecutionBlocker  # noqa: E402
 
@@ -597,6 +599,127 @@ class Seedance1OutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
 
 
 @requires_comfyui
+class NonBlockingRerunTests(unittest.TestCase):
+    def test_non_blocking_runs_are_never_cached(self):
+        import math
+
+        nodes = [T2V, I2V, FLF] + [getattr(seedance2, n) for n in (
+            "BytePlusSeedance2TextToVideo", "BytePlusSeedance2FirstLastFrame",
+            "BytePlusSeedance2Reference", "BytePlusSeedanceDraftToFinal")]
+        for node in nodes:
+            with self.subTest(node=node.__name__):
+                # "Run again to collect" must re-run the node even with a fixed seed.
+                self.assertTrue(math.isnan(node.fingerprint_inputs(non_blocking=True, seed=1)))
+                self.assertEqual(node.fingerprint_inputs(non_blocking=False, seed=1), 0)
+
+
+@requires_comfyui
+class Seedance1PollingTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
+    """Polling ends on a permanent error or after repeated errors, instead of spinning forever."""
+
+    class FailingTasks(dict):
+        def __init__(self, error):
+            super().__init__()
+            self.error = error
+            self.calls = 0
+
+        def __getitem__(self, task_id):
+            self.calls += 1
+            raise self.error
+
+    @staticmethod
+    def status_error(cls_name, status):
+        import httpx
+        from byteplussdkarkruntime import _exceptions
+
+        request = httpx.Request("GET", "https://ark.example/api/v3/contents/generations/tasks/cgt-1")
+        return getattr(_exceptions, cls_name)(
+            "error", response=httpx.Response(status, request=request), body=None, request_id="r1"
+        )
+
+    async def run_blocking(self, tasks):
+        return await self._run(T2V, client=self._client(tasks=tasks), model="seedance-1-0-pro-fast-251015",
+                               non_blocking=False, generation_count=1)
+
+    async def test_permanent_poll_error_fails_at_once(self):
+        tasks = self.FailingTasks(self.status_error("ArkNotFoundError", 404))
+        with mock.patch.object(executor, "SEEDANCE_POLL_SECONDS", 0):
+            with self.assertRaisesRegex(Exception, "Could not check task cgt-1"):
+                await self.run_blocking(tasks)
+        self.assertEqual(tasks.calls, 1)
+
+    async def test_node_shows_poll_status(self):
+        texts = []
+        executor.PromptServer.instance = SimpleNamespace(
+            send_progress_text=lambda text, node_id: texts.append((node_id, text)),
+            send_sync=lambda *_a, **_k: None,
+        )
+        tasks = self.FailingTasks(RuntimeError("connection reset"))
+        with mock.patch.object(executor, "SEEDANCE_POLL_SECONDS", 0), \
+                mock.patch.object(executor, "SEEDANCE_MAX_POLL_ERRORS", 3):
+            with self.assertRaises(Exception):
+                await self.run_blocking(tasks)
+        statuses = [text for _node, text in texts if "queued" in text]
+        self.assertTrue(statuses)
+        self.assertIn("0/1 done", statuses[0])
+        self.assertNotIn("[BytePlus]", statuses[0])
+
+    async def test_interrupt_deletes_pending_tasks(self):
+        # Stopping the run must not leave paid tasks running on the account.
+        import comfy.model_management as mm
+
+        deleted = []
+
+        class Tasks:
+            @staticmethod
+            def create(**kwargs):
+                return SimpleNamespace(id="cgt-1")
+
+            @staticmethod
+            def list(**kwargs):
+                return SimpleNamespace(items=[])
+
+            @staticmethod
+            def get(task_id):
+                return SimpleNamespace(id=task_id, status="running")
+
+            @staticmethod
+            def delete(task_id):
+                deleted.append(task_id)
+
+        client = SimpleNamespace(
+            ark=SimpleNamespace(content_generation=SimpleNamespace(tasks=Tasks())),
+            check_quota=lambda *_a: None, update_usage=lambda *_a: None,
+        )
+
+        async def interrupt_soon():
+            await asyncio.sleep(0.3)
+            mm.interrupt_current_processing(True)
+
+        waiter = asyncio.ensure_future(interrupt_soon())
+        try:
+            with mock.patch.object(executor, "SEEDANCE_POLL_SECONDS", 0.05):
+                with self.assertRaises(mm.InterruptProcessingException):
+                    await self.run_blocking_with(client)
+        finally:
+            mm.interrupt_current_processing(False)
+            await waiter
+        self.assertEqual(deleted, ["cgt-1"])
+
+    async def run_blocking_with(self, client):
+        return await self._run(T2V, client=client, model="seedance-1-0-pro-fast-251015",
+                               non_blocking=False, generation_count=1)
+
+    async def test_transient_poll_errors_are_capped(self):
+        tasks = self.FailingTasks(RuntimeError("connection reset"))
+        with mock.patch.object(executor, "SEEDANCE_POLL_SECONDS", 0), \
+                mock.patch.object(executor, "SEEDANCE_MAX_POLL_ERRORS", 3):
+            with self.assertRaisesRegex(Exception, "may still finish and be billed"):
+                await self.run_blocking(tasks)
+        self.assertEqual(tasks.calls, 3)
+
+
+@requires_comfyui
 class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
     """generation_count above 1: every video, paired last frames, and where videos are saved."""
 
@@ -670,10 +793,15 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             return None
 
         nodes_video.download_video_to_temp = no_video
-        video, last_frame, response = (await self._handle(as_list=True)).args
-        self.assertIsInstance(video, ExecutionBlocker)
-        self.assertIsInstance(last_frame, ExecutionBlocker)
-        self.assertEqual(len(json.loads(response)), 3)
+        for as_list in (True, False):
+            with self.subTest(as_list=as_list):
+                video, last_frame, response = (await self._handle(as_list=as_list)).args
+                # Paid tasks with no downloadable video: blocked with the reason, not silently.
+                for blocked in (video, last_frame):
+                    self.assertIsInstance(blocked, ExecutionBlocker)
+                    self.assertIn("cgt-1", blocked.message)
+                    self.assertIn("24 hours", blocked.message)
+                self.assertEqual(len(json.loads(response)), 3)  # the links are still in response
 
     async def test_single_video_is_not_saved_here(self):
         await self._handle(as_list=True, generation_count=1)

@@ -1,6 +1,6 @@
 # ComfyUI core's ByteDance partner nodes — comparison notes
 
-Core ComfyUI ships its own ByteDance nodes in `comfy_api_nodes/nodes_bytedance.py` (+ `apis/bytedance.py` pydantic models). They call BytePlus **through the Comfy.org proxy** and bill Comfy credits; this pack calls ModelArk **directly** with the user's key. Core usually adds new Seedream/Seedance models quickly, so its code is a useful early signal for payload fields, limits and error codes. Read on 2026-09-27 from Comfy-Org/ComfyUI `master`.
+Core ComfyUI ships its own ByteDance nodes in `comfy_api_nodes/nodes_bytedance.py` (+ `apis/bytedance.py` pydantic models). They call BytePlus **through the Comfy.org proxy** and bill Comfy credits; this pack calls ModelArk **directly** with the user's key. Core usually adds new Seedream/Seedance models quickly, so its code is a useful early signal for payload fields, limits and error codes. Read on 2026-10-01 from Comfy-Org/ComfyUI `master` (651ca29; last ByteDance change 9f932548f, 2026-09-25). Core's retired models are deleted outright; core's partner-proxy Idempotency-Key (a8686f2b3) has no ModelArk equivalent, which is why paid calls here never auto-retry (`nodes_shared.call_billed`).
 
 Read it with:
 

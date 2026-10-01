@@ -26,7 +26,7 @@ Add it to **every** table of its family:
 | Seedance 2.5-family | also `SEEDANCE_2_5_FAMILY` and `SEEDANCE_DRAFT_FINAL_RESOLUTIONS` — missing ones raise KeyError while building the schema and **the whole pack fails to load** |
 | Seedance 1.x | `VIDEO_MODEL_MAP`, `VIDEO_1_UI_OPTIONS`, `SEEDANCE_1_MODELS` (+ FLF options if it supports first/last frame) |
 | Seedream | Legacy `SEEDREAM_4/5_MODEL_MAP` + core-style `SEEDREAM_MODELS`, `SEEDREAM_MODEL_CAPS` (pixel range, refs, outputs); layer separation in `SEEDREAM_LAYER_SEPARATION_MODELS`; size presets in `nodes_image_schema.py` |
-| LLM (`BytePlusSeed`) | `SEED_LLM_MODEL_MAP` (core's three labels stay first — first option is the default); `SEED_LLM_NO_REASONING_EFFORT` if it rejects `reasoning.effort`. Non-Seed LLMs are fine if ModelArk hosts them and they take the same request |
+| LLM (`BytePlusSeed`) | `SEED_LLM_MODEL_MAP` (core's three labels stay first — first option is the default); `SEED_LLM_NO_REASONING_EFFORT` if it rejects `reasoning.effort`; `SEED_LLM_AUDIO_MODELS` if it takes audio input (`SEED_LLM_MAX_AUDIOS` caps the clips). Non-Seed LLMs are fine if ModelArk hosts them and they take the same request |
 | Legacy Visual | `VISUAL_MODEL_MAP` (first entry = default) |
 | Seed Speech | `SEED_AUDIO_MODELS` / `SEED_TTS_MODELS` / `SEED_ASR_MODELS` (TTS model = `X-Api-Resource-Id`) |
 | MediaKit | tool-version inputs in `nodes_mediakit.py` and `IMAGE_VERSION_LIMITS` |

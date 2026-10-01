@@ -16,6 +16,7 @@ import torch
 import comfy.model_management
 import comfy.utils
 from comfy_api.latest import io as comfy_io
+from comfy_execution.graph_utils import ExecutionBlocker
 from byteplussdkarkruntime.types.images.images import (
     OptimizePromptOptions,
     SequentialImageGenerationOptions,
@@ -23,6 +24,7 @@ from byteplussdkarkruntime.types.images.images import (
 
 from .constants import MIN_ASPECT_RATIO, MAX_ASPECT_RATIO
 from .core_style import (
+    core_search_aliases,
     SEED_MAX,
     generation_count_input,
     raise_if_model_unavailable_in_region,
@@ -59,7 +61,9 @@ from .nodes_shared import (
     GLOBAL_CATEGORY,
     BytePlusClientType,
     BytePlusException,
-    create_white_image_tensor,
+    billed_ark,
+    call_billed,
+    wait_interruptible,
     format_api_error,
     get_node_count_in_workflow,
     get_text,
@@ -407,6 +411,7 @@ class BytePlusSeedream(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id="BytePlusSeedream",
             display_name="BytePlus Seedream 4.5 & 5.0",
+            search_aliases=core_search_aliases("BytePlusSeedream"),
             category=GLOBAL_CATEGORY,
             description=SEEDREAM_DESCRIPTION,
             inputs=[
@@ -464,11 +469,11 @@ class BytePlusSeedream(comfy_io.ComfyNode):
             request = build_seedream_request(plan, idx)
             if plan["is_url_model"]:
                 return await request_url_images(
-                    session, client.ark, request, idx, model_id, plan["transparent"]
+                    session, billed_ark(client), request, idx, model_id, plan["transparent"]
                 )
             return await executor.stream_generation_helper(
                 session,
-                client.ark,
+                billed_ark(client),
                 request,
                 idx,
                 batch_mode,
@@ -480,8 +485,10 @@ class BytePlusSeedream(comfy_io.ComfyNode):
             generation_count, _generate_single
         )
         if not tensors:
-            empty = create_white_image_tensor()
-            return comfy_io.NodeOutput(empty, "[]", torch.zeros(empty.shape[:3]))
+            # Every request failed in a workflow with several Seedream nodes: block the
+            # outputs with the failure instead of returning a placeholder image.
+            blocked = ExecutionBlocker(executor.ignored_failure or get_text("err_batch_fail_all"))
+            return comfy_io.NodeOutput(blocked, "[]", blocked)
 
         received = sum(int(t.shape[0]) for t in tensors)
         try:
@@ -899,7 +906,10 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
             node_id="BytePlusSeedreamLayerSeparation",
             display_name="BytePlus Seedream 5.0 Layer Separation",
             category=GLOBAL_CATEGORY,
-            search_aliases=["layer separation", "split layers", "decompose", "cutout", "RGBA layers"],
+            search_aliases=core_search_aliases(
+                "BytePlusSeedreamLayerSeparation",
+                "layer separation", "split layers", "decompose", "cutout", "RGBA layers",
+            ),
             description=LAYER_SEPARATION_DESCRIPTION,
             inputs=[
                 BytePlusClientType.Input("client"),
@@ -960,7 +970,9 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
         client.check_quota(model_id, 1)
         try:
             comfy.model_management.throw_exception_if_processing_interrupted()
-            response = await asyncio.to_thread(client.ark.images.generate, **request)
+            response = await wait_interruptible(
+                asyncio.to_thread(call_billed, billed_ark(client).images.generate, **request)
+            )
             comfy.model_management.throw_exception_if_processing_interrupted()
         except comfy.model_management.InterruptProcessingException:
             raise

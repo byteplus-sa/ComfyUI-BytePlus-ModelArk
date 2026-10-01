@@ -133,6 +133,49 @@ class SeedSchemaTests(unittest.TestCase):
         self.schema = nodes_seed.BytePlusSeed.define_schema()
         self.inputs = by_id(self.schema.inputs)
 
+    def test_matches_core_llm_node_live(self):
+        """Core's inputs, compared with core's live ByteDanceSeedNode (so a core change fails here)."""
+        try:
+            core = importlib.import_module("comfy_api_nodes.nodes_bytedance_llm")
+        except Exception as e:  # pragma: no cover - depends on the ComfyUI checkout
+            self.skipTest(f"core ByteDance LLM node unavailable: {e}")
+        theirs = core.ByteDanceSeedNode.GET_NODE_INFO_V1()
+        ours = nodes_seed.BytePlusSeed.GET_NODE_INFO_V1()
+        # Client first, then core's inputs in core's order; this pack's extras after them.
+        self.assertEqual(ours["input_order"]["required"], ["client", *theirs["input_order"]["required"]])
+        core_optional = theirs["input_order"].get("optional", [])
+        self.assertEqual(ours["input_order"]["optional"][: len(core_optional)], core_optional)
+        our_inputs = {**ours["input"]["required"], **ours["input"].get("optional", {})}
+        for section in ("required", "optional"):
+            for name, spec in (theirs["input"].get(section) or {}).items():
+                with self.subTest(input=name):
+                    mine = our_inputs[name]
+                    self.assertEqual(mine[0], spec[0])
+                    if name == "model":
+                        continue  # compared option by option below
+                    # Ours may spell out defaults (step 1, display "number"); core's keys must match.
+                    for key, value in (spec[1] if len(spec) > 1 else {}).items():
+                        self.assertEqual(mine[1].get(key), value, f"{name}.{key}")
+        core_options = theirs["input"]["required"]["model"][1]["options"]
+        our_options = {o["key"]: o["inputs"] for o in our_inputs["model"][1]["options"]}
+        # Core's labels first (core's first is the default), then this pack's models.
+        self.assertEqual(list(our_options)[: len(core_options)], [o["key"] for o in core_options])
+        for option in core_options:
+            for section in ("required", "optional"):
+                core_children = option["inputs"].get(section) or {}
+                mine = our_options[option["key"]].get(section) or {}
+                with self.subTest(model=option["key"], section=section):
+                    # Core's children in core's order (this pack may add inputs after them).
+                    self.assertEqual(list(mine)[: len(core_children)], list(core_children))
+                    for child, child_spec in core_children.items():
+                        self.assertEqual(mine[child], child_spec, f"{option['key']}.{child}")
+        self.assertEqual(ours["output"][:1], theirs["output"])
+        self.assertEqual(ours["output_node"], theirs["output_node"])
+        self.assertEqual(
+            nodes_seed.BytePlusSeed.define_schema().essentials_category,
+            core.ByteDanceSeedNode.define_schema().essentials_category,
+        )
+
     def test_registered_and_named_like_core(self):
         self.assertIn(nodes_seed.BytePlusSeed, nodes_seed.NODES)
         self.assertEqual(self.schema.node_id, "BytePlusSeed")
@@ -511,6 +554,13 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         await self.run_node(client_a, turns=2)
         await self.run_node(client_b, turns=2)
         self.assertNotIn("previous_response_id", responses_b.calls[0])
+
+    async def test_conversation_is_scoped_to_model(self):
+        # DeepSeek and GLM share the combo with Seed: switching models starts a new conversation.
+        client, responses = self.client(reply("A", "resp-a"), reply("B", "resp-b"))
+        await self.run_node(client, model={"model": "Seed 2.0 Pro", "temperature": 1.0}, turns=2)
+        await self.run_node(client, model={"model": "GLM 5.3 Flash", "temperature": 1.0}, turns=2)
+        self.assertNotIn("previous_response_id", responses.calls[1])
 
     async def test_output_text_joins_blocks_and_errors_raise(self):
         joined = {"id": "r", "output": [{"type": "message", "role": "assistant", "content": [

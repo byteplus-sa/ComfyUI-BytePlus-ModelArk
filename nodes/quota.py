@@ -161,6 +161,9 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
                     tooltip="The same client, passed through after the quota is set.",
                 ),
             ],
+            # A settings node: it applies the limits even when nothing uses its outputs.
+            # It starts no paid work, so it does not need core's "only run when used" rule.
+            is_output_node=True,
         )
 
     @classmethod

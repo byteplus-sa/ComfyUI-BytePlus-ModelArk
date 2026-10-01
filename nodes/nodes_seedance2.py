@@ -37,6 +37,8 @@ from .constants import (
     SEEDANCE_2_5_EDIT_MIN_DURATION,
 )
 from .core_style import (
+    NonBlockingRerun,
+    core_search_aliases,
     last_frame_batch_output,
     raise_if_output_linked,
     resolve_reference_values,
@@ -821,7 +823,7 @@ async def _resolve_reference_assets(client, reference_assets):
 # Nodes
 # --------------------------------------------------------------------------
 
-class BytePlusSeedance2TextToVideo(comfy_io.ComfyNode):
+class BytePlusSeedance2TextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance2TextToVideoNode on BytePlus ModelArk."""
 
     NODE_ID = "BytePlusSeedance2TextToVideo"
@@ -831,6 +833,7 @@ class BytePlusSeedance2TextToVideo(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id=cls.NODE_ID,
             display_name="BytePlus Seedance 2.5 Text to Video",
+            search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
             description="Generate video using Seedance 2.5 or 2.0 models based on a text prompt. "
             "Calls BytePlus ModelArk directly with the API Client's key.",
@@ -872,7 +875,7 @@ class BytePlusSeedance2TextToVideo(comfy_io.ComfyNode):
         )
 
 
-class BytePlusSeedance2FirstLastFrame(comfy_io.ComfyNode):
+class BytePlusSeedance2FirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance2FirstLastFrameNode on BytePlus ModelArk."""
 
     NODE_ID = "BytePlusSeedance2FirstLastFrame"
@@ -886,6 +889,7 @@ class BytePlusSeedance2FirstLastFrame(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id=cls.NODE_ID,
             display_name="BytePlus Seedance 2.5 First-Last-Frame to Video",
+            search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
             description="Generate video using Seedance 2.5 or 2.0 from a first frame image "
             "and optional last frame image. Calls BytePlus ModelArk directly with the API Client's key.",
@@ -1012,7 +1016,7 @@ class BytePlusSeedance2FirstLastFrame(comfy_io.ComfyNode):
         )
 
 
-class BytePlusSeedance2Reference(comfy_io.ComfyNode):
+class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance2ReferenceNodeV2 on BytePlus ModelArk."""
 
     NODE_ID = "BytePlusSeedance2Reference"
@@ -1022,6 +1026,7 @@ class BytePlusSeedance2Reference(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id=cls.NODE_ID,
             display_name="BytePlus Seedance 2.5 Reference to Video",
+            search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
             description="Generate, edit, or extend video using Seedance 2.5 or 2.0 with reference "
             "images, videos, and audio. Supports multimodal reference, video editing, and video extension. "
@@ -1293,7 +1298,7 @@ async def describe_drafts(client, draft_ids):
     return model_key, model_id, first
 
 
-class BytePlusSeedanceDraftToFinal(comfy_io.ComfyNode):
+class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance2DraftToFinalVideoNode on BytePlus ModelArk (also Seedance 2.5 Premium drafts)."""
 
     NODE_ID = "BytePlusSeedanceDraftToFinal"
@@ -1303,6 +1308,7 @@ class BytePlusSeedanceDraftToFinal(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id=cls.NODE_ID,
             display_name="BytePlus Seedance 2.5 Draft to Final Video",
+            search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
             description="Render the final video of a Seedance 2.5 Draft (1080p) or Seedance 2.5 Premium "
             "Draft (4k). The final keeps the draft's scene and motion, and reuses its prompt, references, "

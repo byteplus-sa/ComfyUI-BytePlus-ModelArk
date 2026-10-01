@@ -2,11 +2,13 @@ import asyncio
 import importlib
 import io
 import json
+import re
 import os
 import sys
 import types
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
 
 # Needs a ComfyUI checkout and a Python env with torch and the BytePlus SDK:
@@ -1705,6 +1707,198 @@ class SdkContractTests(unittest.IsolatedAsyncioTestCase):
 
 
 @requires_comfyui
+class UploadCacheKeyTests(unittest.TestCase):
+    """A trimmed or cropped video must not reuse the full video's upload (wrong footage, billed)."""
+
+    def test_trim_and_crop_change_the_key(self):
+        import tempfile
+        from comfy_api.input_impl import VideoFromFile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "clip.mp4")
+            with open(path, "wb") as f:
+                f.write(b"not decoded here")
+            helper = nodes_video.BytePlusVideoBase()
+            full = helper._build_comfy_video_upload_cache_key(VideoFromFile(path))
+            trimmed = helper._build_comfy_video_upload_cache_key(VideoFromFile(path, start_time=2.0, duration=4.0))
+            later = helper._build_comfy_video_upload_cache_key(VideoFromFile(path, start_time=3.0, duration=4.0))
+            cropped = helper._build_comfy_video_upload_cache_key(VideoFromFile(path, crop=(0, 0, 320, 240)))
+            same = helper._build_comfy_video_upload_cache_key(VideoFromFile(path, start_time=2.0, duration=4.0))
+        self.assertEqual(len({full, trimmed, later, cropped}), 4)
+        self.assertEqual(trimmed, same)
+
+
+@requires_comfyui
+class IgnoredFailureTests(unittest.TestCase):
+    """Several nodes of one class: a failure blocks the outputs with its message (no white placeholder)."""
+
+    def test_failure_blocks_outputs_with_its_message(self):
+        from comfy_execution.graph_utils import ExecutionBlocker
+
+        with mock.patch.object(executor, "PromptServer", SimpleNamespace(instance=None)):
+            runner = executor.BytePlusGenerationExecutor(
+                SimpleNamespace(ark=None, api_key=None), node_id="5", ignore_errors=True
+            )
+        runner._create_failure_json("The request was blocked by the content policy.", task_id="cgt-9")
+        self.assertIn("cgt-9", runner.ignored_failure)
+        video, frame, response = nodes_video.BytePlusVideoBase._ignored_failure_outputs(runner).args
+        for blocked in (video, frame):
+            self.assertIsInstance(blocked, ExecutionBlocker)
+            self.assertIn("content policy", blocked.message)
+        self.assertIn("cgt-9", json.loads(response)["error"])
+
+
+@requires_comfyui
+class ApiErrorFormatTests(unittest.TestCase):
+    """format_api_error: the API's own code wins; text rules add detail or fill in."""
+
+    def code_of(self, error):
+        text = nodes_shared.format_api_error(error)
+        match = re.search(r"\(Code: ([^)]+)\)", text)
+        return match.group(1) if match else None
+
+    def test_explicit_code_beats_a_text_rule(self):
+        # "policy violation" alone maps to the video-copyright message; the task said audio.
+        error = {"code": "OutputAudioSensitiveContentDetected.PolicyViolation",
+                 "message": "The output audio was rejected: policy violation."}
+        self.assertEqual(self.code_of(error), "OutputAudioSensitiveContentDetected.PolicyViolation")
+
+    def test_text_rule_refines_the_same_code(self):
+        error = {"code": "InvalidParameter", "message": "the task is determined as video editing, but ..."}
+        self.assertEqual(self.code_of(error), "InvalidParameter.TaskTypeConstraint")
+
+    def test_text_rule_fills_in_without_a_code(self):
+        message = "Requests per minute (RPM) limit of the associated endpoint has been reached."
+        self.assertEqual(self.code_of(message), "RateLimitExceeded.EndpointRPMExceeded")
+        message = "Tokens per minute (TPM) limit of the associated endpoint has been reached."
+        self.assertEqual(self.code_of(message), "RateLimitExceeded.EndpointTPMExceeded")
+
+    def test_task_error_object_and_request_id(self):
+        task = SimpleNamespace(error=SimpleNamespace(code="InvalidParameter.TaskTypeMismatch", message="mismatch"))
+        self.assertEqual(self.code_of(executor._task_error(task, "mismatch")), "InvalidParameter.TaskTypeMismatch")
+        self.assertEqual(executor._task_error(SimpleNamespace(error=None), "Expired"), "Expired")
+
+        import httpx
+        from byteplussdkarkruntime import _exceptions
+
+        request = httpx.Request("POST", "https://ark.example/api/v3/responses")
+        error = _exceptions.ArkBadRequestError(
+            "Error code: 400", response=httpx.Response(400, request=request),
+            body={"code": "InvalidParameter", "message": "bad"}, request_id="req-123",
+        )
+        text = nodes_shared.format_api_error(error)
+        self.assertIn("InvalidParameter", text)
+        self.assertIn("Request ID: req-123", text)
+
+
+@requires_comfyui
+class BilledCallTests(unittest.IsolatedAsyncioTestCase):
+    """Calls that start paid work never get the SDK's automatic retries (duplicate billing)."""
+
+    @staticmethod
+    def _status_error(cls_name, status):
+        import httpx
+        from byteplussdkarkruntime import _exceptions
+
+        request = httpx.Request("POST", "https://ark.example/api/v3/contents/generations/tasks")
+        response = httpx.Response(status, request=request)
+        return getattr(_exceptions, cls_name)("error", response=response, body=None, request_id="r1")
+
+    def test_api_client_builds_a_no_retry_client_for_paid_calls(self):
+        built = []
+
+        def fake_ark(**kwargs):
+            built.append(kwargs)
+            return SimpleNamespace(**kwargs)
+
+        store = SimpleNamespace(find_api_key=lambda name: "ark-key", find_asset_credentials=lambda name: None)
+        with mock.patch.object(nodes_shared, "Ark", fake_ark), mock.patch.object(nodes_shared, "API_KEY_STORE", store):
+            client = nodes_shared.BytePlusAPIClient.execute("work").args[0]
+        self.assertNotIn("max_retries", built[0])  # polling and uploads keep the SDK's retries
+        self.assertEqual(built[1]["max_retries"], 0)
+        self.assertIs(nodes_shared.billed_ark(client), client.billed_ark)
+        # Clients built elsewhere (tests, older wrappers) fall back to the plain client.
+        plain = SimpleNamespace(ark="ark")
+        self.assertEqual(nodes_shared.billed_ark(plain), "ark")
+
+    def test_only_rate_limits_are_retried(self):
+        calls = []
+
+        def create(**kwargs):
+            calls.append(kwargs)
+            if len(calls) < 3:
+                raise self._status_error("ArkRateLimitError", 429)
+            return "task-1"
+
+        with mock.patch.object(nodes_shared.time, "sleep") as sleep:
+            self.assertEqual(nodes_shared.call_billed(create, model="m"), "task-1")
+        self.assertEqual(len(calls), 3)
+        self.assertEqual([c.args[0] for c in sleep.call_args_list], [1, 2])
+
+        # A server error or timeout may have started the work: never retried.
+        for error in (self._status_error("ArkInternalServerError", 500), self._status_error("ArkConflictError", 409)):
+            calls.clear()
+
+            def failing(**kwargs):
+                calls.append(kwargs)
+                raise error
+
+            with self.subTest(status=error.status_code), self.assertRaises(type(error)):
+                nodes_shared.call_billed(failing, model="m")
+            self.assertEqual(len(calls), 1)
+
+        # Rate limited on every attempt: gives up after two retries.
+        calls.clear()
+
+        def limited(**kwargs):
+            calls.append(kwargs)
+            raise self._status_error("ArkRateLimitError", 429)
+
+        with mock.patch.object(nodes_shared.time, "sleep"), self.assertRaises(Exception):
+            nodes_shared.call_billed(limited)
+        self.assertEqual(len(calls), 3)
+
+    async def test_llm_request_can_be_interrupted(self):
+        import threading
+        import time as _time
+        import comfy.model_management as mm
+
+        release = threading.Event()
+
+        def slow_create(**payload):
+            release.wait(10)  # a long max-effort answer
+            return SimpleNamespace(id="resp-1")
+
+        client = SimpleNamespace(ark=None, billed_ark=SimpleNamespace(responses=SimpleNamespace(create=slow_create)),
+                                 api_key="k")
+        runner = executor.BytePlusVisualExecutor(client)
+
+        async def interrupt_soon():
+            await asyncio.sleep(0.3)
+            mm.interrupt_current_processing(True)
+
+        started = _time.monotonic()
+        try:
+            waiter = asyncio.ensure_future(interrupt_soon())
+            with self.assertRaises(mm.InterruptProcessingException):
+                await runner.create_response_task({"model": "m", "input": "hi"})
+            await waiter
+        finally:
+            mm.interrupt_current_processing(False)
+            release.set()
+        self.assertLess(_time.monotonic() - started, 5)
+
+    def test_executors_use_the_no_retry_client(self):
+        # Task creation and LLM responses go through billed_ark; polling stays on the plain client.
+        client = SimpleNamespace(ark=object(), billed_ark=object(), api_key=None)
+        with mock.patch.object(executor, "PromptServer", SimpleNamespace(instance=None)):
+            runner = executor.BytePlusGenerationExecutor(client)
+        self.assertIs(runner.billed_ark, client.billed_ark)
+        self.assertIs(runner.ark_client, client.ark)
+        self.assertIs(executor.BytePlusVisualExecutor(client).ark_client, client.billed_ark)
+
+
+@requires_comfyui
 class QuotaSettingsTests(unittest.TestCase):
     def test_client_passthrough(self):
         quota = importlib.import_module(f"{PACKAGE_NAME}.nodes.quota")
@@ -2431,6 +2625,54 @@ class SpeechTestBase(unittest.IsolatedAsyncioTestCase):
         fake = FakeSpeechHTTP(self.api, responses)
         self.api._send = fake
         return fake
+
+
+@requires_comfyui
+class AssetCreateRetryTests(unittest.TestCase):
+    def test_create_actions_use_a_client_without_retries(self):
+        assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
+        client = SimpleNamespace(region="ap-southeast-1", asset_credentials={"access_key": "AK", "secret_key": "SK"})
+        library = assets.AssetLibrary(client)
+        self.assertTrue(library._api.api_client._base_auto_retry)
+        self.assertFalse(library._create_api.api_client._base_auto_retry)
+        used = []
+        library._api = SimpleNamespace(do_call=lambda info, body: used.append(("read", info.action)) or {})
+        library._create_api = SimpleNamespace(do_call=lambda info, body: used.append(("create", info.action)) or {})
+        library.call("GetAsset", {"Id": "a"})
+        library.call("CreateAsset", {"GroupId": "g"})
+        library.call("CreateAssetGroup", {"Name": "n"})
+        self.assertEqual(used, [("read", "GetAsset"), ("create", "CreateAsset"), ("create", "CreateAssetGroup")])
+
+
+@requires_comfyui
+class SpeechPollTests(SpeechTestBase):
+    """Status queries of a submitted task survive transient failures; other errors stop at once."""
+
+    async def test_transient_failures_are_retried(self):
+        fake = self.serve((503, {}, "busy"), (200, {"X-Api-Status-Code": "20000000"}, {"result": {}}))
+        response = await self.api.speech_poll(self.client, "/api/v3/auc/bigmodel/query", {}, operation="ASR", poll_seconds=0)
+        self.assertEqual(response.status, 200)
+        self.assertEqual(len(fake.calls), 2)
+
+    async def test_client_errors_are_not_retried(self):
+        fake = self.serve((403, {}, {"header": {"code": 45000030, "message": "forbidden"}}))
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.api.speech_poll(self.client, "/api/v3/auc/bigmodel/query", {}, operation="ASR", poll_seconds=0)
+        self.assertEqual(len(fake.calls), 1)
+
+    async def test_gives_up_after_repeated_failures(self):
+        import aiohttp
+
+        calls = []
+
+        async def down(method, url, headers, body, timeout):
+            calls.append(url)
+            raise aiohttp.ClientConnectionError("reset")
+
+        self.api._send = down
+        with self.assertRaisesRegex(nodes_shared.BytePlusException, "ASR"):
+            await self.api.speech_poll(self.client, "/q", {}, operation="ASR", poll_seconds=0)
+        self.assertEqual(len(calls), self.api.SPEECH_POLL_MAX_ERRORS)
 
 
 @requires_comfyui

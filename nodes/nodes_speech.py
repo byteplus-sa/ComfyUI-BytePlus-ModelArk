@@ -87,7 +87,7 @@ from .nodes_shared import (
     sleep_interruptible,
     upload_bytes_to_comfy_storage,
 )
-from .core_style import seed_input
+from .core_style import core_search_aliases, seed_input
 from .seed_speech_voices import DEFAULT_TTS_VOICE, TTS_2_VOICE_IDS, TTS_2_VOICES
 from .speech_api import (
     SPEECH_API_KEY_STORE,
@@ -99,6 +99,7 @@ from .speech_api import (
     iter_json_objects,
     require_speech_client,
     speech_error,
+    speech_poll,
     speech_post,
 )
 
@@ -517,6 +518,7 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id="BytePlusSeedAudio",
             display_name="BytePlus Seed Audio 1.0",
+            search_aliases=core_search_aliases("BytePlusSeedAudio"),
             category=SPEECH_CATEGORY,
             description=(
                 "Generate speech, music, sound effects and multi-speaker dialogue from a single prompt "
@@ -1318,7 +1320,10 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
                 ))
             await sleep_interruptible(SPEECH_ASR_POLL_SECONDS)
             waited += max(SPEECH_ASR_POLL_SECONDS, 1)
-            response = await speech_post(speech_client, SEED_ASR_QUERY_PATH, {}, operation=operation, headers=headers)
+            response = await speech_poll(
+                speech_client, SEED_ASR_QUERY_PATH, {}, operation=operation, headers=headers,
+                poll_seconds=SPEECH_ASR_POLL_SECONDS,
+            )
             status = response.status_code
             if status in SPEECH_ASR_PENDING_CODES:
                 continue
@@ -1472,7 +1477,9 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
                 ))
             await sleep_interruptible(SEED_VOICE_POLL_SECONDS)
             waited += max(SEED_VOICE_POLL_SECONDS, 1)
-            response = await speech_post(speech_client, SEED_VOICE_STATUS_PATH, ids, operation=operation)
+            response = await speech_poll(
+                speech_client, SEED_VOICE_STATUS_PATH, ids, operation=operation, poll_seconds=SEED_VOICE_POLL_SECONDS
+            )
             result = response.json() or {}
             check_code(operation, response, result.get("code"), result.get("message"))
         log_msg("voice_clone_ready", speaker=speaker, status=result.get("status"))

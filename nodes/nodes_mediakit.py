@@ -43,8 +43,10 @@ from .constants import (
     MEDIAKIT_POLL_SECONDS,
     MEDIAKIT_REGION_BASE_URLS,
     MEDIAKIT_REQUEST_TIMEOUT_SECONDS,
+    MEDIAKIT_SUBMIT_RETRIES,
     MEDIAKIT_SYNC_TIMEOUT_SECONDS,
 )
+from .core_style import core_search_aliases
 from .nodes_shared import (
     GLOBAL_CATEGORY,
     LOG_PREFIX,
@@ -536,8 +538,25 @@ async def source_file(video, link, prefix):
 
 
 async def submit_and_wait(client, path, body, node_id, submitted_key):
-    """POST a tool request and wait for its task; returns the completed task."""
-    created = await mediakit_request(client, "POST", path, body)
+    """
+    POST a tool request and wait for its task; returns the completed task.
+
+    Every run sends a fresh client_token. Without one, MediaKit treats the same
+    account, video_url and core parameters (for vCube: tool_version and
+    resolution) within 24 h as the same task, so a re-run with another fps,
+    bitrate or style would get the earlier task back. Retrying with the same
+    token returns the same task, so transient submit failures are retried
+    without creating (and billing) a second one.
+    """
+    body = {**body, "client_token": body.get("client_token") or uuid.uuid4().hex}
+    for attempt in range(MEDIAKIT_SUBMIT_RETRIES + 1):
+        try:
+            created = await mediakit_request(client, "POST", path, body)
+            break
+        except MediaKitRequestError as e:
+            if not e.retryable or attempt >= MEDIAKIT_SUBMIT_RETRIES:
+                raise
+            await sleep_interruptible(2 ** attempt)
     task_id = created.get("task_id")
     if not task_id:
         raise BytePlusException(get_text("err_mediakit_unexpected", status="no task_id"))
@@ -811,6 +830,7 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id=cls.NODE_ID,
             display_name="BytePlus vCube Video Enhance",
+            search_aliases=core_search_aliases(cls.NODE_ID),
             category=MEDIAKIT_CATEGORY,
             description="Upscales and restores a video with ByteDance vCube: super-resolution up to 8K, "
             "compression artifact and noise removal, colour and sharpness enhancement, "

@@ -210,12 +210,26 @@ def format_api_error(e):
     """
     error_map = MESSAGES.get("api_errors", {})
 
-    err_code = None
-    err_msg = str(e)
+    # SDK errors and task error objects carry the code (and request ID) as
+    # attributes; plain strings and other exceptions are parsed from the text.
+    typed_code = typed_msg = None
+    if isinstance(e, dict):
+        typed_code, typed_msg = e.get("code"), e.get("message")
+    elif not isinstance(e, (str, bytes)):
+        typed_code = getattr(e, "code", None)
+        if not isinstance(e, BaseException):
+            typed_msg = getattr(e, "message", None)
+    if not isinstance(typed_code, str) or not typed_code:
+        typed_code = None
+    request_id = getattr(e, "request_id", None) if isinstance(e, BaseException) else None
+    request_suffix = f" Request ID: {request_id}." if request_id else ""
+
+    err_code = typed_code
+    err_msg = str(typed_msg) if typed_msg else str(e)
     detected_code = None
 
     code_match = re.search(r"'code':\s*'([^']+)'", err_msg)
-    if code_match:
+    if code_match and not err_code:
         err_code = code_match.group(1)
 
     msg_match = re.search(r"'message':\s*'([^']+)'", err_msg)
@@ -229,7 +243,18 @@ def format_api_error(e):
             detected_code = mapped_code
             break
 
-    final_code = detected_code if detected_code else err_code
+    def _known(code):
+        return bool(code) and (code in error_map or any(str(code).startswith(key) for key in error_map))
+
+    # The API's own code wins; a text rule only adds detail to that same code
+    # (InvalidParameter -> InvalidParameter.TaskTypeConstraint) or fills in when
+    # the code is missing or unknown.
+    if detected_code and err_code and str(detected_code).startswith(str(err_code)):
+        final_code = detected_code
+    elif _known(err_code):
+        final_code = err_code
+    else:
+        final_code = detected_code or err_code
 
     if final_code:
         final_code = str(final_code)
@@ -268,9 +293,9 @@ def format_api_error(e):
                 account, model = _extract_account_model(err_msg)
                 if account and model:
                     matched_msg = matched_msg % (account, model)
-            return f"{LOG_PREFIX}{matched_msg} (Code: {final_code})"
+            return f"{LOG_PREFIX}{matched_msg} (Code: {final_code}){request_suffix}"
 
-    return f"{LOG_PREFIX}Error: {err_msg}"
+    return f"{LOG_PREFIX}Error: {err_msg}{request_suffix}"
 
 
 def load_api_keys():
@@ -864,9 +889,12 @@ class BytePlusClients:
     """
     Wraps the Ark client together with its API key, region and (optional)
     asset-library IAM credentials. Never serialized into outputs.
+    billed_ark: the same client without automatic retries, for calls that
+    start paid work (see call_billed).
     """
-    def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION, asset_credentials=None):
+    def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION, asset_credentials=None, billed_ark=None):
         self.ark = ark_client
+        self.billed_ark = billed_ark
         self.api_key = api_key
         self.region = region
         self.asset_credentials = asset_credentials
@@ -882,6 +910,42 @@ class BytePlusClients:
             return
         from .quota import QuotaManager
         QuotaManager.instance().update_usage(self.api_key, model, actual_cost)
+
+
+# The Ark SDK retries a failed request up to twice: on timeouts, 408, 409, 429
+# and 5xx. For a call that starts paid work (task creation, image generation,
+# LLM responses) a retry after a timeout or server error can create and bill
+# the same work twice: the first request may have gone through, and ModelArk
+# has no idempotency key (ComfyUI core sends Idempotency-Key to its proxy for
+# the same reason). Those calls use billed_ark (no SDK retries) via
+# call_billed, which only retries rate limits: a 429 means nothing started.
+BILLED_RATE_LIMIT_RETRIES = 2
+
+try:
+    from byteplussdkarkruntime._exceptions import ArkRateLimitError
+except Exception:  # SDK layout changed: no 429 retry, never a duplicate
+    class ArkRateLimitError(Exception):
+        pass
+
+
+def billed_ark(client):
+    """The Ark client for calls that start paid work: no automatic retries."""
+    return getattr(client, "billed_ark", None) or client.ark
+
+
+def call_billed(create, /, **kwargs):
+    """
+    Run a call that starts paid work (blocking; call it in a worker thread).
+    Only rate limits are retried, after 1 s and 2 s.
+    """
+    for attempt in range(BILLED_RATE_LIMIT_RETRIES + 1):
+        try:
+            return create(**kwargs)
+        except ArkRateLimitError:
+            if attempt >= BILLED_RATE_LIMIT_RETRIES:
+                raise
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            time.sleep(2 ** attempt)
 
 
 API_KEY_SAVED_EVENT = "byteplus.api_key_saved"
@@ -986,7 +1050,8 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
             raise BytePlusException(get_text("popup_key_valid_err").format(key=key_name))
 
         ark_client = Ark(api_key=api_key, base_url=base_url)
+        billed_client = Ark(api_key=api_key, base_url=base_url, max_retries=0)
 
         return comfy_io.NodeOutput(
-            BytePlusClients(ark_client, api_key, region, asset_credentials)
+            BytePlusClients(ark_client, api_key, region, asset_credentials, billed_ark=billed_client)
         )

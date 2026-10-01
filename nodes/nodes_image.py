@@ -14,6 +14,7 @@ import PIL.Image
 import folder_paths
 
 from comfy_api.latest import io as comfy_io
+from comfy_execution.graph_utils import ExecutionBlocker
 
 from byteplussdkarkruntime.types.images.images import (
     SequentialImageGenerationOptions,
@@ -28,8 +29,10 @@ from .nodes_shared import (
     format_api_error,
     BytePlusClientType,
     BytePlusException,
+    billed_ark,
+    call_billed,
+    wait_interruptible,
     get_node_count_in_workflow,
-    create_white_image_tensor,
     safe_cat_tensors,
 )
 from .utils_download import (
@@ -141,7 +144,7 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
     )
     try:
         comfy.model_management.throw_exception_if_processing_interrupted()
-        response = await asyncio.to_thread(ark_client.images.generate, **request_kwargs)
+        response = await wait_interruptible(asyncio.to_thread(call_billed, ark_client.images.generate, **request_kwargs))
         comfy.model_management.throw_exception_if_processing_interrupted()
 
         urls = [
@@ -337,7 +340,7 @@ class BytePlusSeedream4(comfy_io.ComfyNode):
         **kwargs,
     ) -> comfy_io.NodeOutput:
         node_id = cls.hidden.unique_id
-        ark_client = client.ark
+        ark_client = billed_ark(client)  # image generation: no automatic retries
 
         model_id = SEEDREAM_4_MODEL_MAP.get(model_version)
         if not model_id:
@@ -420,7 +423,8 @@ class BytePlusSeedream4(comfy_io.ComfyNode):
                 pass
         
         if not tensors:
-             return comfy_io.NodeOutput(create_white_image_tensor(), "[]")
+            blocked = ExecutionBlocker(executor.ignored_failure or get_text("err_batch_fail_all"))
+            return comfy_io.NodeOutput(blocked, "[]")
 
         output_tensor = safe_cat_tensors(tensors)
         
@@ -555,7 +559,7 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
         **kwargs,
     ) -> comfy_io.NodeOutput:
         node_id = cls.hidden.unique_id
-        ark_client = client.ark
+        ark_client = billed_ark(client)  # image generation: no automatic retries
 
         if isinstance(model_version, dict):
             model_config = model_version
@@ -704,8 +708,8 @@ class BytePlusSeedream5(comfy_io.ComfyNode):
                 pass
         
         if not tensors:
-            empty = create_white_image_tensor()
-            return comfy_io.NodeOutput(empty, "[]", torch.zeros(empty.shape[:3]))
+            blocked = ExecutionBlocker(executor.ignored_failure or get_text("err_batch_fail_all"))
+            return comfy_io.NodeOutput(blocked, "[]", blocked)
 
         output_tensor, output_mask = _split_rgba(safe_cat_tensors(tensors))
 
@@ -858,7 +862,9 @@ class BytePlusSeedreamLayers(comfy_io.ComfyNode):
         }
         try:
             comfy.model_management.throw_exception_if_processing_interrupted()
-            response = await asyncio.to_thread(client.ark.images.generate, **request_kwargs)
+            response = await wait_interruptible(
+                asyncio.to_thread(call_billed, billed_ark(client).images.generate, **request_kwargs)
+            )
         except comfy.model_management.InterruptProcessingException:
             raise
         except Exception as exc:

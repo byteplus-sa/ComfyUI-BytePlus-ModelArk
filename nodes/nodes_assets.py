@@ -35,7 +35,7 @@ from .constants import (
     ASSET_URI_PREFIX,
     DEFAULT_REGION,
 )
-from .core_style import reference_kind_from_url
+from .core_style import core_search_aliases, reference_kind_from_url
 from .nodes_shared import (
     GLOBAL_CATEGORY,
     LOG_PREFIX,
@@ -86,13 +86,22 @@ class AssetLibrary:
 
         credentials = resolve_asset_credentials(client)
         region = getattr(client, "region", DEFAULT_REGION) or DEFAULT_REGION
-        config = byteplussdkcore.Configuration()
-        config.ak = credentials["access_key"]
-        config.sk = credentials["secret_key"]
-        config.session_token = credentials.get("session_token") or ""
-        config.region = region
-        config.host = ASSET_API_HOSTS.get(region, ASSET_API_HOSTS[DEFAULT_REGION])
-        self._api = UniversalApi(byteplussdkcore.ApiClient(config))
+
+        def api_client(auto_retry):
+            config = byteplussdkcore.Configuration()
+            config.ak = credentials["access_key"]
+            config.sk = credentials["secret_key"]
+            config.session_token = credentials.get("session_token") or ""
+            config.region = region
+            config.host = ASSET_API_HOSTS.get(region, ASSET_API_HOSTS[DEFAULT_REGION])
+            config.auto_retry = auto_retry
+            return UniversalApi(byteplussdkcore.ApiClient(config))
+
+        # The SDK retries timeouts, 429 and 5xx. Lookups keep that; Create* actions
+        # do not: a retried timeout could create a second asset or group (the
+        # actions take no idempotency token).
+        self._api = api_client(True)
+        self._create_api = api_client(False)
         self.region = region
         # Identifies the account in cache keys without keeping the key itself.
         self.account_fingerprint = hashlib.sha256(credentials["access_key"].encode()).hexdigest()[:16]
@@ -110,7 +119,8 @@ class AssetLibrary:
             content_type="application/json",
         )
         try:
-            result = self._api.do_call(info, {k: v for k, v in body.items() if v is not None})
+            api = self._create_api if action.startswith("Create") else self._api
+            result = api.do_call(info, {k: v for k, v in body.items() if v is not None})
         except ApiException as e:
             raise BytePlusException(_format_asset_error(action, e))
         return result if isinstance(result, dict) else {}
@@ -885,6 +895,7 @@ class BytePlusCreateImageAsset(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id=cls.NODE_ID,
             display_name="BytePlus Create Image Asset",
+            search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
             description="Create a Seedance 2.0 / 2.5 personal image asset in your private asset library "
             "(Advanced Creation Rights) and output its asset_id and group_id."
@@ -951,6 +962,7 @@ class BytePlusCreateVideoAsset(comfy_io.ComfyNode):
         return comfy_io.Schema(
             node_id=cls.NODE_ID,
             display_name="BytePlus Create Video Asset",
+            search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
             description="Create a Seedance 2.0 / 2.5 personal video asset in your private asset library "
             "(Advanced Creation Rights) and output its asset_id and group_id."

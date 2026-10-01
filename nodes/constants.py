@@ -43,6 +43,8 @@ MEDIAKIT_SYNC_TIMEOUT_SECONDS = 600
 # Result downloads can be gigabytes: no total limit, only a stall limit.
 MEDIAKIT_DOWNLOAD_STALL_SECONDS = 120
 MEDIAKIT_MAX_POLL_ERRORS = 5
+# Submit retries after network errors, timeouts, 429 and 5xx (safe: same client_token).
+MEDIAKIT_SUBMIT_RETRIES = 2
 SEED_AUDIO_PATH = "/api/v3/tts/create"
 SEED_TTS_PATH = "/api/v3/tts/unidirectional"
 SEED_ASR_FAST_PATH = "/api/v3/auc/bigmodel/recognize/flash"
@@ -57,6 +59,9 @@ SPEECH_SUCCESS_CODES = (0, 20000000)
 SPEECH_ASR_PENDING_CODES = (20000001, 20000002)
 SPEECH_ASR_SILENT_AUDIO_CODE = 20000003
 SPEECH_REQUEST_TIMEOUT_SECONDS = 600
+# Status queries (ASR query, voice training status) tolerate this many transient
+# failures in a row (network, timeout, 429, 5xx) before giving up.
+SPEECH_POLL_MAX_ERRORS = 5
 SPEECH_ASR_POLL_SECONDS = 2
 SEED_AUDIO_MAX_PROMPT_CHARS = 3000
 SEED_AUDIO_MAX_AUDIO_REFS = 3
@@ -260,6 +265,8 @@ MESSAGES = {
     
     # Updated
     "polling_single": "Task {task_id}: Running... {elapsed}s / {max}s elapsed",
+    "node_poll_status": "{running} running, {queued} queued, {done}/{total} done · waiting {elapsed}s{remaining}",
+    "node_poll_remaining": " · about {seconds}s left",
     "polling_single_waiting": "Task {task_id}: Queued and waiting for resources... (Status: {status})",
     "polling_batch_stats": "Batch Progress: {done}/{total} done. {pending} pending... (Elapsed {elapsed}s / {max}s) [Run: {running}, Queue: {queued}]",
 
@@ -274,6 +281,8 @@ MESSAGES = {
     "batch_copying": "Copying files to output directory: {path}",
     "batch_last_frame_missing": "No last frame for {missing} of {total} videos; the last_frame batch leaves them out.",
     "err_download_url": "Async download failed, URL: {url}, Error: {e}",
+    "err_video_download_failed": "The task(s) succeeded (and were billed) but their videos could not be downloaded: {task_ids}. The videos stay available for 24 hours: fetch them with the Video Query Tasks node or from the ModelArk console.",
+    "batch_video_download_partial": "Downloaded {done} of {total} videos; could not download task(s) {task_ids}. They stay available for 24 hours (Video Query Tasks node or the ModelArk console).",
     "check_status": "Checking status of {count} pending task(s)...",
     "err_create_dummy_video": "Failed to create placeholder video: {e}",
     "err_on_tasks_created": "Failed to record created task IDs: {e}",
@@ -281,6 +290,7 @@ MESSAGES = {
     "err_task_check": "Failed to check status for {tid}: {e}",
     "err_task_fail_msg": "Task {tid} failed: {msg}",
     "err_batch_fail_all": "Batch failed: No tasks succeeded.",
+    "err_task_poll_failed": "Could not check task {task_id} ({count} attempt(s)): {reason} The task may still finish and be billed; check it with the Video Query Tasks node or in the ModelArk console.",
     "err_copy_fail": "Failed to copy file: {path}. Error: {e}",
     "err_convert_tensor": "Failed to convert frame to tensor: {e}",
     "err_check_status_batch": "API Error checking batch status: {e}",
@@ -667,8 +677,8 @@ ERROR_TEXT_MATCH_RULES = {
     "output audio may contain sensitive information": "OutputAudioSensitiveContentDetected",
     "output video may be related to copyright restrictions": "OutputVideoSensitiveContentDetected.PolicyViolation",
     "policy violation": "OutputVideoSensitiveContentDetected.PolicyViolation",
-    "requests per minute \\(rpm\\) limit of the associated endpoint": "RateLimitExceeded.EndpointRPMExceeded",
-    "tokens per minute \\(tpm\\) limit of the associated endpoint": "RateLimitExceeded.EndpointTPMExceeded",
+    "requests per minute (rpm) limit of the associated endpoint": "RateLimitExceeded.EndpointRPMExceeded",
+    "tokens per minute (tpm) limit of the associated endpoint": "RateLimitExceeded.EndpointTPMExceeded",
     "has reached the set inference limit": "SetLimitExceeded",
     "safe experience mode": "SetLimitExceeded",
     "generated text contains sensitive content": "OutputTextSensitiveContentDetected",

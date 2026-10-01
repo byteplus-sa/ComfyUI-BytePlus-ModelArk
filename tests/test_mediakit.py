@@ -254,6 +254,43 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
             await nodes_mediakit.wait_for_mediakit_task(self.client, "t1", poll_seconds=0)
         self.assertEqual(len(throttled.calls), 2)
 
+    async def test_submit_sends_a_fresh_client_token_and_retries_with_it(self):
+        # Without a token MediaKit would return an earlier task for the same video,
+        # tool_version and resolution (24 h), whatever else changed.
+        fake = FakeMediaKit()
+        with mock.patch.object(nodes_mediakit, "_send", fake), \
+                mock.patch.object(nodes_mediakit, "MEDIAKIT_POLL_SECONDS", 0):
+            await nodes_mediakit.submit_and_wait(self.client, "/tools/enhance-video", {"video_url": "u"}, None, "vcube_task_submitted")
+            await nodes_mediakit.submit_and_wait(self.client, "/tools/enhance-video", {"video_url": "u"}, None, "vcube_task_submitted")
+        tokens = [body["client_token"] for method, _path, body in fake.calls if method == "POST"]
+        self.assertEqual(len(tokens), 2)
+        self.assertNotEqual(tokens[0], tokens[1])
+        self.assertTrue(all(len(t) <= 64 for t in tokens))
+
+        # A transient failure is retried with the same token, so no second task is created.
+        submits = [(502, {"success": False}), (200, {"success": True, "task_id": "t9"})]
+
+        async def flaky_submit(client, method, path, body=None, timeout_seconds=None):
+            if method == "POST":
+                flaky_submit.bodies.append(body)
+                return submits.pop(0)
+            return 200, {"success": True, "task_id": "t9", "status": "completed", "result": {}}
+
+        flaky_submit.bodies = []
+        with mock.patch.object(nodes_mediakit, "_send", flaky_submit), \
+                mock.patch.object(nodes_mediakit, "sleep_interruptible", mock.AsyncMock()):
+            task = await nodes_mediakit.submit_and_wait(self.client, "/tools/enhance-video", {"video_url": "u"}, None, "vcube_task_submitted")
+        self.assertEqual(task["task_id"], "t9")
+        self.assertEqual(len(flaky_submit.bodies), 2)
+        self.assertEqual(flaky_submit.bodies[0]["client_token"], flaky_submit.bodies[1]["client_token"])
+
+        # A bad request is not retried.
+        rejected = FakeMediaKit(submit=(400, {"success": False, "error": {"code": "InvalidParameter"}}))
+        with mock.patch.object(nodes_mediakit, "_send", rejected):
+            with self.assertRaisesRegex(Exception, "InvalidParameter"):
+                await nodes_mediakit.submit_and_wait(self.client, "/tools/enhance-video", {}, None, "vcube_task_submitted")
+        self.assertEqual(len(rejected.calls), 1)
+
     async def test_timeout_message(self):
         async def slow(client, method, path, body=None, timeout_seconds=None):
             raise asyncio.TimeoutError()

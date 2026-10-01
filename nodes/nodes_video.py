@@ -34,11 +34,10 @@ from .nodes_shared import (
     BytePlusClientType,
     BytePlusException,
     get_node_count_in_workflow,
-    create_white_image_tensor,
-    create_white_video,
     probe_video_file,
     extract_last_frame_tensor,
     safe_cat_tensors,
+    wait_interruptible,
 )
 from .nodes_video_schema import (
     get_common_video_seed_inputs,
@@ -447,10 +446,32 @@ class BytePlusVideoBase:
             return len(stream_source.getvalue())
         return 0
 
+    @staticmethod
+    def _video_variant(video):
+        """
+        Trim window and crop of a VideoFromFile. Core's trim and crop nodes keep
+        the same file, and the upload (save_to) applies them, so they must be
+        part of the cache key or a trimmed clip would reuse the full clip's link.
+        """
+        parts = []
+        window = getattr(video, "get_active_trim_window", None)
+        if callable(window):
+            try:
+                parts.append("trim=" + ",".join(f"{float(x):.3f}" for x in window()))
+            except Exception:
+                return None  # unknown variant: do not cache
+        crop = getattr(video, "_VideoFromFile__crop", None)
+        if crop is not None:
+            parts.append(f"crop={tuple(crop)}")
+        return "".join(f"|{part}" for part in parts)
+
     def _build_comfy_video_upload_cache_key(self, video):
         try:
             stream_source = video.get_stream_source()
         except Exception:
+            return None
+        variant = self._video_variant(video)
+        if variant is None:
             return None
 
         if isinstance(stream_source, str):
@@ -458,7 +479,7 @@ class BytePlusVideoBase:
             if not os.path.exists(path):
                 return None
             st = os.stat(path)
-            return f"path:{path}|{int(st.st_size)}|{int(st.st_mtime_ns)}"
+            return f"path:{path}|{int(st.st_size)}|{int(st.st_mtime_ns)}{variant}"
 
         def _hash_buffer(size, reader):
             hasher = hashlib.sha256()
@@ -478,13 +499,13 @@ class BytePlusVideoBase:
                 size,
                 lambda start, length: bytes(buffer_view[start : start + length]),
             )
-            return f"buffer:{size}|{digest}"
+            return f"buffer:{size}|{digest}{variant}"
 
         if hasattr(stream_source, "getvalue"):
             raw = stream_source.getvalue()
             size = len(raw)
             digest = _hash_buffer(size, lambda start, length: raw[start : start + length])
-            return f"bytes:{size}|{digest}"
+            return f"bytes:{size}|{digest}{variant}"
 
         return None
 
@@ -794,14 +815,15 @@ class BytePlusVideoBase:
         return comfy_io.NodeOutput(empty, empty, json.dumps(state, ensure_ascii=False, indent=2))
 
     @staticmethod
-    def _ignored_failure_outputs(as_list):
-        """Placeholders when every task failed in a workflow with several such nodes."""
-        dummy_video = create_white_video(1024, 1024)
-        dummy_frame = create_white_image_tensor(1024, 1024)
+    def _ignored_failure_outputs(runner):
+        """
+        Every task failed in a workflow with several such nodes: the outputs are
+        blocked with the failure, so ComfyUI reports it at the nodes using them
+        and the other branches still run (no placeholder gets saved as a result).
+        """
+        message = runner.ignored_failure or get_text("err_batch_fail_all")
         return comfy_io.NodeOutput(
-            [dummy_video] if as_list else dummy_video,
-            dummy_frame,
-            json.dumps({"error": "All tasks failed but ignored. Returning dummy video/image."}),
+            ExecutionBlocker(message), ExecutionBlocker(message), json.dumps({"error": message})
         )
 
     async def _handle_batch_success_async(
@@ -857,6 +879,7 @@ class BytePlusVideoBase:
                     )
 
             return {
+                "task_id": getattr(task, "id", None),
                 "seed": seed,
                 "video_path": v_path,
                 "frame_tensor": f_tensor,
@@ -864,15 +887,35 @@ class BytePlusVideoBase:
                 "response": resp,
             }
 
-        results = await asyncio.gather(
-            *[_process_task(t) for t in successful_tasks], return_exceptions=True
+        # Interruptible: a large download must not hold up Stop.
+        results = await wait_interruptible(
+            asyncio.gather(*[_process_task(t) for t in successful_tasks], return_exceptions=True)
         )
         valid_results = []
-        for res in results:
+        missing = []  # paid tasks whose video could not be downloaded
+        for task, res in zip(successful_tasks, results):
+            if isinstance(res, comfy.model_management.InterruptProcessingException):
+                raise res
             if isinstance(res, Exception):
                 log_msg("err_download_url", url="batch_task", e=res)
+                missing.append(str(getattr(task, "id", "?")))
                 continue
+            if not res["video_path"]:
+                missing.append(str(res["task_id"] or "?"))
             valid_results.append(res)
+        download_error = None
+        if missing and len(missing) == len(successful_tasks):
+            # Block the outputs with the reason (ComfyUI reports it at the nodes that use
+            # them); the response output still carries the task IDs and video links.
+            download_error = get_text("err_video_download_failed", task_ids=", ".join(missing))
+            log_msg("err_video_download_failed", task_ids=", ".join(missing))
+        elif missing:
+            log_msg(
+                "batch_video_download_partial",
+                done=len(successful_tasks) - len(missing),
+                total=len(successful_tasks),
+                task_ids=", ".join(missing),
+            )
 
         valid_results.sort(key=lambda x: x["seed"])
         if save_videos is None:
@@ -903,6 +946,8 @@ class BytePlusVideoBase:
         # print(f"[BytePlus Debug] Batch handling finished in {t_end - t_start:.2f}s")
         response = json.dumps(all_responses, indent=2)
 
+        if download_error:
+            return comfy_io.NodeOutput(ExecutionBlocker(download_error), ExecutionBlocker(download_error), response)
         if not as_list:
             return comfy_io.NodeOutput(
                 videos[0] if videos else None, frames[0] if frames else None, response
@@ -992,7 +1037,7 @@ class BytePlusVideoBase:
             return self._pending_outputs(successful_tasks, as_list)
 
         if not successful_tasks and ignore_errors:
-            return self._ignored_failure_outputs(as_list)
+            return self._ignored_failure_outputs(runner)
 
         async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(force_close=True)
@@ -1107,7 +1152,7 @@ class BytePlusVideoBase:
                 return self._pending_outputs(successful_tasks, as_list)
 
             if not successful_tasks and ignore_errors:
-                return self._ignored_failure_outputs(as_list)
+                return self._ignored_failure_outputs(runner)
 
             ret_results = None
             async with aiohttp.ClientSession() as session:
