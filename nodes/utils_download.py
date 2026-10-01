@@ -164,15 +164,20 @@ async def _download_to_file_stream_async(
     session: aiohttp.ClientSession,
     url: str,
     file_path: str,
-    timeout: int = DEFAULT_DOWNLOAD_TIMEOUT,
+    timeout: int | aiohttp.ClientTimeout = DEFAULT_DOWNLOAD_TIMEOUT,
     retries: int = DEFAULT_DOWNLOAD_RETRIES,
 ) -> bool:
     """
-    Stream a download to a file.
+    Stream a download to a file. timeout is the limit in seconds for each
+    attempt, or an aiohttp.ClientTimeout (e.g. no total limit, only a stall
+    limit, for large files).
     """
     for attempt in range(1, retries + 2):
         try:
-            client_timeout = aiohttp.ClientTimeout(total=timeout)
+            if isinstance(timeout, aiohttp.ClientTimeout):
+                client_timeout = timeout
+            else:
+                client_timeout = aiohttp.ClientTimeout(total=timeout)
             # t0 = time.time()
             async with session.get(url, timeout=client_timeout) as response:
                 response.raise_for_status()

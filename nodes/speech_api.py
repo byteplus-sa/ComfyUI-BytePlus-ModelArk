@@ -7,7 +7,6 @@ import re
 import uuid
 
 import aiohttp
-import comfy.model_management
 from comfy_api.latest import io as comfy_io
 
 from .constants import (
@@ -18,7 +17,13 @@ from .constants import (
     SPEECH_REQUEST_TIMEOUT_SECONDS,
     SPEECH_SUCCESS_CODES,
 )
-from .nodes_shared import LOG_PREFIX, ApiKeyStore, BytePlusException, get_text
+from .nodes_shared import (
+    LOG_PREFIX,
+    ApiKeyStore,
+    BytePlusException,
+    get_text,
+    wait_interruptible,
+)
 
 # Seed Speech keys are a different product key from ModelArk keys, so they get
 # their own file (git-ignored runtime file in the repo root) and socket type.
@@ -159,31 +164,6 @@ async def _send(method, url, headers, body, timeout):
     async with aiohttp.ClientSession(timeout=client_timeout) as session:
         async with session.request(method, url, headers=headers, json=body) as response:
             return SpeechResponse(response.status, dict(response.headers), await response.read())
-
-
-async def wait_interruptible(awaitable, poll_seconds=0.5):
-    """Await while honouring ComfyUI interrupts (cancels the request, then re-raises)."""
-    task = asyncio.ensure_future(awaitable)
-    try:
-        while True:
-            done, _ = await asyncio.wait({task}, timeout=poll_seconds)
-            if done:
-                return task.result()
-            comfy.model_management.throw_exception_if_processing_interrupted()
-    except BaseException:
-        task.cancel()
-        raise
-
-
-async def sleep_interruptible(seconds):
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + seconds
-    while True:
-        comfy.model_management.throw_exception_if_processing_interrupted()
-        remaining = deadline - loop.time()
-        if remaining <= 0:
-            return
-        await asyncio.sleep(min(0.5, remaining))
 
 
 async def speech_post(client, path, body, *, operation, headers=None,

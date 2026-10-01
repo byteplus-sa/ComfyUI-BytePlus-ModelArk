@@ -5,7 +5,6 @@ import json
 import math
 import os
 import re
-import time
 import uuid
 
 import comfy.model_management
@@ -85,6 +84,8 @@ from .nodes_shared import (
     _tensor2images,
     get_text,
     log_msg,
+    sleep_interruptible,
+    upload_bytes_to_comfy_storage,
 )
 from .core_style import seed_input
 from .seed_speech_voices import DEFAULT_TTS_VOICE, TTS_2_VOICE_IDS, TTS_2_VOICES
@@ -97,7 +98,6 @@ from .speech_api import (
     download_bytes,
     iter_json_objects,
     require_speech_client,
-    sleep_interruptible,
     speech_error,
     speech_post,
 )
@@ -170,26 +170,20 @@ SPEECH_UPLOAD_CACHE = {}
 
 
 async def upload_to_comfy_storage(node_cls, kind, data, filename, mime_type):
-    key = (kind, hashlib.sha256(data).hexdigest())
-    cached = SPEECH_UPLOAD_CACHE.get(key)
-    if cached and time.time() - cached[1] < SPEECH_UPLOAD_CACHE_TTL_SECONDS:
-        return cached[0]
-    try:
-        from comfy_api_nodes.util import upload_file_to_comfyapi
-    except Exception as e:
-        raise BytePlusException(get_text("speech_upload_unavailable", kind=kind, e=e))
-    try:
-        url = await upload_file_to_comfyapi(node_cls, io.BytesIO(data), filename, mime_type, wait_label=None)
-    except comfy.model_management.InterruptProcessingException:
-        raise
-    except Exception as e:
-        raise BytePlusException(get_text("speech_upload_failed", kind=kind, e=e))
-    SPEECH_UPLOAD_CACHE.pop(key, None)
-    SPEECH_UPLOAD_CACHE[key] = (url, time.time())
-    while len(SPEECH_UPLOAD_CACHE) > SPEECH_UPLOAD_CACHE_MAX_ENTRIES:
-        SPEECH_UPLOAD_CACHE.pop(next(iter(SPEECH_UPLOAD_CACHE)))
-    log_msg("speech_upload_done", kind=kind)
-    return url
+    return await upload_bytes_to_comfy_storage(
+        node_cls,
+        data,
+        filename,
+        mime_type,
+        SPEECH_UPLOAD_CACHE,
+        cache_key=(kind, hashlib.sha256(data).hexdigest()),
+        ttl_seconds=SPEECH_UPLOAD_CACHE_TTL_SECONDS,
+        max_entries=SPEECH_UPLOAD_CACHE_MAX_ENTRIES,
+        unavailable_key="speech_upload_unavailable",
+        failed_key="speech_upload_failed",
+        done_key="speech_upload_done",
+        kind=kind,
+    )
 
 
 def context_image_jpeg(image, max_bytes=500 * 1024):

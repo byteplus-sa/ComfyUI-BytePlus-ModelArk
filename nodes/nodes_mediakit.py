@@ -38,6 +38,7 @@ from .constants import (
     DEFAULT_MEDIAKIT_REGION,
     MEDIAKIT_API_KEY_ENV,
     MEDIAKIT_API_KEYS_CONSOLE_URL,
+    MEDIAKIT_DOWNLOAD_STALL_SECONDS,
     MEDIAKIT_MAX_POLL_ERRORS,
     MEDIAKIT_POLL_SECONDS,
     MEDIAKIT_REGION_BASE_URLS,
@@ -52,6 +53,9 @@ from .nodes_shared import (
     _notify_api_key_saved,
     get_text,
     log_msg,
+    sleep_interruptible,
+    upload_bytes_to_comfy_storage,
+    wait_interruptible,
 )
 
 MEDIAKIT_CATEGORY = f"{GLOBAL_CATEGORY}/MediaKit"
@@ -78,6 +82,7 @@ VCUBE_RESOLUTION_PRESETS = ["1080p", "720p", "2k", "4k", "8k"]
 VCUBE_FPS_PRESETS = ["source", "24", "25", "30", "48", "50", "60", "120"]
 VCUBE_SCENES = ["aigc", "common", "ugc", "short_series", "old_film"]
 VCUBE_STYLES = ["hd", "natural"]
+VCUBE_MIN_BITRATE_KBPS = 10
 VCUBE_MAX_BITRATE_KBPS = 150000
 
 # Video Smoothness limits (AI MediaKit docs): up to 4K; repairs up to 35 s.
@@ -148,39 +153,42 @@ async def _send(client, method, path, body=None, timeout_seconds=None):
             return response.status, data
 
 
-async def _interruptible(coroutine):
-    """Await coroutine, cancelling it when the user interrupts the run."""
-    task = asyncio.ensure_future(coroutine)
-    try:
-        while not task.done():
-            comfy.model_management.throw_exception_if_processing_interrupted()
-            await asyncio.wait({task}, timeout=0.5)
-        return task.result()
-    finally:
-        if not task.done():
-            task.cancel()
+class MediaKitRequestError(BytePlusException):
+    """A failed MediaKit call. retryable: network errors, timeouts, 429 and 5xx."""
+
+    def __init__(self, message, retryable=False):
+        super().__init__(message)
+        self.retryable = retryable
 
 
-async def mediakit_request(client, method, path, body=None, timeout_seconds=None):
-    """Call MediaKit; raise BytePlusException unless the response reports success."""
+def _retryable_status(status):
+    return status == 429 or status >= 500
+
+
+async def mediakit_request(client, method, path, body=None, timeout_seconds=None, accept_failed_task=False):
+    """
+    Call MediaKit; raise MediaKitRequestError unless the response reports
+    success. accept_failed_task returns a task whose status is 'failed'
+    (whatever its success flag), so the poller can report it as such.
+    """
+    seconds = timeout_seconds or MEDIAKIT_REQUEST_TIMEOUT_SECONDS
     try:
-        status, data = await _interruptible(_send(client, method, path, body, timeout_seconds=timeout_seconds))
+        status, data = await wait_interruptible(_send(client, method, path, body, timeout_seconds=seconds))
     except comfy.model_management.InterruptProcessingException:
         raise
-    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-        raise BytePlusException(get_text("err_mediakit_network", e=e))
+    except asyncio.TimeoutError:
+        raise MediaKitRequestError(get_text("err_mediakit_timeout", seconds=seconds), retryable=True)
+    except aiohttp.ClientError as e:
+        raise MediaKitRequestError(get_text("err_mediakit_network", e=e), retryable=True)
     if not isinstance(data, dict):
-        raise BytePlusException(get_text("err_mediakit_unexpected", status=status))
+        raise MediaKitRequestError(get_text("err_mediakit_unexpected", status=status), _retryable_status(status))
+    if accept_failed_task and data.get("status") == "failed":
+        return data
     if status >= 400 or data.get("success") is False:
-        raise BytePlusException(describe_mediakit_error(data.get("error"), status, data.get("request_id")))
+        raise MediaKitRequestError(
+            describe_mediakit_error(data.get("error"), status, data.get("request_id")), _retryable_status(status)
+        )
     return data
-
-
-async def _sleep_interruptibly(seconds):
-    deadline = time.monotonic() + seconds
-    while time.monotonic() < deadline:
-        comfy.model_management.throw_exception_if_processing_interrupted()
-        await asyncio.sleep(min(0.5, max(0.0, deadline - time.monotonic())))
 
 
 def _send_progress_text(node_id, text):
@@ -204,13 +212,14 @@ async def wait_for_mediakit_task(client, task_id, node_id=None, poll_seconds=Non
     while True:
         comfy.model_management.throw_exception_if_processing_interrupted()
         try:
-            task = await mediakit_request(client, "GET", f"/tasks/{task_id}")
+            task = await mediakit_request(client, "GET", f"/tasks/{task_id}", accept_failed_task=True)
             errors = 0
-        except BytePlusException:
+        except MediaKitRequestError as e:
+            # Only transient errors are retried; a bad key or unknown task fails at once.
             errors += 1
-            if errors >= MEDIAKIT_MAX_POLL_ERRORS:
+            if not e.retryable or errors >= MEDIAKIT_MAX_POLL_ERRORS:
                 raise
-            await _sleep_interruptibly(poll_seconds)
+            await sleep_interruptible(poll_seconds)
             continue
         status = str(task.get("status") or "")
         if status == "completed":
@@ -228,7 +237,7 @@ async def wait_for_mediakit_task(client, task_id, node_id=None, poll_seconds=Non
             node_id,
             _plain("mediakit_task_waiting", task_id=task_id, status=status or "running", elapsed=elapsed),
         )
-        await _sleep_interruptibly(poll_seconds)
+        await sleep_interruptible(poll_seconds)
 
 
 def task_result(task):
@@ -256,9 +265,9 @@ class BytePlusMediaKitClient(comfy_io.ComfyNode):
             display_name="BytePlus MediaKit Client",
             category=MEDIAKIT_CATEGORY,
             description=(
-                "BytePlus VOD AI MediaKit API key for vCube Video Enhance and Video Smoothness Enhance. "
-                "Create it on the AI MediaKit Settings page of the VOD console; ModelArk and Seed Speech "
-                "keys do not work here."
+                "BytePlus VOD AI MediaKit API key for vCube Video Enhance, Video Smoothness Enhance and "
+                "Image Quality Enhance. Create it on the AI MediaKit Settings page of the VOD console; "
+                "ModelArk and Seed Speech keys do not work here."
             ),
             inputs=[
                 comfy_io.String.Input("new_api_key", default=""),
@@ -440,15 +449,52 @@ def _temp_path(prefix, ext="mp4"):
     return os.path.join(folder, f"{prefix}_{uuid.uuid4().hex[:12]}.{ext}")
 
 
+def _remove_quietly(path):
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+
+def _reason(error):
+    """A short reason for a failure, without URLs (signed links carry tokens in the query)."""
+    if isinstance(error, aiohttp.ClientResponseError):
+        return f"HTTP {error.status}"
+    if isinstance(error, asyncio.TimeoutError):
+        return "timed out"
+    if isinstance(error, aiohttp.ClientError):
+        return type(error).__name__
+    return str(error).replace(LOG_PREFIX, "", 1).strip() or type(error).__name__
+
+
 async def _download(url, prefix, ext="mp4"):
+    """
+    Stream url to a temp file. Results can be gigabytes, so only a stalled
+    connection times out, not a long download. Interruptible.
+    """
     from .utils_download import _download_to_file_stream_async
 
     path = _temp_path(prefix, ext)
-    timeout = aiohttp.ClientTimeout(total=None, sock_read=120)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        ok = await _download_to_file_stream_async(session, url, path)
+    timeout = aiohttp.ClientTimeout(
+        total=None, sock_connect=MEDIAKIT_REQUEST_TIMEOUT_SECONDS, sock_read=MEDIAKIT_DOWNLOAD_STALL_SECONDS
+    )
+
+    async def fetch():
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            return await _download_to_file_stream_async(session, url, path, timeout=timeout)
+
+    reason = "no data"
+    try:
+        ok = await wait_interruptible(fetch())
+    except comfy.model_management.InterruptProcessingException:
+        _remove_quietly(path)
+        raise
+    except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+        ok, reason = False, _reason(e)
     if not ok or not os.path.exists(path):
-        raise BytePlusException(get_text("err_mediakit_download_failed", url=url.split("?", 1)[0]))
+        _remove_quietly(path)
+        raise BytePlusException(get_text("err_mediakit_download_failed", url=url.split("?", 1)[0], reason=reason))
     return path
 
 
@@ -481,7 +527,7 @@ async def upload_source(node_cls, video):
 
 
 async def source_file(video, link, prefix):
-    """A local copy of the source video (for comparisons and pass-through)."""
+    """A local copy of the source video (for comparisons and pass-through); the caller owns the file."""
     if video is not None:
         path = _temp_path(prefix)
         await asyncio.to_thread(video.save_to, path)
@@ -503,13 +549,23 @@ def task_response(task):
     return json.dumps({k: v for k, v in task.items() if k != "request_id"}, ensure_ascii=False)
 
 
-async def _build_comparison_in_thread(build, *args):
+async def make_comparison(build, video, link, prefix, *args):
+    """
+    build(source_path, *args) in a thread, on a temporary copy of the source.
+    A failure (decoding, memory, a missing source) only skips the comparison,
+    so the paid result is still returned. The copy is deleted afterwards.
+    """
+    source_path = None
     try:
-        return await asyncio.to_thread(build, *args)
-    except (comfy.model_management.InterruptProcessingException, BytePlusException):
+        source_path = await source_file(video, link, prefix)
+        return await asyncio.to_thread(build, source_path, *args)
+    except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:
-        raise BytePlusException(get_text("err_mediakit_comparison_failed", e=e))
+        log_msg("mediakit_comparison_skipped", e=_reason(e))
+        return None
+    finally:
+        _remove_quietly(source_path)
 
 
 # --- Comparison --------------------------------------------------------------
@@ -678,7 +734,7 @@ def _render_synced(source, result, out_path, frame_size, compose):
                 output.mux(packet)
             index += 1
         if out_stream is None:
-            raise BytePlusException(get_text("err_mediakit_comparison_failed", e="no frames decoded"))
+            raise BytePlusException(get_text("err_mediakit_comparison_no_frames"))
         for packet in out_stream.encode():
             output.mux(packet)
 
@@ -701,7 +757,7 @@ def build_comparison(source_path, enhanced_path, compare_time=-1.0):
         e_frame = _frame_at(enhanced, e_stream, t)
         s_frame = _frame_at(source, source.streams.video[0], t)
         if e_frame is None or s_frame is None:
-            raise BytePlusException(get_text("err_mediakit_comparison_failed", e="no frames decoded"))
+            raise BytePlusException(get_text("err_mediakit_comparison_no_frames"))
         enhanced_still = e_frame.to_ndarray(format="rgb24")
         source_still = s_frame.reformat(width=width, height=height, format="rgb24").to_ndarray()
 
@@ -860,6 +916,10 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
         compare_time=-1.0,
     ) -> comfy_io.NodeOutput:
         link = check_source(video, video_url)
+        if bitrate and not VCUBE_MIN_BITRATE_KBPS <= int(bitrate) <= VCUBE_MAX_BITRATE_KBPS:
+            raise BytePlusException(
+                get_text("err_vcube_bitrate", min=VCUBE_MIN_BITRATE_KBPS, max=VCUBE_MAX_BITRATE_KBPS, value=bitrate)
+            )
         source_size = source_fps = None
         if video is not None:
             source_size = validate_source_video(video)
@@ -883,11 +943,10 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
         # Without a comparison, nodes using those outputs are skipped rather than failing on None.
         comparison_video = source_frame = enhanced_frame = ExecutionBlocker(None)
         if comparison:
-            source_path = await source_file(video, link, "vcube_source")
-            comparison_path, source_frame, enhanced_frame = await _build_comparison_in_thread(
-                build_comparison, source_path, enhanced_path, compare_time
-            )
-            comparison_video = VideoFromFile(comparison_path)
+            built = await make_comparison(build_comparison, video, link, "vcube_source", enhanced_path, compare_time)
+            if built:
+                comparison_path, source_frame, enhanced_frame = built
+                comparison_video = VideoFromFile(comparison_path)
 
         return comfy_io.NodeOutput(
             VideoFromFile(enhanced_path), comparison_video, source_frame, enhanced_frame, task_response(task)
@@ -1107,10 +1166,9 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
         repaired_path = await _download(repaired_url, "smooth_repaired")
         comparison_video = ExecutionBlocker(None)
         if comparison:
-            source_path = await source_file(video, link, "smooth_source")
-            comparison_video = VideoFromFile(
-                await _build_comparison_in_thread(build_side_by_side, source_path, repaired_path)
-            )
+            comparison_path = await make_comparison(build_side_by_side, video, link, "smooth_source", repaired_path)
+            if comparison_path:
+                comparison_video = VideoFromFile(comparison_path)
         return comfy_io.NodeOutput(
             VideoFromFile(repaired_path), comparison_video, inserted, duplicates, task_response(task)
         )
@@ -1152,6 +1210,7 @@ IMAGE_VERSION_LIMITS = {
     },
 }
 IMAGE_UPLOAD_CACHE = {}
+IMAGE_UPLOAD_CACHE_TTL_SECONDS = 12 * 3600  # Comfy.org links last about 24 h
 IMAGE_UPLOAD_CACHE_MAX_ENTRIES = 64
 
 
@@ -1345,36 +1404,33 @@ def encode_image_for_upload(image, max_bytes=IMAGE_MAX_UPLOAD_BYTES):
 
 
 async def upload_image_source(node_cls, data, filename, mime_type):
-    """Comfy.org storage URL for image bytes, reused for the same bytes (links last about 24 h)."""
-    key = hashlib.sha256(data).hexdigest()
-    cached = IMAGE_UPLOAD_CACHE.get(key)
-    if cached and time.time() - cached[1] < 12 * 3600:
-        return cached[0]
-    try:
-        from comfy_api_nodes.util import upload_file_to_comfyapi
-    except Exception as e:
-        raise BytePlusException(get_text("err_comfy_image_upload_unavailable_mediakit", e=e))
-    try:
-        url = await upload_file_to_comfyapi(node_cls, io.BytesIO(data), filename, mime_type, wait_label=None)
-    except comfy.model_management.InterruptProcessingException:
-        raise
-    except Exception as e:
-        raise BytePlusException(get_text("err_comfy_image_upload_failed_mediakit", e=e))
-    IMAGE_UPLOAD_CACHE.pop(key, None)
-    IMAGE_UPLOAD_CACHE[key] = (url, time.time())
-    while len(IMAGE_UPLOAD_CACHE) > IMAGE_UPLOAD_CACHE_MAX_ENTRIES:
-        IMAGE_UPLOAD_CACHE.pop(next(iter(IMAGE_UPLOAD_CACHE)))
-    return url
+    """Comfy.org storage URL for image bytes, reused for the same bytes."""
+    return await upload_bytes_to_comfy_storage(
+        node_cls,
+        data,
+        filename,
+        mime_type,
+        IMAGE_UPLOAD_CACHE,
+        cache_key=hashlib.sha256(data).hexdigest(),
+        ttl_seconds=IMAGE_UPLOAD_CACHE_TTL_SECONDS,
+        max_entries=IMAGE_UPLOAD_CACHE_MAX_ENTRIES,
+        unavailable_key="err_comfy_image_upload_unavailable_mediakit",
+        failed_key="err_comfy_image_upload_failed_mediakit",
+    )
 
 
-def _load_image(path):
-    """[1, H, W, 3] float tensor from an image file."""
+def _load_image(path, remove=False):
+    """[1, H, W, 3] float tensor from an image file (deleted afterwards when remove)."""
     import numpy
     from PIL import Image, ImageOps
 
-    with Image.open(path) as picture:
-        rgb = ImageOps.exif_transpose(picture).convert("RGB")
-        array = numpy.asarray(rgb, dtype=numpy.float32) / 255.0
+    try:
+        with Image.open(path) as picture:
+            rgb = ImageOps.exif_transpose(picture).convert("RGB")
+            array = numpy.asarray(rgb, dtype=numpy.float32) / 255.0
+    finally:
+        if remove:
+            _remove_quietly(path)
     return torch.from_numpy(array).unsqueeze(0)
 
 
@@ -1462,7 +1518,8 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
             async with semaphore:
                 body = dict(template)
                 if source is not None:
-                    body["image_url"] = await upload_image_source(cls, *encode_image_for_upload(source[0]))
+                    encoded = await asyncio.to_thread(encode_image_for_upload, source[0])
+                    body["image_url"] = await upload_image_source(cls, *encoded)
                 _send_progress_text(
                     cls.hidden.unique_id,
                     _plain("image_enhance_submitted", version=version, index=index + 1, count=len(sources)),
@@ -1483,10 +1540,10 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
                 )
                 extension = str(result.get("image_format") or "png").lower().replace("jpeg", "jpg")
                 enhanced = await asyncio.to_thread(
-                    _load_image, await _download(result["image_url"], "image_enhanced", extension)
+                    _load_image, await _download(result["image_url"], "image_enhanced", extension), True
                 )
                 if source is None:
-                    source = await asyncio.to_thread(_load_image, await _download(link, "image_source", "img"))
+                    source = await asyncio.to_thread(_load_image, await _download(link, "image_source", "img"), True)
                 return enhanced, source, {k: v for k, v in response.items() if k != "request_id"}
 
         done = await asyncio.gather(*(enhance(i, s) for i, s in enumerate(sources)))

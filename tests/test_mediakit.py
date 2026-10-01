@@ -12,6 +12,7 @@ import asyncio
 import importlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 import types
@@ -230,6 +231,99 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(nodes_mediakit, "_send", down):
             with self.assertRaisesRegex(Exception, "HTTP 502"):
                 await nodes_mediakit.wait_for_mediakit_task(self.client, "t1", poll_seconds=0)
+        self.assertEqual(len(down.calls), 5)
+
+    async def test_failed_task_and_bad_key_stop_polling(self):
+        # A failed task reported with success: false is a task failure, not a retryable error.
+        failed = FakeMediaKit(task_statuses=[(200, {"success": False, "status": "failed",
+                                                    "error": {"code": "InvalidVideo", "message": "bad"}})])
+        with mock.patch.object(nodes_mediakit, "_send", failed):
+            with self.assertRaisesRegex(Exception, "MediaKit task t1 failed: .*InvalidVideo"):
+                await nodes_mediakit.wait_for_mediakit_task(self.client, "t1", poll_seconds=0)
+        self.assertEqual(len(failed.calls), 1)
+        revoked = FakeMediaKit(task_statuses=[(401, {"success": False, "error": {"code": "Unauthorized"}})] * 5)
+        with mock.patch.object(nodes_mediakit, "_send", revoked):
+            with self.assertRaisesRegex(Exception, "Check the MediaKit API key"):
+                await nodes_mediakit.wait_for_mediakit_task(self.client, "t1", poll_seconds=0)
+        self.assertEqual(len(revoked.calls), 1)
+        throttled = FakeMediaKit(task_statuses=[(429, {"success": False}), "completed"])
+        with mock.patch.object(nodes_mediakit, "_send", throttled):
+            await nodes_mediakit.wait_for_mediakit_task(self.client, "t1", poll_seconds=0)
+        self.assertEqual(len(throttled.calls), 2)
+
+    async def test_timeout_message(self):
+        async def slow(client, method, path, body=None, timeout_seconds=None):
+            raise asyncio.TimeoutError()
+
+        with mock.patch.object(nodes_mediakit, "_send", slow):
+            with self.assertRaisesRegex(Exception, "did not answer within 600s.*billed"):
+                await nodes_mediakit.mediakit_request(self.client, "POST", "/tools-sync/enhance-image", {},
+                                                      timeout_seconds=600)
+
+
+@requires_comfyui
+class DownloadTests(unittest.IsolatedAsyncioTestCase):
+    async def test_errors_hide_the_signed_query(self):
+        import aiohttp
+
+        utils_download = importlib.import_module(f"{PACKAGE_NAME}.nodes.utils_download")
+        seen = {}
+
+        async def fake_stream(session, url, path, timeout=None, retries=3):
+            seen["timeout"] = timeout
+            raise aiohttp.ClientResponseError(
+                SimpleNamespace(real_url=url), (), status=403, message="Forbidden"
+            )
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(utils_download, "_download_to_file_stream_async", fake_stream), \
+                mock.patch.object(nodes_mediakit, "_temp_path", lambda prefix, ext="mp4": os.path.join(tmp, "f")):
+            with self.assertRaises(Exception) as ctx:
+                await nodes_mediakit._download("https://cdn.example/out.mp4?auth_key=secret", "vcube_enhanced")
+        message = str(ctx.exception)
+        self.assertIn("https://cdn.example/out.mp4 (HTTP 403)", message)
+        self.assertNotIn("secret", message)
+        # Large results: no total time limit, only a stall limit.
+        self.assertIsNone(seen["timeout"].total)
+        self.assertEqual(seen["timeout"].sock_read, 120)
+
+    async def test_stream_helper_takes_a_client_timeout(self):
+        import aiohttp
+
+        utils_download = importlib.import_module(f"{PACKAGE_NAME}.nodes.utils_download")
+        used = []
+
+        class Response:
+            def __init__(self):
+                self.content = SimpleNamespace(read=self.read)
+                self.chunks = [b"abc", b""]
+
+            async def read(self, size):
+                return self.chunks.pop(0)
+
+            def raise_for_status(self):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *exc):
+                return False
+
+        class Session:
+            def get(self, url, timeout=None):
+                used.append(timeout)
+                return Response()
+
+        stall_only = aiohttp.ClientTimeout(total=None, sock_read=120)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "out.bin")
+            self.assertTrue(await utils_download._download_to_file_stream_async(Session(), "u", path, timeout=stall_only))
+            self.assertTrue(await utils_download._download_to_file_stream_async(Session(), "u", path, timeout=30))
+            with open(path, "rb") as f:
+                self.assertEqual(f.read(), b"abc")
+        self.assertIs(used[0], stall_only)
+        self.assertEqual(used[1].total, 30)
 
 
 class NodeFixture(unittest.IsolatedAsyncioTestCase):
@@ -242,13 +336,18 @@ class NodeFixture(unittest.IsolatedAsyncioTestCase):
         make_video(self.source, 320, 180, 12, 1, 0)
         make_video(self.enhanced, 640, 360, 24, 1, 2)
         self.downloads = []
+        self.copies = []
         test = self
+        counter = iter(range(1000))
 
         async def fake_download(url, prefix, ext="mp4"):
             test.downloads.append((url, prefix))
-            return test.enhanced if prefix in ("vcube_enhanced", "smooth_repaired") else test.source
+            fixture = test.enhanced if prefix in ("vcube_enhanced", "smooth_repaired") else test.source
+            copy = os.path.join(test.tmp.name, f"download_{prefix}_{next(counter)}.{ext}")
+            shutil.copy(fixture, copy)
+            test.copies.append((prefix, copy))
+            return copy
 
-        counter = iter(range(1000))
         self._patches = [
             mock.patch.object(nodes_mediakit, "_download", fake_download),
             mock.patch.object(nodes_mediakit, "MEDIAKIT_POLL_SECONDS", 0),
@@ -293,6 +392,40 @@ class NodeTests(NodeFixture):
         self.assertEqual(tuple(enhanced_frame.shape), (1, 360, 640, 3))
         self.assertEqual(json.loads(response)["status"], "completed")
         self.assertEqual([p for _u, p in self.downloads], ["vcube_enhanced", "vcube_source"])
+        # The downloaded source was only needed for the comparison.
+        self.assertFalse(os.path.exists(dict(self.copies)["vcube_source"]))
+
+    async def test_comparison_failure_keeps_the_result(self):
+        def broken(*args):
+            raise MemoryError("8K stills")
+
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit()), \
+                mock.patch.object(nodes_mediakit, "build_comparison", broken):
+            result = await self.run_node(video_url="https://cdn.example/source.mp4")
+        enhanced, comparison, source_frame, enhanced_frame, _response = result.args
+        self.assertEqual(enhanced.get_dimensions(), (640, 360))  # the paid result is not lost
+        for blocked in (comparison, source_frame, enhanced_frame):
+            self.assertIsInstance(blocked, ExecutionBlocker)
+        self.assertFalse(os.path.exists(dict(self.copies)["vcube_source"]))
+
+    async def test_connected_video_comparison_copy_is_removed(self):
+        from comfy_api.input_impl import VideoFromFile
+
+        async def fake_upload(cls, videos, **keys):
+            return ["https://storage.example/upload.mp4"]
+
+        with mock.patch.object(nodes_video, "upload_videos_to_comfy_storage_cached", fake_upload), \
+                mock.patch.object(nodes_mediakit, "_send", FakeMediaKit()):
+            result = await self.run_node(video=VideoFromFile(self.source))
+        self.assertEqual(result.args[1].get_dimensions(), (640, 360))
+        leftovers = [name for name in os.listdir(self.tmp.name) if name.startswith("vcube_source")]
+        self.assertEqual(leftovers, [])
+
+    async def test_bitrate_range(self):
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit()) as fake:
+            with self.assertRaisesRegex(Exception, "10-150000 kbps, got 5"):
+                await self.run_node(video_url="https://cdn.example/source.mp4", bitrate=5)
+        self.assertEqual(fake.calls, [])
 
     async def test_connected_video_is_uploaded(self):
         from comfy_api.input_impl import VideoFromFile
@@ -446,6 +579,17 @@ class SmoothnessNodeTests(NodeFixture):
         self.assertEqual(comparison.get_dimensions(), (1280, 360))  # two halves
         self.assertEqual(json.loads(response)["result"]["duplicate_frames_detail"], {"duplicate_frame_count": 2})
         self.assertEqual([p for _u, p in self.downloads], ["smooth_repaired", "smooth_source"])
+
+    async def test_comparison_failure_keeps_the_result(self):
+        def broken(*args):
+            raise RuntimeError("decoder error")
+
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit(result=self.REPAIRED)), \
+                mock.patch.object(nodes_mediakit, "build_side_by_side", broken):
+            result = await self.run_node(video_url="https://cdn.example/source.mp4")
+        self.assertEqual(result.args[0].get_dimensions(), (640, 360))
+        self.assertIsInstance(result.args[1], ExecutionBlocker)
+        self.assertEqual(result.args[2:4], (3, 2))
 
     async def test_no_repair_passes_the_source_through(self):
         from comfy_api.input_impl import VideoFromFile
@@ -652,7 +796,9 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
 
         async def fake_download(url, prefix, ext="mp4"):
             test.downloads.append((prefix, ext))
-            return test.enhanced if prefix == "image_enhanced" else test.source
+            copy = os.path.join(test.tmp.name, f"download_{len(test.downloads)}.{ext}")
+            shutil.copy(test.enhanced if prefix == "image_enhanced" else test.source, copy)
+            return copy
 
         async def fake_upload(cls, data, filename, mime_type, wait_label=None):
             test.uploads.append((len(data.getvalue()), filename, mime_type))
@@ -715,6 +861,8 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(json.loads(response)["task_id"], "amk-tool-enhance-image-1")
         self.assertEqual([d[0] for d in self.downloads], ["image_enhanced", "image_source"])
         self.assertEqual(self.uploads, [])
+        # Downloaded images are deleted once loaded.
+        self.assertEqual([n for n in os.listdir(self.tmp.name) if n.startswith("download_")], [])
 
     async def test_checks_before_any_upload(self):
         with self.assertRaisesRegex(Exception, "not both"):

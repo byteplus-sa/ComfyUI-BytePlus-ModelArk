@@ -43,6 +43,7 @@ from .nodes_shared import (
     BytePlusException,
     get_text,
     log_msg,
+    sleep_interruptible,
     video_source_size_bytes,
 )
 
@@ -239,7 +240,7 @@ async def wait_for_asset(library, asset_id, project_name, timeout=ASSET_ACTIVE_T
             status_errors += 1
             if status_errors >= ASSET_MAX_STATUS_ERRORS or time.monotonic() >= deadline:
                 raise
-            await _sleep_interruptibly(ASSET_POLL_SECONDS)
+            await sleep_interruptible(ASSET_POLL_SECONDS)
             continue
         status_errors = 0
         status = str(asset.get("Status") or "")
@@ -254,13 +255,7 @@ async def wait_for_asset(library, asset_id, project_name, timeout=ASSET_ACTIVE_T
             raise BytePlusException(
                 get_text("err_asset_timeout", asset_id=asset_id, status=status, seconds=int(timeout))
             )
-        await _sleep_interruptibly(ASSET_POLL_SECONDS)
-
-
-async def _sleep_interruptibly(seconds):
-    for _ in range(max(1, int(seconds * 2))):
-        comfy.model_management.throw_exception_if_processing_interrupted()
-        await asyncio.sleep(0.5 if seconds else 0)
+        await sleep_interruptible(ASSET_POLL_SECONDS)
 
 
 def _asset_cache_key(digest, library, project_name, group_id, asset_name):

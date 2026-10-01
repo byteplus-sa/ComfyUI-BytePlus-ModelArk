@@ -805,6 +805,61 @@ class BytePlusException(Exception):
         self.byteplus_suppress_traceback = True
 
 
+async def wait_interruptible(awaitable, poll_seconds=0.5):
+    """Await while honouring ComfyUI interrupts (cancels the request, then re-raises)."""
+    task = asyncio.ensure_future(awaitable)
+    try:
+        while True:
+            done, _ = await asyncio.wait({task}, timeout=poll_seconds)
+            if done:
+                return task.result()
+            comfy.model_management.throw_exception_if_processing_interrupted()
+    except BaseException:
+        task.cancel()
+        raise
+
+
+async def sleep_interruptible(seconds):
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + seconds
+    while True:
+        comfy.model_management.throw_exception_if_processing_interrupted()
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            return
+        await asyncio.sleep(min(0.5, remaining))
+
+
+async def upload_bytes_to_comfy_storage(node_cls, data, filename, mime_type, cache, *, cache_key, ttl_seconds,
+                                        max_entries, unavailable_key, failed_key, done_key=None, **message_kwargs):
+    """
+    Comfy.org storage URL for media an API only takes as a public link,
+    reused from `cache` for the same cache_key within ttl_seconds. Needs a
+    Comfy.org login; the helper is internal to ComfyUI and missing with
+    --disable-api-nodes. Message keys get message_kwargs plus e.
+    """
+    cached = cache.get(cache_key)
+    if cached and time.time() - cached[1] < ttl_seconds:
+        return cached[0]
+    try:
+        from comfy_api_nodes.util import upload_file_to_comfyapi
+    except Exception as e:
+        raise BytePlusException(get_text(unavailable_key, e=e, **message_kwargs))
+    try:
+        url = await upload_file_to_comfyapi(node_cls, io.BytesIO(data), filename, mime_type, wait_label=None)
+    except comfy.model_management.InterruptProcessingException:
+        raise
+    except Exception as e:
+        raise BytePlusException(get_text(failed_key, e=e, **message_kwargs))
+    cache.pop(cache_key, None)
+    cache[cache_key] = (url, time.time())
+    while len(cache) > max_entries:
+        cache.pop(next(iter(cache)))
+    if done_key:
+        log_msg(done_key, **message_kwargs)
+    return url
+
+
 class BytePlusClients:
     """
     Wraps the Ark client together with its API key, region and (optional)

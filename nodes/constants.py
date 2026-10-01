@@ -40,6 +40,8 @@ MEDIAKIT_POLL_SECONDS = 10
 # Synchronous tools (Image Quality Enhance) answer when done; max-version
 # images can take minutes.
 MEDIAKIT_SYNC_TIMEOUT_SECONDS = 600
+# Result downloads can be gigabytes: no total limit, only a stall limit.
+MEDIAKIT_DOWNLOAD_STALL_SECONDS = 120
 MEDIAKIT_MAX_POLL_ERRORS = 5
 SEED_AUDIO_PATH = "/api/v3/tts/create"
 SEED_TTS_PATH = "/api/v3/tts/unidirectional"
@@ -572,9 +574,10 @@ MESSAGES = {
     "mediakit_hint_auth": " Check the MediaKit API key (AI MediaKit console > Settings > API key: {url}); ModelArk and Seed Speech keys do not work here.",
     "err_mediakit_api": "MediaKit request failed: {code}{param}: {message}.{request_id}{hint}",
     "err_mediakit_network": "Could not reach AI MediaKit: {e}",
+    "err_mediakit_timeout": "AI MediaKit did not answer within {seconds}s. The request may still have been processed and billed; check the AI MediaKit console before running it again.",
     "err_mediakit_unexpected": "AI MediaKit returned an unexpected response ({status}).",
     "err_mediakit_task_failed": "MediaKit task {task_id} failed: {detail}",
-    "err_mediakit_download_failed": "Could not download {url}.",
+    "err_mediakit_download_failed": "Could not download {url} ({reason}).",
     "mediakit_task_waiting": "MediaKit task {task_id}: {status} ({elapsed}s)",
     "vcube_task_submitted": "vCube enhancement task submitted: {task_id}",
     "err_mediakit_source_both": "Connect a video or set video_url, not both.",
@@ -584,7 +587,9 @@ MESSAGES = {
     "err_mediakit_image_source_missing": "Connect an image, or set image_url to a public link.",
     "err_vcube_too_long": "The video is {duration}s long; vCube accepts at most {max}s.",
     "err_vcube_input_too_large": "Video resolution must be at most {max_w}x{max_h} (2K), got {width}x{height}. Scale the video down before enhancing it.",
-    "err_mediakit_comparison_failed": "Building the before/after comparison failed: {e}. Turn off comparison to skip it.",
+    "err_mediakit_comparison_no_frames": "No video frames could be decoded for the comparison.",
+    "mediakit_comparison_skipped": "Comparison skipped: {e}. The result is returned without it.",
+    "err_vcube_bitrate": "bitrate must be 0 (use bitrate_level) or {min}-{max} kbps, got {value}.",
     "smooth_task_submitted": "Video Smoothness task submitted: {task_id}",
     "smooth_summary": "Video Smoothness: {inserted} frame(s) to insert for periodic stutter, {duplicates} duplicate frame(s).",
     "smooth_no_repair": "Video Smoothness returned no repaired video (repairs set to detect only, nothing to fix, or the repair was skipped by MediaKit's quality check), so the output is the source video. Billed as detection only.",
