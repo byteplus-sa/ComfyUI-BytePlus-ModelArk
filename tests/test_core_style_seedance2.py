@@ -922,7 +922,8 @@ class ReferenceTests(_ExecutorHarness):
         # Slot order decides the image order: image_1 (bright) first.
         first = request["content"][1]["image_url"]["url"]
         self.assertTrue(first.startswith("data:image/jpeg;base64,"))
-        self.assertEqual([c[1]["Id"] for c in self.get_asset_calls], ["asset-img", "asset-aud", "asset-vid"])
+        # The lookups run in parallel, so only the set of ids is fixed (the content order is asserted above).
+        self.assertCountEqual([c[1]["Id"] for c in self.get_asset_calls], ["asset-img", "asset-aud", "asset-vid"])
         self.assertEqual(request["seed"], 7)
 
     async def test_asset_ids_need_credentials_links_do_not(self):

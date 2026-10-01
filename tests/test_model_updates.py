@@ -370,6 +370,9 @@ class ModelConfigurationTests(unittest.TestCase):
                     self.assertNotIn(name, options)
                     self.assertNotIn(model_id, options)
         self.assertEqual(models_config.SEED_LLM_NO_REASONING_EFFORT, ())
+        # Audio-capable LLM options must exist in the model map (a rename would silently drop audio).
+        for label in models_config.SEED_LLM_AUDIO_MODELS:
+            self.assertIn(label, models_config.SEED_LLM_MODEL_MAP)
         # Only the Legacy 1.5 Pro node still lists it, so saved workflows load.
         self.assertEqual(models_config.VIDEO_1_5_UI_OPTIONS, ["seedance-1-5-pro"])
         # Nodes that saved workflows may reference keep the retired names, last.

@@ -550,13 +550,15 @@ MESSAGES = {
 
     # Core-style nodes: Seed LLM and Seed Audio (nodes_seed.py, nodes_speech.py)
     "seed_llm_prompt_empty": "prompt is empty.",
-    "seed_llm_unknown_model": "Unknown Seed model: {model}.",
+    "seed_llm_unknown_model": "Unknown model: {model}.",
     "seed_llm_too_many_images": "Up to {max} images are supported per request; {count} are connected.",
     "seed_llm_too_many_videos": "Up to {max} videos are supported per request; {count} are connected.",
+    "seed_llm_too_many_audios": "Up to {max} audio clips are supported per request; {count} are connected.",
+    "seed_llm_audio_too_long": "The audio clips total {minutes} minutes; ModelArk accepts at most {max} minutes of audio per request.",
     "seed_llm_video_convert_failed": "Could not convert video_{index} to MP4 for upload; re-export it as MP4 (H.264). Error: {e}",
-    "seed_llm_api_error": "Seed API error ({code}): {message}",
+    "seed_llm_api_error": "API error ({code}): {message}",
     "seed_llm_refusal": "The model refused to respond: {refusal}",
-    "seed_llm_empty_response": "Empty response from the Seed model.",
+    "seed_llm_empty_response": "Empty response from the model.",
     "seed_audio_unknown_mode": "Unknown reference mode: {mode}",
     "seed_audio_tag_text_only": "The prompt references @Audio{tag}, but reference mode is 'text only'. Switch to 'audio reference' and connect the reference clip(s).",
     "seed_audio_needs_reference": "Reference mode 'audio reference' requires at least one reference_audio input or ref_audio_N_source (or switch to 'text only').",

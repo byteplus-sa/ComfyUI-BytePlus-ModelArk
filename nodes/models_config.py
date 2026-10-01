@@ -274,13 +274,17 @@ SEEDANCE2_REF_VIDEO_DOWNSCALE_TARGETS = {
 
 # Seed LLM (nodes_seed.py)
 # Core's three labels first (core's first option is the default), then this
-# pack's other Seed models. All accept images and video through the Responses
-# API and support thinking.type enabled/disabled.
+# pack's other Seed models, then the non-Seed LLMs ModelArk hosts. All accept
+# images and video through the Responses API and support thinking.type
+# enabled/disabled (checked live 2026-10-01 for DeepSeek V4.1 Flash and GLM 5.3 Flash,
+# including reasoning.effort minimal/low/medium/high/max and Files API video).
 SEED_LLM_MODEL_MAP = {
     "Seed 2.0 Pro": VISUAL_MODEL_MAP["seed-2-0-pro"],
     "Seed 2.0 Lite": VISUAL_MODEL_MAP["seed-2-0-lite"],
     "Seed 2.0 Mini": VISUAL_MODEL_MAP["seed-2-0-mini"],
     "Seed 2.1 Turbo": VISUAL_MODEL_MAP["dola-seed-2-1-turbo"],
+    "DeepSeek V4.1 Flash": "deepseek-v4-1-flash-260910",
+    "GLM 5.3 Flash": "glm-5-3-flash-260828",
 }
 SEED_LLM_UI_OPTIONS = list(SEED_LLM_MODEL_MAP.keys())
 # Models that reject reasoning.effort (not in the ModelArk "Adjust
@@ -289,3 +293,12 @@ SEED_LLM_UI_OPTIONS = list(SEED_LLM_MODEL_MAP.keys())
 SEED_LLM_NO_REASONING_EFFORT = ()
 SEED_LLM_MAX_IMAGES = 20
 SEED_LLM_MAX_VIDEOS = 4
+# Input modalities, checked live 2026-10-01 (a spoken word, a number in an image and in a video):
+# every model above understands text, images (20 per request) and videos (4 per request).
+# Audio is only understood by Seed 2.0 Lite and Mini (Responses API input_audio + file_id).
+# Seed 2.0 Pro and Seed 2.1 Turbo reject it; DeepSeek V4.1 Flash and GLM 5.3 Flash accept
+# it but answer that they cannot hear, so they get no audio input.
+SEED_LLM_AUDIO_MODELS = ("Seed 2.0 Lite", "Seed 2.0 Mini")
+# The docs only cap the total duration per request (120 minutes); 4 clips is this pack's slot count.
+SEED_LLM_MAX_AUDIOS = 4
+SEED_LLM_MAX_AUDIO_SECONDS = 120 * 60

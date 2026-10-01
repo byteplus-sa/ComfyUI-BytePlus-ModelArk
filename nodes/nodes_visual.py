@@ -50,7 +50,7 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
             display_name="BytePlus Visual Understanding (Legacy)",
             category=GLOBAL_CATEGORY,
             description=(
-                "Legacy node, kept so saved workflows still load: use BytePlus Seed instead. "
+                "Legacy node, kept so saved workflows still load: use BytePlus LLM instead. "
                 "Understand images and video with Dola Seed 2.1 Turbo by default, "
                 "or Seed 2.0 Pro / Lite / Mini."
             ),

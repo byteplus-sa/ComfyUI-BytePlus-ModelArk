@@ -4,7 +4,8 @@ Seed LLM node shaped like ComfyUI core's ByteDanceSeedNode (nodes_bytedance_llm.
 Same inputs as core (prompt, model with images / videos / temperature, seed,
 system_prompt), with the API Client socket first and this pack's extras after
 core's inputs as advanced widgets. Calls the ModelArk Responses API directly
-with the user's key; images and videos go through the Ark Files API.
+with the user's key; images, videos and audio go through the Ark Files API.
+Seed 2.0 Lite and Mini also take audio clips (the other models do not hear audio).
 """
 import asyncio
 import hashlib
@@ -15,9 +16,13 @@ import uuid
 
 from comfy_api.latest import io as comfy_io
 
+from .audio_utils import audio_duration, audio_to_wav_bytes
 from .core_style import seed_input
 from .executor import BytePlusVisualExecutor
 from .models_config import (
+    SEED_LLM_AUDIO_MODELS,
+    SEED_LLM_MAX_AUDIO_SECONDS,
+    SEED_LLM_MAX_AUDIOS,
     SEED_LLM_MAX_IMAGES,
     SEED_LLM_MAX_VIDEOS,
     SEED_LLM_MODEL_MAP,
@@ -46,9 +51,12 @@ SEED_LAST_RESPONSES = {}
 SEED_LAST_RESPONSES_MAX = 256
 
 
-def _seed_model_inputs(max_images=SEED_LLM_MAX_IMAGES, max_videos=SEED_LLM_MAX_VIDEOS):
-    """Core's per-model inputs: Autogrow images and videos, then temperature."""
-    return [
+def _seed_model_inputs(max_images=SEED_LLM_MAX_IMAGES, max_videos=SEED_LLM_MAX_VIDEOS, max_audios=0):
+    """
+    Core's per-model inputs: Autogrow images and videos, then temperature. Models that
+    understand audio get this pack's extra `audios` input after them.
+    """
+    inputs = [
         comfy_io.Autogrow.Input(
             "images",
             template=comfy_io.Autogrow.TemplateNames(
@@ -76,6 +84,32 @@ def _seed_model_inputs(max_images=SEED_LLM_MAX_IMAGES, max_videos=SEED_LLM_MAX_V
             tooltip="Controls randomness. 0.0 is deterministic, higher values are more random.",
             advanced=True,
         ),
+    ]
+    if max_audios:
+        inputs.append(
+            comfy_io.Autogrow.Input(
+                "audios",
+                template=comfy_io.Autogrow.TemplateNames(
+                    comfy_io.Audio.Input("audio"),
+                    names=[f"audio_{i}" for i in range(1, max_audios + 1)],
+                    min=0,
+                ),
+                tooltip=(
+                    f"Optional audio clip(s) to use as context for the model (speech, music, sounds). "
+                    f"Up to {max_audios} clips, {SEED_LLM_MAX_AUDIO_SECONDS // 60} minutes in total."
+                ),
+            )
+        )
+    return inputs
+
+
+def _model_options():
+    return [
+        comfy_io.DynamicCombo.Option(
+            label,
+            _seed_model_inputs(max_audios=SEED_LLM_MAX_AUDIOS if label in SEED_LLM_AUDIO_MODELS else 0),
+        )
+        for label in SEED_LLM_UI_OPTIONS
     ]
 
 
@@ -113,11 +147,12 @@ def _extra_inputs():
         ),
         comfy_io.Combo.Input(
             "reasoning_effort",
-            options=["minimal", "low", "medium", "high"],
+            options=["minimal", "low", "medium", "high", "max"],
             default="medium",
             tooltip=(
-                "Chain-of-thought length (reasoning.effort). Not sent when reasoning_mode is "
-                "disabled."
+                "Chain-of-thought length (reasoning.effort). max thinks the longest (and costs "
+                "the most); models that do not tell two levels apart treat them alike. Not sent "
+                "when reasoning_mode is disabled."
             ),
             optional=True,
             advanced=True,
@@ -205,6 +240,19 @@ def video_file(video):
             os.remove(temp_path)
 
 
+def audio_files(audios):
+    """Every AUDIO input -> a 16-bit WAV file named by its content hash."""
+    paths = []
+    for audio in audios:
+        data = audio_to_wav_bytes(audio)
+        path = _content_path(hashlib.sha256(data).hexdigest(), ".wav")
+        if not os.path.exists(path):
+            with open(path, "wb") as f:
+                f.write(data)
+        paths.append(path)
+    return paths
+
+
 def image_count(image_tensors):
     return sum(int(t.shape[0]) if getattr(t, "ndim", 0) == 4 else 1 for t in image_tensors)
 
@@ -262,18 +310,20 @@ def response_text(response):
 
 
 class BytePlusSeed(comfy_io.ComfyNode):
-    """Text responses from BytePlus Seed models (Responses API)."""
+    """Text responses from BytePlus Seed, DeepSeek and GLM models (Responses API)."""
 
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeed",
-            display_name="BytePlus Seed",
+            display_name="BytePlus LLM",
+            search_aliases=["BytePlus Seed", "Seed", "DeepSeek", "GLM", "chat", "multimodal"],
             category=GLOBAL_CATEGORY,
             description=(
-                "Generate text responses with BytePlus Seed models (Seed 2.0 Pro, Lite and Mini, "
-                "Seed 2.1 Turbo). Provide a text prompt and optionally one or "
-                "more images or videos for multimodal context."
+                "Generate text responses with BytePlus ModelArk LLMs: Seed 2.0 Pro, Lite and Mini, "
+                "Seed 2.1 Turbo, DeepSeek V4.1 Flash and GLM 5.3 Flash. Provide a text prompt and "
+                "optionally images or videos for multimodal context; Seed 2.0 Lite and Mini also "
+                "accept audio clips."
             ),
             inputs=[
                 BytePlusClientType.Input("client"),
@@ -285,11 +335,8 @@ class BytePlusSeed(comfy_io.ComfyNode):
                 ),
                 comfy_io.DynamicCombo.Input(
                     "model",
-                    options=[
-                        comfy_io.DynamicCombo.Option(label, _seed_model_inputs())
-                        for label in SEED_LLM_UI_OPTIONS
-                    ],
-                    tooltip="The Seed model used to generate the response.",
+                    options=_model_options(),
+                    tooltip="The model used to generate the response.",
                 ),
                 seed_input(),
                 comfy_io.String.Input(
@@ -344,6 +391,21 @@ class BytePlusSeed(comfy_io.ComfyNode):
                 get_text("seed_llm_too_many_videos", max=SEED_LLM_MAX_VIDEOS, count=len(videos))
             )
 
+        audios = [a for a in (model.get("audios") or {}).values() if a is not None]
+        if len(audios) > SEED_LLM_MAX_AUDIOS:
+            raise BytePlusException(
+                get_text("seed_llm_too_many_audios", max=SEED_LLM_MAX_AUDIOS, count=len(audios))
+            )
+        total_audio_seconds = sum(audio_duration(a) for a in audios)
+        if total_audio_seconds > SEED_LLM_MAX_AUDIO_SECONDS:
+            raise BytePlusException(
+                get_text(
+                    "seed_llm_audio_too_long",
+                    max=SEED_LLM_MAX_AUDIO_SECONDS // 60,
+                    minutes=f"{total_audio_seconds / 60:.1f}",
+                )
+            )
+
         node_id = cls.hidden.unique_id
         owner = _conversation_owner(client)
         turns = int(turns or 1)
@@ -376,6 +438,9 @@ class BytePlusSeed(comfy_io.ComfyNode):
                     client, path, fps=fps, expire_seconds=expire_seconds, model=model_id
                 )
                 content.append({"type": "input_video", "file_id": file_id})
+            for path in await asyncio.to_thread(audio_files, audios):
+                file_id = await upload_file_to_ark(client, path, expire_seconds=expire_seconds)
+                content.append({"type": "input_audio", "file_id": file_id})
         content.append({"type": "input_text", "text": prompt})
 
         payload = build_seed_payload(

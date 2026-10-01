@@ -136,7 +136,10 @@ class SeedSchemaTests(unittest.TestCase):
     def test_registered_and_named_like_core(self):
         self.assertIn(nodes_seed.BytePlusSeed, nodes_seed.NODES)
         self.assertEqual(self.schema.node_id, "BytePlusSeed")
-        self.assertEqual(self.schema.display_name, "BytePlus Seed")
+        # Renamed from "BytePlus Seed" now that DeepSeek and GLM are listed; the node ID is unchanged
+        # so saved workflows load, and the old names stay searchable.
+        self.assertEqual(self.schema.display_name, "BytePlus LLM")
+        self.assertIn("BytePlus Seed", self.schema.search_aliases)
         self.assertFalse(self.schema.is_api_node)
 
     def test_input_order_client_first_core_then_extras(self):
@@ -149,6 +152,28 @@ class SeedSchemaTests(unittest.TestCase):
             with self.subTest(extra=name):
                 self.assertTrue(self.inputs[name].optional)
                 self.assertTrue(self.inputs[name].advanced)
+
+    def test_input_modalities_per_model(self):
+        # Checked live: all six take text, images and videos; only Seed 2.0 Lite and Mini hear audio.
+        # DeepSeek V4.1 Flash and GLM 5.3 Flash accept an audio clip but ignore it, so offering the
+        # input there would silently drop the audio.
+        self.assertEqual(models_config.SEED_LLM_AUDIO_MODELS, ("Seed 2.0 Lite", "Seed 2.0 Mini"))
+        for option in self.inputs["model"].options:
+            with self.subTest(model=option.key):
+                children = by_id(option.inputs)
+                self.assertIn("images", children)
+                self.assertIn("videos", children)
+                self.assertEqual("audios" in children, option.key in models_config.SEED_LLM_AUDIO_MODELS)
+                if "audios" in children:
+                    audios = children["audios"]
+                    self.assertEqual(audios.template.names, [f"audio_{i}" for i in range(1, 5)])
+                    self.assertEqual(audios.template.min, 0)
+                    self.assertIsInstance(audios.template.input, comfy_io.Audio.Input)
+
+    def test_reasoning_effort_options_include_max(self):
+        effort = self.inputs["reasoning_effort"]
+        self.assertEqual(effort.options, ["minimal", "low", "medium", "high", "max"])
+        self.assertEqual(effort.default, "medium")
 
     def test_core_inputs(self):
         prompt = self.inputs["prompt"]
@@ -168,12 +193,20 @@ class SeedSchemaTests(unittest.TestCase):
         keys = [o.key for o in model.options]
         self.assertEqual(keys[:3], ["Seed 2.0 Pro", "Seed 2.0 Lite", "Seed 2.0 Mini"])
         # Seed 1.8 / 1.6 / 1.6 Flash are deprecated by BytePlus (shut down on 2026-11-11).
-        self.assertEqual(keys, ["Seed 2.0 Pro", "Seed 2.0 Lite", "Seed 2.0 Mini", "Seed 2.1 Turbo"])
+        self.assertEqual(
+            keys,
+            ["Seed 2.0 Pro", "Seed 2.0 Lite", "Seed 2.0 Mini", "Seed 2.1 Turbo",
+             "DeepSeek V4.1 Flash", "GLM 5.3 Flash"],
+        )
         for key in keys:
             with self.subTest(model=key):
                 option = next(o for o in model.options if o.key == key)
-                self.assertEqual([i.id for i in option.inputs], ["images", "videos", "temperature"])
-                images, videos, temperature = option.inputs
+                # Core's children first; the audio-capable models add this pack's `audios` after them.
+                expected = ["images", "videos", "temperature"]
+                if key in ("Seed 2.0 Lite", "Seed 2.0 Mini"):
+                    expected.append("audios")
+                self.assertEqual([i.id for i in option.inputs], expected)
+                images, videos, temperature = option.inputs[:3]
                 self.assertEqual(images.template.names, [f"image_{i}" for i in range(1, 21)])
                 self.assertEqual(images.template.min, 0)
                 self.assertEqual(videos.template.names, [f"video_{i}" for i in range(1, 5)])
@@ -188,6 +221,8 @@ class SeedSchemaTests(unittest.TestCase):
             "Seed 2.0 Lite": "seed-2-0-lite-260428",
             "Seed 2.0 Mini": "seed-2-0-mini-260428",
             "Seed 2.1 Turbo": "dola-seed-2-1-turbo-260628",
+            "DeepSeek V4.1 Flash": "deepseek-v4-1-flash-260910",
+            "GLM 5.3 Flash": "glm-5-3-flash-260828",
         })
         # Every current model accepts reasoning.effort (Seed 1.6 Flash was the last that did not).
         self.assertEqual(models_config.SEED_LLM_NO_REASONING_EFFORT, ())
@@ -330,12 +365,116 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(call["input"][0]["content"], [{"type": "input_text", "text": "Describe it."}])
         self.assertEqual(self.uploads, [])
 
+    async def test_deepseek_and_glm_take_images_and_video_like_seed(self):
+        import torch
+
+        for label, model_id in (
+            ("DeepSeek V4.1 Flash", "deepseek-v4-1-flash-260910"),
+            ("GLM 5.3 Flash", "glm-5-3-flash-260828"),
+        ):
+            with self.subTest(model=label):
+                self.uploads.clear()
+                client, responses = self.client(reply("A red square."))
+                await self.run_node(
+                    client,
+                    "What is shown?",
+                    {
+                        "model": label,
+                        "temperature": 1.0,
+                        "images": {"image_1": torch.zeros((1, 16, 16, 3))},
+                        "videos": {"video_1": FakeVideo()},
+                    },
+                    fps=2.0,
+                )
+                call, = responses.calls
+                self.assertEqual(call["model"], model_id)
+                self.assertEqual(call["input"], [{"role": "user", "content": [
+                    {"type": "input_image", "file_id": "file-1", "detail": "high"},
+                    {"type": "input_video", "file_id": "file-2"},
+                    {"type": "input_text", "text": "What is shown?"},
+                ]}])
+                self.assertEqual(call["reasoning"], {"effort": "medium"})
+                # The video is preprocessed with this model's frame-sampling strategy.
+                self.assertEqual(self.uploads[-1]["model"], model_id)
+
+    async def test_audio_clips_are_sent_as_wav_input_audio_after_images_and_videos(self):
+        import torch
+
+        for label in ("Seed 2.0 Lite", "Seed 2.0 Mini"):
+            with self.subTest(model=label):
+                self.uploads.clear()
+                client, responses = self.client(reply("pineapple, avocado"))
+                await self.run_node(
+                    client,
+                    "List the words.",
+                    {
+                        "model": label,
+                        "temperature": 1.0,
+                        "images": {"image_1": torch.zeros((1, 8, 8, 3))},
+                        "videos": {"video_1": FakeVideo()},
+                        # A speech-style clip and a stereo 44.1 kHz one, as Load Audio gives them.
+                        "audios": {"audio_1": sine_audio(1.0, 16000, 1), "audio_2": sine_audio(0.5, 44100, 2)},
+                    },
+                )
+                call, = responses.calls
+                self.assertEqual(call["input"], [{"role": "user", "content": [
+                    {"type": "input_image", "file_id": "file-1", "detail": "high"},
+                    {"type": "input_video", "file_id": "file-2"},
+                    {"type": "input_audio", "file_id": "file-3"},
+                    {"type": "input_audio", "file_id": "file-4"},
+                    {"type": "input_text", "text": "List the words."},
+                ]}])
+                audio_uploads = self.uploads[2:]
+                # 16-bit PCM WAV through the Files API, no video preprocessing.
+                self.assertEqual([u["head"] for u in audio_uploads], [b"RIF"] * 2)
+                self.assertTrue(all(u["path"].endswith(".wav") for u in audio_uploads))
+                self.assertEqual([u["fps"] for u in audio_uploads], [None, None])
+
+    async def test_no_audio_input_means_no_input_audio_item(self):
+        client, responses = self.client(reply())
+        await self.run_node(client, model={"model": "Seed 2.0 Lite", "temperature": 1.0, "audios": {}})
+        self.assertEqual(responses.calls[0]["input"][0]["content"], [{"type": "input_text", "text": "Describe it."}])
+        self.assertEqual(self.uploads, [])
+
+    async def test_audio_limits(self):
+        client, _responses = self.client(reply())
+        too_many = {f"audio_{i}": sine_audio(0.1) for i in range(1, 6)}
+        with self.assertRaisesRegex(BytePlusException, "Up to 4 audio clips"):
+            await self.run_node(client, model={"model": "Seed 2.0 Mini", "temperature": 1.0, "audios": too_many})
+        old = nodes_seed.SEED_LLM_MAX_AUDIO_SECONDS
+        nodes_seed.SEED_LLM_MAX_AUDIO_SECONDS = 60  # one minute for the test: two 40 s clips are too long
+        try:
+            long_clips = {"audio_1": sine_audio(40.0, 8000), "audio_2": sine_audio(40.0, 8000)}
+            with self.assertRaisesRegex(BytePlusException, r"total 1\.3 minutes.*at most 1 minutes"):
+                await self.run_node(client, model={"model": "Seed 2.0 Lite", "temperature": 1.0, "audios": long_clips})
+        finally:
+            nodes_seed.SEED_LLM_MAX_AUDIO_SECONDS = old
+        self.assertEqual(self.uploads, [])
+
+    async def test_max_effort_is_sent_for_every_model(self):
+        # The API accepts reasoning.effort "max" on every listed model, so it is not gated per model.
+        for label in models_config.SEED_LLM_UI_OPTIONS:
+            with self.subTest(model=label):
+                client, responses = self.client(reply())
+                await self.run_node(client, model={"model": label, "temperature": 1.0},
+                                    reasoning_mode="enabled", reasoning_effort="max")
+                call, = responses.calls
+                self.assertEqual(call["thinking"], {"type": "enabled"})
+                self.assertEqual(call["reasoning"], {"effort": "max"})
+                # Thinking off sends no effort at all, whatever the effort widget says.
+                client, responses = self.client(reply())
+                await self.run_node(client, model={"model": label, "temperature": 1.0},
+                                    reasoning_mode="disabled", reasoning_effort="max")
+                self.assertNotIn("reasoning", responses.calls[0])
+
     async def test_reasoning_options(self):
         cases = [
             ("Seed 2.1 Turbo", "enabled", "high", {"type": "enabled"}, {"effort": "high"}),
             ("Seed 2.0 Mini", "disabled", "high", {"type": "disabled"}, None),
             ("Seed 2.0 Pro", "enabled", "low", {"type": "enabled"}, {"effort": "low"}),
             ("Seed 2.0 Lite", "auto", "minimal", None, {"effort": "minimal"}),
+            ("DeepSeek V4.1 Flash", "enabled", "medium", {"type": "enabled"}, {"effort": "medium"}),
+            ("GLM 5.3 Flash", "disabled", "high", {"type": "disabled"}, None),
         ]
         for label, mode, effort, thinking, reasoning in cases:
             with self.subTest(model=label, mode=mode):
