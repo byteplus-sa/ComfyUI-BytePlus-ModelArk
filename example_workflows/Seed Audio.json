@@ -7,8 +7,14 @@
     {
       "id": 1,
       "type": "BytePlusSpeechClient",
-      "pos": [20, 80],
-      "size": [320, 138],
+      "pos": [
+        20,
+        80
+      ],
+      "size": [
+        320,
+        138
+      ],
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -50,7 +56,9 @@
         {
           "name": "speech_client",
           "type": "BYTEPLUS_SPEECH_CLIENT",
-          "links": [1]
+          "links": [
+            1
+          ]
         }
       ],
       "properties": {
@@ -58,13 +66,24 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusSpeechClient"
       },
-      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
+      "widgets_values": [
+        "",
+        "",
+        "Custom",
+        "ap-southeast-1"
+      ]
     },
     {
       "id": 2,
       "type": "BytePlusSeedAudio",
-      "pos": [380, 80],
-      "size": [460, 576],
+      "pos": [
+        380,
+        80
+      ],
+      "size": [
+        460,
+        576
+      ],
       "flags": {},
       "order": 1,
       "mode": 0,
@@ -209,13 +228,23 @@
             "name": "propagate_id"
           },
           "link": null
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
           "name": "AUDIO",
           "type": "AUDIO",
-          "links": [2]
+          "links": [
+            2
+          ]
         },
         {
           "name": "subtitles_json",
@@ -225,7 +254,9 @@
         {
           "name": "srt",
           "type": "STRING",
-          "links": [3]
+          "links": [
+            3
+          ]
         },
         {
           "name": "duration",
@@ -261,14 +292,21 @@
         "",
         "",
         "",
-        ""
+        "",
+        1
       ]
     },
     {
       "id": 3,
       "type": "PreviewAudio",
-      "pos": [900, 80],
-      "size": [320, 110],
+      "pos": [
+        900,
+        80
+      ],
+      "size": [
+        320,
+        110
+      ],
       "flags": {},
       "order": 2,
       "mode": 0,
@@ -290,8 +328,14 @@
     {
       "id": 4,
       "type": "PreviewAny",
-      "pos": [900, 240],
-      "size": [380, 260],
+      "pos": [
+        900,
+        240
+      ],
+      "size": [
+        380,
+        260
+      ],
       "flags": {},
       "order": 3,
       "mode": 0,
@@ -312,16 +356,40 @@
     }
   ],
   "links": [
-    [1, 1, 0, 2, 0, "BYTEPLUS_SPEECH_CLIENT"],
-    [2, 2, 0, 3, 0, "AUDIO"],
-    [3, 2, 2, 4, 0, "STRING"]
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "BYTEPLUS_SPEECH_CLIENT"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "AUDIO"
+    ],
+    [
+      3,
+      2,
+      2,
+      4,
+      0,
+      "STRING"
+    ]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
       "scale": 0.9,
-      "offset": [40, 40]
+      "offset": [
+        40,
+        40
+      ]
     }
   },
   "version": 0.4

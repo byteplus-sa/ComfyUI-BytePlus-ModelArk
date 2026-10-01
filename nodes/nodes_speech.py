@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import io
@@ -39,6 +40,7 @@ from .constants import (
     SEED_AUDIO_FORMATS,
     SEED_AUDIO_IMAGE_MAX_PIXELS,
     SEED_AUDIO_IMAGE_MIN_PIXELS,
+    SEED_AUDIO_MAX_GENERATION_COUNT,
     SEED_AUDIO_MAX_AUDIO_REFS,
     SEED_AUDIO_MAX_PROMPT_CHARS,
     SEED_AUDIO_PATH,
@@ -630,13 +632,26 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
                                       tooltip="Implicit watermark: name or code of the distributor."),
                 comfy_io.String.Input("propagate_id", default="", optional=True, advanced=True,
                                       tooltip="Implicit watermark: content distribution ID."),
+                comfy_io.Int.Input(
+                    "generation_count",
+                    default=1,
+                    min=1,
+                    max=SEED_AUDIO_MAX_GENERATION_COUNT,
+                    optional=True,
+                    advanced=True,
+                    tooltip=(
+                        "Number of separate generations to run in parallel, each billed as its own request. "
+                        "The API has no seed or variation setting, so every run is a fresh take of the same "
+                        "prompt. All outputs are lists in the same order: the next node runs once per clip."
+                    ),
+                ),
             ],
             outputs=[
-                comfy_io.Audio.Output(),
-                comfy_io.String.Output(display_name="subtitles_json"),
-                comfy_io.String.Output(display_name="srt"),
-                comfy_io.Float.Output(display_name="duration"),
-                comfy_io.String.Output(display_name="url"),
+                comfy_io.Audio.Output(is_output_list=True),
+                comfy_io.String.Output(display_name="subtitles_json", is_output_list=True),
+                comfy_io.String.Output(display_name="srt", is_output_list=True),
+                comfy_io.Float.Output(display_name="duration", is_output_list=True),
+                comfy_io.String.Output(display_name="url", is_output_list=True),
             ],
             hidden=[comfy_io.Hidden.unique_id],
         )
@@ -646,7 +661,7 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
                       speech_rate=0, loudness_rate=0, pitch_rate=0, seed=42, model=SEED_AUDIO_MODELS[0],
                       audio_format="wav", enable_subtitle=False, aigc_watermark=False, aigc_metadata=False,
                       content_producer="", produce_id="", content_propagator="",
-                      propagate_id="") -> comfy_io.NodeOutput:
+                      propagate_id="", generation_count=1) -> comfy_io.NodeOutput:
         require_speech_client(speech_client)
         reference_mode = reference_mode or {}
         mode = reference_mode.get("reference_mode")
@@ -669,43 +684,65 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
             loudness_rate, pitch_rate, enable_subtitle, aigc_watermark, aigc_metadata,
             content_producer, produce_id, content_propagator, propagate_id,
         )
-        operation = "Seed Audio"
-        response = await speech_post(speech_client, SEED_AUDIO_PATH, body, operation=operation)
-        result = response.json()
-        if not isinstance(result, dict):
-            raise speech_error(operation, response, message=response.text()[:300])
-        check_code(operation, response, result.get("code"), result.get("message"))
-
-        url = result.get("url") or ""
-        if result.get("audio"):
-            audio_bytes = b64decode_audio(result["audio"])
-        elif url:
-            audio_bytes = await download_bytes(url, operation)
-        else:
-            raise BytePlusException(get_text("speech_empty_audio", operation=operation))
-        if audio_format == "pcm":
-            audio = pcm16_to_audio(audio_bytes, int(sample_rate))
-        else:
-            audio = decode_audio_bytes(audio_bytes)
-
-        subtitle = result.get("subtitle") if isinstance(result.get("subtitle"), dict) else {}
-        # The docs name the sentence list "sentences"; accept "utterances" too.
-        segments = subtitle_segments(subtitle.get("sentences") or subtitle.get("utterances"))
-        duration = result.get("duration")
-        if not isinstance(duration, (int, float)):
-            duration = audio_duration(audio)
-        log_msg(
-            "seed_audio_done",
-            duration=f"{float(duration):.2f}",
-            billed=result.get("original_duration", "-"),
+        count = max(1, int(generation_count or 1))
+        if count > 1:
+            log_msg("batch_submit_start", count=count, model=model or SEED_AUDIO_MODELS[0])
+        results = await asyncio.gather(
+            *[_seed_audio_once(speech_client, body, audio_format, sample_rate) for _ in range(count)],
+            return_exceptions=True,
         )
-        return comfy_io.NodeOutput(
-            audio,
-            _segments_json(subtitle, segments),
-            build_srt(segments),
-            float(duration),
-            url,
-        )
+        clips = []
+        errors = []
+        for result in results:
+            if isinstance(result, comfy.model_management.InterruptProcessingException):
+                raise result
+            if isinstance(result, BaseException):
+                errors.append(result)
+            else:
+                clips.append(result)
+        if count > 1:
+            log_msg("batch_finished_stats", success=len(clips), failed=len(errors))
+            for error in errors:
+                log_msg("batch_failed_reason", msg=str(error), count=1)
+        if not clips:
+            raise errors[0]
+        # One list per output, index-aligned with the clips.
+        return comfy_io.NodeOutput(*[list(column) for column in zip(*clips)])
+
+
+async def _seed_audio_once(speech_client, body, audio_format, sample_rate):
+    """One Seed Audio request: (audio, subtitles_json, srt, duration, url)."""
+    operation = "Seed Audio"
+    response = await speech_post(speech_client, SEED_AUDIO_PATH, body, operation=operation)
+    result = response.json()
+    if not isinstance(result, dict):
+        raise speech_error(operation, response, message=response.text()[:300])
+    check_code(operation, response, result.get("code"), result.get("message"))
+
+    url = result.get("url") or ""
+    if result.get("audio"):
+        audio_bytes = b64decode_audio(result["audio"])
+    elif url:
+        audio_bytes = await download_bytes(url, operation)
+    else:
+        raise BytePlusException(get_text("speech_empty_audio", operation=operation))
+    if audio_format == "pcm":
+        audio = pcm16_to_audio(audio_bytes, int(sample_rate))
+    else:
+        audio = decode_audio_bytes(audio_bytes)
+
+    subtitle = result.get("subtitle") if isinstance(result.get("subtitle"), dict) else {}
+    # The docs name the sentence list "sentences"; accept "utterances" too.
+    segments = subtitle_segments(subtitle.get("sentences") or subtitle.get("utterances"))
+    duration = result.get("duration")
+    if not isinstance(duration, (int, float)):
+        duration = audio_duration(audio)
+    log_msg(
+        "seed_audio_done",
+        duration=f"{float(duration):.2f}",
+        billed=result.get("original_duration", "-"),
+    )
+    return audio, _segments_json(subtitle, segments), build_srt(segments), float(duration), url
 
 
 # TTS

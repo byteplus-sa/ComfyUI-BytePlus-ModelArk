@@ -149,7 +149,7 @@ class WorkflowTemplateTests(unittest.TestCase):
             "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
             "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "seed", "model",
             "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
-            "content_producer", "produce_id", "content_propagator", "propagate_id",
+            "content_producer", "produce_id", "content_propagator", "propagate_id", "generation_count",
         ],
         "BytePlusSeed": [
             "client", "prompt", "model", "model.images.image_1", "model.videos.video_1",

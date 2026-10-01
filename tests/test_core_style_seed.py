@@ -648,9 +648,9 @@ class SeedAudioSchemaTests(unittest.TestCase):
             "speech_client", "text_prompt", "reference_mode", "sample_rate", "speech_rate",
             "loudness_rate", "pitch_rate", "seed", "model",
             "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
-            "content_producer", "produce_id", "content_propagator", "propagate_id",
+            "content_producer", "produce_id", "content_propagator", "propagate_id", "generation_count",
         ])
-        for name in ("audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
+        for name in ("generation_count", "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
                      "content_producer", "produce_id", "content_propagator", "propagate_id"):
             with self.subTest(extra=name):
                 self.assertTrue(self.inputs[name].optional)
@@ -713,6 +713,7 @@ class SeedAudioSchemaTests(unittest.TestCase):
         outputs = self.schema.outputs
         self.assertEqual([o.io_type for o in outputs], ["AUDIO", "STRING", "STRING", "FLOAT", "STRING"])
         self.assertEqual([o.display_name for o in outputs], [None, "subtitles_json", "srt", "duration", "url"])
+        self.assertTrue(all(o.is_output_list for o in outputs))
 
 
 class FakeSpeechHTTP:
@@ -858,8 +859,8 @@ class SeedAudioRequestTests(unittest.IsolatedAsyncioTestCase):
 
         pcm = struct.pack("<4h", 0, 1000, -1000, 0)
         speech_api._send = FakeSpeechHTTP([(200, {}, {"code": 0, "audio": base64.b64encode(pcm).decode()})])
-        audio, *_ = (await self.run_node({"reference_mode": "text only"}, audio_format="pcm",
-                                         sample_rate="8000")).result
+        audio = (await self.run_node({"reference_mode": "text only"}, audio_format="pcm",
+                                     sample_rate="8000")).result[0][0]
         self.assertEqual(audio["sample_rate"], 8000)
         self.assertEqual(tuple(audio["waveform"].shape), (1, 1, 4))
 

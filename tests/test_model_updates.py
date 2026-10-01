@@ -2764,9 +2764,11 @@ class SeedAudioTests(SpeechTestBase):
             "text": "Hello there",
             "sentences": [{"text": "Hello there", "start_time": 0, "end_time": 480}],
         })))
-        audio, subtitles, srt, duration, url = (await self._run(
+        outputs = (await self._run(
             audio_format="mp3", sample_rate="44100", speech_rate=10, enable_subtitle=True, aigc_watermark=True,
         )).result
+        self.assertEqual([len(column) for column in outputs], [1] * 5)
+        audio, subtitles, srt, duration, url = (column[0] for column in outputs)
         call = fake.calls[0]
         self.assertEqual(call.url, "https://voice.ap-southeast-1.bytepluses.com/api/v3/tts/create")
         self.assertEqual(call.headers["X-Api-Key"], "speech-key-1")
@@ -2851,13 +2853,34 @@ class SeedAudioTests(SpeechTestBase):
         with self.assertRaisesRegex(nodes_shared.BytePlusException, "ModelArk API keys do not work"):
             await self._run()
 
+    async def test_generation_count_runs_parallel_requests_into_list_outputs(self):
+        fake = self.serve(*[(200, {}, self._wav_payload())] * 3)
+        outputs = (await self._run(generation_count=3)).result
+        self.assertEqual(len(fake.calls), 3)
+        self.assertEqual(len({call.headers["X-Api-Request-Id"] for call in fake.calls}), 3)
+        self.assertEqual([len(column) for column in outputs], [3] * 5)
+        self.assertEqual(outputs[3], [0.5, 0.5, 0.5])
+
+    async def test_generation_count_keeps_clips_when_some_requests_fail(self):
+        self.serve(
+            (200, {}, self._wav_payload()),
+            (200, {}, {"code": 45000001, "message": "bad"}),
+        )
+        outputs = (await self._run(generation_count=2)).result
+        self.assertEqual([len(column) for column in outputs], [1] * 5)
+
+    async def test_generation_count_raises_when_every_request_fails(self):
+        self.serve(*[(200, {}, {"code": 45000001, "message": "bad"})] * 2)
+        with self.assertRaises(self.nodes.BytePlusException):
+            await self._run(generation_count=2)
+
     async def test_downloads_url_when_audio_is_missing(self):
         wav = self.audio.audio_to_wav_bytes(_sine_audio(0.25, 16000))
         fake = self.serve(
             (200, {}, {"code": 0, "url": "https://cdn.example/b.wav"}),
             (200, {}, wav),
         )
-        audio, _, _, duration, _ = (await self._run()).result
+        audio, _, _, duration, _ = (column[0] for column in (await self._run()).result)
         self.assertEqual((fake.calls[1].method, fake.calls[1].url), ("GET", "https://cdn.example/b.wav"))
         self.assertEqual(audio["sample_rate"], 16000)
         self.assertAlmostEqual(duration, 0.25, places=3)
@@ -3049,11 +3072,11 @@ class SpeechAdvancedOptionTests(SpeechTestBase):
         import base64
 
         fake = self.serve((200, {}, {"code": 0, "audio": base64.b64encode(pcm).decode()}))
-        audio, *_ = (await self.nodes.BytePlusSeedAudio.execute(
+        audio = (await self.nodes.BytePlusSeedAudio.execute(
             self.client, "Hi", {"reference_mode": "text only"}, model="seed-audio-1.0", audio_format="pcm",
             sample_rate="16000", aigc_watermark=True, aigc_metadata=True, content_producer="Studio",
             produce_id="p-1", content_propagator=" ", propagate_id="d-9",
-        )).result
+        )).result[0][0]
         self.assertEqual(fake.calls[0].body["watermark"], {
             "aigc_watermark": True,
             "aigc_metadata": {"enable": True, "content_producer": "Studio", "produce_id": "p-1",
