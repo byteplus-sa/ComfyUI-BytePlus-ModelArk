@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 import unittest
@@ -25,6 +26,15 @@ EXPECTED_WORKFLOWS = {
 def load_workflow(name):
     with open(os.path.join(WORKFLOW_DIR, name), "r", encoding="utf-8") as file:
         return json.load(file)
+
+
+def load_models_config():
+    """nodes/models_config.py has no imports, so it loads without ComfyUI."""
+    path = os.path.join(PLUGIN_ROOT, "nodes", "models_config.py")
+    spec = importlib.util.spec_from_file_location("byteplus_models_config", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class WorkflowTemplateTests(unittest.TestCase):
@@ -455,6 +465,48 @@ class WorkflowTemplateTests(unittest.TestCase):
                         self.assertEqual((video["name"], video.get("shape")), ("VIDEO", 6))
                         self.assertTrue(all("shape" not in o for o in node["outputs"][1:]))
         self.assertEqual(found, seedance_nodes)
+
+    # Nodes ComfyUI runs on their own; every other node runs only when one of these uses its output.
+    OUTPUT_NODE_TYPES = {
+        "SaveImage", "PreviewImage", "SaveVideo", "PreviewAny", "PreviewAudio", "SaveAudio",
+        "ImageCompare", "BytePlusVideoQueryTasks",
+    }
+
+    def test_every_node_leads_to_an_output_node(self):
+        # A node that feeds no output node never runs, and a template without one fails
+        # with "Prompt has no outputs".
+        for name in sorted(EXPECTED_WORKFLOWS):
+            workflow = load_workflow(name)
+            types = {node["id"]: node["type"] for node in workflow["nodes"]}
+            consumers = {}
+            for _link_id, origin, _slot, target, _target_slot, _type in workflow["links"]:
+                consumers.setdefault(origin, set()).add(target)
+            runs = {node_id for node_id, node_type in types.items() if node_type in self.OUTPUT_NODE_TYPES}
+            grew = True
+            while grew:
+                grew = False
+                for node_id in types:
+                    if node_id not in runs and consumers.get(node_id, set()) & runs:
+                        runs.add(node_id)
+                        grew = True
+            with self.subTest(workflow=name):
+                self.assertEqual(sorted(types[node_id] for node_id in set(types) - runs), [])
+
+    def test_quota_settings_template(self):
+        workflow = load_workflow("QuotaSettings.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        quota = next(node for node in nodes.values() if node["type"] == "BytePlusQuotaSettings")
+        seedream = next(node for node in nodes.values() if node["type"] == "BytePlusSeedream")
+        # The guarded client (output 1) feeds the generation node; the status (output 0) is shown.
+        targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == quota["id"]}
+        self.assertEqual(targets, {(1, "BytePlusSeedream"), (0, "PreviewAny")})
+        # A 10-image cap on the model the Seedream node uses (quotas are keyed by model ID).
+        self.assertEqual(quota["widgets_values"], ["dola-seedream-5-0-pro", 10, "None", 0])
+        models = load_models_config()
+        self.assertEqual(
+            models.SEEDREAM_5_MODEL_MAP[quota["widgets_values"][0]],
+            models.SEEDREAM_MODELS[seedream["widgets_values"][1]],
+        )
 
     def test_templates_do_not_embed_api_keys(self):
         for name in sorted(EXPECTED_WORKFLOWS):
