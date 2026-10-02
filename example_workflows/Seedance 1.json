@@ -1,7 +1,7 @@
 {
   "id": "7f1f70c4-4e61-49be-96d1-2e3f1c490006",
   "revision": 0,
-  "last_node_id": 11,
+  "last_node_id": 10,
   "last_link_id": 10,
   "nodes": [
     {
@@ -68,7 +68,7 @@
         {
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
-          "links": [1, 2, 3, 4]
+          "links": [1, 2, 3]
         }
       ],
       "properties": {
@@ -809,103 +809,12 @@
         "Node name for S&R": "SaveVideo"
       },
       "widgets_values": ["BytePlus/Video/SeedanceFirstLastFrame", "auto", "auto"]
-    },
-    {
-      "id": 11,
-      "type": "BytePlusVideoQueryTasks",
-      "pos": [900, 1864],
-      "size": [350, 300],
-      "flags": {},
-      "order": 10,
-      "mode": 4,
-      "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "link": 4
-        },
-        {
-          "name": "page_num",
-          "type": "INT",
-          "widget": {
-            "name": "page_num"
-          },
-          "link": null
-        },
-        {
-          "name": "page_size",
-          "type": "INT",
-          "widget": {
-            "name": "page_size"
-          },
-          "link": null
-        },
-        {
-          "name": "status",
-          "type": "COMBO",
-          "widget": {
-            "name": "status"
-          },
-          "link": null
-        },
-        {
-          "name": "service_tier",
-          "type": "COMBO",
-          "widget": {
-            "name": "service_tier"
-          },
-          "link": null
-        },
-        {
-          "name": "task_ids",
-          "type": "STRING",
-          "widget": {
-            "name": "task_ids"
-          },
-          "link": null
-        },
-        {
-          "name": "model_version",
-          "type": "COMBO",
-          "widget": {
-            "name": "model_version"
-          },
-          "link": null
-        },
-        {
-          "name": "seed",
-          "type": "INT",
-          "widget": {
-            "name": "seed"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "task_list_json",
-          "type": "STRING",
-          "links": null
-        },
-        {
-          "name": "total_tasks",
-          "type": "INT",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
-        "Node name for S&R": "BytePlusVideoQueryTasks"
-      },
-      "widgets_values": [1, 10, "all", "default", "", "all", 0, "randomize"]
     }
   ],
   "links": [
     [1, 1, 0, 2, 0, "BYTEPLUS_CLIENT"],
     [2, 1, 0, 5, 0, "BYTEPLUS_CLIENT"],
     [3, 1, 0, 9, 0, "BYTEPLUS_CLIENT"],
-    [4, 1, 0, 11, 0, "BYTEPLUS_CLIENT"],
     [5, 4, 0, 5, 3, "IMAGE"],
     [6, 7, 0, 9, 3, "IMAGE"],
     [7, 8, 0, 9, 4, "IMAGE"],

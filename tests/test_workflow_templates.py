@@ -560,7 +560,7 @@ class WorkflowTemplateTests(unittest.TestCase):
     # Nodes ComfyUI runs on their own; every other node runs only when one of these uses its output.
     OUTPUT_NODE_TYPES = {
         "SaveImage", "PreviewImage", "SaveVideo", "PreviewAny", "PreviewAudio", "SaveAudio",
-        "ImageCompare", "BytePlusVideoQueryTasks",
+        "ImageCompare",
     }
 
     def test_every_node_leads_to_an_output_node(self):
