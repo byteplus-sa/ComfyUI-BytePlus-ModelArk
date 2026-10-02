@@ -36,7 +36,11 @@ from .constants import (
     DEFAULT_REGION,
 )
 from .core_style import core_search_aliases, reference_kind_from_url
+from . import credentials
 from .nodes_shared import (
+    build_default_client,
+    optional_client_input,
+    with_default_client,
     GLOBAL_CATEGORY,
     BytePlusClientType,
     BytePlusException,
@@ -64,17 +68,12 @@ ASSET_UPLOAD_CACHE = {}
 
 def resolve_asset_credentials(client):
     """AK/SK from the selected api_keys.json entry, else the standard env vars."""
-    credentials = getattr(client, "asset_credentials", None)
-    if credentials:
-        return credentials
-    access_key = os.environ.get("BYTEPLUS_ACCESS_KEY") or os.environ.get("BYTEPLUS_ACCESSKEY")
-    secret_key = os.environ.get("BYTEPLUS_SECRET_KEY") or os.environ.get("BYTEPLUS_SECRETKEY")
-    if access_key and secret_key:
-        return {
-            "access_key": access_key,
-            "secret_key": secret_key,
-            "session_token": os.environ.get("BYTEPLUS_SESSION_TOKEN", ""),
-        }
+    from_client = getattr(client, "asset_credentials", None)
+    if from_client:
+        return from_client
+    from_environment = credentials.get_asset_credentials()
+    if from_environment:
+        return from_environment
     raise BytePlusException(get_text("err_asset_credentials_missing"))
 
 
@@ -581,7 +580,7 @@ GROUP_ID_TOOLTIP = (
 def _core_asset_inputs(media_input, url_input, url_tooltip, asset_name_default):
     """client first, then core's inputs, then this pack's extras (advanced)."""
     return [
-        BytePlusClientType.Input("client"),
+        optional_client_input(),
         media_input,
         comfy_io.String.Input("group_id", default="", tooltip=GROUP_ID_TOOLTIP),
         comfy_io.String.Input(url_input, default="", tooltip=url_tooltip, advanced=True),
@@ -914,6 +913,7 @@ class BytePlusCreateImageAsset(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,
@@ -981,6 +981,7 @@ class BytePlusCreateVideoAsset(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,
@@ -1047,6 +1048,7 @@ class BytePlusCreateAudioAsset(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,

@@ -72,6 +72,7 @@
         {
           "name": "speech_client",
           "type": "BYTEPLUS_SPEECH_CLIENT",
+          "shape": 7,
           "link": 1
         },
         {
@@ -352,6 +353,7 @@
         {
           "name": "speech_client",
           "type": "BYTEPLUS_SPEECH_CLIENT",
+          "shape": 7,
           "link": 3
         },
         {

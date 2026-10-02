@@ -30,8 +30,10 @@ from .models_config import (
     SEED_LLM_UI_OPTIONS,
 )
 from .nodes_shared import (
+    build_default_client,
+    optional_client_input,
+    with_default_client,
     GLOBAL_CATEGORY,
-    BytePlusClientType,
     BytePlusException,
     _tensor2images,
     get_node_count_in_workflow,
@@ -330,7 +332,7 @@ class BytePlusSeed(comfy_io.ComfyNode):
                 "accept audio clips."
             ),
             inputs=[
-                BytePlusClientType.Input("client"),
+                optional_client_input(),
                 comfy_io.String.Input(
                     "prompt",
                     multiline=True,
@@ -361,6 +363,7 @@ class BytePlusSeed(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,

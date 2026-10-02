@@ -62,9 +62,27 @@ if COMFY_ROOT:
 
 # --- schema helpers ---------------------------------------------------------
 
+
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
+CLIENT_INPUT_IDS = ("client", "speech_client", "mediakit_client")
+
+
 def ordered(inputs):
-    """Frontend order: required inputs first, then optional ones, each in schema order."""
-    return [i for i in inputs if not i.optional] + [i for i in inputs if i.optional]
+    """
+    Order of a node's inputs in its workflow JSON: the optional client socket
+    first (the frontend lists sockets first), then required inputs, then the
+    other optional ones, each in schema order.
+    """
+    clients = [i for i in inputs if i.id in CLIENT_INPUT_IDS]
+    rest = [i for i in inputs if i.id not in CLIENT_INPUT_IDS]
+    return clients + [i for i in rest if not i.optional] + [i for i in rest if i.optional]
 
 
 def workflow_input_names(inputs, selections, prefix=""):
@@ -147,10 +165,13 @@ class SeedSchemaTests(unittest.TestCase):
             self.skipTest(f"core ByteDance LLM node unavailable: {e}")
         theirs = core.ByteDanceSeedNode.GET_NODE_INFO_V1()
         ours = nodes_seed.BytePlusSeed.GET_NODE_INFO_V1()
-        # Client first, then core's inputs in core's order; this pack's extras after them.
-        self.assertEqual(ours["input_order"]["required"], ["client", *theirs["input_order"]["required"]])
+        # Core's inputs in core's order (the optional client socket comes first among the optional
+        # ones); this pack's extras after them.
+        self.assertEqual(ours["input_order"]["required"], theirs["input_order"]["required"])
         core_optional = theirs["input_order"].get("optional", [])
-        self.assertEqual(ours["input_order"]["optional"][: len(core_optional)], core_optional)
+        self.assertEqual(ours["input_order"]["optional"][0], "client")
+        self.assertTrue(ours["input"]["optional"]["client"][1]["tooltip"])
+        self.assertEqual(ours["input_order"]["optional"][1 : 1 + len(core_optional)], core_optional)
         our_inputs = {**ours["input"]["required"], **ours["input"].get("optional", {})}
         for section in ("required", "optional"):
             for name, spec in (theirs["input"].get(section) or {}).items():

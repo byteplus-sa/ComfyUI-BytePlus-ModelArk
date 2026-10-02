@@ -18,6 +18,7 @@ Keys are never interchangeable (CLAUDE.md → "Three key types"). A new product 
 | Client object | `MediaKitClient(api_key, region)` with a `__repr__` that hides the key | Never put the key in outputs or logs |
 | Socket | `comfy_io.Custom("BYTEPLUS_MEDIAKIT_CLIENT")` | Distinct type so a wrong client can't be wired |
 | Client node | `BytePlusMediaKitClient`: `new_api_key`, `new_key_name`, `key_name` (saved keys + `Environment (<ENV>)` + `Custom`), `region`; `hidden=[Hidden.unique_id]` | Copy `execute` verbatim and rename |
+| Default key | `build_default_<product>_client()`: `credentials.get_setting(<ENV>)` (process environment, then `user/.env`), else the one saved key, else a `BytePlusException` naming Settings > BytePlus, the variable and the `.env` path | The node input is optional (`<Type>.Input("x_client", optional=True, tooltip=...)`) and `execute` carries `@with_default_client("x_client", build_default_x_client)`; add the variable to `credentials.CREDENTIAL_VARS` / `WRITABLE_VARS`, a row to `credentials_routes.handle_save`, a field in `web/js/byteplus_credentials.js`, and the node to `tests/test_credentials.py` |
 | Save notification | `_notify_api_key_saved(node_id, name, key, store="mediakit")` | Add the store → class name to `API_CLIENT_CLASS_BY_STORE` in `web/js/byteplus_dynamic_widgets.js`, or the pasted key is never cleared |
 | Registration | module `NODES` list → `__init__.py` `_registered_nodes` | Category `f"{GLOBAL_CATEGORY}/<Product>"` |
 | Docs | README setup section for the key, CLAUDE.md layout row + "Key types" rule | |

@@ -58,8 +58,10 @@ from .nodes_image_schema import (
     seedream_size_options,
 )
 from .nodes_shared import (
+    build_default_client,
+    optional_client_input,
+    with_default_client,
     GLOBAL_CATEGORY,
-    BytePlusClientType,
     BytePlusException,
     billed_ark,
     call_billed,
@@ -415,7 +417,7 @@ class BytePlusSeedream(comfy_io.ComfyNode):
             category=GLOBAL_CATEGORY,
             description=SEEDREAM_DESCRIPTION,
             inputs=[
-                BytePlusClientType.Input("client"),
+                optional_client_input(),
                 comfy_io.String.Input(
                     "prompt",
                     multiline=True,
@@ -448,6 +450,7 @@ class BytePlusSeedream(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(cls, client, prompt, model) -> comfy_io.NodeOutput:
         plan = build_seedream_plan(model if isinstance(model, dict) else {"model": model}, prompt)
         model_id = plan["model_id"]
@@ -912,7 +915,7 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
             ),
             description=LAYER_SEPARATION_DESCRIPTION,
             inputs=[
-                BytePlusClientType.Input("client"),
+                optional_client_input(),
                 comfy_io.DynamicCombo.Input(
                     "model",
                     options=[
@@ -930,6 +933,7 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(cls, client, model) -> comfy_io.NodeOutput:
         label = model.get("model")
         model_id = SEEDREAM_LAYER_SEPARATION_MODELS.get(label)

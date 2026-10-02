@@ -51,6 +51,15 @@ if COMFY_ROOT:
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
     from comfy_execution.graph_utils import ExecutionBlocker  # noqa: E402
 
+
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 ASSET_ENV_KEYS = (
     "BYTEPLUS_ACCESS_KEY", "BYTEPLUS_SECRET_KEY", "BYTEPLUS_ACCESSKEY", "BYTEPLUS_SECRETKEY",
     "BYTEPLUS_SESSION_TOKEN",
@@ -228,22 +237,23 @@ class SchemaTests(unittest.TestCase):
         self.assertEqual(library.display_name, "BytePlus Asset Library")
 
     def test_top_level_input_order(self):
-        # client first, core's inputs, then our extras (the FLF extras are optional
-        # so they follow core's optional frame inputs in the UI too).
+        # The optional client first among the optional inputs, core's inputs, then our extras
+        # (the FLF extras are optional so they follow core's optional frame inputs in the UI too).
         cases = {
-            nodes_seedance2.BytePlusSeedance2TextToVideo: (["client", "model", "seed", "watermark", *EXTRAS], []),
+            nodes_seedance2.BytePlusSeedance2TextToVideo: (["model", "seed", "watermark", *EXTRAS], ["client"]),
             nodes_seedance2.BytePlusSeedance2FirstLastFrame: (
-                ["client", "model", "seed", "watermark"],
-                ["first_frame", "last_frame", "first_frame_asset_id", "last_frame_asset_id", *EXTRAS],
+                ["model", "seed", "watermark"],
+                ["client", "first_frame", "last_frame", "first_frame_asset_id", "last_frame_asset_id", *EXTRAS],
             ),
-            nodes_seedance2.BytePlusSeedance2Reference: (["client", "model", "seed", "watermark", *EXTRAS], []),
-            nodes_seedance2.BytePlusSeedanceDraftToFinal: (["client", "draft_task_id", "watermark", *EXTRAS], []),
+            nodes_seedance2.BytePlusSeedance2Reference: (["model", "seed", "watermark", *EXTRAS], ["client"]),
+            nodes_seedance2.BytePlusSeedanceDraftToFinal: (["draft_task_id", "watermark", *EXTRAS], ["client"]),
         }
         for node_cls, (required, optional) in cases.items():
             with self.subTest(node=node_cls.NODE_ID):
                 _info, req, opt = v1_inputs(node_cls)
                 self.assertEqual(list(req), required)
                 self.assertEqual(list(opt), optional)
+                self.assertTrue(opt["client"][1]["tooltip"])
                 for name in EXTRAS:
                     spec = (req.get(name) or opt.get(name))[1]
                     self.assertTrue(spec.get("advanced"), name)
@@ -351,9 +361,9 @@ class SchemaTests(unittest.TestCase):
                 _info, req, opt = v1_inputs(node_cls)
                 self.assertEqual(
                     list(req),
-                    ["client", "group_id", url_input, "group_name", "asset_name", "project_name", "wait_until_active"],
+                    ["group_id", url_input, "group_name", "asset_name", "project_name", "wait_until_active"],
                 )
-                self.assertEqual(list(opt), [media])
+                self.assertEqual(list(opt), ["client", media])
                 self.assertFalse(req["group_id"][1].get("advanced", False))
                 for name in (url_input, "group_name", "asset_name", "project_name", "wait_until_active"):
                     self.assertTrue(req[name][1]["advanced"], name)
@@ -434,7 +444,7 @@ class SchemaTests(unittest.TestCase):
             theirs_opt = core_info["input"].get("optional") or {}
             theirs = {**theirs_req, **theirs_opt}
             self.assertEqual([n for n in req if n not in ["client", *EXTRAS]], list(theirs_req))
-            self.assertEqual([n for n in opt if n not in EXTRAS], list(theirs_opt))
+            self.assertEqual([n for n in opt if n not in ["client", *EXTRAS]], list(theirs_opt))
             for name, spec in theirs.items():
                 if name == "model":
                     ours_options = {o["key"]: o["inputs"] for o in ours[name][1]["options"]}
@@ -475,7 +485,7 @@ class TemplateSchemaTests(unittest.TestCase):
 
     @staticmethod
     def frontend_order(node_cls, label):
-        """Input names as the frontend lists them: required, then optional; DynamicCombo children after it."""
+        """Input names as the workflow JSON lists them: client, required, then optional; DynamicCombo children after it."""
         info = node_cls.GET_NODE_INFO_V1()
         names = []
         for section in ("required", "optional"):
@@ -487,7 +497,8 @@ class TemplateSchemaTests(unittest.TestCase):
                         for child, child_spec in (option["inputs"].get(sub) or {}).items():
                             if child_spec[0] != "COMFY_AUTOGROW_V3":
                                 names.append((f"{name}.{child}", child_spec[0]))
-        return names
+        # The optional client socket is listed first, as in a freshly created node.
+        return [item for item in names if item[0] == "client"] + [item for item in names if item[0] != "client"]
 
     def test_seedance2_template_matches_the_schema(self):
         with open(os.path.join(PLUGIN_ROOT, "example_workflows", "Seedance 2.json"), encoding="utf-8") as file:

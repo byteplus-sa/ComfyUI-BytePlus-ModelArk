@@ -232,6 +232,7 @@ VIDEO_RESOLUTION_PIXELS = {
 DEFAULT_FILENAME_PREFIX = "BytePlus/Video/Batch/Seedance"
 
 MESSAGES = {
+    "init_credentials_routes_failed": "Could not register the BytePlus credentials routes ({e}); Settings > BytePlus will not work. The nodes still load.",
     "init_sdk_ver_low": "BytePlus SDK {current} is older than the required {min}; the BytePlus nodes are disabled. Update it, then restart ComfyUI:\n  {cmd}",
     "init_sdk_not_found": "BytePlus SDK is not installed; the BytePlus nodes are disabled. Install the requirements, then restart ComfyUI:\n  {cmd}",
     "init_sdk_version_unknown": "Could not read the BytePlus SDK version (no package metadata); loading anyway. The nodes need byteplus-python-sdk-v2 >= {min}.",
@@ -349,9 +350,9 @@ MESSAGES = {
     "err_seedance25_first_frame_ratio": "Seedance 2.5 image-to-video keeps the first frame's aspect ratio. Set aspect_ratio to adaptive.",
     "err_seedance25_task_type_needs_video": "Seedance 2.5 task_type '{task_type}' needs at least one reference video.",
     "err_seedance25_extend_params": "Seedance 2.5 video extension requires the adaptive aspect ratio.",
-    "err_asset_credentials_missing": "The asset library needs IAM AK/SK with asset-library permission (plus Dreamina Seedance Advanced Creation Rights on the account). Set key_name to Custom on the API Client, paste the API key again under the same new_key_name together with new_access_key and new_secret_key, and run once (they are saved with the key). Alternatively add \"accessKey\" and \"secretKey\" (and \"sessionToken\" for STS keys) to the entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY and restart ComfyUI.",
+    "err_asset_credentials_missing": "The asset library needs IAM AK/SK with asset-library permission (plus Dreamina Seedance Advanced Creation Rights on the account). Add them in Settings > BytePlus (Asset library IAM AK/SK), or set key_name to Custom on the API Client, paste the API key again under the same new_key_name together with new_access_key and new_secret_key, and run once (they are saved with the key). Alternatively add \"accessKey\" and \"secretKey\" (and \"sessionToken\" for STS keys) to the entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY.",
     "err_asset_api": "Asset library {action} failed: {code}: {message}{hint}",
-    "hint_asset_auth": " Check the AK/SK in api_keys.json or the BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY environment variables.",
+    "hint_asset_auth": " Check the AK/SK in Settings > BytePlus, api_keys.json or the BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY environment variables.",
     "hint_asset_denied": " The IAM user needs asset-library permission in this project, and the account needs Dreamina Seedance Advanced Creation Rights.",
     "hint_asset_throttled": " CreateAsset is rate-limited by your Advanced Creation Rights tier (Entry 3, Advanced 120, Premium 300 per minute); wait and retry.",
     "err_asset_no_id": "Asset library {action} returned no ID. Try again; if it repeats, check the asset library in the ModelArk console.",
@@ -405,6 +406,26 @@ MESSAGES = {
     "visual_polling": "Polling Response Task: {id}",
     "visual_task_complete": "Task {id} completed.",
     "visual_task_failed": "Task {id} failed: {msg}",
+
+    # Default credentials (Settings > BytePlus, BYTEPLUS_* variables, user/.env)
+    "err_no_default_key": "No BytePlus API key found. Add it in Settings > BytePlus, set the BYTEPLUS_API_KEY environment variable, or put BYTEPLUS_API_KEY=... in {path}. You can also connect a BytePlus API Client node.",
+    "err_default_key_ambiguous": "No default BytePlus API key is set, and api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus API Client node.",
+    "err_default_speech_key_ambiguous": "No default Seed Speech API key is set, and speech_api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus Speech Client node.",
+    "err_default_mediakit_key_ambiguous": "No default AI MediaKit API key is set, and mediakit_api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus MediaKit Client node.",
+    "err_no_default_speech_key": "No Seed Speech API key found. Add it in Settings > BytePlus, set BYTEPLUS_SEED_SPEECH_API_KEY, or put BYTEPLUS_SEED_SPEECH_API_KEY=... in {path}. You can also connect a BytePlus Speech Client node.",
+    "err_no_default_mediakit_key": "No AI MediaKit API key found. Add it in Settings > BytePlus, set BYTEPLUS_VOD_MEDIAKIT_API_KEY, or put BYTEPLUS_VOD_MEDIAKIT_API_KEY=... in {path}. You can also connect a BytePlus MediaKit Client node.",
+    "cred_unknown": "Unknown credential.",
+    "cred_bad_request": "The request is not valid.",
+    "cred_forbidden_origin": "Requests from another origin are not accepted.",
+    "cred_empty": "Paste a key first.",
+    "cred_key_rejected": "BytePlus rejected this API key for the selected region, so it was not saved.",
+    "cred_key_unchecked": "Saved, but BytePlus could not be reached to check the key; if the nodes report 401, check the key and region.",
+    "cred_region_env_conflict": "The BYTEPLUS_REGION environment variable is set to {region}, and it overrides the region picked here. Change or remove that variable (then restart ComfyUI), or pick {region}.",
+    "cred_pair_incomplete": "The IAM access key and secret key go together: fill in both.",
+    "cred_write_failed": "Could not write {path}: {e}",
+    "cred_saved": "Saved.",
+    "cred_cleared": "Removed.",
+    "cred_saved_log": "Default credentials updated in {path}: {names}.",
 
     # Seed Speech (Seed Audio, TTS, ASR)
     "speech_key_empty": "Paste a Seed Speech API key into new_api_key, or pick a saved key.",
@@ -478,7 +499,7 @@ MESSAGES = {
     "err_reference_value_invalid": "Not a valid reference: '{value}'. Use an asset ID, asset://<asset_id> or an https:// link.",
     "err_reference_value_multiple": "Each reference input takes one asset ID, asset://<asset_id> or https:// link, but got several (or spaces): '{value}'. Connect each reference to its own asset_N slot.",
     "err_reference_url_type_unknown": "Could not tell whether {url} is an image, video or audio file. Use a link ending in the file extension (for example .png, .mp4 or .mp3).",
-    "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add \"accessKey\" and \"secretKey\" to the selected entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY, then restart ComfyUI.",
+    "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add them in Settings > BytePlus (Asset library IAM AK/SK), or add \"accessKey\" and \"secretKey\" to the selected entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY.",
     "err_reference_asset_not_active": "Reference asset {asset_id} is not Active (status: {status}).",
     "err_reference_asset_type_unknown": "Reference asset {asset_id} has an unknown asset type.",
     "err_reference_type_mismatch": "'{value}' is {kind}, but this input needs {expected}.",
@@ -627,7 +648,7 @@ MESSAGES = {
     "err_comfy_video_upload_failed_mediakit": "Uploading the video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set video_url to a public link instead.",
 
     "api_errors": {
-        "AuthenticationError": "Invalid API Key (401). Check the key in api_keys.json, and that the API Client region matches the region the key was created in.",
+        "AuthenticationError": "Invalid API Key (401). Check the key (Settings > BytePlus, BYTEPLUS_API_KEY or api_keys.json), and that the region (BYTEPLUS_REGION or the API Client) matches the region the key was created in.",
         "AccessDenied": "Access Denied (403). No permission or IP whitelist issue.",
         "AccountOverdueError": "Account Overdue (403). Top up your BytePlus account in the BytePlus console billing center.",
         "ServiceOverdue": "Service Overdue (403). Top up your BytePlus account in the BytePlus console billing center.",

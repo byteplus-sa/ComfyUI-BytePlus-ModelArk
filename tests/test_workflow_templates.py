@@ -413,10 +413,11 @@ class WorkflowTemplateTests(unittest.TestCase):
                     [output["name"] for output in node["outputs"]],
                     ["VIDEO", "last_frame", "response"],
                 )
-                # Core's optional inputs and this pack's extras are optional sockets.
+                # Core's optional inputs, this pack's extras and the client (it falls back to the
+                # default key) are optional sockets.
                 optional = {item["name"] for item in node["inputs"] if item.get("shape") == 7}
                 self.assertEqual(
-                    optional, set(self.SEEDANCE1_AFTER_FRAMES[3:]), msg=node_type
+                    optional, {"client", *self.SEEDANCE1_AFTER_FRAMES[3:]}, msg=node_type
                 )
 
     def test_templates_are_english_and_byteplus_only(self):

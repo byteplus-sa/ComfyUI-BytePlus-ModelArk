@@ -44,8 +44,10 @@ from .models_config import (
     SEEDANCE_1_TEXT_RATIOS,
 )
 from .nodes_shared import (
+    build_default_client,
+    optional_client_input,
+    with_default_client,
     GLOBAL_CATEGORY,
-    BytePlusClientType,
     BytePlusException,
     get_text,
 )
@@ -202,7 +204,7 @@ def _schema(node_id, display_name, description, model_options, default_model, fr
         category=GLOBAL_CATEGORY,
         description=description,
         inputs=[
-            BytePlusClientType.Input("client"),
+            optional_client_input(),
             _model_input(model_options, default_model),
             _prompt_input(),
             *frame_inputs,
@@ -296,6 +298,7 @@ class BytePlusSeedanceTextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,
@@ -353,6 +356,7 @@ class BytePlusSeedanceImageToVideo(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,
@@ -415,6 +419,7 @@ class BytePlusSeedanceFirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,

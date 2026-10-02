@@ -159,6 +159,12 @@ if _dependencies_ready:
     from .nodes.nodes_assets import CORE_STYLE_NODES as ASSET_NODES
     from .nodes.nodes_mediakit import NODES as MEDIAKIT_NODES
 
+    from .nodes import credentials_routes
+
+    # Settings > BytePlus talks to these routes. Without ComfyUI's server,
+    # register() logs why and the nodes still load.
+    credentials_routes.register()
+
     _registered_nodes = [
         BytePlusAPIClient,
         *SEEDREAM_NODES,

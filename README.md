@@ -6,6 +6,8 @@ Generation calls go directly to ModelArk with **your own ModelArk API key**, so 
 
 > **Status: v0.3.1.** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
 
+**Unreleased:** The new nodes no longer need a client node in the workflow. Save your keys once in **Settings → BytePlus** (or in a `.env` file, or the `BYTEPLUS_API_KEY` environment variable) and every workflow uses them; the `API Client`, `Speech Client` and `MediaKit Client` nodes are optional now, for using another key or region. See [Configure Your API Key](#configure-your-api-key).
+
 **v0.3.1:** The Seedance 1 template no longer includes Video Query Tasks (the node is still available from node search).
 
 **v0.3.0:** The image, video, understanding and asset nodes now have the same layout as ComfyUI's built-in ByteDance nodes (same node split, inputs, defaults and outputs), plus an `API Client` input and this pack's extras under advanced inputs. The previous nodes stay available as "(Legacy)" so saved workflows still load. Also adds Seed Speech nodes: `Seed Audio 1.0`, `Seed Speech TTS`, `Seed Speech ASR`, `Seed Voice Clone` and the `Speech Client` that holds the Seed Speech API key, and, on AI MediaKit, `vCube Video Enhance` (ComfyUI's built-in ByteDance vCube node), `Video Smoothness Enhance` and `Image Quality Enhance` with the `MediaKit Client`. Requires ComfyUI 0.31.0 or later.
@@ -22,12 +24,12 @@ Generation calls go directly to ModelArk with **your own ModelArk API key**, so 
 
 ## Nodes
 
-The generation nodes match ComfyUI's built-in ByteDance nodes input for input, so workflows look the same as with Comfy's partner nodes. The differences: every node takes the `API Client` as its first input (calls go to ModelArk with your key), BytePlus model IDs are used, and this pack's extras (parallel generations, non-blocking runs, and so on) sit under advanced inputs after the built-in ones.
+The generation nodes match ComfyUI's built-in ByteDance nodes input for input, so workflows look the same as with Comfy's partner nodes. The differences: every node can take the `API Client` as an optional input (without it, calls go to ModelArk with your default key from Settings → BytePlus), BytePlus model IDs are used, and this pack's extras (parallel generations, non-blocking runs, and so on) sit under advanced inputs after the built-in ones.
 
 Like the built-in nodes, the generation, asset and MediaKit nodes save nothing themselves (the one exception is the opt-in `save_layers` of `Seedream 5.0 Layer Separation`) and only run when something uses their output: connect `Save Video` / `Save Image` to keep the results. A node with nothing connected does not run and is not billed. With `generation_count` above 1, every video reaches the `VIDEO` output (each with its own seed, the next node runs once per video) and `last_frame` holds their last frames as one batch. The Legacy nodes keep their old behaviour, including saving batches to the output folder.
 
 - **Setup**
-  - `API Client` (required): creates the ModelArk client used by all other nodes. Pick the key and the region.
+  - `API Client` (optional): creates the ModelArk client for the nodes you connect it to. Use it to pick another saved key or region than your default.
   - `Quota Settings`: limit image and video token usage.
 - **Image**
   - `Seedream 4.5 & 5.0`: Seedream 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0 in one node. Size presets for 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2 and 21:9 at each resolution the model supports, as in the ModelArk console (5.0 Pro and Flash include 1.5K, which on Pro costs the same as 1K), plus the ModelArk "adaptive" resolution levels (the console's "Smart": the model picks the ratio from the prompt) or a custom width × height anywhere in the model's pixel range at 1:16 to 16:1 (for example 1280×720 on 5.0 Pro), up to 10 reference images (14 on 5.0 Lite), `max_images` for related image sets (Lite, 4.5, 4.0), prompt optimization and "thinking" where the model supports them. Advanced: parallel generations, PNG output and a transparent background on Pro and Flash (connect Load Image's `MASK` to `reference_mask`; the `mask` output holds the result's transparency).
@@ -43,13 +45,13 @@ Like the built-in nodes, the generation, asset and MediaKit nodes save nothing t
 - **Understanding**
   - `LLM` (formerly `Seed`; saved workflows keep working): text answers with Seed 2.0 Pro / Lite / Mini, Seed 2.1 Turbo, DeepSeek V4.1 Flash or GLM 5.3 Flash, with up to 20 images and 4 videos as context (Seed 2.0 Lite and Mini also take up to 4 audio clips, 120 minutes in total; the other models do not hear audio), temperature and a system prompt. Advanced: image detail, video fps, deep thinking and effort (minimal to max), multi-turn conversations, streaming; a second output returns the raw response JSON.
 - **Speech** (Seed Speech; needs a [Seed Speech API key](#seed-speech-api-key), not the ModelArk key)
-  - `Speech Client` (required for the speech nodes): picks the Seed Speech API key.
+  - `Speech Client` (optional): picks another Seed Speech API key than your default.
   - `Seed Audio 1.0`: `seed-audio-1.0`. Speech, voiceovers, music and sound effects up to 120 s from a natural-language prompt in 20 languages, laid out like ComfyUI's built-in Seed Audio node. `reference_mode`: text only; audio reference (up to three clips from `Load Audio` up to 30 s, or speaker IDs, cloned voice IDs or audio URLs, referred to as `@Audio1`–`@Audio3` in the prompt); image reference (`Load Image` or a URL); or a preset TTS 2.0 voice. Sample rate, speed, loudness and pitch controls. Advanced: output format (wav, mp3, ogg_opus, pcm), sentence/word subtitles, audible and metadata watermarks, and `generation_count` (up to 16 parallel takes of the same prompt, each billed as its own request, since the API has no seed or variation setting; every output is a list in the same order, so the next node runs once per clip, and failed takes are skipped unless all fail). Uploaded clips and images are sent inline.
   - `Seed Voice Clone`: upload a 10–15 s reference clip (`Load Audio`) to train a cloned voice (Voice Replication 2.0) into a voice slot (`S_…`, bought in the Seed Speech console) or a postpaid custom voice ID. Waits until the voice is ready and outputs its `speaker_id` (connect it to TTS `custom_speaker_id` with model `seed-icl-2.0`, or to a Seed Audio reference slot) plus a demo clip. Each slot can be trained 15 times; the first TTS call with the voice starts the slot's billing.
   - `Seed Speech TTS`: text to speech with the TTS 2.0 voice list (`seed-tts-2.0`), TTS 1.0 speaker IDs (`seed-tts-1.0`) or cloned voices (`seed-icl-2.0` / `seed-icl-1.0`). Style instructions (`context_text`), emotion and intensity, speed, volume, pitch, sample rate, language, trailing silence and subtitles/timestamps. Advanced: language detection, context language, Markdown/emoji/LaTeX/parentheses handling, unsupported-language threshold, 1-hour cache and tone fidelity for cloned voices.
   - `Seed Speech ASR`: speech to text in 50+ languages from an uploaded clip (`Load Audio`) or a public audio URL. `seed-asr-fast` sends the clip inline; the standard models (`seed-asr-2.0` / `1.0`, up to 5 h) only take URLs, so a connected clip is uploaded to Comfy.org storage first (Comfy.org login required, like Seedance reference videos). A context image (`Load Image`) is uploaded the same way. Punctuation, number formatting, filler-word removal, speaker labels and hotwords. Advanced: dialogue/scene context and an image for visual context (ASR 2.0), automatic language detection and per-utterance language labels, stereo channel split, silence-based segmentation, Traditional Chinese output and sensitive-word filtering. Outputs the transcript, utterance timings and SRT subtitles.
 - **Video and image enhancement** (BytePlus VOD AI MediaKit; needs an [AI MediaKit API key](#ai-mediakit-api-key))
-  - `MediaKit Client` (required for the MediaKit nodes): picks the AI MediaKit API key.
+  - `MediaKit Client` (optional): picks another AI MediaKit API key than your default.
   - `vCube Video Enhance`: the same inputs as ComfyUI's built-in ByteDance vCube node. Super-resolution up to 8K, compression-artifact and noise removal, and frame interpolation up to 120 fps. `standard` (scene presets `aigc`, `common`, `ugc`, `short_series`, `old_film`) or `professional`; `hd` or `natural` style; a resolution preset, `source` or a custom short side; `fps` and `bitrate_level`. Sources up to 2560×1440 and 10 minutes. A connected video is uploaded to Comfy.org storage first (Comfy.org login required, like Seedance reference videos); advanced `video_url` takes a public link instead. Also outputs a before/after **comparison video** (original on the left, enhanced on the right, with a divider sweeping across the frame) and a `source_frame` / `enhanced_frame` pair: connect both to ComfyUI's `Compare Images` node for a slider comparison (the slider needs Nodes 2.0; Classic Canvas shows "Node 2.0 only"). Advanced: exact `bitrate`, `comparison` on/off and `compare_time`.
   - `Video Smoothness Enhance`: repairs stutter without changing the resolution, for example in Seedance videos. `periodic_stutter` (sudden jumps in the motion rhythm): `repair` generates in-between frames, with `align_source_fps` to keep the source frame rate and duration and `insert_frame_indices` to force insertions at given frames; or `detect only`. `duplicate_frames`: `remove` or `detect only`. Sources up to 4K, and up to 35 s while a repair is on (detection alone has no length limit). Outputs the repaired video, a **side-by-side comparison video** (original left, smoothed right, in sync), and the detected stutter and duplicate-frame counts. When MediaKit makes no repair (nothing found, detect only, or its quality check skipped the repair), the source video is passed through, the comparison is skipped and the task is billed as detection only. Advanced: `video_url` and `comparison`.
   - `Image Quality Enhance`: upscales and restores images in one call (super-resolution, artifact and noise removal, deblurring, sharpening, portrait, text and colour enhancement). `tool_version`: `standard` (up to 8x, PNG output), `professional` or `max` (generative model), both up to 30x with `generative_enhance_mode` (`generative_first` or `fidelity_first`); `max` also has `enable_correct_color`. `output_size`: a `multiple` (default 2x) or a `target size` (width and/or height). Each version's input and output size limits are checked before upload. Each image in a batch is enhanced separately; connected images are uploaded to Comfy.org storage (Comfy.org login required). Also outputs `original`, the input resized to the result's size: connect it and the result to `Compare Images` for a slider (Nodes 2.0). Advanced: `image_url`.
@@ -80,22 +82,84 @@ Run `pip` with the same Python that runs ComfyUI, then restart ComfyUI. ComfyUI-
 
 ## Configure Your API Key
 
-1. Create an API key in the [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) and activate the models you plan to use. Keys and model activation are per region.
-2. Either:
-   - Copy `api_keys.json.example` to `api_keys.json` and add your key, or
-   - Add the `API Client` node, choose **Custom** in `key_name`, paste your key and set `new_key_name`. After the first run the key is saved to `api_keys.json`, the node switches to the saved name, and the pasted key is cleared.
-3. In the `API Client` node, set `region` to the region the key belongs to.
+Create an API key in the [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) and activate the models you plan to use. Keys and model activation are per region. Then set it up once, in any of these ways. The nodes use it whenever no `API Client` is connected, so workflows need no key (and no client node).
 
-For the private asset library nodes the `API Client` also takes IAM AK/SK (`new_access_key`, `new_secret_key`); see [Private Assets](#private-assets).
+**Settings dialog (easiest, also in ComfyUI Desktop).** Open **Settings → BytePlus**, paste the key, pick its region and press **Save**. The key is checked against BytePlus first. It is written to a `.env` file in ComfyUI's `user` folder and takes effect at once, with no restart. Settings also has fields for the Seed Speech key, the AI MediaKit key and the asset library AK/SK, and each field shows only whether a key is set and its last four characters.
 
-While `key_name` is **Custom**, the raw key is part of the workflow and of the prompt metadata that ComfyUI embeds in saved images and videos. Save the key under a name (or use `api_keys.json`) before sharing workflows or outputs. Never commit `api_keys.json`.
+**`.env` file.** Create `user/.env` inside your ComfyUI folder yourself (for ComfyUI Desktop, the base folder you chose at install, for example `~/ComfyUI-Installs/ComfyUI/ComfyUI/user/.env`):
+
+```
+BYTEPLUS_API_KEY=your-modelark-key
+BYTEPLUS_REGION=ap-southeast-1
+BYTEPLUS_SEED_SPEECH_API_KEY=your-seed-speech-key
+BYTEPLUS_VOD_MEDIAKIT_API_KEY=your-mediakit-key
+BYTEPLUS_ACCESS_KEY=your-iam-ak
+BYTEPLUS_SECRET_KEY=your-iam-sk
+```
+
+Only the lines you need. A real environment variable of the same name wins over the file (Settings tells you when that happens), and the pack never touches other lines in the file. Keep it private (Settings creates it readable by you only) and never commit it.
+
+**`api_keys.json`.** Still supported: if you have no default key and `api_keys.json` holds exactly one key, that key is the default. With several keys no default is guessed; set one as above or connect an `API Client`.
+
+**`API Client` node (several keys or regions).** Add it, choose **Custom** in `key_name`, paste your key and set `new_key_name`; after the first run the key is saved to `api_keys.json`, the node switches to the saved name, and the pasted key is cleared. Connect it to the nodes that should use that key. Set `region` to the region the key belongs to. For the private asset library nodes it also takes IAM AK/SK (`new_access_key`, `new_secret_key`); see [Private Assets](#private-assets).
+
+While `key_name` is **Custom**, the raw key is part of the workflow and of the prompt metadata that ComfyUI embeds in saved images and videos. Save the key under a name (or use Settings or `.env`) before sharing workflows or outputs. Never commit `api_keys.json`.
+
+ComfyUI has no login: anyone who can open your ComfyUI page (for example with `--listen` on a shared network) can use your saved keys through your workflows and replace them in Settings. Do not expose ComfyUI to networks you do not trust.
+
+### Step by Step: Default Key in ComfyUI Desktop
+
+This sets the ModelArk key once and checks that a workflow without an `API Client` node uses it. The same steps work for a manual or portable install; only the folder differs.
+
+**1. Find your `.env` file.** Open ComfyUI, then **Settings** (gear icon, or Ctrl+, / Cmd+,) and search for **BytePlus**. Under the ModelArk row it says *Saved in …/user/.env*: that is the file. ComfyUI also prints the folder at startup (`** User directory: …` in the log). For ComfyUI Desktop it is inside the base folder you chose at install, for example:
+
+- macOS: `~/ComfyUI-Installs/<install name>/ComfyUI/user/.env`
+- Windows: `<base folder>\ComfyUI\user\.env` (whatever the Settings line shows)
+
+The file does not exist until you save a key. (Settings shows your home folder as `~`.)
+
+![Settings → BytePlus with no key yet; under the ModelArk row: "Saved in ~/ComfyUI/user/.env"](docs/images/settings-byteplus-not-set.jpg)
+
+**2. Save the key, in one of two ways.**
+
+- *Settings (no file editing):* in **Settings → BytePlus**, paste the ModelArk key, pick its region and press **Save**. The row then shows `set (ends in xxxx), from user/.env`. A wrong key is refused ("BytePlus rejected this API key"); nothing is written.
+- *By hand:* create the file at the path from step 1 and add:
+
+  ```
+  BYTEPLUS_API_KEY=your-modelark-key
+  BYTEPLUS_REGION=ap-southeast-1
+  ```
+
+  On macOS, in Terminal: `nano ~/ComfyUI-Installs/<install name>/ComfyUI/user/.env`, paste the lines, then Ctrl+O, Enter, Ctrl+X, and `chmod 600` the file. (Finder hides names that start with a dot; Cmd+Shift+. shows them. If you use TextEdit, choose Format → Make Plain Text first.) On Windows, in Notepad choose *Save as type: All files* and name it `.env`, or it is saved as `.env.txt`.
+
+  Then reopen **Settings → BytePlus**: the row shows `set (ends in xxxx), from user/.env`. No restart is needed; the file is read on every run.
+
+![Settings → BytePlus after saving: "ModelArk API key: set (ends in abcd), from user/.env."](docs/images/settings-byteplus-key-set.jpg)
+
+**3. Run a workflow without a client node.** On an empty canvas add **BytePlus LLM** (double-click the canvas and search), type a prompt such as `Reply with OK`, pick **Seed 2.0 Mini**, connect its `STRING` output to a **Preview as Text** node (*Preview Any* in older ComfyUI) and press **Run**. The answer appears in the preview node, and the `client` input stays unconnected; the request was made with the key from `.env`. (Cost: a few tokens.) To check an image node too, add **BytePlus Seedream**, pick **seedream 5.0 flash** with a `(1K)` size, and connect **Preview Image**.
+
+![A BytePlus LLM node with nothing connected to its client input, answering in Preview as Text](docs/images/workflow-without-client-node.jpg)
+
+To try a shipped template instead, open one from the template browser and delete its **BytePlus API Client** node (or its links): the nodes then use the default key.
+
+**4. Check the "no key" case.** Press **Remove** in **Settings → BytePlus** (or delete the line from `.env`), change the prompt, and run again. The node stops with *No BytePlus API key found…* and lists where to set one. If `api_keys.json` holds exactly one saved key, that key is used instead; with several, the error names them.
+
+Change the prompt or seed between test runs: ComfyUI reuses the cached result of an unchanged node, so an identical run makes no request and does not show the new key in use.
+
+**ComfyUI Desktop's own Environment Variables.** Desktop also has an **Environment Variables** field in each installation's settings, passed to ComfyUI when it starts (restart to apply). `BYTEPLUS_API_KEY` set there works too and wins over `.env`; Settings → BytePlus then says *from an environment variable*, and its Remove button only clears the `.env` copy. Desktop itself warns that those values are stored unencrypted in its configuration file and advises against putting API keys there, so prefer Settings → BytePlus.
+
+**If it does not work**
+
+- *No BytePlus page in Settings:* the pack is older than this feature, or the browser shows a cached page. Update the pack (ComfyUI Manager → Update), restart ComfyUI, then reload the page.
+- *Invalid API Key (401):* the key and region do not match. Pick the key's region in Settings (or set `BYTEPLUS_REGION`).
+- *Save says "Requests from another origin are not accepted":* ComfyUI is behind a proxy that hides the address you opened. Edit `.env` by hand instead.
 
 ### Seed Speech API Key
 
 Seed Speech (Seed Audio, TTS, ASR) is a separate BytePlus product with its own API key; ModelArk keys are rejected (`Invalid X-Api-Key`).
 
 1. In the [Seed Speech console](https://console.byteplus.com/voice/new/overview?projectName=default), activate the services you plan to use (trial or paid), then create a key under **Settings → API Keys**.
-2. Add the `Speech Client` node and either choose **Custom**, paste the key and set `new_key_name` (saved to `speech_api_keys.json`, then cleared from the node like the ModelArk key), or set the `BYTEPLUS_SEED_SPEECH_API_KEY` environment variable and choose **Environment**.
+2. Save it in **Settings → BytePlus** (or as `BYTEPLUS_SEED_SPEECH_API_KEY` in the `.env` file or the environment) and the speech nodes use it with no client node. To use several keys, add the `Speech Client` node and either choose **Custom**, paste the key and set `new_key_name` (saved to `speech_api_keys.json`, then cleared from the node like the ModelArk key), or choose **Environment**.
 
 Seed Speech runs in `ap-southeast-1` (Singapore) only. Never commit `speech_api_keys.json`.
 
@@ -104,7 +168,7 @@ Seed Speech runs in `ap-southeast-1` (Singapore) only. Never commit `speech_api_
 vCube Video Enhance, Video Smoothness Enhance and Image Quality Enhance run on BytePlus VOD AI MediaKit, which has its own API key; ModelArk and Seed Speech keys are rejected.
 
 1. In the [AI MediaKit console](https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey), create a key under **Settings → API key**.
-2. Add the `MediaKit Client` node and either choose **Custom**, paste the key and set `new_key_name` (saved to `mediakit_api_keys.json`, then cleared from the node like the ModelArk key), or set the `BYTEPLUS_VOD_MEDIAKIT_API_KEY` environment variable and choose **Environment**.
+2. Save it in **Settings → BytePlus** (or as `BYTEPLUS_VOD_MEDIAKIT_API_KEY` in the `.env` file or the environment) and the MediaKit nodes use it with no client node. To use several keys, add the `MediaKit Client` node and either choose **Custom**, paste the key and set `new_key_name` (saved to `mediakit_api_keys.json`, then cleared from the node like the ModelArk key), or choose **Environment**.
 
 AI MediaKit runs in `ap-southeast-1` (Singapore). Result links expire after 24 hours; the nodes download the result right away. Never commit `mediakit_api_keys.json`.
 
@@ -136,8 +200,9 @@ Already have assets? Use `Asset Library` to list them (virtual portraits, or `Li
 
 Managing assets uses the signed ModelArk OpenAPI, which needs **IAM AK/SK** with asset-library permission, not the API key. Use an IAM sub-user whose policy only allows the asset library. To set them:
 
-- **In the node (easiest, also in ComfyUI Desktop):** on the `API Client`, set `key_name` to **Custom**, paste the API key, give it a `new_key_name`, and fill in `new_access_key` and `new_secret_key`. After the first run they are saved with the key in `api_keys.json` and cleared from the node. To add AK/SK to a key you already saved, do the same with that key and the same name; nothing else about the entry changes.
-- **In the file:** add them to the key's entry in `api_keys.json`, or set `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` (and `BYTEPLUS_SESSION_TOKEN` for STS keys) before starting ComfyUI. `sessionToken` for STS keys can only be set this way.
+- **In Settings → BytePlus:** the "Asset library IAM AK/SK" field saves them as `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` in the `.env` file, with no client node. Saving or removing the pair there also removes a `BYTEPLUS_SESSION_TOKEN` from the file, since an STS token belongs to the old pair.
+- **In the node:** on the `API Client`, set `key_name` to **Custom**, paste the API key, give it a `new_key_name`, and fill in `new_access_key` and `new_secret_key`. After the first run they are saved with the key in `api_keys.json` and cleared from the node. To add AK/SK to a key you already saved, do the same with that key and the same name; nothing else about the entry changes.
+- **In a file:** add them to the key's entry in `api_keys.json`, or set `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` (and `BYTEPLUS_SESSION_TOKEN` for STS keys) in the environment or the `.env` file. `sessionToken` for STS keys can only be set this way.
 
 Like the pasted API key, the AK/SK are part of the workflow until the first run saves them, so run once before sharing the workflow or its outputs. The file entry looks like this:
 
@@ -165,7 +230,7 @@ python3 -m unittest tests.test_workflow_templates
 The node tests need a ComfyUI checkout and a Python environment with torch and the BytePlus SDK; they are skipped otherwise:
 
 ```bash
-COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed tests.test_mediakit
+COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed tests.test_mediakit tests.test_credentials
 ```
 
 CI runs both on every push and pull request, and weekly against ComfyUI's latest release and `master`, because the core-style nodes are compared with ComfyUI's built-in ByteDance nodes. See [`CLAUDE.md`](./CLAUDE.md) for the project layout and conventions.

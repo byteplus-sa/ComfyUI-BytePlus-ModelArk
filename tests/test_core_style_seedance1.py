@@ -56,6 +56,14 @@ if COMFY_ROOT:
     FLF = seedance1.BytePlusSeedanceFirstLastFrame
 
 
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 def assert_matches_sdk(method, kwargs):
     """Bind request kwargs to the real SDK signature (fakes accept anything)."""
     import inspect
@@ -91,6 +99,15 @@ BYTEPLUS_DEVIATIONS = {"model", "duration", "generate_audio"}
 REMOVED_CORE_INPUTS = {"generate_audio"}
 
 
+def frontend_input_order(info):
+    """
+    Input names as the node's workflow JSON lists them: the optional client
+    socket first, then required inputs, then the other optional ones.
+    """
+    optional = [name for name in info["input_order"]["optional"] if name != "client"]
+    return ["client"] + info["input_order"]["required"] + optional
+
+
 def _with_frames(frames):
     return CORE_INPUTS[:2] + frames + CORE_INPUTS[2:]
 
@@ -118,8 +135,7 @@ class Seedance1SchemaTests(unittest.TestCase):
     def test_input_order_core_first_client_first_extras_last(self):
         for node in seedance1.NODES:
             info = node.GET_NODE_INFO_V1()
-            # The frontend lists required inputs, then optional ones.
-            order = info["input_order"]["required"] + info["input_order"]["optional"]
+            order = frontend_input_order(info)
             with self.subTest(node=info["name"]):
                 self.assertEqual(order, self.EXPECTED_INPUTS[info["name"]])
                 self.assertEqual(
@@ -180,7 +196,8 @@ class Seedance1SchemaTests(unittest.TestCase):
                 for name in EXTRA_INPUTS:
                     self.assertTrue(inputs[name].advanced, name)
                     self.assertTrue(inputs[name].optional, name)
-                self.assertFalse(inputs["client"].optional)
+                # Optional: without a connected client the node uses the default key.
+                self.assertTrue(inputs["client"].optional)
 
         ratios = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]
         self.assertEqual(T2V.define_schema().inputs[4].options, ratios)
@@ -217,7 +234,7 @@ class Seedance1SchemaTests(unittest.TestCase):
                 for name in core_info["input_order"]["required"] + core_info["input_order"]["optional"]
                 if name not in REMOVED_CORE_INPUTS
             ]
-            order = info["input_order"]["required"] + info["input_order"]["optional"]
+            order = frontend_input_order(info)
             with self.subTest(node=info["name"]):
                 self.assertEqual(order[1 : 1 + len(core_order)], core_order)
                 for section in ("required", "optional"):
@@ -873,11 +890,12 @@ class Seedance1TemplateTests(unittest.TestCase):
             checked.add(node["type"])
             info = node_cls.GET_NODE_INFO_V1()
             with self.subTest(node=node["type"]):
-                # The frontend lists required inputs, then optional ones.
-                expected = []
-                for section in ("required", "optional"):
-                    for name, spec in info["input"][section].items():
-                        expected.append((name, spec[0], section == "optional"))
+                # The optional client first, then required inputs, then the other optional ones.
+                specs = {
+                    **{name: (spec, False) for name, spec in info["input"]["required"].items()},
+                    **{name: (spec, True) for name, spec in info["input"]["optional"].items()},
+                }
+                expected = [(name, specs[name][0][0], specs[name][1]) for name in frontend_input_order(info)]
                 self.assertEqual(
                     [(i["name"], i["type"], i.get("shape") == 7) for i in node["inputs"]], expected
                 )

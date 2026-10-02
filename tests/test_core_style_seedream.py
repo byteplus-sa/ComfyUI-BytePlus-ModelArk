@@ -43,6 +43,14 @@ if COMFY_ROOT:
     nodes_seedream = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedream")
 
 
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 PRO = "seedream 5.0 pro"
 FLASH = "seedream 5.0 flash"
 LITE = "seedream 5.0 lite"

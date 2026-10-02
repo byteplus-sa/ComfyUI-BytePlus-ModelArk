@@ -63,9 +63,11 @@ from .models_config import (
     VIDEO_MODEL_MAP,
 )
 from .nodes_shared import (
+    build_default_client,
+    optional_client_input,
+    with_default_client,
     GLOBAL_CATEGORY,
     LOG_PREFIX,
-    BytePlusClientType,
     BytePlusException,
     format_api_error,
     get_node_count_in_workflow,
@@ -833,7 +835,7 @@ class BytePlusSeedance2TextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
             description="Generate video using Seedance 2.5 or 2.0 models based on a text prompt. "
             "Calls BytePlus ModelArk directly with the API Client's key.",
             inputs=[
-                BytePlusClientType.Input("client"),
+                optional_client_input(),
                 _model_input(lambda label: _text_option_inputs(label)),
                 seed_input(),
                 watermark_input(),
@@ -844,6 +846,7 @@ class BytePlusSeedance2TextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,
@@ -889,7 +892,7 @@ class BytePlusSeedance2FirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
             description="Generate video using Seedance 2.5 or 2.0 from a first frame image "
             "and optional last frame image. Calls BytePlus ModelArk directly with the API Client's key.",
             inputs=[
-                BytePlusClientType.Input("client"),
+                optional_client_input(),
                 _model_input(
                     lambda label: _text_option_inputs(label, with_ratio=False, default_ratio="adaptive")
                 ),
@@ -928,6 +931,7 @@ class BytePlusSeedance2FirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,
@@ -1029,7 +1033,7 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
             "uploaded to Comfy.org storage (needs a Comfy.org login), or pass links / asset IDs in "
             "reference_assets.",
             inputs=[
-                BytePlusClientType.Input("client"),
+                optional_client_input(),
                 _model_input(_reference_option_inputs),
                 seed_input(),
                 watermark_input(),
@@ -1045,6 +1049,7 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,
@@ -1309,7 +1314,7 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
             "Draft (4k). The final keeps the draft's scene and motion, and reuses its prompt, references, "
             "duration, aspect ratio, and audio setting. The model is read from the draft task.",
             inputs=[
-                BytePlusClientType.Input("client"),
+                optional_client_input(),
                 comfy_io.String.Input(
                     "draft_task_id",
                     default="",
@@ -1331,6 +1336,7 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     async def execute(
         cls,
         client,

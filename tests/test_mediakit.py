@@ -46,6 +46,15 @@ if COMFY_ROOT:
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
     from comfy_execution.graph_utils import ExecutionBlocker
 
+
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 STANDARD = {"tool_version": "standard", "scene": "aigc", "enhance_style": "hd"}
 PROFESSIONAL = {"tool_version": "professional", "enhance_style": "natural"}
 EXTRAS = ["video_url", "bitrate", "comparison", "compare_time"]
@@ -980,6 +989,9 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
 class ClientNodeTests(unittest.TestCase):
     def test_key_sources(self):
         with tempfile.TemporaryDirectory() as tmp:
+            # No .env in the tester's real user folder may leak into the "is not set" case.
+            credentials = sys.modules[nodes_mediakit.__package__ + ".credentials"]
+            self.enterContext(mock.patch.object(credentials, "env_file_path", lambda: os.path.join(tmp, ".env")))
             store = nodes_mediakit.ApiKeyStore(os.path.join(tmp, "mediakit_api_keys.json"))
             notified = []
             with mock.patch.object(nodes_mediakit, "MEDIAKIT_API_KEY_STORE", store), \

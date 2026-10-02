@@ -189,6 +189,7 @@
         {
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
+          "shape": 7,
           "link": 1
         },
         {
@@ -359,6 +360,7 @@
           "localized_name": "mediakit_client",
           "name": "mediakit_client",
           "type": "BYTEPLUS_MEDIAKIT_CLIENT",
+          "shape": 7,
           "link": 2
         },
         {
@@ -548,6 +550,7 @@
         {
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
+          "shape": 7,
           "link": 7
         },
         {
@@ -694,6 +697,7 @@
           "localized_name": "mediakit_client",
           "name": "mediakit_client",
           "type": "BYTEPLUS_MEDIAKIT_CLIENT",
+          "shape": 7,
           "link": 8
         },
         {
