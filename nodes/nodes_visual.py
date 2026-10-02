@@ -27,7 +27,8 @@ from .nodes_shared import (
 )
 from .executor import BytePlusVisualExecutor
 from .constants import DEFAULT_VISUAL_SYSTEM_PROMPT, DEFAULT_VISUAL_USER_PROMPT
-from .models_config import VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
+from .core_style import raise_if_model_retired
+from .models_config import RETIRED_SEED_UI_OPTIONS, VISUAL_MODEL_MAP, VISUAL_UI_OPTIONS
 
 # Last response per Visual node, for multi-turn (previous_response_id).
 # Keyed by node id so parallel nodes keep separate conversations. A response ID
@@ -46,16 +47,22 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusVisualUnderstanding",
-            display_name="BytePlus Visual Understanding",
+            display_name="BytePlus Visual Understanding (Legacy)",
             category=GLOBAL_CATEGORY,
             description=(
+                "Legacy node, kept so saved workflows still load: use BytePlus LLM instead. "
                 "Understand images and video with Dola Seed 2.1 Turbo by default, "
                 "or Seed 2.0 Pro / Lite / Mini."
             ),
-            is_experimental=True,
+            is_deprecated=True,
             inputs=[
                 BytePlusClientType.Input("client"),
-                comfy_io.Combo.Input("model", options=VISUAL_UI_OPTIONS, default=VISUAL_UI_OPTIONS[0]),
+                comfy_io.Combo.Input(
+                    "model",
+                    # Retired models stay listed so saved workflows load; running them explains why not.
+                    options=VISUAL_UI_OPTIONS + RETIRED_SEED_UI_OPTIONS,
+                    default=VISUAL_UI_OPTIONS[0],
+                ),
                 comfy_io.String.Input("system_prompt", multiline=True, default=DEFAULT_VISUAL_SYSTEM_PROMPT),
                 comfy_io.String.Input("user_prompt", multiline=True, default=DEFAULT_VISUAL_USER_PROMPT),
                 comfy_io.Combo.Input("detail", options=["low", "high"], default="high"),
@@ -106,7 +113,7 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
         visual_input_2=None,
         visual_input_3=None,
     ) -> comfy_io.NodeOutput:
-        
+        raise_if_model_retired(model)
         effective_system_prompt = (system_prompt or "").strip() or DEFAULT_VISUAL_SYSTEM_PROMPT
         inputs_content = []
         normalized_file_expire_seconds = int(file_expire_seconds if file_expire_seconds is not None else 604800)
@@ -186,7 +193,8 @@ class BytePlusVisualUnderstanding(comfy_io.ComfyNode):
                     client,
                     file_path,
                     fps=fps if input_type == "input_video" else None,
-                    expire_seconds=normalized_file_expire_seconds
+                    expire_seconds=normalized_file_expire_seconds,
+                    model=VISUAL_MODEL_MAP.get(model, model),
                 )
 
             if file_id:

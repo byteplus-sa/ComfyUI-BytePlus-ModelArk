@@ -7,14 +7,8 @@
     {
       "id": 1,
       "type": "BytePlusSpeechClient",
-      "pos": [
-        20,
-        80
-      ],
-      "size": [
-        320,
-        130
-      ],
+      "pos": [20, 80],
+      "size": [320, 138],
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -56,10 +50,7 @@
         {
           "name": "speech_client",
           "type": "BYTEPLUS_SPEECH_CLIENT",
-          "links": [
-            1,
-            3
-          ]
+          "links": [1, 3]
         }
       ],
       "properties": {
@@ -67,24 +58,13 @@
         "ver": "0.3.0",
         "Node name for S&R": "BytePlusSpeechClient"
       },
-      "widgets_values": [
-        "",
-        "",
-        "Custom",
-        "ap-southeast-1"
-      ]
+      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
     },
     {
       "id": 2,
       "type": "BytePlusSeedTTS",
-      "pos": [
-        380,
-        80
-      ],
-      "size": [
-        440,
-        640
-      ],
+      "pos": [380, 80],
+      "size": [440, 704],
       "flags": {},
       "order": 1,
       "mode": 0,
@@ -291,10 +271,7 @@
         {
           "name": "audio",
           "type": "AUDIO",
-          "links": [
-            2,
-            4
-          ]
+          "links": [2, 4]
         },
         {
           "name": "subtitles_json",
@@ -343,14 +320,8 @@
     {
       "id": 3,
       "type": "PreviewAudio",
-      "pos": [
-        880,
-        80
-      ],
-      "size": [
-        320,
-        110
-      ],
+      "pos": [880, 80],
+      "size": [320, 110],
       "flags": {},
       "order": 2,
       "mode": 0,
@@ -372,14 +343,8 @@
     {
       "id": 4,
       "type": "BytePlusSeedASR",
-      "pos": [
-        880,
-        240
-      ],
-      "size": [
-        400,
-        380
-      ],
+      "pos": [880, 240],
+      "size": [400, 658],
       "flags": {},
       "order": 3,
       "mode": 0,
@@ -574,9 +539,7 @@
         {
           "name": "text",
           "type": "STRING",
-          "links": [
-            5
-          ]
+          "links": [5]
         },
         {
           "name": "utterances_json",
@@ -586,9 +549,7 @@
         {
           "name": "srt",
           "type": "STRING",
-          "links": [
-            6
-          ]
+          "links": [6]
         },
         {
           "name": "duration",
@@ -628,14 +589,8 @@
     {
       "id": 5,
       "type": "PreviewAny",
-      "pos": [
-        1320,
-        240
-      ],
-      "size": [
-        380,
-        260
-      ],
+      "pos": [1320, 240],
+      "size": [380, 260],
       "flags": {},
       "order": 4,
       "mode": 0,
@@ -657,14 +612,8 @@
     {
       "id": 6,
       "type": "PreviewAny",
-      "pos": [
-        1320,
-        540
-      ],
-      "size": [
-        380,
-        260
-      ],
+      "pos": [1320, 540],
+      "size": [380, 260],
       "flags": {},
       "order": 5,
       "mode": 0,
@@ -685,64 +634,19 @@
     }
   ],
   "links": [
-    [
-      1,
-      1,
-      0,
-      2,
-      0,
-      "BYTEPLUS_SPEECH_CLIENT"
-    ],
-    [
-      2,
-      2,
-      0,
-      3,
-      0,
-      "AUDIO"
-    ],
-    [
-      3,
-      1,
-      0,
-      4,
-      0,
-      "BYTEPLUS_SPEECH_CLIENT"
-    ],
-    [
-      4,
-      2,
-      0,
-      4,
-      22,
-      "AUDIO"
-    ],
-    [
-      5,
-      4,
-      0,
-      5,
-      0,
-      "STRING"
-    ],
-    [
-      6,
-      4,
-      2,
-      6,
-      0,
-      "STRING"
-    ]
+    [1, 1, 0, 2, 0, "BYTEPLUS_SPEECH_CLIENT"],
+    [2, 2, 0, 3, 0, "AUDIO"],
+    [3, 1, 0, 4, 0, "BYTEPLUS_SPEECH_CLIENT"],
+    [4, 2, 0, 4, 22, "AUDIO"],
+    [5, 4, 0, 5, 0, "STRING"],
+    [6, 4, 2, 6, 0, "STRING"]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
       "scale": 0.9,
-      "offset": [
-        40,
-        40
-      ]
+      "offset": [40, 40]
     }
   },
   "version": 0.4

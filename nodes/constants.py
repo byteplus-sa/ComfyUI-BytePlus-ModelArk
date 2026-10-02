@@ -27,6 +27,24 @@ SPEECH_REGION_BASE_URLS = {
 DEFAULT_SPEECH_REGION = "ap-southeast-1"
 SPEECH_API_KEY_ENV = "BYTEPLUS_SEED_SPEECH_API_KEY"
 SPEECH_API_KEYS_CONSOLE_URL = "https://console.byteplus.com/voice/new/setting/apikeys"
+
+# BytePlus VOD AI MediaKit (vCube Video Enhance): its own API key (Bearer).
+MEDIAKIT_REGION_BASE_URLS = {
+    "ap-southeast-1": "https://mediakit.ap-southeast-1.bytepluses.com/api/v1",
+}
+DEFAULT_MEDIAKIT_REGION = "ap-southeast-1"
+MEDIAKIT_API_KEY_ENV = "BYTEPLUS_VOD_MEDIAKIT_API_KEY"
+MEDIAKIT_API_KEYS_CONSOLE_URL = "https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey"
+MEDIAKIT_REQUEST_TIMEOUT_SECONDS = 60
+MEDIAKIT_POLL_SECONDS = 10
+# Synchronous tools (Image Quality Enhance) answer when done; max-version
+# images can take minutes.
+MEDIAKIT_SYNC_TIMEOUT_SECONDS = 600
+# Result downloads can be gigabytes: no total limit, only a stall limit.
+MEDIAKIT_DOWNLOAD_STALL_SECONDS = 120
+MEDIAKIT_MAX_POLL_ERRORS = 5
+# Submit retries after network errors, timeouts, 429 and 5xx (safe: same client_token).
+MEDIAKIT_SUBMIT_RETRIES = 2
 SEED_AUDIO_PATH = "/api/v3/tts/create"
 SEED_TTS_PATH = "/api/v3/tts/unidirectional"
 SEED_ASR_FAST_PATH = "/api/v3/auc/bigmodel/recognize/flash"
@@ -41,15 +59,23 @@ SPEECH_SUCCESS_CODES = (0, 20000000)
 SPEECH_ASR_PENDING_CODES = (20000001, 20000002)
 SPEECH_ASR_SILENT_AUDIO_CODE = 20000003
 SPEECH_REQUEST_TIMEOUT_SECONDS = 600
+# Status queries (ASR query, voice training status) tolerate this many transient
+# failures in a row (network, timeout, 429, 5xx) before giving up.
+SPEECH_POLL_MAX_ERRORS = 5
 SPEECH_ASR_POLL_SECONDS = 2
 SEED_AUDIO_MAX_PROMPT_CHARS = 3000
 SEED_AUDIO_MAX_AUDIO_REFS = 3
+SEED_AUDIO_MAX_GENERATION_COUNT = 16
 SEED_AUDIO_REF_MAX_SECONDS = 30.0
 SEED_AUDIO_REF_MAX_BYTES = 10 * 1024 * 1024
 SEED_AUDIO_FORMATS = ["wav", "mp3", "ogg_opus", "pcm"]
-# Raw PCM output (16-bit mono) defaults to 40 kHz, like wav.
-SEED_AUDIO_PCM_DEFAULT_RATE = 40000
-SEED_AUDIO_SAMPLE_RATES = ["default", "8000", "16000", "24000", "32000", "44100", "48000"]
+# Always sent (like ComfyUI core's node), so raw PCM output has a known rate.
+SEED_AUDIO_SAMPLE_RATES = ["8000", "16000", "24000", "32000", "44100", "48000"]
+SEED_AUDIO_DEFAULT_SAMPLE_RATE = "24000"
+# A reference image is scaled to at least this many pixels (as core does) and
+# at most 2048 x 2048 before it is sent inline.
+SEED_AUDIO_IMAGE_MIN_PIXELS = 160_000
+SEED_AUDIO_IMAGE_MAX_PIXELS = 2048 * 2048
 SEED_TTS_SAMPLE_RATES = ["24000", "16000", "8000", "22050", "32000", "44100", "48000"]
 SEED_TTS_2_SAMPLE_RATES = ("24000", "16000", "8000")
 # explicit_language values of the TTS API ("auto" sends nothing).
@@ -169,14 +195,16 @@ IMAGE_MIN_RATIO = 0.4
 IMAGE_MAX_RATIO = 2.5
 REF_IMAGE_MAX_SIZE_MB = 30.0
 REF_IMAGE_MAX_TOTAL_REQUEST_MB = 64.0
-REF_MEDIA_MIN_DURATION = 1.8
+REF_MEDIA_MIN_DURATION = 2.0
 REF_MEDIA_MAX_DURATION = 15.2
 REF_MEDIA_MAX_DURATION_SEEDANCE_2_5 = 30.2
 REF_VIDEO_MIN_DURATION = REF_MEDIA_MIN_DURATION
 REF_VIDEO_MAX_DURATION = REF_MEDIA_MAX_DURATION
 REF_VIDEO_MAX_TOTAL_DURATION = REF_MEDIA_MAX_DURATION
 REF_VIDEO_MAX_SIZE_MB = 200.0
-REF_VIDEO_MIN_PIXELS = 409600
+# Seedance 2.5 edit tasks need a reference video of at least 4 s.
+SEEDANCE_2_5_EDIT_MIN_DURATION = 4.0
+REF_VIDEO_MIN_PIXELS = 407696
 REF_VIDEO_MAX_PIXELS = 8295044
 REF_VIDEO_MIN_FPS = 24.0
 REF_VIDEO_MAX_FPS = 60.0
@@ -238,6 +266,8 @@ MESSAGES = {
     
     # Updated
     "polling_single": "Task {task_id}: Running... {elapsed}s / {max}s elapsed",
+    "node_poll_status": "{running} running, {queued} queued, {done}/{total} done · waiting {elapsed}s{remaining}",
+    "node_poll_remaining": " · about {seconds}s left",
     "polling_single_waiting": "Task {task_id}: Queued and waiting for resources... (Status: {status})",
     "polling_batch_stats": "Batch Progress: {done}/{total} done. {pending} pending... (Elapsed {elapsed}s / {max}s) [Run: {running}, Queue: {queued}]",
 
@@ -250,7 +280,10 @@ MESSAGES = {
     "batch_finished_stats": "Batch finished. Success: {success}, Failed: {failed}.",
     "batch_handling": "Handling {count} successful tasks. Sorting by seed and downloading...",
     "batch_copying": "Copying files to output directory: {path}",
+    "batch_last_frame_missing": "No last frame for {missing} of {total} videos; the last_frame batch leaves them out.",
     "err_download_url": "Async download failed, URL: {url}, Error: {e}",
+    "err_video_download_failed": "The task(s) succeeded (and were billed) but their videos could not be downloaded: {task_ids}. The videos stay available for 24 hours: fetch them with the Video Query Tasks node or from the ModelArk console.",
+    "batch_video_download_partial": "Downloaded {done} of {total} videos; could not download task(s) {task_ids}. They stay available for 24 hours (Video Query Tasks node or the ModelArk console).",
     "check_status": "Checking status of {count} pending task(s)...",
     "err_create_dummy_video": "Failed to create placeholder video: {e}",
     "err_on_tasks_created": "Failed to record created task IDs: {e}",
@@ -258,6 +291,7 @@ MESSAGES = {
     "err_task_check": "Failed to check status for {tid}: {e}",
     "err_task_fail_msg": "Task {tid} failed: {msg}",
     "err_batch_fail_all": "Batch failed: No tasks succeeded.",
+    "err_task_poll_failed": "Could not check task {task_id} ({count} attempt(s)): {reason} The task may still finish and be billed; check it with the Video Query Tasks node or in the ModelArk console.",
     "err_copy_fail": "Failed to copy file: {path}. Error: {e}",
     "err_convert_tensor": "Failed to convert frame to tensor: {e}",
     "err_check_status_batch": "API Error checking batch status: {e}",
@@ -315,7 +349,7 @@ MESSAGES = {
     "err_seedance25_first_frame_ratio": "Seedance 2.5 image-to-video keeps the first frame's aspect ratio. Set aspect_ratio to adaptive.",
     "err_seedance25_task_type_needs_video": "Seedance 2.5 task_type '{task_type}' needs at least one reference video.",
     "err_seedance25_extend_params": "Seedance 2.5 video extension requires the adaptive aspect ratio.",
-    "err_asset_credentials_missing": "The asset library needs IAM AK/SK with asset-library permission (plus Dreamina Seedance Advanced Creation Rights on the account). Add \"accessKey\" and \"secretKey\" (and \"sessionToken\" for STS keys) to the selected entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY, then restart ComfyUI.",
+    "err_asset_credentials_missing": "The asset library needs IAM AK/SK with asset-library permission (plus Dreamina Seedance Advanced Creation Rights on the account). Set key_name to Custom on the API Client, paste the API key again under the same new_key_name together with new_access_key and new_secret_key, and run once (they are saved with the key). Alternatively add \"accessKey\" and \"secretKey\" (and \"sessionToken\" for STS keys) to the entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY and restart ComfyUI.",
     "err_asset_api": "Asset library {action} failed: {code}: {message}{hint}",
     "hint_asset_auth": " Check the AK/SK in api_keys.json or the BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY environment variables.",
     "hint_asset_denied": " The IAM user needs asset-library permission in this project, and the account needs Dreamina Seedance Advanced Creation Rights.",
@@ -348,6 +382,8 @@ MESSAGES = {
     "err_new_key_empty": "Config Error: Manual entry enabled but API Key is empty.",
     "err_new_key_invalid": "Auth Failed: Input API Key is invalid. Connection rejected by server.",
     "info_new_key_saved": "Info: New key '{name}' verified and saved to api_keys.json.",
+    "info_new_asset_credentials_saved": "Info: IAM AK/SK saved with key '{name}' for the asset library.",
+    "err_new_asset_credentials_incomplete": "Config Error: new_access_key and new_secret_key go together. Fill in both, or leave both empty.",
     "quota_exceeded": "Quota Exceeded: Usage limit for model {model} reached ({used}/{limit}). Estimated cost: {estimated}. Limit has been automatically removed. Please run again or set a new quota.",
     "quota_update_failed": "Warning: Failed to update quota usage: {e}",
     "quota_set_log": "Set quota for {model}: {limit} ({type})",
@@ -395,10 +431,9 @@ MESSAGES = {
     "speech_bad_url": "{field} must be an http(s):// or asset:// URL.",
     "seed_audio_prompt_empty": "text_prompt is empty.",
     "seed_audio_prompt_too_long": "text_prompt has {count} characters; the maximum is {max}.",
-    "seed_audio_slot_conflict": "Reference slot {slot}: connect ref_audio_{slot} or fill ref_audio_{slot}_source, not both.",
-    "seed_audio_slot_gap": "Fill the reference audio slots in order: slot {slot} is used but slot {missing} is empty. Slot N is @AudioN in the prompt.",
-    "seed_audio_image_and_audio": "An image reference cannot be combined with audio references.",
-    "seed_audio_image_conflict": "Use ref_image or ref_image_url, not both.",
+    "seed_audio_slot_conflict": "Reference slot {slot}: connect reference_audio_{slot} or fill ref_audio_{slot}_source, not both.",
+    "seed_audio_slot_gap": "Connect reference audio in order without gaps: reference_audio_1 (or ref_audio_1_source), then _2, then _3. Slot {slot} is used but slot {missing} is empty; slot N is @AudioN in the prompt.",
+    "seed_audio_image_conflict": "Use reference_image or ref_image_url, not both.",
     "seed_audio_ref_too_long": "Reference audio {slot} is {duration} s long; the maximum is {max} s.",
     "seed_audio_ref_too_large": "Reference {kind} is {size_mb} MB; the maximum is {max_mb} MB.",
     "tts_text_empty": "text is empty.",
@@ -437,6 +472,159 @@ MESSAGES = {
     "asr_context_image_conflict": "Use context_image or context_image_url, not both.",
     "asr_silent_audio": "No speech was found in the audio.",
     "asr_task_submitted": "ASR task submitted: {task_id}",
+
+    # Core-style nodes (shaped like ComfyUI core's ByteDance nodes): shared helpers in core_style.py
+    "err_output_linked": "{reason} (currently linked: {consumers}).",
+    "err_reference_value_invalid": "Not a valid reference: '{value}'. Use an asset ID, asset://<asset_id> or an https:// link.",
+    "err_reference_value_multiple": "Each reference input takes one asset ID, asset://<asset_id> or https:// link, but got several (or spaces): '{value}'. Connect each reference to its own asset_N slot.",
+    "err_reference_url_type_unknown": "Could not tell whether {url} is an image, video or audio file. Use a link ending in the file extension (for example .png, .mp4 or .mp3).",
+    "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add \"accessKey\" and \"secretKey\" to the selected entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY, then restart ComfyUI.",
+    "err_reference_asset_not_active": "Reference asset {asset_id} is not Active (status: {status}).",
+    "err_reference_asset_type_unknown": "Reference asset {asset_id} has an unknown asset type.",
+    "err_reference_type_mismatch": "'{value}' is {kind}, but this input needs {expected}.",
+
+    # Core-style nodes: Seedance 2 / 2.5 and asset creation (nodes_seedance2.py, nodes_assets.py)
+    "err_seedance2_prompt_empty": "Enter a prompt.",
+    "err_seedance2_draft_output_linked": "Only the Seedance 2.5 Draft and Seedance 2.5 Premium Draft models produce a draft_task_id. Select one of them as the model, or disconnect the draft_task_id output",
+    "err_seedance2_first_frame_both": "Provide only one of first_frame or first_frame_asset_id, not both.",
+    "err_seedance2_first_frame_missing": "Either first_frame or first_frame_asset_id is required.",
+    "err_seedance2_last_frame_both": "Provide only one of last_frame or last_frame_asset_id, not both.",
+    "err_seedance2_reference_required": "At least one reference image or video or asset is required.",
+    "err_seedance2_too_many_references": "Too many reference {kind}s: {total} ({kind}s={local}, {kind} assets={assets}). Maximum is {max}.",
+    "err_seedance2_task_type_needs_video": "A '{task_type}' task needs at least one reference video. Connect the video you want to {verb}, or set task_type to 'reference' to generate a new video from the references you have.",
+    "err_seedance2_ref_video_too_small": "Reference video {index} is too small: {width}x{height} = {pixels} total pixels. Minimum for this model is {min} total pixels. Turn on auto_upscale or use a larger video.",
+    "err_seedance2_ref_video_too_large": "Reference video {index} is too large: {width}x{height} = {pixels} total pixels. Maximum for this model and resolution is {max} total pixels. Turn on auto_downscale or downscale the video.",
+    "err_seedance2_ref_video_resize_failed": "Could not resize reference video {index}: {e}",
+    "err_seedance2_ref_media_too_short": "Reference {kind} {index} is too short: {duration}s. Minimum duration is {min} seconds.",
+    "err_seedance2_edit_video_too_short": "Reference video {index} is {duration}s long. Seedance 2.5 edit tasks need a video of at least {min} seconds.",
+    "err_seedance2_ref_media_total_too_long": "Total reference {kind} duration is {duration}s. Maximum is {max} seconds.",
+    "err_comfy_upload_unavailable_reference": "Connected reference videos are uploaded through Comfy.org storage, which is unavailable in this ComfyUI ({e}). Update ComfyUI, remove --disable-api-nodes, or put a public mp4/mov link or an asset ID in a reference_assets slot instead.",
+    "err_comfy_upload_failed_reference": "Uploading the reference video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or put a public mp4/mov link or an asset ID in a reference_assets slot instead.",
+    "err_draft_task_id_empty": "Enter a draft task ID: the draft_task_id output of a Seedance 2.5 Draft run, or a pasted ID.",
+    "err_draft_lookup_failed": "Could not look up draft task {task_id}: {e}",
+    "err_draft_not_a_draft": "Task {task_id} is not a draft. Use the draft_task_id of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run.",
+    "err_draft_is_final": "Task {task_id} is a final video rendered from draft {draft_task_id}, not a draft. Use the draft task ID.",
+    "err_draft_expired": "Draft task {task_id} is more than 7 days old; drafts can only be rendered for 7 days. Generate a new draft.",
+    "err_draft_not_ready": "Draft task {task_id} is {status}. Render the final video after the draft has succeeded.",
+    "err_draft_failed": "Draft task {task_id} is {status} and cannot be rendered. Generate a new draft.",
+    "err_draft_model_unsupported": "Draft task {task_id} was made with {model}, which cannot render a final from a draft. Supported: Seedance 2.5 and Seedance 2.5 Premium drafts.",
+    "err_draft_mixed_models": "The draft task IDs come from different models ({models}). Render each model's drafts in its own node.",
+    "draft_final_render": "Rendering the {resolution} final video of {count} draft(s) with {model}.",
+    "err_asset_media_missing": "Connect the {media} input or set {url_input} (a public HTTPS URL).",
+    "err_asset_media_and_url": "Use either the {media} input or {url_input}, not both.",
+    "err_asset_url_not_https": "{url_input} must be an HTTPS URL. Current: {url}",
+    "err_asset_image_size": "Asset image width and height must be between {min} and {max} px. Current: {width}x{height}.",
+    "err_asset_image_ratio": "Asset image aspect ratio (W/H) must be greater than {min} and less than {max}. Current: {ratio}.",
+    "err_asset_video_duration": "Asset video must be {min} to {max} seconds long. Current: {duration}s.",
+    "err_asset_video_size": "Asset video width and height must be between {min} and {max} px. Current: {width}x{height}.",
+    "err_asset_video_ratio": "Asset video aspect ratio (W/H) must be between {min} and {max}. Current: {ratio} ({width}x{height}).",
+    "err_asset_video_pixels": "Asset video total pixels (W x H) must be between {min} and {max}. Current: {pixels} ({width}x{height}).",
+    "err_asset_video_too_large": "The video is {size_mb} MB; video assets can be at most {max_mb} MB.",
+    "err_asset_video_fps": "Asset video frame rate must be between {min} and {max} FPS. Current: {fps}.",
+    "err_asset_audio_duration": "Asset audio must be {min} to {max} seconds long. Current: {duration}s.",
+    "err_asset_audio_size": "Asset audio must be at most {max_mb} MB (WAV). Current: {size_mb} MB. Trim it, or pass a public mp3 link in audio_url.",
+    "err_asset_audio_format": "audio_url must link to a .wav or .mp3 file. Current: {url}",
+    "err_comfy_video_upload_unavailable_asset": "Connected videos are uploaded through Comfy.org storage to get the HTTPS URL CreateAsset needs, which is unavailable in this ComfyUI ({e}). Pass a public video_url instead.",
+    "err_comfy_video_upload_failed_asset": "Uploading the video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or pass a public video_url instead.",
+    "err_comfy_audio_upload_unavailable_asset": "Connected audio is uploaded through Comfy.org storage to get the HTTPS URL CreateAsset needs, which is unavailable in this ComfyUI ({e}). Pass a public audio_url instead.",
+    "err_comfy_audio_upload_failed_asset": "Uploading the audio to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or pass a public audio_url instead.",
+    "asset_ids_saved_hint": "Save the asset_id and group_id for reuse.\n\nasset_id: {asset_id}\n\ngroup_id: {group_id}",
+
+    # Core-style nodes: Seedance 1.x (nodes_seedance1.py)
+    "err_model_retired": "{model} is deprecated by BytePlus (shut down on 2026-11-11), so this pack no longer uses it. Switch to {replacement}.",
+    "err_model_region_unavailable": "{model} is not available in {region}. Pick another model, or use an API Client in another region.",
+    "err_seedance1_prompt_empty": "prompt is empty. Describe the video to generate.",
+    "err_seedance1_image_missing": "{name} is required.",
+    "err_seedance1_image_size": "{name}: width and height must be between {min} and {max} pixels (got {width}x{height}).",
+    "err_seedance1_image_ratio": "{name}: aspect ratio (width / height) must be between {min} and {max} (got {ratio}).",
+
+    # Core-style nodes: Seedream and Layer Separation (nodes_seedream.py)
+    "seedream_err_prompt_empty": "Prompt cannot be empty.",
+    "seedream_err_unknown_model": "Unknown Seedream model: {model}.",
+    "seedream_err_min_pixels": "Minimum image resolution for the selected model is {min_mp:.2f}MP, but {mp:.2f}MP provided.",
+    "seedream_err_max_pixels": "Maximum image resolution for the selected model is {max_mp:.2f}MP, but {mp:.2f}MP provided.",
+    "seedream_err_size_aspect": "Size {width}x{height} is outside the supported aspect ratio range (1:{max} to {max}:1).",
+    "seedream_err_ref_count": "Maximum of {max} reference images are supported, but {count} received.",
+    "seedream_err_refs_plus_outputs": "The maximum number of generated images ({max_images}) plus the number of reference images ({count}) cannot exceed {limit}.",
+    "seedream_err_thinking_with_refs": "'thinking' can only be disabled for text-to-image; enable it when using reference images.",
+    "seedream_err_ref_aspect": "Reference image {index} has aspect ratio {ratio:.3f}; it must be between 1:16 and 16:1.",
+    "seedream_err_partial": "Only {received} of {requested} images were generated before error.",
+    "seedream_err_partial_generations": "Only {received} of {requested} generations succeeded (fail_on_partial is on).",
+    "seedream_layers_err_single_image": "Only a single input image is supported.",
+    "seedream_layers_err_min_size": "Image must have at least {min} pixels in total, got {width}x{height}.",
+    "seedream_layers_err_aspect": "Image aspect ratio {ratio:.3f} must be between 1:16 and 16:1.",
+    "seedream_layers_err_no_base": "Unexpected response: no base image returned.",
+    "seedream_layers_err_first_not_base": "Unexpected response: the first item is not the base image.",
+    "seedream_layers_err_no_layers": "The model returned no layers. Try a different prompt or input image.",
+    "seedream_layers_err_decode": "Could not decode layer {index} of {count} (name={name}): {error}",
+    "seedream_layers_warn_base_bbox": "Seedream layer separation: base item unexpectedly carries a bounding_box; ignoring it.",
+    "seedream_layers_warn_dropped": "Seedream layer separation: {dropped} of {count} returned elements had no image data and were dropped.",
+    "seedream_layers_warn_flagged": "Seedream layer separation: layer {index} ({name}) flagged {flags}.",
+
+    # Core-style nodes: Seed LLM and Seed Audio (nodes_seed.py, nodes_speech.py)
+    "seed_llm_prompt_empty": "prompt is empty.",
+    "seed_llm_unknown_model": "Unknown model: {model}.",
+    "seed_llm_too_many_images": "Up to {max} images are supported per request; {count} are connected.",
+    "seed_llm_too_many_videos": "Up to {max} videos are supported per request; {count} are connected.",
+    "seed_llm_too_many_audios": "Up to {max} audio clips are supported per request; {count} are connected.",
+    "seed_llm_audio_too_long": "The audio clips total {minutes} minutes; ModelArk accepts at most {max} minutes of audio per request.",
+    "seed_llm_video_convert_failed": "Could not convert video_{index} to MP4 for upload; re-export it as MP4 (H.264). Error: {e}",
+    "seed_llm_api_error": "API error ({code}): {message}",
+    "seed_llm_refusal": "The model refused to respond: {refusal}",
+    "seed_llm_empty_response": "Empty response from the model.",
+    "seed_audio_unknown_mode": "Unknown reference mode: {mode}",
+    "seed_audio_tag_text_only": "The prompt references @Audio{tag}, but reference mode is 'text only'. Switch to 'audio reference' and connect the reference clip(s).",
+    "seed_audio_needs_reference": "Reference mode 'audio reference' requires at least one reference_audio input or ref_audio_N_source (or switch to 'text only').",
+    "seed_audio_tag_out_of_range": "The prompt references @Audio{tag}, but only {count} reference audio(s) are connected.",
+    "seed_audio_image_required": "Reference mode 'image reference' requires a reference_image input (or ref_image_url).",
+    "seed_audio_tag_image_mode": "@AudioN tags are not used in 'image reference' mode; the prompt should contain only the text to synthesize.",
+    "seed_audio_preset_required": "Reference mode 'preset voice' requires selecting a preset voice.",
+    "seed_audio_tag_preset_mode": "'preset voice' mode uses a single voice, so @Audio{tag} is out of range. Remove the @AudioN tags; the whole prompt is read in the selected voice.",
+
+    # BytePlus VOD AI MediaKit (nodes_mediakit.py)
+    "mediakit_key_empty": "MediaKit Client: key_name is Custom but new_api_key is empty.",
+    "mediakit_key_saved": "MediaKit API key '{name}' saved to mediakit_api_keys.json.",
+    "mediakit_key_save_failed": "Could not write mediakit_api_keys.json; key '{name}' was not saved and stays in the node.",
+    "mediakit_key_not_found": "MediaKit API key '{key_name}' was not found in mediakit_api_keys.json.",
+    "mediakit_env_key_missing": "Environment variable {env} is not set. Set it to your AI MediaKit API key and restart ComfyUI, or pick Custom.",
+    "mediakit_hint_auth": " Check the MediaKit API key (AI MediaKit console > Settings > API key: {url}); ModelArk and Seed Speech keys do not work here.",
+    "err_mediakit_api": "MediaKit request failed: {code}{param}: {message}.{request_id}{hint}",
+    "err_mediakit_network": "Could not reach AI MediaKit: {e}",
+    "err_mediakit_timeout": "AI MediaKit did not answer within {seconds}s. The request may still have been processed and billed; check the AI MediaKit console before running it again.",
+    "err_mediakit_unexpected": "AI MediaKit returned an unexpected response ({status}).",
+    "err_mediakit_task_failed": "MediaKit task {task_id} failed: {detail}",
+    "err_mediakit_download_failed": "Could not download {url} ({reason}).",
+    "mediakit_task_waiting": "MediaKit task {task_id}: {status} ({elapsed}s)",
+    "vcube_task_submitted": "vCube enhancement task submitted: {task_id}",
+    "err_mediakit_source_both": "Connect a video or set video_url, not both.",
+    "err_mediakit_source_missing": "Connect a video, or set video_url to a public link.",
+    "err_mediakit_url_invalid": "{name} must be a public http(s) link, got '{url}'.",
+    "err_mediakit_image_source_both": "Connect an image or set image_url, not both.",
+    "err_mediakit_image_source_missing": "Connect an image, or set image_url to a public link.",
+    "err_vcube_too_long": "The video is {duration}s long; vCube accepts at most {max}s.",
+    "err_vcube_input_too_large": "Video resolution must be at most {max_w}x{max_h} (2K), got {width}x{height}. Scale the video down before enhancing it.",
+    "err_mediakit_comparison_no_frames": "No video frames could be decoded for the comparison.",
+    "mediakit_comparison_skipped": "Comparison skipped: {e}. The result is returned without it.",
+    "err_vcube_bitrate": "bitrate must be 0 (use bitrate_level) or {min}-{max} kbps, got {value}.",
+    "smooth_task_submitted": "Video Smoothness task submitted: {task_id}",
+    "smooth_summary": "Video Smoothness: {inserted} frame(s) to insert for periodic stutter, {duplicates} duplicate frame(s).",
+    "smooth_no_repair": "Video Smoothness returned no repaired video (repairs set to detect only, nothing to fix, or the repair was skipped by MediaKit's quality check), so the output is the source video. Billed as detection only.",
+    "err_smooth_too_long": "The video is {duration}s long; Video Smoothness repairs videos up to {max}s. Set both repairs to 'detect only' to analyse a longer video.",
+    "err_smooth_input_too_large": "Video resolution must be at most {max_w}x{max_h} (4K), got {width}x{height}.",
+    "err_smooth_frame_indices": "insert_frame_indices takes distinct zero-based frame numbers separated by commas (for example 80, 120); got '{value}'.",
+    "image_enhance_submitted": "Image Quality Enhance ({version}): image {index}/{count}",
+    "image_enhance_done": "Image Quality Enhance: {width}x{height} {format} ({task_id}).",
+    "image_enhance_max_slow": "Image Quality Enhance: a max-version output of {width}x{height} can time out; MediaKit recommends staying within 8000x8000.",
+    "err_image_enhance_input_size": "The {version} version takes images with {rule}; this one is {width}x{height}.",
+    "err_image_enhance_output_size": "The {version} output would be {width}x{height}, but {version} allows {rule}. Lower the scale.",
+    "err_image_enhance_multiple": "multiple must be between 1 and {max} for the {version} version, got {value}.",
+    "err_image_enhance_target_missing": "Set target_width, target_height or both (0 leaves a side to follow the aspect ratio).",
+    "err_image_enhance_target_range": "{name} must be between {min} and {max} px for the {version} version, got {value}.",
+    "err_image_enhance_too_big": "The image is larger than 10 MB even as a JPEG ({size} bytes); scale it down first.",
+    "err_comfy_image_upload_unavailable_mediakit": "Connected images are uploaded through Comfy.org storage to get the public URL MediaKit needs, which is unavailable in this ComfyUI ({e}). Set image_url to a public link instead.",
+    "err_comfy_image_upload_failed_mediakit": "Uploading the image to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set image_url to a public link instead.",
+    "err_comfy_video_upload_unavailable_mediakit": "Connected videos are uploaded through Comfy.org storage to get the public URL MediaKit needs, which is unavailable in this ComfyUI ({e}). Set video_url to a public link instead.",
+    "err_comfy_video_upload_failed_mediakit": "Uploading the video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set video_url to a public link instead.",
 
     "api_errors": {
         "AuthenticationError": "Invalid API Key (401). Check the key in api_keys.json, and that the API Client region matches the region the key was created in.",
@@ -492,8 +680,8 @@ ERROR_TEXT_MATCH_RULES = {
     "output audio may contain sensitive information": "OutputAudioSensitiveContentDetected",
     "output video may be related to copyright restrictions": "OutputVideoSensitiveContentDetected.PolicyViolation",
     "policy violation": "OutputVideoSensitiveContentDetected.PolicyViolation",
-    "requests per minute \\(rpm\\) limit of the associated endpoint": "RateLimitExceeded.EndpointRPMExceeded",
-    "tokens per minute \\(tpm\\) limit of the associated endpoint": "RateLimitExceeded.EndpointTPMExceeded",
+    "requests per minute (rpm) limit of the associated endpoint": "RateLimitExceeded.EndpointRPMExceeded",
+    "tokens per minute (tpm) limit of the associated endpoint": "RateLimitExceeded.EndpointTPMExceeded",
     "has reached the set inference limit": "SetLimitExceeded",
     "safe experience mode": "SetLimitExceeded",
     "generated text contains sensitive content": "OutputTextSensitiveContentDetected",

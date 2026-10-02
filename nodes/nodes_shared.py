@@ -99,17 +99,23 @@ class ApiKeyStore:
             return False
         return True
 
-    def upsert(self, name, key):
+    def upsert(self, name, key, access_key="", secret_key=""):
+        """
+        Add or update a key entry. IAM AK/SK (asset library) are stored with the
+        entry only when both are given; an update without them keeps the ones
+        already saved. New AK/SK replace an old session token, which belonged
+        to the old pair.
+        """
         with self._lock:
-            updated = False
-            for item in self._items:
-                if item["customName"] == name:
-                    item["apiKey"] = key
-                    updated = True
-                    break
-
-            if not updated:
-                self._items.append({"customName": name, "apiKey": key})
+            entry = next((item for item in self._items if item["customName"] == name), None)
+            if entry is None:
+                entry = {"customName": name, "apiKey": key}
+                self._items.append(entry)
+            entry["apiKey"] = key
+            if access_key and secret_key:
+                entry["accessKey"] = access_key
+                entry["secretKey"] = secret_key
+                entry.pop("sessionToken", None)
 
         return self.save()
 
@@ -210,12 +216,26 @@ def format_api_error(e):
     """
     error_map = MESSAGES.get("api_errors", {})
 
-    err_code = None
-    err_msg = str(e)
+    # SDK errors and task error objects carry the code (and request ID) as
+    # attributes; plain strings and other exceptions are parsed from the text.
+    typed_code = typed_msg = None
+    if isinstance(e, dict):
+        typed_code, typed_msg = e.get("code"), e.get("message")
+    elif not isinstance(e, (str, bytes)):
+        typed_code = getattr(e, "code", None)
+        if not isinstance(e, BaseException):
+            typed_msg = getattr(e, "message", None)
+    if not isinstance(typed_code, str) or not typed_code:
+        typed_code = None
+    request_id = getattr(e, "request_id", None) if isinstance(e, BaseException) else None
+    request_suffix = f" Request ID: {request_id}." if request_id else ""
+
+    err_code = typed_code
+    err_msg = str(typed_msg) if typed_msg else str(e)
     detected_code = None
 
     code_match = re.search(r"'code':\s*'([^']+)'", err_msg)
-    if code_match:
+    if code_match and not err_code:
         err_code = code_match.group(1)
 
     msg_match = re.search(r"'message':\s*'([^']+)'", err_msg)
@@ -229,7 +249,18 @@ def format_api_error(e):
             detected_code = mapped_code
             break
 
-    final_code = detected_code if detected_code else err_code
+    def _known(code):
+        return bool(code) and (code in error_map or any(str(code).startswith(key) for key in error_map))
+
+    # The API's own code wins; a text rule only adds detail to that same code
+    # (InvalidParameter -> InvalidParameter.TaskTypeConstraint) or fills in when
+    # the code is missing or unknown.
+    if detected_code and err_code and str(detected_code).startswith(str(err_code)):
+        final_code = detected_code
+    elif _known(err_code):
+        final_code = err_code
+    else:
+        final_code = detected_code or err_code
 
     if final_code:
         final_code = str(final_code)
@@ -268,9 +299,9 @@ def format_api_error(e):
                 account, model = _extract_account_model(err_msg)
                 if account and model:
                     matched_msg = matched_msg % (account, model)
-            return f"{LOG_PREFIX}{matched_msg} (Code: {final_code})"
+            return f"{LOG_PREFIX}{matched_msg} (Code: {final_code}){request_suffix}"
 
-    return f"{LOG_PREFIX}Error: {err_msg}"
+    return f"{LOG_PREFIX}Error: {err_msg}{request_suffix}"
 
 
 def load_api_keys():
@@ -280,11 +311,11 @@ def load_api_keys():
     API_KEY_STORE.load()
 
 
-def save_api_key(name, key):
+def save_api_key(name, key, access_key="", secret_key=""):
     """
-    Save a new API key to api_keys.json.
+    Save a new API key (and optional IAM AK/SK) to api_keys.json.
     """
-    if API_KEY_STORE.upsert(name, key):
+    if API_KEY_STORE.upsert(name, key, access_key, secret_key):
         logger.info(f"Saved API Key: {name}")
 
 
@@ -439,18 +470,24 @@ def save_files_upload_cache():
 load_files_upload_cache()
 
 
-async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, return_meta=False):
+async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, return_meta=False, model=None):
     """
-    Upload a file with client.ark.files.create (cached by content).
+    Upload a file with client.ark.files.create (cached by content). For videos
+    (fps set), `model` selects the frame-sampling strategy of that model; without
+    it ModelArk uses the strategy of models older than seed-1-8.
     """
     expire_seconds = _normalize_expire_seconds(expire_seconds)
     if fps is None:
+        model = None
         try:
             file_identity = f"sha256:{await asyncio.to_thread(_compute_file_sha256, file_path)}"
         except Exception:
             file_identity = file_path
     else:
         file_identity = file_path
+    if model:
+        # Preprocessing depends on the model, so the upload is cached per model.
+        file_identity = f"{file_identity}|model={model}"
     cache_key = (file_identity, float(fps) if fps is not None else None, expire_seconds)
     cache_fps = float(fps) if fps is not None else None
     now_ts = int(time.time())
@@ -554,7 +591,10 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
                 "expires_at": expire_at,
             }
             if fps is not None:
-                upload_kwargs["preprocess_configs"] = {"video": {"fps": float(fps)}}
+                video_config = {"fps": float(fps)}
+                if model:
+                    video_config["model"] = model
+                upload_kwargs["preprocess_configs"] = {"video": video_config}
             file_obj = await asyncio.to_thread(client.ark.files.create, **upload_kwargs)
 
         file_id = getattr(file_obj, "id", None)
@@ -736,6 +776,32 @@ def probe_video_file(path):
         return {}
 
 
+def video_source_size_bytes(video):
+    """
+    Size in bytes of a VIDEO's own file (path or in-memory buffer), without
+    encoding anything. None when it has no source or is trimmed, since the
+    uploaded file is then a re-encode of unknown size.
+    """
+    try:
+        start, duration = video.get_active_trim_window()
+    except Exception:
+        start, duration = 0, 0
+    if start or duration:
+        return None
+    try:
+        source = video.get_stream_source()
+    except Exception:
+        return None
+    if isinstance(source, str):
+        try:
+            return os.path.getsize(source)
+        except OSError:
+            return None
+    if hasattr(source, "getbuffer"):
+        return source.getbuffer().nbytes
+    return None
+
+
 def extract_last_frame_tensor(path):
     """
     Decode the last frame of a local video as an IMAGE tensor [1, H, W, 3],
@@ -770,13 +836,120 @@ class BytePlusException(Exception):
         self.byteplus_suppress_traceback = True
 
 
+async def wait_interruptible(awaitable, poll_seconds=0.5):
+    """Await while honouring ComfyUI interrupts (cancels the request, then re-raises)."""
+    task = asyncio.ensure_future(awaitable)
+    try:
+        while True:
+            done, _ = await asyncio.wait({task}, timeout=poll_seconds)
+            if done:
+                return task.result()
+            comfy.model_management.throw_exception_if_processing_interrupted()
+    except BaseException:
+        task.cancel()
+        raise
+
+
+async def sleep_interruptible(seconds):
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + seconds
+    while True:
+        comfy.model_management.throw_exception_if_processing_interrupted()
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            return
+        await asyncio.sleep(min(0.5, remaining))
+
+
+async def gather_cancelling(awaitables, return_exceptions=False):
+    """
+    asyncio.gather that never leaves siblings running. ComfyUI clears its
+    interrupt flag when the first request raises InterruptProcessingException,
+    so the other requests would not see it and the node would wait for all of
+    them (paid work included). Here an interrupt, or any error unless
+    return_exceptions is set, cancels the rest before it is re-raised.
+    With return_exceptions, other errors are returned in place of results.
+    """
+    tasks = [asyncio.ensure_future(awaitable) for awaitable in awaitables]
+    try:
+        pending = set(tasks)
+        while pending:
+            done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_EXCEPTION)
+            for task in done:
+                error = None if task.cancelled() else task.exception()
+                if error is not None and (
+                    not return_exceptions or isinstance(error, comfy.model_management.InterruptProcessingException)
+                ):
+                    raise error
+    except BaseException:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
+    return [task.exception() or task.result() if return_exceptions else task.result() for task in tasks]
+
+
+def plain_text(key, **kwargs):
+    """A message without the console prefix, for use inside another message or on a node."""
+    text = get_text(key, **kwargs)
+    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
+
+
+def send_node_text(node_id, text, ps_instance=None):
+    """Progress text under the node (best effort); the console prefix is dropped."""
+    if not node_id:
+        return
+    try:
+        if ps_instance is None:
+            from server import PromptServer
+
+            ps_instance = PromptServer.instance
+        if ps_instance:
+            ps_instance.send_progress_text(text.replace(LOG_PREFIX, "", 1), node_id)
+    except Exception:
+        pass
+
+
+async def upload_bytes_to_comfy_storage(node_cls, data, filename, mime_type, cache, *, cache_key, ttl_seconds,
+                                        max_entries, unavailable_key, failed_key, done_key=None, **message_kwargs):
+    """
+    Comfy.org storage URL for media an API only takes as a public link,
+    reused from `cache` for the same cache_key within ttl_seconds. Needs a
+    Comfy.org login; the helper is internal to ComfyUI and missing with
+    --disable-api-nodes. Message keys get message_kwargs plus e.
+    """
+    cached = cache.get(cache_key)
+    if cached and time.time() - cached[1] < ttl_seconds:
+        return cached[0]
+    try:
+        from comfy_api_nodes.util import upload_file_to_comfyapi
+    except Exception as e:
+        raise BytePlusException(get_text(unavailable_key, e=e, **message_kwargs))
+    try:
+        url = await upload_file_to_comfyapi(node_cls, io.BytesIO(data), filename, mime_type, wait_label=None)
+    except comfy.model_management.InterruptProcessingException:
+        raise
+    except Exception as e:
+        raise BytePlusException(get_text(failed_key, e=e, **message_kwargs))
+    cache.pop(cache_key, None)
+    cache[cache_key] = (url, time.time())
+    while len(cache) > max_entries:
+        cache.pop(next(iter(cache)))
+    if done_key:
+        log_msg(done_key, **message_kwargs)
+    return url
+
+
 class BytePlusClients:
     """
     Wraps the Ark client together with its API key, region and (optional)
     asset-library IAM credentials. Never serialized into outputs.
+    billed_ark: the same client without automatic retries, for calls that
+    start paid work (see call_billed).
     """
-    def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION, asset_credentials=None):
+    def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION, asset_credentials=None, billed_ark=None):
         self.ark = ark_client
+        self.billed_ark = billed_ark
         self.api_key = api_key
         self.region = region
         self.asset_credentials = asset_credentials
@@ -792,6 +965,42 @@ class BytePlusClients:
             return
         from .quota import QuotaManager
         QuotaManager.instance().update_usage(self.api_key, model, actual_cost)
+
+
+# The Ark SDK retries a failed request up to twice: on timeouts, 408, 409, 429
+# and 5xx. For a call that starts paid work (task creation, image generation,
+# LLM responses) a retry after a timeout or server error can create and bill
+# the same work twice: the first request may have gone through, and ModelArk
+# has no idempotency key (ComfyUI core sends Idempotency-Key to its proxy for
+# the same reason). Those calls use billed_ark (no SDK retries) via
+# call_billed, which only retries rate limits: a 429 means nothing started.
+BILLED_RATE_LIMIT_RETRIES = 2
+
+try:
+    from byteplussdkarkruntime._exceptions import ArkRateLimitError
+except Exception:  # SDK layout changed: no 429 retry, never a duplicate
+    class ArkRateLimitError(Exception):
+        pass
+
+
+def billed_ark(client):
+    """The Ark client for calls that start paid work: no automatic retries."""
+    return getattr(client, "billed_ark", None) or client.ark
+
+
+def call_billed(create, /, **kwargs):
+    """
+    Run a call that starts paid work (blocking; call it in a worker thread).
+    Only rate limits are retried, after 1 s and 2 s.
+    """
+    for attempt in range(BILLED_RATE_LIMIT_RETRIES + 1):
+        try:
+            return create(**kwargs)
+        except ArkRateLimitError:
+            if attempt >= BILLED_RATE_LIMIT_RETRIES:
+                raise
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            time.sleep(2 ** attempt)
 
 
 API_KEY_SAVED_EVENT = "byteplus.api_key_saved"
@@ -860,6 +1069,24 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
                     default=DEFAULT_REGION,
                     tooltip="ModelArk region. API keys and model activation are per region.",
                 ),
+                comfy_io.String.Input(
+                    "new_access_key",
+                    default="",
+                    optional=True,
+                    tooltip=(
+                        "Optional IAM access key (AK), only for the asset library nodes "
+                        "(Create Image / Video / Audio Asset, Asset Library, and asset_N references). "
+                        "Use it with new_secret_key while key_name is Custom: it is saved with the key "
+                        "under new_key_name and then cleared from this node. Use an IAM sub-user "
+                        "whose policy only allows the asset library."
+                    ),
+                ),
+                comfy_io.String.Input(
+                    "new_secret_key",
+                    default="",
+                    optional=True,
+                    tooltip="Optional IAM secret key (SK) that goes with new_access_key. Cleared from this node after it is saved.",
+                ),
             ],
             outputs=[BytePlusClientType.Output(display_name="client")],
             hidden=[comfy_io.Hidden.unique_id],
@@ -867,7 +1094,8 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
 
     @classmethod
     def execute(
-        cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_REGION
+        cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_REGION,
+        new_access_key="", new_secret_key="",
     ) -> comfy_io.NodeOutput:
         api_key = None
         asset_credentials = None
@@ -878,13 +1106,23 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
                 raise BytePlusException(get_text("err_new_key_empty"))
             
             api_key = new_api_key.strip()
-            
+            access_key = (new_access_key or "").strip()
+            secret_key = (new_secret_key or "").strip()
+            if bool(access_key) != bool(secret_key):
+                raise BytePlusException(get_text("err_new_asset_credentials_incomplete"))
+
             if not validate_api_key(api_key, base_url):
                 raise BytePlusException(get_text("err_new_key_invalid"))
-            
+
+            if access_key:
+                # Usable in this run even when the key is not saved.
+                asset_credentials = {"access_key": access_key, "secret_key": secret_key, "session_token": ""}
+
             if new_key_name and new_key_name.strip():
-                save_api_key(new_key_name.strip(), api_key)
+                save_api_key(new_key_name.strip(), api_key, access_key, secret_key)
                 print(get_text("info_new_key_saved", name=new_key_name.strip()))
+                if access_key:
+                    print(get_text("info_new_asset_credentials_saved", name=new_key_name.strip()))
                 _notify_api_key_saved(cls.hidden.unique_id, new_key_name.strip(), api_key)
 
         else:
@@ -896,7 +1134,8 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
             raise BytePlusException(get_text("popup_key_valid_err").format(key=key_name))
 
         ark_client = Ark(api_key=api_key, base_url=base_url)
+        billed_client = Ark(api_key=api_key, base_url=base_url, max_retries=0)
 
         return comfy_io.NodeOutput(
-            BytePlusClients(ark_client, api_key, region, asset_credentials)
+            BytePlusClients(ark_client, api_key, region, asset_credentials, billed_ark=billed_client)
         )

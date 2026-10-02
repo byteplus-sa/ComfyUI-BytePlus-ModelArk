@@ -7,7 +7,6 @@ import re
 import uuid
 
 import aiohttp
-import comfy.model_management
 from comfy_api.latest import io as comfy_io
 
 from .constants import (
@@ -15,10 +14,18 @@ from .constants import (
     SPEECH_API_KEYS_CONSOLE_URL,
     SPEECH_ERROR_TEXT,
     SPEECH_REGION_BASE_URLS,
+    SPEECH_POLL_MAX_ERRORS,
     SPEECH_REQUEST_TIMEOUT_SECONDS,
     SPEECH_SUCCESS_CODES,
 )
-from .nodes_shared import LOG_PREFIX, ApiKeyStore, BytePlusException, get_text
+from .nodes_shared import (
+    ApiKeyStore,
+    BytePlusException,
+    get_text,
+    plain_text,
+    sleep_interruptible,
+    wait_interruptible,
+)
 
 # Seed Speech keys are a different product key from ModelArk keys, so they get
 # their own file (git-ignored runtime file in the repo root) and socket type.
@@ -76,11 +83,6 @@ def _as_int(value):
         return None
 
 
-def _plain(key, **kwargs):
-    text = get_text(key, **kwargs)
-    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
-
-
 def require_speech_client(client):
     if not getattr(client, "api_key", None) or not getattr(client, "base_url", None):
         raise BytePlusException(get_text("speech_wrong_client"))
@@ -92,21 +94,21 @@ def describe_speech_error(code, message, status=None):
     message = str(message or "").strip()
     lowered = message.lower()
     if status == 401 or code == 45000010 or ("api" in lowered and "key" in lowered and "invalid" in lowered):
-        return _plain("speech_err_auth", url=SPEECH_API_KEYS_CONSOLE_URL)
+        return plain_text("speech_err_auth", url=SPEECH_API_KEYS_CONSOLE_URL)
     if "quota exceeded" in lowered and "concurrency" in lowered:
-        return _plain("speech_err_concurrency")
+        return plain_text("speech_err_concurrency")
     if code == 45000000 and "speaker" in lowered:
-        return _plain("speech_err_speaker")
+        return plain_text("speech_err_speaker")
     if code == 40402003 or "exceededtextlimit" in lowered.replace(" ", ""):
-        return _plain("speech_err_text_limit")
+        return plain_text("speech_err_text_limit")
     if code == 55000031:
-        return _plain("speech_err_busy")
+        return plain_text("speech_err_busy")
     if code == 45000001:
-        return f"{_plain('speech_err_params')}: {message}" if message else _plain("speech_err_params")
+        return f"{plain_text('speech_err_params')}: {message}" if message else plain_text("speech_err_params")
     if code == 45000002:
-        return _plain("speech_err_empty_input_audio")
+        return plain_text("speech_err_empty_input_audio")
     if code == 45000151:
-        return _plain("speech_err_audio_format")
+        return plain_text("speech_err_audio_format")
     if code in SPEECH_ERROR_TEXT:
         text = SPEECH_ERROR_TEXT[code]
         return f"{text} ({message})" if message and message.lower() not in text.lower() else text
@@ -161,29 +163,12 @@ async def _send(method, url, headers, body, timeout):
             return SpeechResponse(response.status, dict(response.headers), await response.read())
 
 
-async def wait_interruptible(awaitable, poll_seconds=0.5):
-    """Await while honouring ComfyUI interrupts (cancels the request, then re-raises)."""
-    task = asyncio.ensure_future(awaitable)
-    try:
-        while True:
-            done, _ = await asyncio.wait({task}, timeout=poll_seconds)
-            if done:
-                return task.result()
-            comfy.model_management.throw_exception_if_processing_interrupted()
-    except BaseException:
-        task.cancel()
-        raise
+class SpeechRequestError(BytePlusException):
+    """A failed Seed Speech request. retryable: network errors, timeouts, 429 and 5xx."""
 
-
-async def sleep_interruptible(seconds):
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + seconds
-    while True:
-        comfy.model_management.throw_exception_if_processing_interrupted()
-        remaining = deadline - loop.time()
-        if remaining <= 0:
-            return
-        await asyncio.sleep(min(0.5, remaining))
+    def __init__(self, message, retryable=False):
+        super().__init__(message)
+        self.retryable = retryable
 
 
 async def speech_post(client, path, body, *, operation, headers=None,
@@ -205,12 +190,31 @@ async def speech_post(client, path, body, *, operation, headers=None,
             _send("POST", client.base_url + path, request_headers, body, timeout)
         )
     except asyncio.TimeoutError:
-        raise BytePlusException(get_text("speech_timeout", operation=operation, seconds=timeout))
+        raise SpeechRequestError(get_text("speech_timeout", operation=operation, seconds=timeout), retryable=True)
     except aiohttp.ClientError as e:
-        raise BytePlusException(get_text("speech_network_error", operation=operation, e=e))
+        raise SpeechRequestError(get_text("speech_network_error", operation=operation, e=e), retryable=True)
     if response.status >= 400:
-        raise speech_error(operation, response)
+        raise SpeechRequestError(
+            str(speech_error(operation, response)), retryable=response.status == 429 or response.status >= 500
+        )
     return response
+
+
+async def speech_poll(client, path, body, *, operation, poll_seconds, headers=None):
+    """
+    speech_post for status queries of a submitted (possibly already billed)
+    task: transient failures are retried after poll_seconds, up to
+    SPEECH_POLL_MAX_ERRORS in a row, instead of abandoning the task.
+    """
+    errors = 0
+    while True:
+        try:
+            return await speech_post(client, path, body, operation=operation, headers=headers)
+        except SpeechRequestError as e:
+            errors += 1
+            if not e.retryable or errors >= SPEECH_POLL_MAX_ERRORS:
+                raise
+            await sleep_interruptible(poll_seconds)
 
 
 async def download_bytes(url, operation, timeout=SPEECH_REQUEST_TIMEOUT_SECONDS):

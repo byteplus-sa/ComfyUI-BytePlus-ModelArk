@@ -1,0 +1,598 @@
+{
+  "id": "702485d9-c542-4117-88b9-f3940ad43eaf",
+  "revision": 0,
+  "last_node_id": 5,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "BytePlusAPIClient",
+      "pos": [
+        20,
+        100
+      ],
+      "size": [
+        300,
+        190
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "new_api_key",
+          "type": "STRING",
+          "widget": {
+            "name": "new_api_key"
+          },
+          "link": null
+        },
+        {
+          "name": "new_key_name",
+          "type": "STRING",
+          "widget": {
+            "name": "new_key_name"
+          },
+          "link": null
+        },
+        {
+          "name": "key_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "key_name"
+          },
+          "link": null
+        },
+        {
+          "name": "region",
+          "type": "COMBO",
+          "widget": {
+            "name": "region"
+          },
+          "link": null
+        },
+        {
+          "name": "new_access_key",
+          "type": "STRING",
+          "shape": 7,
+          "widget": {
+            "name": "new_access_key"
+          },
+          "link": null
+        },
+        {
+          "name": "new_secret_key",
+          "type": "STRING",
+          "shape": 7,
+          "widget": {
+            "name": "new_secret_key"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "links": [
+            1,
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusAPIClient"
+      },
+      "widgets_values": [
+        "",
+        "",
+        "Custom",
+        "ap-southeast-1",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 2,
+      "type": "BytePlusSeedream",
+      "pos": [
+        390,
+        100
+      ],
+      "size": [
+        450,
+        450
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 1
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.size_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.size_preset"
+          },
+          "link": null
+        },
+        {
+          "name": "model.width",
+          "type": "INT",
+          "widget": {
+            "name": "model.width"
+          },
+          "link": null
+        },
+        {
+          "name": "model.height",
+          "type": "INT",
+          "widget": {
+            "name": "model.height"
+          },
+          "link": null
+        },
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "model.prompt_optimization",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.prompt_optimization"
+          },
+          "link": null
+        },
+        {
+          "name": "model.seed",
+          "type": "INT",
+          "widget": {
+            "name": "model.seed"
+          },
+          "link": null
+        },
+        {
+          "name": "model.watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "model.thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.thinking"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "model.generation_count"
+          },
+          "link": null
+        },
+        {
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "name": "model.background",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.background"
+          },
+          "link": null
+        },
+        {
+          "name": "model.reference_mask",
+          "type": "MASK",
+          "shape": 7,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3,
+            4
+          ]
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusSeedream"
+      },
+      "widgets_values": [
+        "A lone astronaut standing on a red desert dune at sunrise, a huge ringed planet filling the sky, cinematic wide shot, soft haze, fine film grain.",
+        "seedream 5.0 pro",
+        "(1.5K) 2048x1152 (16:9)",
+        2048,
+        1152,
+        "standard",
+        42,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SaveImage",
+      "pos": [
+        900,
+        100
+      ],
+      "size": [
+        300,
+        270
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "BytePlus/Image/Seedream_frame"
+      ],
+      "title": "Save First Frame"
+    },
+    {
+      "id": 4,
+      "type": "BytePlusSeedance2FirstLastFrame",
+      "pos": [
+        900,
+        420
+      ],
+      "size": [
+        460,
+        450
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "client",
+          "type": "BYTEPLUS_CLIENT",
+          "link": 2
+        },
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model.resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "model.ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.duration",
+          "type": "INT",
+          "widget": {
+            "name": "model.duration"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generate_audio",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.generate_audio"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "first_frame",
+          "type": "IMAGE",
+          "link": 4,
+          "shape": 7
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "first_frame_asset_id",
+          "type": "STRING",
+          "widget": {
+            "name": "first_frame_asset_id"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "last_frame_asset_id",
+          "type": "STRING",
+          "widget": {
+            "name": "last_frame_asset_id"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "shape": 6,
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.3.0",
+        "Node name for S&R": "BytePlusSeedance2FirstLastFrame"
+      },
+      "widgets_values": [
+        "Seedance 2.0",
+        "The astronaut slowly turns toward the camera as dust drifts across the dune and the planet's rings glow in the rising light. The camera pushes in gently.",
+        "720p",
+        "adaptive",
+        5,
+        true,
+        0,
+        "randomize",
+        false,
+        "",
+        "",
+        1,
+        false
+      ]
+    },
+    {
+      "id": 5,
+      "type": "SaveVideo",
+      "pos": [
+        1420,
+        420
+      ],
+      "size": [
+        300,
+        106
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 5
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "BytePlus/Video/Seedream_to_Seedance",
+        "auto",
+        "auto"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "BYTEPLUS_CLIENT"
+    ],
+    [
+      2,
+      1,
+      0,
+      4,
+      0,
+      "BYTEPLUS_CLIENT"
+    ],
+    [
+      3,
+      2,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      2,
+      0,
+      4,
+      9,
+      "IMAGE"
+    ],
+    [
+      5,
+      4,
+      0,
+      5,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7,
+      "offset": [
+        40,
+        40
+      ]
+    }
+  },
+  "version": 0.4
+}

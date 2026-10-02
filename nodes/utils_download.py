@@ -10,10 +10,14 @@ import PIL.Image
 import folder_paths
 import random
 import shutil
+import comfy.model_management
 from .nodes_shared import log_msg
 
 DEFAULT_DOWNLOAD_TIMEOUT = 60
 DEFAULT_DOWNLOAD_RETRIES = 3
+# Generated videos can be large: no total time limit, only a stalled connection
+# times out (like ComfyUI core's download_url_to_video_output).
+VIDEO_DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=None, sock_connect=60, sock_read=120)
 
 
 def _image_bytes_to_tensor(image_data: bytes) -> torch.Tensor:
@@ -164,15 +168,20 @@ async def _download_to_file_stream_async(
     session: aiohttp.ClientSession,
     url: str,
     file_path: str,
-    timeout: int = DEFAULT_DOWNLOAD_TIMEOUT,
+    timeout: int | aiohttp.ClientTimeout = DEFAULT_DOWNLOAD_TIMEOUT,
     retries: int = DEFAULT_DOWNLOAD_RETRIES,
 ) -> bool:
     """
-    Stream a download to a file.
+    Stream a download to a file. timeout is the limit in seconds for each
+    attempt, or an aiohttp.ClientTimeout (e.g. no total limit, only a stall
+    limit, for large files).
     """
     for attempt in range(1, retries + 2):
         try:
-            client_timeout = aiohttp.ClientTimeout(total=timeout)
+            if isinstance(timeout, aiohttp.ClientTimeout):
+                client_timeout = timeout
+            else:
+                client_timeout = aiohttp.ClientTimeout(total=timeout)
             # t0 = time.time()
             async with session.get(url, timeout=client_timeout) as response:
                 response.raise_for_status()
@@ -229,12 +238,14 @@ async def download_video_to_temp(
     final_path = os.path.join(full_output_folder, final_filename)
 
     try:
-        success = await _download_to_file_stream_async(session, url, final_path)
+        success = await _download_to_file_stream_async(session, url, final_path, timeout=VIDEO_DOWNLOAD_TIMEOUT)
         if success:
             return final_path
         return None
+    except comfy.model_management.InterruptProcessingException:
+        raise
     except Exception as e:
-        log_msg("err_download_url", url=url, e=e)
+        log_msg("err_download_url", url=url.split("?", 1)[0], e=type(e).__name__)
         return None
 
 

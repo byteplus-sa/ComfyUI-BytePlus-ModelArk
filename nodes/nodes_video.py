@@ -22,6 +22,9 @@ from comfy_api.latest import io as comfy_io
 from comfy_api.input_impl import VideoFromFile
 
 from .audio_utils import audio_to_wav_bytes, audio_waveform
+from comfy_execution.graph_utils import ExecutionBlocker
+
+from .core_style import raise_if_model_retired
 from .nodes_shared import (
     GLOBAL_CATEGORY,
     _image_to_base64,
@@ -31,10 +34,10 @@ from .nodes_shared import (
     BytePlusClientType,
     BytePlusException,
     get_node_count_in_workflow,
-    create_white_image_tensor,
-    create_white_video,
     probe_video_file,
     extract_last_frame_tensor,
+    safe_cat_tensors,
+    wait_interruptible,
 )
 from .nodes_video_schema import (
     get_common_video_seed_inputs,
@@ -92,24 +95,54 @@ COMFY_VIDEO_UPLOAD_CACHE_TTL_SECONDS = 43200
 COMFY_VIDEO_UPLOAD_CACHE_MAX_ENTRIES = 256
 
 
-async def upload_video_to_comfy_storage(node_cls, video) -> str:
+async def upload_video_to_comfy_storage(
+    node_cls,
+    video,
+    unavailable_key="err_comfy_upload_unavailable",
+    failed_key="err_comfy_upload_failed",
+) -> str:
     """
     Upload a reference video to Comfy.org storage and return its public URL.
 
     Seedance only accepts reference videos as URLs, so local videos go through
     ComfyUI's API-node upload helper. That helper is internal to ComfyUI, needs
     a Comfy.org login or API key, and is missing when API nodes are disabled.
+    The message keys name the bypass input of the calling node.
     """
     try:
         from comfy_api_nodes.util import upload_video_to_comfyapi
     except Exception as e:
-        raise BytePlusException(get_text("err_comfy_upload_unavailable", e=e))
+        raise BytePlusException(get_text(unavailable_key, e=e))
     try:
         return await upload_video_to_comfyapi(node_cls, video, wait_label=None)
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:
-        raise BytePlusException(get_text("err_comfy_upload_failed", e=e))
+        raise BytePlusException(get_text(failed_key, e=e))
+
+
+async def upload_videos_to_comfy_storage_cached(node_cls, videos, helper=None, **message_keys):
+    """
+    Upload local videos to Comfy.org storage, reusing links cached for the
+    same file or buffer (COMFY_VIDEO_UPLOAD_CACHE). Returns URLs in order.
+    """
+    helper = helper or BytePlusVideoBase()
+    uploaded_video_urls = []
+    for v in videos:
+        cache_key = helper._build_comfy_video_upload_cache_key(v)
+        cached_video_url = helper._get_cached_comfy_video_url(cache_key)
+        if cached_video_url:
+            uploaded_video_urls.append(cached_video_url)
+            log_msg("upload_ref_video_cache_hit")
+            continue
+        done_before = len(uploaded_video_urls)
+        pending_before = max(0, len(videos) - done_before)
+        log_msg("upload_ref_video_start", done=done_before, pending=pending_before)
+        uploaded_video_url = await upload_video_to_comfy_storage(node_cls, v, **message_keys)
+        helper._save_cached_comfy_video_url(cache_key, uploaded_video_url)
+        uploaded_video_urls.append(uploaded_video_url)
+        log_msg("upload_ref_video_done")
+    return uploaded_video_urls
 
 
 def _parse_video_urls(text) -> list[str]:
@@ -316,6 +349,16 @@ from .constants import (
     VIDEO_RESOLUTION_PIXELS,
 )
 
+
+def _save_batch_videos(generation_count, as_list):
+    """
+    Legacy nodes write a batch to the output folder (only the first video reaches
+    their output). Core-style nodes (list output) save nothing, like core's nodes:
+    every video reaches the VIDEO output and Save Video keeps it.
+    """
+    return generation_count > 1 and not as_list
+
+
 class BytePlusVideoBase:
     """
     Base class for the Seedance nodes.
@@ -403,10 +446,32 @@ class BytePlusVideoBase:
             return len(stream_source.getvalue())
         return 0
 
+    @staticmethod
+    def _video_variant(video):
+        """
+        Trim window and crop of a VideoFromFile. Core's trim and crop nodes keep
+        the same file, and the upload (save_to) applies them, so they must be
+        part of the cache key or a trimmed clip would reuse the full clip's link.
+        """
+        parts = []
+        window = getattr(video, "get_active_trim_window", None)
+        if callable(window):
+            try:
+                parts.append("trim=" + ",".join(f"{float(x):.3f}" for x in window()))
+            except Exception:
+                return None  # unknown variant: do not cache
+        crop = getattr(video, "_VideoFromFile__crop", None)
+        if crop is not None:
+            parts.append(f"crop={tuple(crop)}")
+        return "".join(f"|{part}" for part in parts)
+
     def _build_comfy_video_upload_cache_key(self, video):
         try:
             stream_source = video.get_stream_source()
         except Exception:
+            return None
+        variant = self._video_variant(video)
+        if variant is None:
             return None
 
         if isinstance(stream_source, str):
@@ -414,7 +479,7 @@ class BytePlusVideoBase:
             if not os.path.exists(path):
                 return None
             st = os.stat(path)
-            return f"path:{path}|{int(st.st_size)}|{int(st.st_mtime_ns)}"
+            return f"path:{path}|{int(st.st_size)}|{int(st.st_mtime_ns)}{variant}"
 
         def _hash_buffer(size, reader):
             hasher = hashlib.sha256()
@@ -434,13 +499,13 @@ class BytePlusVideoBase:
                 size,
                 lambda start, length: bytes(buffer_view[start : start + length]),
             )
-            return f"buffer:{size}|{digest}"
+            return f"buffer:{size}|{digest}{variant}"
 
         if hasattr(stream_source, "getvalue"):
             raw = stream_source.getvalue()
             size = len(raw)
             digest = _hash_buffer(size, lambda start, length: raw[start : start + length])
-            return f"bytes:{size}|{digest}"
+            return f"bytes:{size}|{digest}{variant}"
 
         return None
 
@@ -739,6 +804,28 @@ class BytePlusVideoBase:
         )
         return duration, request_bytes
 
+    @staticmethod
+    def _pending_outputs(state, as_list):
+        """
+        A non_blocking run without videos yet: the task IDs in the response. List
+        outputs get ExecutionBlockers (a list output cannot be None), so nodes using
+        them are skipped.
+        """
+        empty = ExecutionBlocker(None) if as_list else None
+        return comfy_io.NodeOutput(empty, empty, json.dumps(state, ensure_ascii=False, indent=2))
+
+    @staticmethod
+    def _ignored_failure_outputs(runner):
+        """
+        Every task failed in a workflow with several such nodes: the outputs are
+        blocked with the failure, so ComfyUI reports it at the nodes using them
+        and the other branches still run (no placeholder gets saved as a result).
+        """
+        message = runner.ignored_failure or get_text("err_batch_fail_all")
+        return comfy_io.NodeOutput(
+            ExecutionBlocker(message), ExecutionBlocker(message), json.dumps({"error": message})
+        )
+
     async def _handle_batch_success_async(
         self,
         successful_tasks,
@@ -746,9 +833,14 @@ class BytePlusVideoBase:
         generation_count,
         save_last_frame_batch,
         session,
+        as_list=False,
+        save_videos=None,
     ):
         """
         Download the videos and last frames of succeeded tasks and build the outputs.
+        as_list: every video (for a list output) and a batch of their last frames in
+        the same order; otherwise the first video and its own last frame (Legacy nodes).
+        save_videos: also write the videos to the output folder (default: when batching).
         """
         # t_start = time.time()
         if generation_count > 1:
@@ -787,6 +879,7 @@ class BytePlusVideoBase:
                     )
 
             return {
+                "task_id": getattr(task, "id", None),
                 "seed": seed,
                 "video_path": v_path,
                 "frame_tensor": f_tensor,
@@ -794,46 +887,78 @@ class BytePlusVideoBase:
                 "response": resp,
             }
 
-        results = await asyncio.gather(
-            *[_process_task(t) for t in successful_tasks], return_exceptions=True
+        # Interruptible: a large download must not hold up Stop.
+        results = await wait_interruptible(
+            asyncio.gather(*[_process_task(t) for t in successful_tasks], return_exceptions=True)
         )
         valid_results = []
-        for res in results:
+        missing = []  # paid tasks whose video could not be downloaded
+        for task, res in zip(successful_tasks, results):
+            if isinstance(res, comfy.model_management.InterruptProcessingException):
+                raise res
             if isinstance(res, Exception):
                 log_msg("err_download_url", url="batch_task", e=res)
+                missing.append(str(getattr(task, "id", "?")))
                 continue
+            if not res["video_path"]:
+                missing.append(str(res["task_id"] or "?"))
             valid_results.append(res)
+        download_error = None
+        if missing and len(missing) == len(successful_tasks):
+            # Block the outputs with the reason (ComfyUI reports it at the nodes that use
+            # them); the response output still carries the task IDs and video links.
+            download_error = get_text("err_video_download_failed", task_ids=", ".join(missing))
+            log_msg("err_video_download_failed", task_ids=", ".join(missing))
+        elif missing:
+            log_msg(
+                "batch_video_download_partial",
+                done=len(successful_tasks) - len(missing),
+                total=len(successful_tasks),
+                task_ids=", ".join(missing),
+            )
 
         valid_results.sort(key=lambda x: x["seed"])
+        if save_videos is None:
+            save_videos = generation_count > 1
 
         all_responses = []
-        first_video = None
-        first_frame = None
+        # One entry per downloaded video, so videos[i] and frames[i] are the same task.
+        videos = []
+        frames = []
 
         for res in valid_results:
-            if res["frame_tensor"] is None and res["video_path"]:
-                res["frame_tensor"] = extract_last_frame_tensor(res["video_path"])
-
             all_responses.append(res["response"])
             v_path = res["video_path"]
+            if not v_path:
+                continue
             f_tensor = res["frame_tensor"]
-            f_path = res["frame_path"]
+            if f_tensor is None:
+                f_tensor = extract_last_frame_tensor(v_path)
+            videos.append(VideoFromFile(v_path))
+            frames.append(f_tensor)
 
-            if first_video is None and v_path:
-                first_video = VideoFromFile(v_path)
-            if first_frame is None and f_tensor is not None:
-                first_frame = f_tensor
-
-            if generation_count > 1:
+            if save_videos:
                 save_to_output(v_path, filename_prefix)
-                if save_last_frame_batch and f_path:
-                    save_to_output(f_path, filename_prefix)
+            if save_videos and save_last_frame_batch and res["frame_path"]:
+                save_to_output(res["frame_path"], filename_prefix)
 
         # t_end = time.time()
         # print(f"[BytePlus Debug] Batch handling finished in {t_end - t_start:.2f}s")
-        
+        response = json.dumps(all_responses, indent=2)
+
+        if download_error:
+            return comfy_io.NodeOutput(ExecutionBlocker(download_error), ExecutionBlocker(download_error), response)
+        if not as_list:
+            return comfy_io.NodeOutput(
+                videos[0] if videos else None, frames[0] if frames else None, response
+            )
+        if not videos:
+            return comfy_io.NodeOutput(ExecutionBlocker(None), ExecutionBlocker(None), response)
+        found = [frame for frame in frames if frame is not None]
+        if len(found) < len(frames):
+            log_msg("batch_last_frame_missing", missing=len(frames) - len(found), total=len(frames))
         return comfy_io.NodeOutput(
-            first_video, first_frame, json.dumps(all_responses, indent=2)
+            videos, safe_cat_tensors(found) if found else ExecutionBlocker(None), response
         )
 
     @staticmethod
@@ -881,10 +1006,12 @@ class BytePlusVideoBase:
         service_tier=None,
         execution_expires_after=None,
         ignore_errors=False,
+        as_list=False,
     ):
         """
         Submit tasks whose content is already built (e.g. a draft_task
         reference for a final video) and collect the results.
+        as_list: outputs for a list VIDEO output (see _handle_batch_success_async).
         """
         client.check_quota(
             model_name,
@@ -904,17 +1031,14 @@ class BytePlusVideoBase:
             execution_expires_after=execution_expires_after,
             extra_api_params=extra_api_params,
             return_last_frame=True,
+            offset_seed=as_list,
         )
 
         if isinstance(successful_tasks, dict) and successful_tasks.get("non_blocking"):
-            return comfy_io.NodeOutput(
-                None, None, json.dumps(successful_tasks, ensure_ascii=False, indent=2)
-            )
+            return self._pending_outputs(successful_tasks, as_list)
 
         if not successful_tasks and ignore_errors:
-            dummy_video = create_white_video(1024, 1024)
-            dummy_frame = create_white_image_tensor(1024, 1024)
-            return comfy_io.NodeOutput(dummy_video, dummy_frame, json.dumps({"error": "All tasks failed but ignored. Returning dummy video/image."}))
+            return self._ignored_failure_outputs(runner)
 
         async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(force_close=True)
@@ -925,6 +1049,8 @@ class BytePlusVideoBase:
                 generation_count,
                 save_last_frame_batch,
                 session,
+                as_list=as_list,
+                save_videos=_save_batch_videos(generation_count, as_list),
             )
             await asyncio.sleep(0.25)
         self._record_usage(client, model_name, ret_results)
@@ -955,9 +1081,11 @@ class BytePlusVideoBase:
         on_tasks_created=None,
         node_class_type=None,
         workflow_prompt=None,
+        as_list=False,
     ):
         """
         Shared video generation flow: build parameters, submit, poll and collect results.
+        as_list: outputs for a list VIDEO output (see _handle_batch_success_async).
         """
         try:
             _raise_if_text_params(prompt, forbidden_params)
@@ -1017,21 +1145,16 @@ class BytePlusVideoBase:
                 extra_api_params=extra_api_params,
                 return_last_frame=return_last_frame,
                 on_tasks_created=on_tasks_created,
+                offset_seed=as_list,
             )
 
             if isinstance(successful_tasks, dict) and successful_tasks.get(
                 "non_blocking"
             ):
-                return comfy_io.NodeOutput(
-                    None,
-                    None,
-                    json.dumps(successful_tasks, ensure_ascii=False, indent=2),
-                )
+                return self._pending_outputs(successful_tasks, as_list)
 
             if not successful_tasks and ignore_errors:
-                 dummy_video = create_white_video(1024, 1024)
-                 dummy_frame = create_white_image_tensor(1024, 1024)
-                 return comfy_io.NodeOutput(dummy_video, dummy_frame, json.dumps({"error": "All tasks failed but ignored. Returning dummy video/image."}))
+                return self._ignored_failure_outputs(runner)
 
             ret_results = None
             async with aiohttp.ClientSession() as session:
@@ -1041,6 +1164,8 @@ class BytePlusVideoBase:
                     generation_count,
                     save_last_frame_batch,
                     session,
+                    as_list=as_list,
+                    save_videos=_save_batch_videos(generation_count, as_list),
                 )
                 await asyncio.sleep(0.25)
             
@@ -1056,18 +1181,44 @@ class BytePlusVideoBase:
             raise BytePlusException(format_api_error(e))
 
 
+def build_seedance1_frame_content(helper, first_frame, last_frame):
+    """
+    Seedance 1.x content items for the first/last frames (base64 data URIs with
+    roles first_frame / last_frame), checked against the request size limits.
+    Shared by the Legacy Seedance 1.x nodes and nodes_seedance1.py.
+    """
+    content = []
+    total_image_request_bytes = helper._append_image_content(content, first_frame, "first_frame")
+
+    if last_frame is not None:
+        if first_frame is None:
+            raise BytePlusException(get_text("popup_first_frame_missing"))
+        total_image_request_bytes += helper._append_image_content(content, last_frame, "last_frame")
+
+    total_image_request_mb = float(total_image_request_bytes) / (1024.0 * 1024.0)
+    if total_image_request_mb > REF_IMAGE_MAX_TOTAL_REQUEST_MB:
+        raise BytePlusException(
+            get_text("popup_ref_image_total_size_exceeded").format(
+                max_mb=REF_IMAGE_MAX_TOTAL_REQUEST_MB, size_mb=f"{total_image_request_mb:.3f}"
+            )
+        )
+    return content
+
+
 class BytePlusSeedance1(BytePlusVideoBase, comfy_io.ComfyNode):
     """
-    Seedance 1.0 Pro / Pro Fast video node.
+    Legacy Seedance 1.0 Pro / Pro Fast video node (replaced by the nodes in
+    nodes_seedance1.py; kept so saved workflows still load).
     Text-to-video and first/last-frame image-to-video.
     """
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedance1",
-            display_name="BytePlus Seedance 1.0",
+            display_name="BytePlus Seedance 1.0 (Legacy)",
             category=GLOBAL_CATEGORY,
             is_output_node=True,
+            is_deprecated=True,
             inputs=[
                 BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input(
@@ -1133,22 +1284,7 @@ class BytePlusSeedance1(BytePlusVideoBase, comfy_io.ComfyNode):
         helper._validate_reference_image_constraints(image)
         helper._validate_reference_image_constraints(last_frame_image)
 
-        content = []
-        total_image_request_bytes = 0
-        total_image_request_bytes += helper._append_image_content(content, image, "first_frame")
-
-        if last_frame_image is not None:
-            if image is None:
-                raise BytePlusException(get_text("popup_first_frame_missing"))
-            total_image_request_bytes += helper._append_image_content(content, last_frame_image, "last_frame")
-
-        total_image_request_mb = float(total_image_request_bytes) / (1024.0 * 1024.0)
-        if total_image_request_mb > REF_IMAGE_MAX_TOTAL_REQUEST_MB:
-            raise BytePlusException(
-                get_text("popup_ref_image_total_size_exceeded").format(
-                    max_mb=REF_IMAGE_MAX_TOTAL_REQUEST_MB, size_mb=f"{total_image_request_mb:.3f}"
-                )
-            )
+        content = build_seedance1_frame_content(helper, image, last_frame_image)
 
         service_tier, execution_expires_after = helper._get_service_options(
             enable_offline_inference, VIDEO_DEFAULT_TIMEOUT
@@ -1187,16 +1323,18 @@ class BytePlusSeedance1(BytePlusVideoBase, comfy_io.ComfyNode):
 
 class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
     """
-    Seedance 1.5 Pro video node.
+    Legacy Seedance 1.5 Pro video node (replaced by the nodes in
+    nodes_seedance1.py; kept so saved workflows still load).
     Text-to-video, image-to-video, draft mode and draft reuse.
     """
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedance1_5",
-            display_name="BytePlus Seedance 1.5 Pro",
+            display_name="BytePlus Seedance 1.5 Pro (Legacy)",
             category=GLOBAL_CATEGORY,
             is_output_node=True,
+            is_deprecated=True,
             inputs=[
                 BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input(
@@ -1257,6 +1395,7 @@ class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
         last_frame_image=None,
     ) -> comfy_io.NodeOutput:
 
+        raise_if_model_retired(model_version)
         node_id = cls.hidden.unique_id
 
         global LAST_SEEDANCE_1_5_DRAFT_TASK_ID
@@ -1308,22 +1447,7 @@ class BytePlusSeedance1_5(BytePlusVideoBase, comfy_io.ComfyNode):
                 ignore_errors=ignore_errors,
             )
 
-        content = []
-        total_image_request_bytes = 0
-        total_image_request_bytes += helper._append_image_content(content, image, "first_frame")
-
-        if last_frame_image is not None:
-            if image is None:
-                raise BytePlusException(get_text("popup_first_frame_missing"))
-            total_image_request_bytes += helper._append_image_content(content, last_frame_image, "last_frame")
-
-        total_image_request_mb = float(total_image_request_bytes) / (1024.0 * 1024.0)
-        if total_image_request_mb > REF_IMAGE_MAX_TOTAL_REQUEST_MB:
-            raise BytePlusException(
-                get_text("popup_ref_image_total_size_exceeded").format(
-                    max_mb=REF_IMAGE_MAX_TOTAL_REQUEST_MB, size_mb=f"{total_image_request_mb:.3f}"
-                )
-            )
+        content = build_seedance1_frame_content(helper, image, last_frame_image)
 
         final_duration = -1.0 if auto_duration else float(duration)
 
@@ -1458,9 +1582,12 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedance2",
-            display_name="BytePlus Seedance 2 / 2.5",
+            display_name="BytePlus Seedance 2 / 2.5 (Legacy)",
             category=GLOBAL_CATEGORY,
+            is_deprecated=True,
             description=(
+                "Legacy node: use BytePlus Seedance 2.5 Text to Video, First-Last-Frame "
+                "to Video or Reference to Video instead. "
                 "Generate or edit video with Dreamina Seedance 2.0, Fast, Mini, 2.5, or "
                 "2.5 Premium (4K). Seedance 2.5 supports up to 30-second output, more "
                 "references and a 480p draft mode. "
@@ -1714,20 +1841,7 @@ class BytePlusSeedance2(BytePlusVideoBase, comfy_io.ComfyNode):
 
         uploaded_video_urls = []
         if ref_videos:
-            for v in ref_videos:
-                cache_key = helper._build_comfy_video_upload_cache_key(v)
-                cached_video_url = helper._get_cached_comfy_video_url(cache_key)
-                if cached_video_url:
-                    uploaded_video_urls.append(cached_video_url)
-                    log_msg("upload_ref_video_cache_hit")
-                    continue
-                done_before = len(uploaded_video_urls)
-                pending_before = max(0, len(ref_videos) - done_before)
-                log_msg("upload_ref_video_start", done=done_before, pending=pending_before)
-                uploaded_video_url = await upload_video_to_comfy_storage(cls, v)
-                helper._save_cached_comfy_video_url(cache_key, uploaded_video_url)
-                uploaded_video_urls.append(uploaded_video_url)
-                log_msg("upload_ref_video_done")
+            uploaded_video_urls = await upload_videos_to_comfy_storage_cached(cls, ref_videos, helper)
 
         final_video_urls = [
             (video_url or "").strip()
@@ -1911,7 +2025,7 @@ class BytePlusProgressTest(comfy_io.ComfyNode):
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         test_model_options = (
-            ["None"] + VIDEO_1_UI_OPTIONS + VIDEO_1_5_UI_OPTIONS + VIDEO_2_UI_OPTIONS
+            ["None"] + VIDEO_1_UI_OPTIONS + VIDEO_2_UI_OPTIONS
         )
 
         return comfy_io.Schema(

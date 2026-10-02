@@ -9,7 +9,7 @@ Read `CLAUDE.md` first (layout, rules, checklists). This skill adds the mechanic
 
 ## Request lifecycle
 
-**Client.** `BytePlusAPIClient.execute` (`nodes_shared.py`) picks a key (`api_keys.json` entry, or `Custom` + `new_api_key`, validated by a GET on the base URL) and a region from `constants.REGION_BASE_URLS` (`ap-southeast-1` default, `eu-west-1`), builds `Ark(api_key=…, base_url=…)` from `byteplussdkarkruntime`, and returns `BytePlusClients` on the custom socket type `BYTEPLUS_CLIENT`. Every other node takes that socket. The only env vars read are `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` / `BYTEPLUS_SESSION_TOKEN`, as a fallback for asset-library credentials when the `api_keys.json` entry has no `accessKey`/`secretKey`.
+**Client.** `BytePlusAPIClient.execute` (`nodes_shared.py`) picks a key (`api_keys.json` entry, or `Custom` + `new_api_key`, validated by a GET on the base URL; `Custom` also takes optional `new_access_key` / `new_secret_key`, both or neither, saved with the entry and used as the asset-library credentials) and a region from `constants.REGION_BASE_URLS` (`ap-southeast-1` default, `eu-west-1`), builds `Ark(api_key=…, base_url=…)` from `byteplussdkarkruntime`, and returns `BytePlusClients` on the custom socket type `BYTEPLUS_CLIENT`. Every other node takes that socket. The only env vars read are `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` / `BYTEPLUS_SESSION_TOKEN`, as a fallback for asset-library credentials when the `api_keys.json` entry has no `accessKey`/`secretKey`.
 
 **Asset library (`nodes_assets.py`).** Signed ModelArk OpenAPI via `byteplussdkcore.universal.UniversalApi` (IAM AK/SK, host `ark.<region>.byteplusapi.com`, returns `Result`; errors are `ApiException` with a `ResponseMetadata.Error` JSON body, formatted by `_format_asset_error`). Actions: `ListAssetGroups`, `CreateAssetGroup` (GroupType `AIGC`), `CreateAsset` (needs an HTTPS URL → local images go through `upload_image_to_comfyapi`), `GetAsset` (`Processing` → `Active` | `Failed`), `ListAssets` (Filter.GroupType required: `AIGC` or `LivenessFace`). Seedance uses Active assets as `asset://<id>` in `ref_image_urls` / `ref_video_urls` / `ref_audio_urls` — that part needs only the API key.
 
@@ -18,7 +18,7 @@ Read `CLAUDE.md` first (layout, rules, checklists). This skill adds the mechanic
 2. Builds `extra_api_params` (`resolution`, `ratio`, `seed` (-1 when random), `duration` or `frames`, `duration=-1` for auto), estimates tokens, `client.check_quota(...)`.
 3. Prepends `{"type":"text","text":prompt}` to `content` (images/videos/audio items with `role`s built by the node).
 4. `BytePlusGenerationExecutor.run_batch_tasks` (`executor.py`): `generation_count` parallel `asyncio.to_thread(ark.content_generation.tasks.create, …)`; Seedance 2.x (`"seedance-2-"` in the model ID) strips `service_tier`/`execution_expires_after` and enforces the 64 MiB request limit; estimates duration from task history; polls `tasks.get` every 2 s; reports progress; on interrupt **deletes pending tasks** (`tasks.delete`) and re-raises.
-5. Downloads via `utils_download` into temp `BytePlus/`, returns `(VideoFromFile, last_frame, json)`.
+5. Downloads via `utils_download` into temp `BytePlus/` (no total time limit, only a stall limit; interruptible). Core-style nodes (`as_list=True`) return every video as a list plus one `last_frame` batch in the same order; Legacy nodes return the first video and its own last frame. If no paid video can be downloaded, the outputs are `ExecutionBlocker(<task IDs, 24 h hint>)`.
 Modes: `non_blocking` (task IDs cached per node id; re-run to collect), draft mode (1.5: `LAST_SEEDANCE_1_5_DRAFT_TASK_ID`; 2.5: `LAST_SEEDANCE_2_DRAFT_TASKS` + `_render_final_from_drafts` sending `{"type":"draft_task","draft_task":{"id":…}}`), `enable_offline_inference` → `service_tier="flex"` (1.0/1.5 only). If several nodes of the same class are in one prompt, failures are logged and a white placeholder is returned instead of raising.
 
 **Image (Seedream).** `BytePlusGenerationExecutor.run_parallel_requests`; Seedream 4 / 5 Lite stream (`stream_generation_helper`, SDK `images.generate(stream=True)` in a producer thread, b64 results); 5 Pro / Flash use `response_format="url"` + download, with `fast` prompt optimization only on Pro; transparent background via `extra_body={"background": "transparent"}`; Layers uses `layer_decomposition=True` on Pro / Flash.
@@ -30,6 +30,8 @@ Modes: `non_blocking` (task IDs cached per node id; re-run to collect), draft mo
 **Reference videos (Seedance 2.x).** Local `ref_videos` → `upload_video_to_comfy_storage` → lazily imported `comfy_api_nodes.util.upload_video_to_comfyapi(cls, video, wait_label=None)` (needs Comfy.org login/API key via `Hidden.auth_token_comfy_org` / `api_key_comfy_org` on the schema; unavailable with `--disable-api-nodes`); cached 12 h in `COMFY_VIDEO_UPLOAD_CACHE`. `ref_video_urls` (public URLs or `asset://…`) bypasses it. `comfy_api_nodes` is **not a stable API** — keep the import lazy and wrapped, and re-check the signature when raising the ComfyUI floor.
 
 ## Adding or updating a model
+
+Full step-by-step workflow (retirement, region limits, LLM/Speech/MediaKit tables, finish checklist): `byteplus-model-update`. Summary:
 
 1. **New dated version of an existing model** → change only the value in `nodes/models_config.py` (UI name stays; saved workflows keep working).
 2. **New model** → add to the right map and option list in `models_config.py`:
@@ -43,7 +45,7 @@ Modes: `non_blocking` (task IDs cached per node id; re-run to collect), draft mo
 
 ## Adding a parameter
 
-`define_schema` input (or `_model_inputs(...)` for DynamicCombo nodes: Seedream 5, Seedance 2) → `execute` kwarg (DynamicCombo: unpack `model_config.get("<name>", default)` from the `model_version` dict) → map into request kwargs / `extra_api_params` → add prompt-flag name to `forbidden_params` if the API also accepts it as `--flag` → messages in `constants.MESSAGES` → JS `TARGET_WIDGETS`/`widgetLogic` if it drives visibility → example workflow `inputs` + `widgets_values` positions → `tests/test_workflow_templates.py` expected orders. Prefer `advanced=True` for rarely-changed widgets.
+`define_schema` input (DynamicCombo nodes: the option builders, e.g. `_seed_model_inputs` / `_text_option_inputs` on core-style nodes, `_model_inputs(...)` on Legacy Seedream 5 / Seedance 2) → `execute` kwarg (DynamicCombo: unpack `.get("<name>", default)` from the dict under `model` on core-style nodes, `model_version` on Legacy ones) → map into request kwargs / `extra_api_params` → add prompt-flag name to `forbidden_params` if the API also accepts it as `--flag` → messages in `constants.MESSAGES` → JS `TARGET_WIDGETS`/`widgetLogic` if it drives visibility → example workflow `inputs` + `widgets_values` positions → `tests/test_workflow_templates.py` expected orders. Prefer `advanced=True` for rarely-changed widgets.
 
 ## Conventions
 
@@ -59,4 +61,4 @@ Modes: `non_blocking` (task IDs cached per node id; re-run to collect), draft mo
 - Video polling has no client-side limit (relies on ModelArk task expiry: `execution_expires_after` 48 h for 1.x, server default for 2.x) — interruptible, so acceptable.
 - `API Client` in `Custom` mode puts the raw key in the prompt (workflow + output metadata) until the first run saves it under `new_key_name`; `_notify_api_key_saved` then sends `byteplus.api_key_saved` and the JS clears the key. Without `new_key_name` the key stays.
 - Local video work uses PyAV (`probe_video_file`, `extract_last_frame_tensor`) and ComfyUI's `InputImpl.VideoFromComponents` (`create_white_video`) — don't reintroduce OpenCV; ComfyUI doesn't ship it.
-- No API-call retries (only downloads retry). See [core-partner-nodes.md](core-partner-nodes.md) for core's retry policy if adding them.
+- Retries: calls that start paid work (`tasks.create`, `images.generate`, `responses.create`) never auto-retry except on 429 (`nodes_shared.call_billed` on `billed_ark(client)`); polling tolerates transient errors (Seedance `SEEDANCE_MAX_POLL_ERRORS`, MediaKit `MEDIAKIT_MAX_POLL_ERRORS`, Seed Speech `speech_poll`) and fails fast on permanent ones; MediaKit submits are retried with the same `client_token`; asset `Create*` actions use a no-retry SDK client. See [core-partner-nodes.md](core-partner-nodes.md) for core's policy.

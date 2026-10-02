@@ -1,0 +1,76 @@
+name: Tests
+
+# Runs on every change, and weekly against ComfyUI master: the core-style nodes
+# copy ComfyUI core's ByteDance nodes, and the parity tests import core's nodes
+# live, so a change in core fails here before users notice it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  templates:
+    name: Example workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest tests.test_workflow_templates
+
+  nodes:
+    name: Nodes and core parity (ComfyUI ${{ matrix.comfyui }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The latest release is what users run; master shows core's next changes.
+        comfyui: [latest-release, master]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: pack
+      - uses: actions/checkout@v4
+        with:
+          repository: Comfy-Org/ComfyUI
+          path: ComfyUI
+          fetch-depth: 0
+      - name: Check out the latest ComfyUI release
+        if: matrix.comfyui == 'latest-release'
+        working-directory: ComfyUI
+        run: |
+          tag="$(git describe --tags --abbrev=0 --match 'v*' origin/master)"
+          echo "Testing against ComfyUI $tag"
+          git checkout -q "$tag"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ComfyUI and this pack
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install -r ComfyUI/requirements.txt
+          pip install -r pack/requirements.txt
+      - name: Run the tests
+        working-directory: pack
+        env:
+          COMFYUI_ROOT: ${{ github.workspace }}/ComfyUI
+        # A skip means core's nodes or a dependency could not be imported: the
+        # parity checks did not run, so treat it as a failure.
+        run: |
+          set -o pipefail
+          python -m unittest \
+            tests.test_mediakit tests.test_model_updates tests.test_workflow_templates \
+            tests.test_core_style_seedance1 tests.test_core_style_seedance2 \
+            tests.test_core_style_seedream tests.test_core_style_seed 2>&1 | tee test.log
+          if grep -q "skipped=" test.log; then
+            echo "::error::Some tests were skipped, so core parity was not fully checked."
+            exit 1
+          fi

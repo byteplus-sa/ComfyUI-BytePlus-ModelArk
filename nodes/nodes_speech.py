@@ -1,10 +1,11 @@
+import asyncio
 import base64
 import hashlib
 import io
 import json
+import math
 import os
 import re
-import time
 import uuid
 
 import comfy.model_management
@@ -35,11 +36,14 @@ from .constants import (
     SEED_ASR_STANDARD_ONLY_LANGUAGES,
     SEED_ASR_SUBMIT_PATH,
     SEED_ASR_ZH_VARIANTS,
+    SEED_AUDIO_DEFAULT_SAMPLE_RATE,
     SEED_AUDIO_FORMATS,
+    SEED_AUDIO_IMAGE_MAX_PIXELS,
+    SEED_AUDIO_IMAGE_MIN_PIXELS,
+    SEED_AUDIO_MAX_GENERATION_COUNT,
     SEED_AUDIO_MAX_AUDIO_REFS,
     SEED_AUDIO_MAX_PROMPT_CHARS,
     SEED_AUDIO_PATH,
-    SEED_AUDIO_PCM_DEFAULT_RATE,
     SEED_AUDIO_REF_MAX_BYTES,
     SEED_AUDIO_REF_MAX_SECONDS,
     SEED_AUDIO_SAMPLE_RATES,
@@ -80,10 +84,14 @@ from .nodes_shared import (
     BytePlusException,
     _notify_api_key_saved,
     _tensor2images,
+    gather_cancelling,
     get_text,
     log_msg,
+    sleep_interruptible,
+    upload_bytes_to_comfy_storage,
 )
-from .seed_speech_voices import DEFAULT_TTS_VOICE, TTS_2_VOICE_IDS
+from .core_style import core_search_aliases, seed_input
+from .seed_speech_voices import DEFAULT_TTS_VOICE, TTS_2_VOICE_IDS, TTS_2_VOICES
 from .speech_api import (
     SPEECH_API_KEY_STORE,
     BytePlusSpeechClientType,
@@ -93,8 +101,8 @@ from .speech_api import (
     download_bytes,
     iter_json_objects,
     require_speech_client,
-    sleep_interruptible,
     speech_error,
+    speech_poll,
     speech_post,
 )
 
@@ -119,9 +127,33 @@ def _size_mb(num_bytes):
     return f"{num_bytes / (1024 * 1024):.2f}"
 
 
+def fit_image_pixels(image, min_pixels=SEED_AUDIO_IMAGE_MIN_PIXELS, max_pixels=SEED_AUDIO_IMAGE_MAX_PIXELS):
+    """
+    First image of a batch, scaled (aspect ratio kept) so that its pixel count is
+    within [min_pixels, max_pixels]. Core upscales Seed Audio reference images to
+    at least 160,000 px the same way.
+    """
+    import comfy.utils
+
+    image = image[:1] if image.ndim == 4 else image[None]
+    height, width = int(image.shape[1]), int(image.shape[2])
+    pixels = width * height
+    if min_pixels <= pixels <= max_pixels:
+        return image
+    scale = math.sqrt((min_pixels if pixels < min_pixels else max_pixels) / pixels)
+    if pixels < min_pixels:
+        new_width, new_height = math.ceil(width * scale), math.ceil(height * scale)
+        method = "lanczos"
+    else:
+        new_width, new_height = max(1, int(width * scale)), max(1, int(height * scale))
+        method = "area"
+    samples = comfy.utils.common_upscale(image.movedim(-1, 1), new_width, new_height, method, "disabled")
+    return samples.movedim(1, -1).clamp(0.0, 1.0)
+
+
 def _image_to_jpeg_base64(image):
     with io.BytesIO() as buffer:
-        _tensor2images(image)[0].convert("RGB").save(buffer, format="JPEG", quality=95)
+        _tensor2images(fit_image_pixels(image))[0].convert("RGB").save(buffer, format="JPEG", quality=95)
         data = buffer.getvalue()
     if len(data) > SEED_AUDIO_REF_MAX_BYTES:
         raise BytePlusException(get_text(
@@ -142,26 +174,20 @@ SPEECH_UPLOAD_CACHE = {}
 
 
 async def upload_to_comfy_storage(node_cls, kind, data, filename, mime_type):
-    key = (kind, hashlib.sha256(data).hexdigest())
-    cached = SPEECH_UPLOAD_CACHE.get(key)
-    if cached and time.time() - cached[1] < SPEECH_UPLOAD_CACHE_TTL_SECONDS:
-        return cached[0]
-    try:
-        from comfy_api_nodes.util import upload_file_to_comfyapi
-    except Exception as e:
-        raise BytePlusException(get_text("speech_upload_unavailable", kind=kind, e=e))
-    try:
-        url = await upload_file_to_comfyapi(node_cls, io.BytesIO(data), filename, mime_type, wait_label=None)
-    except comfy.model_management.InterruptProcessingException:
-        raise
-    except Exception as e:
-        raise BytePlusException(get_text("speech_upload_failed", kind=kind, e=e))
-    SPEECH_UPLOAD_CACHE.pop(key, None)
-    SPEECH_UPLOAD_CACHE[key] = (url, time.time())
-    while len(SPEECH_UPLOAD_CACHE) > SPEECH_UPLOAD_CACHE_MAX_ENTRIES:
-        SPEECH_UPLOAD_CACHE.pop(next(iter(SPEECH_UPLOAD_CACHE)))
-    log_msg("speech_upload_done", kind=kind)
-    return url
+    return await upload_bytes_to_comfy_storage(
+        node_cls,
+        data,
+        filename,
+        mime_type,
+        SPEECH_UPLOAD_CACHE,
+        cache_key=(kind, hashlib.sha256(data).hexdigest()),
+        ttl_seconds=SPEECH_UPLOAD_CACHE_TTL_SECONDS,
+        max_entries=SPEECH_UPLOAD_CACHE_MAX_ENTRIES,
+        unavailable_key="speech_upload_unavailable",
+        failed_key="speech_upload_failed",
+        done_key="speech_upload_done",
+        kind=kind,
+    )
 
 
 def context_image_jpeg(image, max_bytes=500 * 1024):
@@ -244,68 +270,141 @@ class BytePlusSpeechClient(comfy_io.ComfyNode):
         return comfy_io.NodeOutput(SeedSpeechClient(api_key, region))
 
 
-# Seed Audio 1.0
+# Seed Audio 1.0, shaped like ComfyUI core's ByteDanceSeedAudioNode (nodes_bytedance.py).
 
-def build_seed_audio_references(sources, audios, image=None, image_url=""):
+SEED_AUDIO_MODE_TEXT = "text only"
+SEED_AUDIO_MODE_AUDIO = "audio reference"
+SEED_AUDIO_MODE_IMAGE = "image reference"
+SEED_AUDIO_MODE_PRESET = "preset voice"
+
+def _voice_name(speaker_id, name):
+    """The listed name, or one derived from the ID when the official list has none."""
+    if name:
+        return name
+    parts = speaker_id.split("_")
+    return " ".join(parts[2:-2]).title() or speaker_id
+
+
+# Preset voices: this pack's TTS 2.0 voice list (Seed Audio accepts TTS 2.0
+# speaker IDs), labelled "Name (Gender, language)" like core's list.
+SEED_AUDIO_PRESET_VOICES = [
+    (speaker_id, f"{_voice_name(speaker_id, name)} ({gender}, {language})")
+    for speaker_id, name, language, gender, _scenario in TTS_2_VOICES
+]
+SEED_AUDIO_VOICE_OPTIONS = [label for _, label in SEED_AUDIO_PRESET_VOICES]
+SEED_AUDIO_VOICE_MAP = {label: speaker_id for speaker_id, label in SEED_AUDIO_PRESET_VOICES}
+
+_AUDIO_TAG_RE = re.compile(r"@Audio(\d+)", re.IGNORECASE)
+
+
+def max_audio_tag(prompt):
+    """Highest N referenced as @AudioN in the prompt (0 if none)."""
+    numbers = [int(n) for n in _AUDIO_TAG_RE.findall(prompt or "")]
+    return max(numbers) if numbers else 0
+
+
+def seed_audio_slots(reference_mode):
     """
-    references[] for Seed Audio. Slot N (connected audio, or a speaker ID / URL
-    text) is always @AudioN, so the slots must be filled in order.
+    Filled audio reference slots of the 'audio reference' option:
+    {N: ("audio", AUDIO) | ("source", speaker ID or URL)}. Slot N is @AudioN.
     """
-    slots = []
-    for index in range(SEED_AUDIO_MAX_AUDIO_REFS):
-        slot = index + 1
-        source = (sources[index] or "").strip()
-        audio = audios[index]
-        if source and audio is not None:
+    slots = {}
+    for slot in range(1, SEED_AUDIO_MAX_AUDIO_REFS + 1):
+        audio = reference_mode.get(f"reference_audio_{slot}")
+        source = (reference_mode.get(f"ref_audio_{slot}_source") or "").strip()
+        if audio is not None and source:
             raise BytePlusException(get_text("seed_audio_slot_conflict", slot=slot))
         if audio is not None:
-            duration = audio_duration(audio)
-            if duration > SEED_AUDIO_REF_MAX_SECONDS:
-                raise BytePlusException(get_text(
-                    "seed_audio_ref_too_long", slot=slot, duration=f"{duration:.1f}",
-                    max=int(SEED_AUDIO_REF_MAX_SECONDS),
-                ))
-            wav = audio_to_wav_bytes(audio)
-            if len(wav) > SEED_AUDIO_REF_MAX_BYTES:
-                # 16 kHz mono keeps 30 s of speech far below the limit.
-                wav = audio_to_wav_bytes(audio, sample_rate=16000, mono=True)
-            if len(wav) > SEED_AUDIO_REF_MAX_BYTES:
-                raise BytePlusException(get_text(
-                    "seed_audio_ref_too_large", kind=f"audio {slot}", size_mb=_size_mb(len(wav)),
-                    max_mb=_size_mb(SEED_AUDIO_REF_MAX_BYTES),
-                ))
-            slots.append({"audio_data": base64.b64encode(wav).decode("utf-8")})
+            slots[slot] = ("audio", audio)
         elif source:
-            if "://" in source:
-                slots.append({"audio_url": _validated_url(source, f"ref_audio_{slot}_source")})
+            slots[slot] = ("source", source)
+    return slots
+
+
+def validate_seed_audio_inputs(text_prompt, mode, audio_slots, has_image, preset_voice=None):
+    """Core's validate_seed_audio_inputs; audio_slots are the filled slot numbers in order."""
+    text = (text_prompt or "").strip()
+    if not text:
+        raise BytePlusException(get_text("seed_audio_prompt_empty"))
+    if len(text) > SEED_AUDIO_MAX_PROMPT_CHARS:
+        raise BytePlusException(get_text(
+            "seed_audio_prompt_too_long", count=len(text), max=SEED_AUDIO_MAX_PROMPT_CHARS
+        ))
+    max_tag = max_audio_tag(text)
+    if mode == SEED_AUDIO_MODE_TEXT:
+        if max_tag:
+            raise BytePlusException(get_text("seed_audio_tag_text_only", tag=max_tag))
+    elif mode == SEED_AUDIO_MODE_AUDIO:
+        if not audio_slots:
+            raise BytePlusException(get_text("seed_audio_needs_reference"))
+        expected = list(range(1, len(audio_slots) + 1))
+        if list(audio_slots) != expected:
+            missing = next(slot for slot in range(1, max(audio_slots) + 1) if slot not in audio_slots)
+            raise BytePlusException(get_text("seed_audio_slot_gap", slot=max(audio_slots), missing=missing))
+        if max_tag > len(audio_slots):
+            raise BytePlusException(get_text("seed_audio_tag_out_of_range", tag=max_tag, count=len(audio_slots)))
+    elif mode == SEED_AUDIO_MODE_IMAGE:
+        if not has_image:
+            raise BytePlusException(get_text("seed_audio_image_required"))
+        if max_tag:
+            raise BytePlusException(get_text("seed_audio_tag_image_mode"))
+    elif mode == SEED_AUDIO_MODE_PRESET:
+        if not preset_voice or preset_voice not in SEED_AUDIO_VOICE_MAP:
+            raise BytePlusException(get_text("seed_audio_preset_required"))
+        if max_tag > 1:
+            raise BytePlusException(get_text("seed_audio_tag_preset_mode", tag=max_tag))
+    else:
+        raise BytePlusException(get_text("seed_audio_unknown_mode", mode=mode))
+
+
+def _audio_reference(slot, audio):
+    duration = audio_duration(audio)
+    if duration > SEED_AUDIO_REF_MAX_SECONDS:
+        raise BytePlusException(get_text(
+            "seed_audio_ref_too_long", slot=slot, duration=f"{duration:.1f}",
+            max=int(SEED_AUDIO_REF_MAX_SECONDS),
+        ))
+    wav = audio_to_wav_bytes(audio)
+    if len(wav) > SEED_AUDIO_REF_MAX_BYTES:
+        # 16 kHz mono keeps 30 s of speech far below the limit.
+        wav = audio_to_wav_bytes(audio, sample_rate=16000, mono=True)
+    if len(wav) > SEED_AUDIO_REF_MAX_BYTES:
+        raise BytePlusException(get_text(
+            "seed_audio_ref_too_large", kind=f"audio {slot}", size_mb=_size_mb(len(wav)),
+            max_mb=_size_mb(SEED_AUDIO_REF_MAX_BYTES),
+        ))
+    return {"audio_data": base64.b64encode(wav).decode("utf-8")}
+
+
+def build_seed_audio_references(mode, audio_slots=None, image=None, image_url="", preset_voice=None):
+    """
+    references[] for the selected reference mode (None for text only). Audio
+    slot N is @AudioN: connected clips are sent inline, sources as a speaker ID
+    or an audio URL. Call validate_seed_audio_inputs first.
+    """
+    if mode == SEED_AUDIO_MODE_AUDIO:
+        references = []
+        for slot, (kind, value) in sorted((audio_slots or {}).items()):
+            if kind == "audio":
+                references.append(_audio_reference(slot, value))
+            elif "://" in value:
+                references.append({"audio_url": _validated_url(value, f"ref_audio_{slot}_source")})
             else:
-                slots.append({"speaker": source})
-        else:
-            slots.append(None)
-
-    used = [i for i, item in enumerate(slots) if item is not None]
-    if used:
-        missing = next((i for i in range(used[-1]) if slots[i] is None), None)
-        if missing is not None:
-            raise BytePlusException(get_text("seed_audio_slot_gap", slot=used[-1] + 1, missing=missing + 1))
-    references = [item for item in slots if item is not None]
-
-    image_url = _validated_url(image_url, "ref_image_url")
-    if image is not None and image_url:
-        raise BytePlusException(get_text("seed_audio_image_conflict"))
-    if (image is not None or image_url) and references:
-        raise BytePlusException(get_text("seed_audio_image_and_audio"))
-    if image is not None:
-        references.append({"image_data": _image_to_jpeg_base64(image)})
-    elif image_url:
-        references.append({"image_url": image_url})
-    return references
+                references.append({"speaker": value})
+        return references
+    if mode == SEED_AUDIO_MODE_IMAGE:
+        if image is not None:
+            return [{"image_data": _image_to_jpeg_base64(image)}]
+        return [{"image_url": _validated_url(image_url, "ref_image_url")}]
+    if mode == SEED_AUDIO_MODE_PRESET:
+        return [{"speaker": SEED_AUDIO_VOICE_MAP[preset_voice]}]
+    return None
 
 
-def build_seed_audio_request(model, text_prompt, references, audio_format="wav", sample_rate="default",
-                             speech_rate=0, loudness_rate=0, pitch_rate=0, enable_subtitle=False,
-                             aigc_watermark=False, aigc_metadata=False, content_producer="",
-                             produce_id="", content_propagator="", propagate_id=""):
+def build_seed_audio_request(model, text_prompt, references, audio_format="wav",
+                             sample_rate=SEED_AUDIO_DEFAULT_SAMPLE_RATE, speech_rate=0, loudness_rate=0,
+                             pitch_rate=0, enable_subtitle=False, aigc_watermark=False, aigc_metadata=False,
+                             content_producer="", produce_id="", content_propagator="", propagate_id=""):
     text_prompt = (text_prompt or "").strip()
     if not text_prompt:
         raise BytePlusException(get_text("seed_audio_prompt_empty"))
@@ -313,15 +412,13 @@ def build_seed_audio_request(model, text_prompt, references, audio_format="wav",
         raise BytePlusException(get_text(
             "seed_audio_prompt_too_long", count=len(text_prompt), max=SEED_AUDIO_MAX_PROMPT_CHARS
         ))
-    audio_config = {"format": audio_format}
-    if sample_rate and sample_rate != "default":
-        audio_config["sample_rate"] = int(sample_rate)
-    if speech_rate:
-        audio_config["speech_rate"] = int(speech_rate)
-    if loudness_rate:
-        audio_config["loudness_rate"] = int(loudness_rate)
-    if pitch_rate:
-        audio_config["pitch_rate"] = int(pitch_rate)
+    audio_config = {
+        "format": audio_format,
+        "sample_rate": int(sample_rate),
+        "speech_rate": int(speech_rate),
+        "loudness_rate": int(loudness_rate),
+        "pitch_rate": int(pitch_rate),
+    }
     if enable_subtitle:
         audio_config["enable_subtitle"] = True
     body = {"model": model, "text_prompt": text_prompt}
@@ -347,151 +444,305 @@ def build_seed_audio_request(model, text_prompt, references, audio_format="wav",
     return body
 
 
+def _seed_audio_reference_options():
+    """Core's reference_mode options; this pack's reference strings follow core's sockets."""
+    source_tooltip = (
+        "Instead of reference_audio_{n}: a TTS 2.0 or cloned speaker ID, or an audio URL "
+        "(http(s)://). Tagged @Audio{n} in the prompt."
+    )
+    return [
+        comfy_io.DynamicCombo.Option(SEED_AUDIO_MODE_TEXT, []),
+        comfy_io.DynamicCombo.Option(
+            SEED_AUDIO_MODE_AUDIO,
+            [
+                comfy_io.Audio.Input(
+                    "reference_audio_1",
+                    optional=True,
+                    tooltip="Reference clip for voice cloning, tagged @Audio1 in the prompt. Up to 30s.",
+                ),
+                comfy_io.Audio.Input(
+                    "reference_audio_2",
+                    optional=True,
+                    tooltip="Reference clip tagged @Audio2 in the prompt. Up to 30s.",
+                ),
+                comfy_io.Audio.Input(
+                    "reference_audio_3",
+                    optional=True,
+                    tooltip="Reference clip tagged @Audio3 in the prompt. Up to 30s.",
+                ),
+                *[
+                    comfy_io.String.Input(
+                        f"ref_audio_{n}_source",
+                        default="",
+                        tooltip=source_tooltip.format(n=n),
+                        optional=True,
+                        advanced=True,
+                    )
+                    for n in range(1, SEED_AUDIO_MAX_AUDIO_REFS + 1)
+                ],
+            ],
+        ),
+        comfy_io.DynamicCombo.Option(
+            SEED_AUDIO_MODE_IMAGE,
+            [
+                comfy_io.Image.Input(
+                    "reference_image",
+                    optional=True,
+                    tooltip="A single character image; the model derives a voice from it. "
+                    "Cannot be combined with reference audio.",
+                ),
+                comfy_io.String.Input(
+                    "ref_image_url",
+                    default="",
+                    tooltip="Instead of reference_image: a character image URL (http(s)://).",
+                    optional=True,
+                    advanced=True,
+                ),
+            ],
+        ),
+        comfy_io.DynamicCombo.Option(
+            SEED_AUDIO_MODE_PRESET,
+            [
+                comfy_io.Combo.Input(
+                    "preset_voice",
+                    options=SEED_AUDIO_VOICE_OPTIONS,
+                    default=SEED_AUDIO_VOICE_OPTIONS[0],
+                    tooltip="A built-in TTS 2.0 voice that reads the prompt. No reference "
+                    "clip needed, and @AudioN tags are not used in this mode.",
+                ),
+            ],
+        ),
+    ]
+
+
 class BytePlusSeedAudio(comfy_io.ComfyNode):
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
-        source_tooltip = (
-            "Reference @Audio{n}: a TTS 2.0 or cloned speaker ID, or an audio URL "
-            "(http(s)://). Leave empty to use ref_audio_{n} (e.g. Load Audio), or no reference."
-        )
         return comfy_io.Schema(
             node_id="BytePlusSeedAudio",
             display_name="BytePlus Seed Audio 1.0",
+            search_aliases=core_search_aliases("BytePlusSeedAudio"),
             category=SPEECH_CATEGORY,
             description=(
-                "Generate speech, sound effects and voiceovers up to 120 s from a prompt, "
-                "with up to three reference voices (@Audio1-3) or one reference image."
+                "Generate speech, music, sound effects and multi-speaker dialogue from a single prompt "
+                "with BytePlus Seed Audio 1.0. Describe the voice(s), emotion, ambience, background music "
+                "and sound effects in the prompt, and include the lines to speak. Optionally pick a built-in "
+                "preset voice, clone voices from up to 3 reference clips (tagged @Audio1-3 in the prompt), "
+                "or derive a voice from a character image. Up to 2 minutes of audio per run. "
+                "Supports 20 languages and timestamp-based timing control."
             ),
             inputs=[
                 BytePlusSpeechClientType.Input("speech_client"),
-                comfy_io.Combo.Input("model", options=SEED_AUDIO_MODELS, default=SEED_AUDIO_MODELS[0]),
                 comfy_io.String.Input(
                     "text_prompt",
                     multiline=True,
                     default="",
                     tooltip=(
-                        "Prompt or text to speak (up to 3000 characters). Refer to reference "
-                        "voices as @Audio1, @Audio2, @Audio3. With an image reference, enter "
-                        "only the text to speak."
+                        "Describe the voice(s), emotion, pacing, ambience, background music and sound "
+                        "effects, and include the lines to speak (name characters inline for dialogue). "
+                        "In 'audio reference' mode, refer to connected clips by order as @Audio1, @Audio2, "
+                        "@Audio3. A quoted line can start with a timestamp range that controls when and "
+                        'how long it is spoken, e.g. "[5.5s:8.0s] Wait for me!". Write the prompt in the '
+                        "same language as the lines to speak. Maximum 3000 characters."
                     ),
                 ),
-                comfy_io.String.Input("ref_audio_1_source", default="", tooltip=source_tooltip.format(n=1)),
-                comfy_io.String.Input("ref_audio_2_source", default="", tooltip=source_tooltip.format(n=2)),
-                comfy_io.String.Input("ref_audio_3_source", default="", tooltip=source_tooltip.format(n=3)),
-                comfy_io.String.Input(
-                    "ref_image_url",
-                    default="",
-                    tooltip="Reference image URL (http(s)://). Or connect ref_image (e.g. Load Image). Cannot be combined with audio references.",
+                comfy_io.DynamicCombo.Input(
+                    "reference_mode",
+                    options=_seed_audio_reference_options(),
+                    tooltip=(
+                        "How to condition the voice: 'text only' (describe everything in the prompt), "
+                        "'audio reference' (clone up to 3 voices, tagged @Audio1-3), 'image reference' "
+                        "(derive a voice from one character image), or 'preset voice' (pick a built-in "
+                        "named voice that reads the prompt)."
+                    ),
                 ),
-                comfy_io.Combo.Input("audio_format", options=SEED_AUDIO_FORMATS, default="wav"),
                 comfy_io.Combo.Input(
                     "sample_rate",
                     options=SEED_AUDIO_SAMPLE_RATES,
-                    default="default",
-                    tooltip="Output sample rate in Hz. default: 40000 for wav and pcm, 44100 for mp3.",
+                    default=SEED_AUDIO_DEFAULT_SAMPLE_RATE,
+                    tooltip="Output sample rate in Hz.",
                 ),
-                comfy_io.Int.Input("speech_rate", default=0, min=-50, max=100, tooltip="100 = 2x speed, -50 = 0.5x."),
-                comfy_io.Int.Input("loudness_rate", default=0, min=-50, max=100, tooltip="100 = 2x volume, -50 = 0.5x."),
-                comfy_io.Int.Input("pitch_rate", default=0, min=-12, max=12, tooltip="Pitch shift in semitones."),
-                comfy_io.Boolean.Input("enable_subtitle", default=False, tooltip="Return sentence and word timestamps."),
+                comfy_io.Int.Input(
+                    "speech_rate",
+                    default=0,
+                    min=-50,
+                    max=100,
+                    tooltip="Speaking speed. 0 = normal, 100 = 2.0x, -50 = 0.5x.",
+                ),
+                comfy_io.Int.Input(
+                    "loudness_rate",
+                    default=0,
+                    min=-50,
+                    max=100,
+                    tooltip="Loudness. 0 = normal, 100 = 2.0x, -50 = 0.5x.",
+                ),
+                comfy_io.Int.Input(
+                    "pitch_rate",
+                    default=0,
+                    min=-12,
+                    max=12,
+                    tooltip="Pitch shift in semitones (-12 to 12).",
+                ),
+                seed_input(default=42),
+                comfy_io.Combo.Input(
+                    "model",
+                    options=SEED_AUDIO_MODELS,
+                    default=SEED_AUDIO_MODELS[0],
+                    optional=True,
+                    tooltip=(
+                        "seed-audio-1.0: 20 languages (English, Chinese, Japanese, Korean, Mexican & "
+                        "Castilian Spanish, Indonesian, German, Brazilian Portuguese, French, Thai, "
+                        "Vietnamese, Malay, Filipino, Italian, Russian, Dutch, Polish, Turkish, Swedish) "
+                        'plus per-sentence timing control via "[5.5s:8.0s] ..." timestamps.'
+                    ),
+                ),
+                comfy_io.Combo.Input(
+                    "audio_format",
+                    options=SEED_AUDIO_FORMATS,
+                    default="wav",
+                    tooltip="Format requested from the API (the output is decoded to AUDIO either way).",
+                    optional=True,
+                    advanced=True,
+                ),
+                comfy_io.Boolean.Input(
+                    "enable_subtitle",
+                    default=False,
+                    tooltip="Return sentence and word timestamps (subtitles_json and srt outputs).",
+                    optional=True,
+                    advanced=True,
+                ),
                 comfy_io.Boolean.Input(
                     "aigc_watermark",
                     default=False,
                     tooltip="Add the audible AI-generated marker at the end of the audio.",
+                    optional=True,
+                    advanced=True,
                 ),
                 comfy_io.Boolean.Input(
                     "aigc_metadata",
                     default=False,
-                    advanced=True,
                     tooltip="Implicit watermark: write AI-generation metadata into the audio header.",
+                    optional=True,
+                    advanced=True,
                 ),
-                comfy_io.String.Input("content_producer", default="", advanced=True,
+                comfy_io.String.Input("content_producer", default="", optional=True, advanced=True,
                                       tooltip="Implicit watermark: name or code of the synthesis provider."),
-                comfy_io.String.Input("produce_id", default="", advanced=True,
+                comfy_io.String.Input("produce_id", default="", optional=True, advanced=True,
                                       tooltip="Implicit watermark: content production ID."),
-                comfy_io.String.Input("content_propagator", default="", advanced=True,
+                comfy_io.String.Input("content_propagator", default="", optional=True, advanced=True,
                                       tooltip="Implicit watermark: name or code of the distributor."),
-                comfy_io.String.Input("propagate_id", default="", advanced=True,
+                comfy_io.String.Input("propagate_id", default="", optional=True, advanced=True,
                                       tooltip="Implicit watermark: content distribution ID."),
                 comfy_io.Int.Input(
-                    "seed",
-                    default=0,
-                    min=0,
-                    max=SPEECH_MAX_SEED,
-                    control_after_generate=True,
-                    tooltip="Not sent to the API; change it to generate a new take.",
+                    "generation_count",
+                    default=1,
+                    min=1,
+                    max=SEED_AUDIO_MAX_GENERATION_COUNT,
+                    optional=True,
+                    advanced=True,
+                    tooltip=(
+                        "Number of separate generations to run in parallel, each billed as its own request. "
+                        "The API has no seed or variation setting, so every run is a fresh take of the same "
+                        "prompt. All outputs are lists in the same order: the next node runs once per clip."
+                    ),
                 ),
-                comfy_io.Audio.Input("ref_audio_1", optional=True, tooltip="Reference voice @Audio1, e.g. from Load Audio (up to 30 s, sent inline)."),
-                comfy_io.Audio.Input("ref_audio_2", optional=True, tooltip="Reference voice @Audio2, e.g. from Load Audio (up to 30 s, sent inline)."),
-                comfy_io.Audio.Input("ref_audio_3", optional=True, tooltip="Reference voice @Audio3, e.g. from Load Audio (up to 30 s, sent inline)."),
-                comfy_io.Image.Input("ref_image", optional=True, tooltip="Reference image, e.g. from Load Image (only one; no audio references; sent inline)."),
             ],
             outputs=[
-                comfy_io.Audio.Output(display_name="audio"),
-                comfy_io.String.Output(display_name="subtitles_json"),
-                comfy_io.String.Output(display_name="srt"),
-                comfy_io.Float.Output(display_name="duration"),
-                comfy_io.String.Output(display_name="url"),
+                comfy_io.Audio.Output(is_output_list=True),
+                comfy_io.String.Output(display_name="subtitles_json", is_output_list=True),
+                comfy_io.String.Output(display_name="srt", is_output_list=True),
+                comfy_io.Float.Output(display_name="duration", is_output_list=True),
+                comfy_io.String.Output(display_name="url", is_output_list=True),
             ],
+            hidden=[comfy_io.Hidden.unique_id],
         )
 
     @classmethod
-    async def execute(cls, speech_client, model, text_prompt, ref_audio_1_source="", ref_audio_2_source="",
-                      ref_audio_3_source="", ref_image_url="", audio_format="wav", sample_rate="default",
-                      speech_rate=0, loudness_rate=0, pitch_rate=0, enable_subtitle=False,
-                      aigc_watermark=False, aigc_metadata=False, content_producer="", produce_id="",
-                      content_propagator="", propagate_id="", seed=0, ref_audio_1=None, ref_audio_2=None,
-                      ref_audio_3=None, ref_image=None) -> comfy_io.NodeOutput:
+    async def execute(cls, speech_client, text_prompt, reference_mode, sample_rate=SEED_AUDIO_DEFAULT_SAMPLE_RATE,
+                      speech_rate=0, loudness_rate=0, pitch_rate=0, seed=42, model=SEED_AUDIO_MODELS[0],
+                      audio_format="wav", enable_subtitle=False, aigc_watermark=False, aigc_metadata=False,
+                      content_producer="", produce_id="", content_propagator="",
+                      propagate_id="", generation_count=1) -> comfy_io.NodeOutput:
         require_speech_client(speech_client)
-        references = build_seed_audio_references(
-            [ref_audio_1_source, ref_audio_2_source, ref_audio_3_source],
-            [ref_audio_1, ref_audio_2, ref_audio_3],
-            ref_image,
-            ref_image_url,
+        reference_mode = reference_mode or {}
+        mode = reference_mode.get("reference_mode")
+        audio_slots = seed_audio_slots(reference_mode) if mode == SEED_AUDIO_MODE_AUDIO else {}
+        image = image_url = preset_voice = None
+        if mode == SEED_AUDIO_MODE_IMAGE:
+            image = reference_mode.get("reference_image")
+            image_url = (reference_mode.get("ref_image_url") or "").strip()
+            if image is not None and image_url:
+                raise BytePlusException(get_text("seed_audio_image_conflict"))
+        elif mode == SEED_AUDIO_MODE_PRESET:
+            preset_voice = reference_mode.get("preset_voice")
+        validate_seed_audio_inputs(
+            text_prompt, mode, sorted(audio_slots), image is not None or bool(image_url), preset_voice
         )
+        references = build_seed_audio_references(mode, audio_slots, image, image_url, preset_voice)
+        # seed only makes ComfyUI re-run the node; the API has no seed parameter.
         body = build_seed_audio_request(
-            model, text_prompt, references, audio_format, sample_rate, speech_rate,
+            model or SEED_AUDIO_MODELS[0], text_prompt, references, audio_format, sample_rate, speech_rate,
             loudness_rate, pitch_rate, enable_subtitle, aigc_watermark, aigc_metadata,
             content_producer, produce_id, content_propagator, propagate_id,
         )
-        operation = "Seed Audio"
-        response = await speech_post(speech_client, SEED_AUDIO_PATH, body, operation=operation)
-        result = response.json()
-        if not isinstance(result, dict):
-            raise speech_error(operation, response, message=response.text()[:300])
-        check_code(operation, response, result.get("code"), result.get("message"))
-
-        url = result.get("url") or ""
-        if result.get("audio"):
-            audio_bytes = b64decode_audio(result["audio"])
-        elif url:
-            audio_bytes = await download_bytes(url, operation)
-        else:
-            raise BytePlusException(get_text("speech_empty_audio", operation=operation))
-        if audio_format == "pcm":
-            pcm_rate = SEED_AUDIO_PCM_DEFAULT_RATE if sample_rate == "default" else int(sample_rate)
-            audio = pcm16_to_audio(audio_bytes, pcm_rate)
-        else:
-            audio = decode_audio_bytes(audio_bytes)
-
-        subtitle = result.get("subtitle") if isinstance(result.get("subtitle"), dict) else {}
-        # The docs name the sentence list "sentences"; accept "utterances" too.
-        segments = subtitle_segments(subtitle.get("sentences") or subtitle.get("utterances"))
-        duration = result.get("duration")
-        if not isinstance(duration, (int, float)):
-            duration = audio_duration(audio)
-        log_msg(
-            "seed_audio_done",
-            duration=f"{float(duration):.2f}",
-            billed=result.get("original_duration", "-"),
+        count = max(1, int(generation_count or 1))
+        if count > 1:
+            log_msg("batch_submit_start", count=count, model=model or SEED_AUDIO_MODELS[0])
+        # An interrupt cancels the other requests; other failures are collected below.
+        results = await gather_cancelling(
+            [_seed_audio_once(speech_client, body, audio_format, sample_rate) for _ in range(count)],
+            return_exceptions=True,
         )
-        return comfy_io.NodeOutput(
-            audio,
-            _segments_json(subtitle, segments),
-            build_srt(segments),
-            float(duration),
-            url,
-        )
+        clips = []
+        errors = []
+        for result in results:
+            if isinstance(result, BaseException):
+                errors.append(result)
+            else:
+                clips.append(result)
+        if count > 1:
+            log_msg("batch_finished_stats", success=len(clips), failed=len(errors))
+            for error in errors:
+                log_msg("batch_failed_reason", msg=str(error), count=1)
+        if not clips:
+            raise errors[0]
+        # One list per output, index-aligned with the clips.
+        return comfy_io.NodeOutput(*[list(column) for column in zip(*clips)])
+
+
+async def _seed_audio_once(speech_client, body, audio_format, sample_rate):
+    """One Seed Audio request: (audio, subtitles_json, srt, duration, url)."""
+    operation = "Seed Audio"
+    response = await speech_post(speech_client, SEED_AUDIO_PATH, body, operation=operation)
+    result = response.json()
+    if not isinstance(result, dict):
+        raise speech_error(operation, response, message=response.text()[:300])
+    check_code(operation, response, result.get("code"), result.get("message"))
+
+    url = result.get("url") or ""
+    if result.get("audio"):
+        audio_bytes = b64decode_audio(result["audio"])
+    elif url:
+        audio_bytes = await download_bytes(url, operation)
+    else:
+        raise BytePlusException(get_text("speech_empty_audio", operation=operation))
+    if audio_format == "pcm":
+        audio = pcm16_to_audio(audio_bytes, int(sample_rate))
+    else:
+        audio = decode_audio_bytes(audio_bytes)
+
+    subtitle = result.get("subtitle") if isinstance(result.get("subtitle"), dict) else {}
+    # The docs name the sentence list "sentences"; accept "utterances" too.
+    segments = subtitle_segments(subtitle.get("sentences") or subtitle.get("utterances"))
+    duration = result.get("duration")
+    if not isinstance(duration, (int, float)):
+        duration = audio_duration(audio)
+    log_msg(
+        "seed_audio_done",
+        duration=f"{float(duration):.2f}",
+        billed=result.get("original_duration", "-"),
+    )
+    return audio, _segments_json(subtitle, segments), build_srt(segments), float(duration), url
 
 
 # TTS
@@ -1106,7 +1357,10 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
                 ))
             await sleep_interruptible(SPEECH_ASR_POLL_SECONDS)
             waited += max(SPEECH_ASR_POLL_SECONDS, 1)
-            response = await speech_post(speech_client, SEED_ASR_QUERY_PATH, {}, operation=operation, headers=headers)
+            response = await speech_poll(
+                speech_client, SEED_ASR_QUERY_PATH, {}, operation=operation, headers=headers,
+                poll_seconds=SPEECH_ASR_POLL_SECONDS,
+            )
             status = response.status_code
             if status in SPEECH_ASR_PENDING_CODES:
                 continue
@@ -1260,7 +1514,9 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
                 ))
             await sleep_interruptible(SEED_VOICE_POLL_SECONDS)
             waited += max(SEED_VOICE_POLL_SECONDS, 1)
-            response = await speech_post(speech_client, SEED_VOICE_STATUS_PATH, ids, operation=operation)
+            response = await speech_poll(
+                speech_client, SEED_VOICE_STATUS_PATH, ids, operation=operation, poll_seconds=SEED_VOICE_POLL_SECONDS
+            )
             result = response.json() or {}
             check_code(operation, response, result.get("code"), result.get("message"))
         log_msg("voice_clone_ready", speaker=speaker, status=result.get("status"))

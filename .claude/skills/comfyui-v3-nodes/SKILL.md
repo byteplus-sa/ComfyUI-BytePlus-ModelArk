@@ -41,7 +41,7 @@ Then add the class to `_registered_nodes` in `__init__.py`.
 - **Hidden values must be declared** in `Schema(hidden=[...])`; undeclared ones read as `None` (no error). `is_output_node=True` auto-adds `prompt` + `extra_pnginfo`; `is_api_node=True` auto-adds the Comfy.org auth fields.
 - **Only `NODE_CLASS_MAPPINGS` *or* `comfy_entrypoint` is used per module** — if a module defines both, `comfy_entrypoint` is silently ignored. This pack uses only `comfy_entrypoint`; never add `NODE_CLASS_MAPPINGS`.
 - **An exception in `comfy_entrypoint`/`define_schema` only logs a warning and skips the whole pack.** After schema edits, check the ComfyUI console for "Error while calling comfy_entrypoint".
-- **A `Schema` kwarg newer than the user's ComfyUI raises `TypeError` → pack skipped.** Our floor is ComfyUI 0.25.1 (README); don't use fields added later (e.g. `loop_boundary` 0.36.0) without raising the floor.
+- **A `Schema` kwarg newer than the user's ComfyUI raises `TypeError` → pack skipped.** Our floor is ComfyUI 0.31.0 (README; raised for the LAYERS type used by Layer Separation); don't use fields added later (e.g. `loop_boundary` 0.36.0) without raising the floor.
 - **Blocking I/O in `async def execute` stalls every node.** Use `aiohttp` or `asyncio.to_thread(...)` (this repo wraps the sync Ark SDK with `asyncio.to_thread`).
 - **Output ids are part of saved workflows too** — don't reorder or rename outputs casually.
 

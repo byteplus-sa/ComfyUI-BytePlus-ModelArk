@@ -50,7 +50,11 @@ function allGraphNodes() {
 }
 
 // API Client node classes (ModelArk and Seed Speech keys)
-const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient"];
+const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient", "BytePlusMediaKitClient"];
+
+// API Client widgets shown only while key_name is Custom. They hold secrets until
+// the first run saves them, then onApiKeySaved clears them.
+const CUSTOM_KEY_WIDGETS = ['new_api_key', 'new_key_name', 'new_access_key', 'new_secret_key'];
 
 /**
  * Widgets whose value changes drive visibility logic
@@ -312,7 +316,21 @@ function refreshAutogrowInputLabels(node) {
     }
 }
 
-const DYNAMIC_COMBO_NODES = new Set(["BytePlusSeedance2", "BytePlusSeedream5"]);
+const DYNAMIC_COMBO_NODES = new Set([
+    "BytePlusSeedance2",
+    "BytePlusSeedream5",
+    // Nodes shaped like ComfyUI core's ByteDance nodes
+    "BytePlusSeedream",
+    "BytePlusSeedreamLayerSeparation",
+    "BytePlusSeedance2TextToVideo",
+    "BytePlusSeedance2FirstLastFrame",
+    "BytePlusSeedance2Reference",
+    "BytePlusSeed",
+    "BytePlusSeedAudio",
+    "BytePlusVideoEnhance",
+    "BytePlusVideoSmoothness",
+    "BytePlusImageEnhance",
+]);
 const SEED_CONTROL_VALUES = ["fixed", "increment", "decrement", "randomize"];
 
 // Saved widgets_values keep a control_after_generate value after each seed,
@@ -484,22 +502,22 @@ function widgetLogic(node, widget) {
         }
     }
 
-    // API Client nodes (ModelArk and Seed Speech)
+    // API Client nodes (ModelArk, Seed Speech and MediaKit)
     if (API_CLIENT_CLASSES.includes(node.comfyClass)) {
         if (widgetName === 'key_name') {
             const isCustom = widget.value === "Custom";
-            const newKeyWidget = findWidgetByName(node, 'new_api_key');
-            const newNameWidget = findWidgetByName(node, 'new_key_name');
+            // new_access_key / new_secret_key exist on the ModelArk client only.
+            let changed = false;
+            for (const name of CUSTOM_KEY_WIDGETS) {
+                if (toggleWidget(node, findWidgetByName(node, name), isCustom)) changed = true;
+            }
 
-            const changedKey = toggleWidget(node, newKeyWidget, isCustom);
-            const changedName = toggleWidget(node, newNameWidget, isCustom);
-
-            if (changedKey || changedName) shouldResize = true;
+            if (changed) shouldResize = true;
         }
     }
 
-    // Visual understanding node
-    if (node.comfyClass === "BytePlusVisualUnderstanding") {
+    // Seed and Visual Understanding (Legacy): effort only applies while thinking is on
+    if (node.comfyClass === "BytePlusSeed" || node.comfyClass === "BytePlusVisualUnderstanding") {
         if (widgetName === 'reasoning_mode') {
             const isThinkingEnabled = widget.value !== "disabled";
             const effortWidget = findWidgetByName(node, 'reasoning_effort');
@@ -563,6 +581,7 @@ const API_KEY_SAVED_EVENT = "byteplus.api_key_saved";
 const API_CLIENT_CLASS_BY_STORE = {
     modelark: "BytePlusAPIClient",
     speech: "BytePlusSpeechClient",
+    mediakit: "BytePlusMediaKitClient",
 };
 
 async function sha256Hex(text) {
@@ -629,7 +648,7 @@ async function onApiKeySaved({ detail }) {
             }
             keyNameWidget.value = detail.key_name;
         }
-        for (const name of ['new_api_key', 'new_key_name']) {
+        for (const name of CUSTOM_KEY_WIDGETS) {
             const widget = findWidgetByName(node, name);
             if (widget) widget.value = "";
         }

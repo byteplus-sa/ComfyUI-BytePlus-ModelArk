@@ -2,11 +2,13 @@ import asyncio
 import importlib
 import io
 import json
+import re
 import os
 import sys
 import types
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
 
 # Needs a ComfyUI checkout and a Python env with torch and the BytePlus SDK:
@@ -24,6 +26,11 @@ if COMFY_ROOT:
     # ComfyUI owns the top-level ``utils`` package. Preload it from ComfyUI so a
     # ``utils`` module elsewhere on sys.path cannot shadow it.
     import utils  # noqa: F401, E402
+    import comfy.cli_args  # noqa: E402
+
+    # Importing comfy.model_management probes CUDA unless this is set; the tests need no GPU
+    # (CI installs CPU-only torch).
+    comfy.cli_args.args.cpu = True
 
     PACKAGE_NAME = "byteplus_plugin_test"
     if PACKAGE_NAME not in sys.modules:
@@ -37,6 +44,7 @@ if COMFY_ROOT:
     nodes_image = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_image")
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
+    core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
 
 
 def assert_matches_sdk(method, kwargs):
@@ -322,12 +330,62 @@ class ModelConfigurationTests(unittest.TestCase):
         self.assertIn("dreamina-seedance-2-5-premium", models_config.QUERY_TASKS_MODEL_LIST)
 
     def test_seed_visual_models(self):
-        for name, model_id in (
-            ("seed-1-8", "seed-1-8-251228"),
-            ("seed-1-6", "seed-1-6-250915"),
-            ("seed-1-6-flash", "seed-1-6-flash-250715"),
-        ):
-            self.assertEqual(models_config.VISUAL_MODEL_MAP[name], model_id)
+        self.assertEqual(
+            models_config.VISUAL_MODEL_MAP,
+            {
+                "dola-seed-2-1-turbo": "dola-seed-2-1-turbo-260628",
+                "seed-2-0-pro": "seed-2-0-pro-260328",
+                "seed-2-0-lite": "seed-2-0-lite-260428",
+                "seed-2-0-mini": "seed-2-0-mini-260428",
+            },
+        )
+
+    def test_deprecated_models_are_removed_everywhere(self):
+        """Models BytePlus shut down on 2026-11-11: UI name -> (model ID, replacement)."""
+        self.assertEqual(
+            models_config.RETIRED_MODELS,
+            {
+                "seedance-1-5-pro": ("seedance-1-5-pro-251215", "dreamina-seedance-2-0-mini-260615"),
+                "seed-1-8": ("seed-1-8-251228", "seed-2-0-lite-260428"),
+                "seed-1-6": ("seed-1-6-250915", "seed-2-0-lite-260428"),
+                "seed-1-6-flash": ("seed-1-6-flash-250715", "seed-2-0-mini-260428"),
+            },
+        )
+        current_ids = {
+            *models_config.VIDEO_MODEL_MAP.values(),
+            *models_config.VISUAL_MODEL_MAP.values(),
+            *models_config.SEED_LLM_MODEL_MAP.values(),
+        }
+        for name, (model_id, replacement) in models_config.RETIRED_MODELS.items():
+            with self.subTest(model=name):
+                self.assertIn(replacement, current_ids)
+                self.assertNotIn(model_id, current_ids)
+                for mapping in (
+                    models_config.VIDEO_MODEL_MAP,
+                    models_config.VISUAL_MODEL_MAP,
+                    models_config.SEED_LLM_MODEL_MAP,
+                    models_config.SEEDANCE_1_MODELS,
+                ):
+                    self.assertNotIn(name, mapping)
+                    self.assertNotIn(model_id, mapping)
+                for options in (
+                    models_config.VISUAL_UI_OPTIONS,
+                    models_config.SEED_LLM_UI_OPTIONS,
+                    models_config.SEEDANCE_1_MODEL_OPTIONS,
+                    models_config.SEEDANCE_1_FLF_MODEL_OPTIONS,
+                ):
+                    self.assertNotIn(name, options)
+                    self.assertNotIn(model_id, options)
+        self.assertEqual(models_config.SEED_LLM_NO_REASONING_EFFORT, ())
+        # Audio-capable LLM options must exist in the model map (a rename would silently drop audio).
+        for label in models_config.SEED_LLM_AUDIO_MODELS:
+            self.assertIn(label, models_config.SEED_LLM_MODEL_MAP)
+        # Only the Legacy 1.5 Pro node still lists it, so saved workflows load.
+        self.assertEqual(models_config.VIDEO_1_5_UI_OPTIONS, ["seedance-1-5-pro"])
+        # Nodes that saved workflows may reference keep the retired names, last.
+        self.assertEqual(models_config.QUERY_TASKS_MODEL_LIST[-1:], ["seedance-1-5-pro"])
+        quota = importlib.import_module(f"{PACKAGE_NAME}.nodes.quota")
+        self.assertEqual(quota.BytePlusQuotaSettings.VIDEO_MODELS[-1:], ["seedance-1-5-pro"])
 
 
 @requires_comfyui
@@ -1332,54 +1390,164 @@ class SeedanceDraftRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(quota_checks[0][0], "dreamina-seedance-2-5-260628")
         self.assertGreater(quota_checks[0][1], 0)
 
-    async def test_seedance15_ignores_hidden_draft_task_id(self):
-        submitted, _quota = await self._submit(
-            nodes_video.BytePlusSeedance1_5,
-            model_version="seedance-1-5-pro",
-            prompt="a fox",
-            generate_audio=True,
-            auto_duration=False,
-            duration=5,
-            resolution="720p",
-            aspect_ratio="16:9",
-            camerafixed=False,
-            enable_random_seed=False,
-            seed=1,
-            generation_count=1,
-            filename_prefix="test",
-            save_last_frame_batch=False,
-            enable_offline_inference=False,
-            non_blocking=True,
-            draft_mode=False,
-            reuse_last_draft_task=False,
-            draft_task_id="cgt-old",
-        )
-        self.assertEqual(submitted[0]["content"][0], {"type": "text", "text": "a fox"})
 
-    async def test_seedance15_reuse_without_draft_raises(self):
+
+@requires_comfyui
+class DeprecatedModelTests(unittest.IsolatedAsyncioTestCase):
+    """Legacy nodes keep deprecated models listed so saved workflows load, and refuse to run them."""
+
+    def _assert_deprecated_error(self, error, name):
+        model_id, replacement = models_config.RETIRED_MODELS[name]
+        message = str(error)
+        self.assertTrue(message.startswith("[BytePlus]"), message)
+        self.assertIn("deprecated by BytePlus", message)
+        self.assertIn(model_id, message)
+        self.assertIn(replacement, message)
+
+    def test_task_query_and_quota_keep_retired_seedance_1_5(self):
+        video_schema = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video_schema")
+        # Task history of the retired model can still be queried by its dated ID.
+        self.assertEqual(video_schema.resolve_query_models("seedance-1-5-pro"), ["seedance-1-5-pro-251215"])
+        quota = importlib.import_module(f"{PACKAGE_NAME}.nodes.quota")
+        client = SimpleNamespace(api_key="test-key")
         with self.assertRaises(Exception) as ctx:
-            await self._submit(
-                nodes_video.BytePlusSeedance1_5,
-                model_version="seedance-1-5-pro",
-                prompt="a fox",
-                generate_audio=True,
-                auto_duration=False,
-                duration=5,
-                resolution="720p",
-                aspect_ratio="16:9",
-                camerafixed=False,
-                enable_random_seed=False,
-                seed=1,
-                generation_count=1,
-                filename_prefix="test",
-                save_last_frame_batch=False,
-                enable_offline_inference=False,
-                non_blocking=True,
-                draft_mode=True,
-                reuse_last_draft_task=True,
-                draft_task_id="",
-            )
-        self.assertIn("no draft to reuse", str(ctx.exception))
+            quota.BytePlusQuotaSettings.execute(client, "None", 0, "seedance-1-5-pro", 1000)
+        self._assert_deprecated_error(ctx.exception, "seedance-1-5-pro")
+
+    def test_raise_if_model_retired(self):
+        for name in models_config.RETIRED_MODELS:
+            with self.subTest(model=name):
+                with self.assertRaises(nodes_shared.BytePlusException) as ctx:
+                    core_style.raise_if_model_retired(name)
+                self._assert_deprecated_error(ctx.exception, name)
+        for current in ("", None, "seed-2-0-lite", "seedance-1-0-pro", "dreamina-seedance-2-0-mini"):
+            core_style.raise_if_model_retired(current)
+
+    async def test_legacy_seedance15_raises_without_calling_the_api(self):
+        node = nodes_video.BytePlusSeedance1_5
+        schema = node.define_schema()
+        model = next(item for item in schema.inputs if item.id == "model_version")
+        self.assertEqual(model.options, ["seedance-1-5-pro"])  # saved workflows still load
+
+        calls = []
+
+        def record(name):
+            return lambda *args, **kwargs: calls.append(name)
+
+        client = SimpleNamespace(
+            ark=SimpleNamespace(
+                content_generation=SimpleNamespace(
+                    tasks=SimpleNamespace(create=record("create"), list=record("list"), get=record("get"))
+                )
+            ),
+            check_quota=record("check_quota"),
+            update_usage=record("update_usage"),
+        )
+        old_hidden = node.__dict__.get("hidden")
+        node.hidden = SimpleNamespace(unique_id="legacy-15", prompt={})
+        try:
+            for draft_mode, reuse in ((False, False), (True, False), (True, True)):
+                with self.subTest(draft_mode=draft_mode, reuse_last_draft_task=reuse):
+                    with self.assertRaises(nodes_shared.BytePlusException) as ctx:
+                        await node.execute(
+                            client,
+                            model_version="seedance-1-5-pro",
+                            prompt="a fox",
+                            generate_audio=True,
+                            auto_duration=False,
+                            duration=5,
+                            resolution="720p",
+                            aspect_ratio="16:9",
+                            camerafixed=False,
+                            enable_random_seed=False,
+                            seed=1,
+                            generation_count=1,
+                            filename_prefix="test",
+                            save_last_frame_batch=False,
+                            enable_offline_inference=False,
+                            non_blocking=True,
+                            draft_mode=draft_mode,
+                            reuse_last_draft_task=reuse,
+                            draft_task_id="cgt-old",
+                        )
+                    self._assert_deprecated_error(ctx.exception, "seedance-1-5-pro")
+        finally:
+            if old_hidden is None:
+                delattr(node, "hidden")
+            else:
+                node.hidden = old_hidden
+        self.assertEqual(calls, [])
+
+    async def test_legacy_visual_understanding_raises_for_deprecated_seed_models(self):
+        nodes_visual = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_visual")
+        node = nodes_visual.BytePlusVisualUnderstanding
+        model = next(item for item in node.define_schema().inputs if item.id == "model")
+        # Current models first; the deprecated ones stay listed at the end so saved workflows load.
+        self.assertEqual(
+            model.options,
+            models_config.VISUAL_UI_OPTIONS + ["seed-1-8", "seed-1-6", "seed-1-6-flash"],
+        )
+        self.assertEqual(model.default, models_config.VISUAL_UI_OPTIONS[0])
+
+        executors = []
+
+        class FakeExecutor:
+            def __init__(self, client):
+                executors.append(client)
+
+            async def create_response_task(self, payload):
+                raise AssertionError("no request expected")
+
+        old_executor = nodes_visual.BytePlusVisualExecutor
+        old_hidden = node.__dict__.get("hidden")
+        nodes_visual.BytePlusVisualExecutor = FakeExecutor
+        node.hidden = SimpleNamespace(unique_id="legacy-visual", prompt={})
+        try:
+            for name in ("seed-1-8", "seed-1-6", "seed-1-6-flash"):
+                with self.subTest(model=name):
+                    with self.assertRaises(nodes_shared.BytePlusException) as ctx:
+                        await node.execute(
+                            SimpleNamespace(api_key="key", ark=None),
+                            name, "", "hi", 0, False, 86400, "auto", 1.0,
+                        )
+                    self._assert_deprecated_error(ctx.exception, name)
+        finally:
+            nodes_visual.BytePlusVisualExecutor = old_executor
+            if old_hidden is None:
+                delattr(node, "hidden")
+            else:
+                node.hidden = old_hidden
+        self.assertEqual(executors, [])
+
+
+@requires_comfyui
+class ModelRegionTests(unittest.TestCase):
+    def test_raise_if_model_unavailable_in_region(self):
+        lite = models_config.SEEDREAM_5_MODEL_MAP["seedream-5-0-lite"]
+        self.assertEqual(lite, "seedream-5-0-260128")
+        self.assertEqual(models_config.MODEL_REGION_EXCLUSIONS, {lite: ("eu-west-1",)})
+
+        with self.assertRaises(nodes_shared.BytePlusException) as ctx:
+            core_style.raise_if_model_unavailable_in_region(SimpleNamespace(region="eu-west-1"), lite)
+        message = str(ctx.exception)
+        self.assertTrue(message.startswith("[BytePlus]"), message)
+        self.assertIn("seedream-5-0-260128 is not available in eu-west-1", message)
+
+        # Lite elsewhere, or a client without a region: fine.
+        core_style.raise_if_model_unavailable_in_region(SimpleNamespace(region="ap-southeast-1"), lite)
+        core_style.raise_if_model_unavailable_in_region(SimpleNamespace(), lite)
+        # Every other model is available in eu-west-1.
+        eu = SimpleNamespace(region="eu-west-1")
+        for model_id in (
+            models_config.SEEDREAM_5_MODEL_MAP["dola-seedream-5-0-pro"],
+            models_config.SEEDREAM_5_MODEL_MAP["dola-seedream-5-0-flash"],
+            *models_config.SEEDREAM_4_MODEL_MAP.values(),
+            *models_config.VIDEO_MODEL_MAP.values(),
+            *models_config.VISUAL_MODEL_MAP.values(),
+            "",
+        ):
+            with self.subTest(model=model_id):
+                core_style.raise_if_model_unavailable_in_region(eu, model_id)
 
 
 @requires_comfyui
@@ -1528,6 +1696,211 @@ class SdkContractTests(unittest.IsolatedAsyncioTestCase):
             nodes_shared.save_files_upload_cache = old_save
         self.assertEqual(file_id, "file-1")
         self.assertIn("expires_at", created[0])
+        self.assertNotIn("preprocess_configs", created[0])
+
+        nodes_shared.save_files_upload_cache = lambda: None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as tmp:
+                tmp.write(os.urandom(64))
+                tmp.flush()
+                await nodes_shared.upload_file_to_ark(client, tmp.name, fps=2.0, model="seed-2-0-lite-260428")
+        finally:
+            nodes_shared.save_files_upload_cache = old_save
+        self.assertEqual(
+            created[-1]["preprocess_configs"], {"video": {"fps": 2.0, "model": "seed-2-0-lite-260428"}}
+        )
+
+
+@requires_comfyui
+class UploadCacheKeyTests(unittest.TestCase):
+    """A trimmed or cropped video must not reuse the full video's upload (wrong footage, billed)."""
+
+    def test_trim_and_crop_change_the_key(self):
+        import tempfile
+        from comfy_api.input_impl import VideoFromFile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "clip.mp4")
+            with open(path, "wb") as f:
+                f.write(b"not decoded here")
+            helper = nodes_video.BytePlusVideoBase()
+            full = helper._build_comfy_video_upload_cache_key(VideoFromFile(path))
+            trimmed = helper._build_comfy_video_upload_cache_key(VideoFromFile(path, start_time=2.0, duration=4.0))
+            later = helper._build_comfy_video_upload_cache_key(VideoFromFile(path, start_time=3.0, duration=4.0))
+            cropped = helper._build_comfy_video_upload_cache_key(VideoFromFile(path, crop=(0, 0, 320, 240)))
+            same = helper._build_comfy_video_upload_cache_key(VideoFromFile(path, start_time=2.0, duration=4.0))
+        self.assertEqual(len({full, trimmed, later, cropped}), 4)
+        self.assertEqual(trimmed, same)
+
+
+@requires_comfyui
+class IgnoredFailureTests(unittest.TestCase):
+    """Several nodes of one class: a failure blocks the outputs with its message (no white placeholder)."""
+
+    def test_failure_blocks_outputs_with_its_message(self):
+        from comfy_execution.graph_utils import ExecutionBlocker
+
+        with mock.patch.object(executor, "PromptServer", SimpleNamespace(instance=None)):
+            runner = executor.BytePlusGenerationExecutor(
+                SimpleNamespace(ark=None, api_key=None), node_id="5", ignore_errors=True
+            )
+        runner._create_failure_json("The request was blocked by the content policy.", task_id="cgt-9")
+        self.assertIn("cgt-9", runner.ignored_failure)
+        video, frame, response = nodes_video.BytePlusVideoBase._ignored_failure_outputs(runner).args
+        for blocked in (video, frame):
+            self.assertIsInstance(blocked, ExecutionBlocker)
+            self.assertIn("content policy", blocked.message)
+        self.assertIn("cgt-9", json.loads(response)["error"])
+
+
+@requires_comfyui
+class ApiErrorFormatTests(unittest.TestCase):
+    """format_api_error: the API's own code wins; text rules add detail or fill in."""
+
+    def code_of(self, error):
+        text = nodes_shared.format_api_error(error)
+        match = re.search(r"\(Code: ([^)]+)\)", text)
+        return match.group(1) if match else None
+
+    def test_explicit_code_beats_a_text_rule(self):
+        # "policy violation" alone maps to the video-copyright message; the task said audio.
+        error = {"code": "OutputAudioSensitiveContentDetected.PolicyViolation",
+                 "message": "The output audio was rejected: policy violation."}
+        self.assertEqual(self.code_of(error), "OutputAudioSensitiveContentDetected.PolicyViolation")
+
+    def test_text_rule_refines_the_same_code(self):
+        error = {"code": "InvalidParameter", "message": "the task is determined as video editing, but ..."}
+        self.assertEqual(self.code_of(error), "InvalidParameter.TaskTypeConstraint")
+
+    def test_text_rule_fills_in_without_a_code(self):
+        message = "Requests per minute (RPM) limit of the associated endpoint has been reached."
+        self.assertEqual(self.code_of(message), "RateLimitExceeded.EndpointRPMExceeded")
+        message = "Tokens per minute (TPM) limit of the associated endpoint has been reached."
+        self.assertEqual(self.code_of(message), "RateLimitExceeded.EndpointTPMExceeded")
+
+    def test_task_error_object_and_request_id(self):
+        task = SimpleNamespace(error=SimpleNamespace(code="InvalidParameter.TaskTypeMismatch", message="mismatch"))
+        self.assertEqual(self.code_of(executor._task_error(task, "mismatch")), "InvalidParameter.TaskTypeMismatch")
+        self.assertEqual(executor._task_error(SimpleNamespace(error=None), "Expired"), "Expired")
+
+        import httpx
+        from byteplussdkarkruntime import _exceptions
+
+        request = httpx.Request("POST", "https://ark.example/api/v3/responses")
+        error = _exceptions.ArkBadRequestError(
+            "Error code: 400", response=httpx.Response(400, request=request),
+            body={"code": "InvalidParameter", "message": "bad"}, request_id="req-123",
+        )
+        text = nodes_shared.format_api_error(error)
+        self.assertIn("InvalidParameter", text)
+        self.assertIn("Request ID: req-123", text)
+
+
+@requires_comfyui
+class BilledCallTests(unittest.IsolatedAsyncioTestCase):
+    """Calls that start paid work never get the SDK's automatic retries (duplicate billing)."""
+
+    @staticmethod
+    def _status_error(cls_name, status):
+        import httpx
+        from byteplussdkarkruntime import _exceptions
+
+        request = httpx.Request("POST", "https://ark.example/api/v3/contents/generations/tasks")
+        response = httpx.Response(status, request=request)
+        return getattr(_exceptions, cls_name)("error", response=response, body=None, request_id="r1")
+
+    def test_api_client_builds_a_no_retry_client_for_paid_calls(self):
+        built = []
+
+        def fake_ark(**kwargs):
+            built.append(kwargs)
+            return SimpleNamespace(**kwargs)
+
+        store = SimpleNamespace(find_api_key=lambda name: "ark-key", find_asset_credentials=lambda name: None)
+        with mock.patch.object(nodes_shared, "Ark", fake_ark), mock.patch.object(nodes_shared, "API_KEY_STORE", store):
+            client = nodes_shared.BytePlusAPIClient.execute("work").args[0]
+        self.assertNotIn("max_retries", built[0])  # polling and uploads keep the SDK's retries
+        self.assertEqual(built[1]["max_retries"], 0)
+        self.assertIs(nodes_shared.billed_ark(client), client.billed_ark)
+        # Clients built elsewhere (tests, older wrappers) fall back to the plain client.
+        plain = SimpleNamespace(ark="ark")
+        self.assertEqual(nodes_shared.billed_ark(plain), "ark")
+
+    def test_only_rate_limits_are_retried(self):
+        calls = []
+
+        def create(**kwargs):
+            calls.append(kwargs)
+            if len(calls) < 3:
+                raise self._status_error("ArkRateLimitError", 429)
+            return "task-1"
+
+        with mock.patch.object(nodes_shared.time, "sleep") as sleep:
+            self.assertEqual(nodes_shared.call_billed(create, model="m"), "task-1")
+        self.assertEqual(len(calls), 3)
+        self.assertEqual([c.args[0] for c in sleep.call_args_list], [1, 2])
+
+        # A server error or timeout may have started the work: never retried.
+        for error in (self._status_error("ArkInternalServerError", 500), self._status_error("ArkConflictError", 409)):
+            calls.clear()
+
+            def failing(**kwargs):
+                calls.append(kwargs)
+                raise error
+
+            with self.subTest(status=error.status_code), self.assertRaises(type(error)):
+                nodes_shared.call_billed(failing, model="m")
+            self.assertEqual(len(calls), 1)
+
+        # Rate limited on every attempt: gives up after two retries.
+        calls.clear()
+
+        def limited(**kwargs):
+            calls.append(kwargs)
+            raise self._status_error("ArkRateLimitError", 429)
+
+        with mock.patch.object(nodes_shared.time, "sleep"), self.assertRaises(Exception):
+            nodes_shared.call_billed(limited)
+        self.assertEqual(len(calls), 3)
+
+    async def test_llm_request_can_be_interrupted(self):
+        import threading
+        import time as _time
+        import comfy.model_management as mm
+
+        release = threading.Event()
+
+        def slow_create(**payload):
+            release.wait(10)  # a long max-effort answer
+            return SimpleNamespace(id="resp-1")
+
+        client = SimpleNamespace(ark=None, billed_ark=SimpleNamespace(responses=SimpleNamespace(create=slow_create)),
+                                 api_key="k")
+        runner = executor.BytePlusVisualExecutor(client)
+
+        async def interrupt_soon():
+            await asyncio.sleep(0.3)
+            mm.interrupt_current_processing(True)
+
+        started = _time.monotonic()
+        try:
+            waiter = asyncio.ensure_future(interrupt_soon())
+            with self.assertRaises(mm.InterruptProcessingException):
+                await runner.create_response_task({"model": "m", "input": "hi"})
+            await waiter
+        finally:
+            mm.interrupt_current_processing(False)
+            release.set()
+        self.assertLess(_time.monotonic() - started, 5)
+
+    def test_executors_use_the_no_retry_client(self):
+        # Task creation and LLM responses go through billed_ark; polling stays on the plain client.
+        client = SimpleNamespace(ark=object(), billed_ark=object(), api_key=None)
+        with mock.patch.object(executor, "PromptServer", SimpleNamespace(instance=None)):
+            runner = executor.BytePlusGenerationExecutor(client)
+        self.assertIs(runner.billed_ark, client.billed_ark)
+        self.assertIs(runner.ark_client, client.ark)
+        self.assertIs(executor.BytePlusVisualExecutor(client).ark_client, client.billed_ark)
 
 
 @requires_comfyui
@@ -2145,7 +2518,7 @@ class ApiKeySavedEventTests(unittest.TestCase):
         saved = {}
         patches = {
             "validate_api_key": lambda key, url: True,
-            "save_api_key": lambda name, key: saved.update({name: key}),
+            "save_api_key": lambda name, key, access_key="", secret_key="": saved.update({name: key}),
             "Ark": lambda **kwargs: SimpleNamespace(**kwargs),
         }
         old = {name: getattr(nodes_shared, name) for name in patches}
@@ -2174,6 +2547,83 @@ class ApiKeySavedEventTests(unittest.TestCase):
         self.assertNotIn("sk-123", json.dumps(data))
         hidden = nodes_shared.BytePlusAPIClient.define_schema().hidden
         self.assertIn(nodes_shared.comfy_io.Hidden.unique_id, hidden)
+
+    def _run_custom_client(self, **kwargs):
+        """Run the API Client on a Custom key against a throwaway store; returns (client, store, events)."""
+        import tempfile
+
+        events = []
+        tmp = tempfile.mkdtemp()
+        store = nodes_shared.ApiKeyStore(os.path.join(tmp, "api_keys.json"))
+        patches = {
+            "validate_api_key": lambda key, url: True,
+            "Ark": lambda **kw: SimpleNamespace(**kw),
+            "API_KEY_STORE": store,
+            "_notify_api_key_saved": lambda *args, **kw: events.append(args),
+        }
+        old = {name: getattr(nodes_shared, name) for name in patches}
+        for name, value in patches.items():
+            setattr(nodes_shared, name, value)
+        nodes_shared.BytePlusAPIClient.hidden = SimpleNamespace(unique_id="7")
+        try:
+            client = nodes_shared.BytePlusAPIClient.execute("Custom", **kwargs).args[0]
+        finally:
+            for name, value in old.items():
+                setattr(nodes_shared, name, value)
+            delattr(nodes_shared.BytePlusAPIClient, "hidden")
+        return client, store, events
+
+    def test_api_client_saves_iam_ak_sk_with_the_key(self):
+        client, store, events = self._run_custom_client(
+            new_api_key=" sk-1 ", new_key_name="work", new_access_key=" AKLT1 ", new_secret_key=" s3cret "
+        )
+        expected = {"access_key": "AKLT1", "secret_key": "s3cret", "session_token": ""}
+        self.assertEqual(client.asset_credentials, expected)
+        self.assertEqual(
+            store.get_items(),
+            [{"customName": "work", "apiKey": "sk-1", "accessKey": "AKLT1", "secretKey": "s3cret"}],
+        )
+        self.assertEqual(store.find_asset_credentials("work"), expected)
+        # The frontend event names the key and carries no AK/SK, only the key's fingerprint.
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0][1], "work")
+        self.assertNotIn("s3cret", json.dumps(events))
+        self.assertNotIn("AKLT1", json.dumps(events))
+
+    def test_api_client_uses_ak_sk_without_saving_them(self):
+        client, store, events = self._run_custom_client(
+            new_api_key="sk-1", new_access_key="AKLT1", new_secret_key="s3cret"
+        )
+        self.assertEqual(client.asset_credentials["access_key"], "AKLT1")
+        self.assertEqual(store.get_items(), [])
+        self.assertEqual(events, [])
+
+    def test_api_client_needs_both_ak_and_sk(self):
+        for kwargs in ({"new_access_key": "AKLT1"}, {"new_secret_key": "s3cret"}):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaisesRegex(Exception, "go together"):
+                    self._run_custom_client(new_api_key="sk-1", new_key_name="work", **kwargs)
+
+    def test_key_store_keeps_ak_sk_on_update_and_drops_a_stale_session_token(self):
+        import tempfile
+
+        store = nodes_shared.ApiKeyStore(os.path.join(tempfile.mkdtemp(), "api_keys.json"))
+        store.upsert("work", "sk-1", "AKLT1", "s1")
+        store._items[0]["sessionToken"] = "old-token"
+        # Re-saving the key alone (a rotated API key) leaves the IAM pair and its token alone.
+        store.upsert("work", "sk-2")
+        self.assertEqual(store.find_api_key("work"), "sk-2")
+        self.assertEqual(store.find_asset_credentials("work")["access_key"], "AKLT1")
+        self.assertEqual(store.find_asset_credentials("work")["session_token"], "old-token")
+        # A new pair replaces the old one and the token that belonged to it.
+        store.upsert("work", "sk-2", "AKLT2", "s2")
+        self.assertEqual(
+            store.find_asset_credentials("work"),
+            {"access_key": "AKLT2", "secret_key": "s2", "session_token": ""},
+        )
+        # Only half a pair is ignored.
+        store.upsert("other", "sk-3", "AKLT3", "")
+        self.assertIsNone(store.find_asset_credentials("other"))
 
 
 @requires_comfyui
@@ -2260,6 +2710,54 @@ class SpeechTestBase(unittest.IsolatedAsyncioTestCase):
 
 
 @requires_comfyui
+class AssetCreateRetryTests(unittest.TestCase):
+    def test_create_actions_use_a_client_without_retries(self):
+        assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
+        client = SimpleNamespace(region="ap-southeast-1", asset_credentials={"access_key": "AK", "secret_key": "SK"})
+        library = assets.AssetLibrary(client)
+        self.assertTrue(library._api.api_client._base_auto_retry)
+        self.assertFalse(library._create_api.api_client._base_auto_retry)
+        used = []
+        library._api = SimpleNamespace(do_call=lambda info, body: used.append(("read", info.action)) or {})
+        library._create_api = SimpleNamespace(do_call=lambda info, body: used.append(("create", info.action)) or {})
+        library.call("GetAsset", {"Id": "a"})
+        library.call("CreateAsset", {"GroupId": "g"})
+        library.call("CreateAssetGroup", {"Name": "n"})
+        self.assertEqual(used, [("read", "GetAsset"), ("create", "CreateAsset"), ("create", "CreateAssetGroup")])
+
+
+@requires_comfyui
+class SpeechPollTests(SpeechTestBase):
+    """Status queries of a submitted task survive transient failures; other errors stop at once."""
+
+    async def test_transient_failures_are_retried(self):
+        fake = self.serve((503, {}, "busy"), (200, {"X-Api-Status-Code": "20000000"}, {"result": {}}))
+        response = await self.api.speech_poll(self.client, "/api/v3/auc/bigmodel/query", {}, operation="ASR", poll_seconds=0)
+        self.assertEqual(response.status, 200)
+        self.assertEqual(len(fake.calls), 2)
+
+    async def test_client_errors_are_not_retried(self):
+        fake = self.serve((403, {}, {"header": {"code": 45000030, "message": "forbidden"}}))
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.api.speech_poll(self.client, "/api/v3/auc/bigmodel/query", {}, operation="ASR", poll_seconds=0)
+        self.assertEqual(len(fake.calls), 1)
+
+    async def test_gives_up_after_repeated_failures(self):
+        import aiohttp
+
+        calls = []
+
+        async def down(method, url, headers, body, timeout):
+            calls.append(url)
+            raise aiohttp.ClientConnectionError("reset")
+
+        self.api._send = down
+        with self.assertRaisesRegex(nodes_shared.BytePlusException, "ASR"):
+            await self.api.speech_poll(self.client, "/q", {}, operation="ASR", poll_seconds=0)
+        self.assertEqual(len(calls), self.api.SPEECH_POLL_MAX_ERRORS)
+
+
+@requires_comfyui
 class SpeechClientTests(unittest.TestCase):
     def setUp(self):
         import tempfile
@@ -2330,6 +2828,8 @@ class SpeechClientTests(unittest.TestCase):
 
 @requires_comfyui
 class SeedAudioTests(SpeechTestBase):
+    TEXT_ONLY = {"reference_mode": "text only"}
+
     def _wav_payload(self, **extra):
         wav = self.audio.audio_to_wav_bytes(_sine_audio(0.5, 24000))
         import base64
@@ -2338,7 +2838,7 @@ class SeedAudioTests(SpeechTestBase):
                 "original_duration": 0.6, "url": "https://cdn.example/a.wav", **extra}
 
     async def _run(self, **kwargs):
-        defaults = {"model": "seed-audio-1.0", "text_prompt": "Hello there"}
+        defaults = {"model": "seed-audio-1.0", "text_prompt": "Hello there", "reference_mode": self.TEXT_ONLY}
         return await self.nodes.BytePlusSeedAudio.execute(self.client, **{**defaults, **kwargs})
 
     async def test_text_only_request_and_outputs(self):
@@ -2346,9 +2846,11 @@ class SeedAudioTests(SpeechTestBase):
             "text": "Hello there",
             "sentences": [{"text": "Hello there", "start_time": 0, "end_time": 480}],
         })))
-        audio, subtitles, srt, duration, url = (await self._run(
+        outputs = (await self._run(
             audio_format="mp3", sample_rate="44100", speech_rate=10, enable_subtitle=True, aigc_watermark=True,
         )).result
+        self.assertEqual([len(column) for column in outputs], [1] * 5)
+        audio, subtitles, srt, duration, url = (column[0] for column in outputs)
         call = fake.calls[0]
         self.assertEqual(call.url, "https://voice.ap-southeast-1.bytepluses.com/api/v3/tts/create")
         self.assertEqual(call.headers["X-Api-Key"], "speech-key-1")
@@ -2357,7 +2859,8 @@ class SeedAudioTests(SpeechTestBase):
         self.assertEqual(call.body, {
             "model": "seed-audio-1.0",
             "text_prompt": "Hello there",
-            "audio_config": {"format": "mp3", "sample_rate": 44100, "speech_rate": 10, "enable_subtitle": True},
+            "audio_config": {"format": "mp3", "sample_rate": 44100, "speech_rate": 10, "loudness_rate": 0,
+                             "pitch_rate": 0, "enable_subtitle": True},
             "watermark": {"aigc_watermark": True},
         })
         self.assertEqual(audio["sample_rate"], 24000)
@@ -2371,9 +2874,12 @@ class SeedAudioTests(SpeechTestBase):
         fake = self.serve((200, {}, self._wav_payload()))
         await self._run(
             text_prompt="@Audio1 greets @Audio2, then @Audio3 answers",
-            ref_audio_1_source="en_female_stokie_uranus_bigtts",
-            ref_audio_2_source="https://cdn.example/voice.mp3",
-            ref_audio_3=_sine_audio(2.0, 48000, channels=2),
+            reference_mode={
+                "reference_mode": "audio reference",
+                "ref_audio_1_source": "en_female_stokie_uranus_bigtts",
+                "ref_audio_2_source": "https://cdn.example/voice.mp3",
+                "reference_audio_3": _sine_audio(2.0, 48000, channels=2),
+            },
         )
         refs = fake.calls[0].body["references"]
         self.assertEqual(refs[0], {"speaker": "en_female_stokie_uranus_bigtts"})
@@ -2387,23 +2893,26 @@ class SeedAudioTests(SpeechTestBase):
         import torch
 
         fake = self.serve((200, {}, self._wav_payload()), (200, {}, self._wav_payload()))
-        await self._run(ref_image=torch.ones((1, 32, 32, 3)))
+        await self._run(reference_mode={"reference_mode": "image reference", "reference_image": torch.ones((1, 32, 32, 3))})
         self.assertEqual(list(fake.calls[0].body["references"][0]), ["image_data"])
-        await self._run(ref_image_url="https://cdn.example/face.png")
+        await self._run(reference_mode={"reference_mode": "image reference", "ref_image_url": "https://cdn.example/face.png"})
         self.assertEqual(fake.calls[1].body["references"], [{"image_url": "https://cdn.example/face.png"}])
 
     async def test_reference_validation(self):
         import torch
 
         self.serve()
+        audio_mode = {"reference_mode": "audio reference"}
+        image_mode = {"reference_mode": "image reference"}
         cases = [
-            {"ref_audio_2_source": "voice_a"},                                   # gap before slot 2
-            {"ref_audio_1_source": "voice_a", "ref_audio_1": _sine_audio()},     # both in one slot
-            {"ref_audio_1_source": "voice_a", "ref_image_url": "https://x/i.png"},
-            {"ref_image": torch.ones((1, 8, 8, 3)), "ref_image_url": "https://x/i.png"},
-            {"ref_audio_1_source": "ftp://x/a.wav"},
-            {"ref_image_url": "asset://asset-1"},  # ModelArk asset IDs are not Seed Speech URLs
-            {"ref_audio_1": _sine_audio(31.0, 8000)},
+            {"reference_mode": {**audio_mode, "ref_audio_2_source": "voice_a"}},             # gap before slot 2
+            {"reference_mode": {**audio_mode, "ref_audio_1_source": "voice_a",
+                                "reference_audio_1": _sine_audio()}},                          # both in one slot
+            {"reference_mode": {**image_mode, "reference_image": torch.ones((1, 8, 8, 3)),
+                                "ref_image_url": "https://x/i.png"}},
+            {"reference_mode": {**audio_mode, "ref_audio_1_source": "ftp://x/a.wav"}},
+            {"reference_mode": {**image_mode, "ref_image_url": "asset://asset-1"}},  # not a Seed Speech URL
+            {"reference_mode": {**audio_mode, "reference_audio_1": _sine_audio(31.0, 8000)}},
             {"text_prompt": "x" * 3001},
             {"text_prompt": "   "},
         ]
@@ -2426,13 +2935,34 @@ class SeedAudioTests(SpeechTestBase):
         with self.assertRaisesRegex(nodes_shared.BytePlusException, "ModelArk API keys do not work"):
             await self._run()
 
+    async def test_generation_count_runs_parallel_requests_into_list_outputs(self):
+        fake = self.serve(*[(200, {}, self._wav_payload())] * 3)
+        outputs = (await self._run(generation_count=3)).result
+        self.assertEqual(len(fake.calls), 3)
+        self.assertEqual(len({call.headers["X-Api-Request-Id"] for call in fake.calls}), 3)
+        self.assertEqual([len(column) for column in outputs], [3] * 5)
+        self.assertEqual(outputs[3], [0.5, 0.5, 0.5])
+
+    async def test_generation_count_keeps_clips_when_some_requests_fail(self):
+        self.serve(
+            (200, {}, self._wav_payload()),
+            (200, {}, {"code": 45000001, "message": "bad"}),
+        )
+        outputs = (await self._run(generation_count=2)).result
+        self.assertEqual([len(column) for column in outputs], [1] * 5)
+
+    async def test_generation_count_raises_when_every_request_fails(self):
+        self.serve(*[(200, {}, {"code": 45000001, "message": "bad"})] * 2)
+        with self.assertRaises(self.nodes.BytePlusException):
+            await self._run(generation_count=2)
+
     async def test_downloads_url_when_audio_is_missing(self):
         wav = self.audio.audio_to_wav_bytes(_sine_audio(0.25, 16000))
         fake = self.serve(
             (200, {}, {"code": 0, "url": "https://cdn.example/b.wav"}),
             (200, {}, wav),
         )
-        audio, _, _, duration, _ = (await self._run()).result
+        audio, _, _, duration, _ = (column[0] for column in (await self._run()).result)
         self.assertEqual((fake.calls[1].method, fake.calls[1].url), ("GET", "https://cdn.example/b.wav"))
         self.assertEqual(audio["sample_rate"], 16000)
         self.assertAlmostEqual(duration, 0.25, places=3)
@@ -2624,18 +3154,20 @@ class SpeechAdvancedOptionTests(SpeechTestBase):
         import base64
 
         fake = self.serve((200, {}, {"code": 0, "audio": base64.b64encode(pcm).decode()}))
-        audio, *_ = (await self.nodes.BytePlusSeedAudio.execute(
-            self.client, "seed-audio-1.0", "Hi", audio_format="pcm", aigc_watermark=True,
-            aigc_metadata=True, content_producer="Studio", produce_id="p-1", content_propagator=" ",
-            propagate_id="d-9",
-        )).result
+        audio = (await self.nodes.BytePlusSeedAudio.execute(
+            self.client, "Hi", {"reference_mode": "text only"}, model="seed-audio-1.0", audio_format="pcm",
+            sample_rate="16000", aigc_watermark=True, aigc_metadata=True, content_producer="Studio",
+            produce_id="p-1", content_propagator=" ", propagate_id="d-9",
+        )).result[0][0]
         self.assertEqual(fake.calls[0].body["watermark"], {
             "aigc_watermark": True,
             "aigc_metadata": {"enable": True, "content_producer": "Studio", "produce_id": "p-1",
                               "propagate_id": "d-9"},
         })
-        self.assertEqual(fake.calls[0].body["audio_config"], {"format": "pcm"})
-        self.assertEqual(audio["sample_rate"], 40000)
+        self.assertEqual(fake.calls[0].body["audio_config"], {
+            "format": "pcm", "sample_rate": 16000, "speech_rate": 0, "loudness_rate": 0, "pitch_rate": 0,
+        })
+        self.assertEqual(audio["sample_rate"], 16000)
         self.assertEqual(tuple(audio["waveform"].shape), (1, 1, 3))
 
     def test_tts_text_handling_options(self):
@@ -2915,7 +3447,7 @@ class SpeechRobustnessTests(SpeechTestBase):
         self.serve((200, {}, {"code": 0, "audio": "not base64!!"}),
                    (200, {}, '{"code":0,"data":"A"}{"code":20000000}'))
         with self.assertRaisesRegex(nodes_shared.BytePlusException, r"^\[BytePlus\]"):
-            await self.nodes.BytePlusSeedAudio.execute(self.client, "seed-audio-1.0", "Hi")
+            await self.nodes.BytePlusSeedAudio.execute(self.client, "Hi", {"reference_mode": "text only"})
         with self.assertRaisesRegex(nodes_shared.BytePlusException, r"^\[BytePlus\]"):
             await self.nodes.BytePlusSeedTTS.execute(self.client, "seed-tts-2.0", "Hi", "en_female_stokie_uranus_bigtts")
 
@@ -3036,7 +3568,8 @@ class SpeechHelperTests(unittest.TestCase):
         sys.path.insert(0, PLUGIN_ROOT)
         from tests.test_workflow_templates import WorkflowTemplateTests
 
-        for node in (self.nodes.BytePlusSpeechClient, self.nodes.BytePlusSeedAudio,
+        # BytePlusSeedAudio (DynamicCombo) is checked in tests.test_core_style_seed.
+        for node in (self.nodes.BytePlusSpeechClient,
                      self.nodes.BytePlusSeedTTS, self.nodes.BytePlusSeedASR,
                      self.nodes.BytePlusSeedVoiceClone):
             schema = node.define_schema()
@@ -3066,7 +3599,7 @@ class SpeechHelperTests(unittest.TestCase):
             with open(os.path.join(PLUGIN_ROOT, "nodes", name), encoding="utf-8") as f:
                 source = f.read()
             self.assertTrue(source.isascii(), name)
-            for key in set(re.findall(r'(?:get_text|_plain|log_msg)\(\s*"([a-z0-9_]+)"', source)):
+            for key in set(re.findall(r'(?:get_text|plain_text|log_msg)\(\s*"([a-z0-9_]+)"', source)):
                 self.assertIn(key, constants.MESSAGES, f"{name}: missing message {key}")
 
 

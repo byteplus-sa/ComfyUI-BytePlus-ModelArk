@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 import unittest
@@ -13,9 +14,17 @@ EXPECTED_WORKFLOWS = {
     "Seed Audio.json",
     "Seed Speech TTS and ASR.json",
     "Seed Voice Clone.json",
-    "Seedream 4.json",
-    "Seedream 5.json",
-    "VisualUnderstanding.json",
+    "Seedream.json",
+    "Seedream Layer Separation.json",
+    "Seed.json",
+    "vCube Video Enhance.json",
+    "Video Smoothness Enhance.json",
+    "Image Quality Enhance.json",
+    "Text to Image to Video.json",
+    "Seedance Video Extension.json",
+    "Seed Prompt Writer.json",
+    "Generate and Enhance.json",
+    "Private Asset Library.json",
 }
 
 
@@ -24,71 +33,135 @@ def load_workflow(name):
         return json.load(file)
 
 
+def load_models_config():
+    """nodes/models_config.py has no imports, so it loads without ComfyUI."""
+    path = os.path.join(PLUGIN_ROOT, "nodes", "models_config.py")
+    spec = importlib.util.spec_from_file_location("byteplus_models_config", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class WorkflowTemplateTests(unittest.TestCase):
-    SEEDANCE2_INPUTS_BEFORE_REFS = [
-        "client", "model_version", "model_version.prompt",
-        "model_version.enable_random_seed", "model_version.seed",
-        "model_version.resolution", "model_version.aspect_ratio",
-        "model_version.auto_duration", "model_version.duration",
-        "model_version.generate_audio",
+
+    SEEDANCE1_BEFORE_FRAMES = ["client", "model", "prompt"]
+    SEEDANCE1_AFTER_FRAMES = [
+        "resolution", "aspect_ratio", "duration", "seed", "camera_fixed", "watermark",
+        "enable_offline_inference", "generation_count", "non_blocking",
     ]
-    SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS = [
-        "model_version.generation_count", "model_version.filename_prefix",
-        "model_version.save_last_frame_batch", "model_version.non_blocking",
-        "first_frame_image", "last_frame_image", "ref_images.ref_image_1",
-        "ref_videos.ref_video_1", "ref_audios.ref_audio_1", "ref_video_urls",
-        "ref_image_urls", "ref_audio_urls",
+    # BytePlusSeedream / BytePlusSeedreamLayerSeparation (core-style): inputs per
+    # selected model; widgets_values index of the model value.
+    SEEDREAM_INPUTS_HEAD = [
+        "client", "prompt", "model", "model.size_preset", "model.width", "model.height",
     ]
-    SEEDANCE2_INPUT_ORDERS = {
-        "dreamina-seedance-2-0": SEEDANCE2_INPUTS_BEFORE_REFS + SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS,
-        "dreamina-seedance-2-5": SEEDANCE2_INPUTS_BEFORE_REFS
-        + [
-            "model_version.task_type", "model_version.output_format",
-            "model_version.draft_mode", "model_version.reuse_last_draft_task",
-            "model_version.draft_task_id",
-        ]
-        + SEEDANCE2_INPUTS_AFTER_MODEL_OPTIONS,
+    SEEDREAM_BATCH_INPUTS = SEEDREAM_INPUTS_HEAD + [
+        "model.max_images", "model.images.image_1", "model.fail_on_partial", "model.seed",
+        "model.watermark", "model.thinking", "model.generation_count",
+    ]
+    SEEDREAM_INPUT_ORDERS = {
+        "seedream 5.0 pro": SEEDREAM_INPUTS_HEAD + [
+            "model.images.image_1", "model.prompt_optimization", "model.seed",
+            "model.watermark", "model.thinking", "model.generation_count",
+            "model.output_format", "model.background", "model.reference_mask",
+        ],
+        "seedream 5.0 flash": SEEDREAM_INPUTS_HEAD + [
+            "model.images.image_1", "model.seed", "model.watermark",
+            "model.generation_count", "model.output_format", "model.background",
+            "model.reference_mask",
+        ],
+        "seedream 5.0 lite": SEEDREAM_BATCH_INPUTS,
+        "seedream-4-5-251128": SEEDREAM_BATCH_INPUTS,
+        "seedream-4-0-250828": SEEDREAM_BATCH_INPUTS,
     }
+    LAYER_SEPARATION_INPUT_ORDERS = {
+        "seedream 5.0 pro": [
+            "client", "model", "model.image", "model.prompt", "model.size", "model.seed",
+            "model.prompt_optimization", "model.watermark", "model.crop_layers",
+            "model.output_format", "model.save_layers", "model.filename_prefix",
+        ],
+        "seedream 5.0 flash": [
+            "client", "model", "model.image", "model.prompt", "model.size", "model.seed",
+            "model.watermark", "model.crop_layers", "model.output_format",
+            "model.save_layers", "model.filename_prefix",
+        ],
+    }
+    MODEL_KEYED_INPUT_ORDERS = {
+        # node type: (widgets_values index of the model, orders per model)
+        "BytePlusSeedream": (1, SEEDREAM_INPUT_ORDERS),
+        "BytePlusSeedreamLayerSeparation": (0, LAYER_SEPARATION_INPUT_ORDERS),
+    }
+    # Core-style Seedance 2 / 2.5 nodes: client first, core's inputs, then our
+    # extras; the DynamicCombo children depend on the model option (widgets_values[0]).
+    CORE_STYLE_EXTRAS = ["generation_count", "non_blocking"]
+    CORE_STYLE_SEEDANCE2_NODES = {
+        "BytePlusSeedance2TextToVideo",
+        "BytePlusSeedance2FirstLastFrame",
+        "BytePlusSeedance2Reference",
+    }
+    AUTOGROW_SOCKET_PATTERN = (
+        r"^model\.reference_(images\.image|videos\.video|audios\.audio|assets\.asset)_\d+$"
+    )
+
+    @classmethod
+    def core_style_seedance2_inputs(cls, node_type, label):
+        is_25 = label.startswith("Seedance 2.5")
+        text = ["model.prompt", "model.resolution", "model.ratio", "model.duration", "model.generate_audio"]
+        if node_type == "BytePlusSeedance2FirstLastFrame":
+            if is_25:
+                text = [name for name in text if name != "model.ratio"] + ["model.output_format"]
+            return (
+                ["client", "model", *text, "seed", "watermark", "first_frame", "last_frame",
+                 "first_frame_asset_id", "last_frame_asset_id"]
+                + cls.CORE_STYLE_EXTRAS
+            )
+        if node_type == "BytePlusSeedance2Reference":
+            if is_25:
+                text = text + ["model.task_type", "model.output_format"]
+            # Autogrow sockets (model.reference_*) are checked separately.
+            text = text + ["model.auto_downscale", "model.auto_upscale"]
+        elif is_25:
+            text = text + ["model.output_format"]
+        return ["client", "model", *text, "seed", "watermark"] + cls.CORE_STYLE_EXTRAS
 
     CURRENT_INPUT_ORDERS = {
-        "BytePlusAPIClient": ["new_api_key", "new_key_name", "key_name", "region"],
+        "BytePlusAPIClient": [
+            "new_api_key", "new_key_name", "key_name", "region", "new_access_key", "new_secret_key",
+        ],
         "BytePlusQuotaSettings": [
             "client", "image_model", "image_limit", "video_model", "video_limit"
         ],
-        "BytePlusSeedance1": [
-            "client", "model_version", "prompt", "enable_random_seed", "seed",
-            "resolution", "aspect_ratio", "duration", "camerafixed",
-            "enable_offline_inference", "generation_count", "filename_prefix",
-            "save_last_frame_batch", "non_blocking", "image", "last_frame_image",
-        ],
-        "BytePlusSeedance1_5": [
-            "client", "model_version", "prompt", "enable_random_seed", "seed",
-            "resolution", "aspect_ratio", "auto_duration", "duration",
-            "generate_audio", "draft_mode", "reuse_last_draft_task", "draft_task_id",
-            "camerafixed", "enable_offline_inference", "generation_count",
-            "filename_prefix", "save_last_frame_batch", "non_blocking", "image",
-            "last_frame_image",
-        ],
-        "BytePlusSeedream4": [
-            "client", "model_version", "prompt", "size", "width", "height", "seed",
-            "enable_group_generation", "max_images", "generation_count",
-            "prompt_optimization", "watermark", "images.image_1",
-        ],
-        "BytePlusSeedream5": [
-            "client", "model_version", "model_version.prompt", "model_version.size",
-            "model_version.width", "model_version.height", "model_version.seed",
-            "model_version.generation_count", "model_version.prompt_optimization",
-            "model_version.output_format", "model_version.background",
-            "model_version.watermark", "images.image_1", "reference_mask",
-        ],
+        # Core-style Seedance 1.x: client, core's inputs, then this pack's extras.
+        "BytePlusSeedanceTextToVideo": SEEDANCE1_BEFORE_FRAMES + SEEDANCE1_AFTER_FRAMES,
+        "BytePlusSeedanceImageToVideo": SEEDANCE1_BEFORE_FRAMES + ["image"]
+        + SEEDANCE1_AFTER_FRAMES,
+        "BytePlusSeedanceFirstLastFrame": SEEDANCE1_BEFORE_FRAMES
+        + ["first_frame", "last_frame"] + SEEDANCE1_AFTER_FRAMES,
         "BytePlusSpeechClient": ["new_api_key", "new_key_name", "key_name", "region"],
+        "BytePlusMediaKitClient": ["new_api_key", "new_key_name", "key_name", "region"],
+        # As the frontend saves it: sockets, then the DynamicCombo children before their parent.
+        "BytePlusVideoEnhance": [
+            "mediakit_client", "video", "tool_version.scene", "tool_version.enhance_style",
+            "tool_version", "resolution", "fps", "bitrate_level", "video_url", "bitrate",
+            "comparison", "compare_time",
+        ],
+        "BytePlusVideoSmoothness": [
+            "mediakit_client", "video", "periodic_stutter.align_source_fps",
+            "periodic_stutter.insert_frame_indices", "periodic_stutter", "duplicate_frames",
+            "video_url", "comparison",
+        ],
+        "BytePlusImageEnhance": [
+            "mediakit_client", "image", "tool_version", "output_size.multiple", "output_size", "image_url",
+        ],
         "BytePlusSeedAudio": [
-            "speech_client", "model", "text_prompt", "ref_audio_1_source",
-            "ref_audio_2_source", "ref_audio_3_source", "ref_image_url", "audio_format",
-            "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "enable_subtitle",
-            "aigc_watermark", "aigc_metadata", "content_producer", "produce_id",
-            "content_propagator", "propagate_id", "seed", "ref_audio_1", "ref_audio_2",
-            "ref_audio_3", "ref_image",
+            "speech_client", "text_prompt", "reference_mode", "reference_mode.preset_voice",
+            "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "seed", "model",
+            "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
+            "content_producer", "produce_id", "content_propagator", "propagate_id", "generation_count",
+        ],
+        "BytePlusSeed": [
+            "client", "prompt", "model", "model.images.image_1", "model.videos.video_1",
+            "model.temperature", "seed", "system_prompt", "detail", "fps", "reasoning_mode",
+            "reasoning_effort", "turns", "stream", "file_expire_seconds",
         ],
         "BytePlusSeedTTS": [
             "speech_client", "model", "text", "voice", "custom_speaker_id", "context_text",
@@ -110,11 +183,8 @@ class WorkflowTemplateTests(unittest.TestCase):
             "speech_client", "speaker_id", "language", "reference_text", "demo_text",
             "disable_volume_normalization", "audio",
         ],
-        "BytePlusVisualUnderstanding": [
-            "client", "model", "system_prompt", "user_prompt", "detail", "fps",
-            "reasoning_mode", "reasoning_effort", "turns", "stream",
-            "file_expire_seconds", "seed", "visual_input_1", "visual_input_2",
-            "visual_input_3",
+        "BytePlusSeedanceDraftToFinal": [
+            "client", "draft_task_id", "watermark", "generation_count", "non_blocking",
         ],
     }
 
@@ -168,16 +238,22 @@ class WorkflowTemplateTests(unittest.TestCase):
                         self.assertEqual(node["properties"]["ver"], "0.3.0")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
-        for name in ("Seedance 2.json", "Seedream 5.json", "2.5 Model Updates.json"):
+        combo_inputs = {
+            "BytePlusSeedance2": "model_version",
+            "BytePlusSeedream5": "model_version",
+            **{node_type: "model" for node_type in self.CORE_STYLE_SEEDANCE2_NODES},
+        }
+        for name in ("Seedance 2.json", "2.5 Model Updates.json"):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
-                if node["type"] not in {"BytePlusSeedance2", "BytePlusSeedream5"}:
+                combo = combo_inputs.get(node["type"])
+                if combo is None:
                     continue
                 inputs = node["inputs"]
-                model_input = next(item for item in inputs if item["name"] == "model_version")
+                model_input = next(item for item in inputs if item["name"] == combo)
                 self.assertEqual(model_input["type"], "COMFY_DYNAMICCOMBO_V3")
                 self.assertTrue(
-                    any(item["name"].startswith("model_version.") for item in inputs)
+                    any(item["name"].startswith(combo + ".") for item in inputs)
                 )
                 self.assertFalse(any(item["name"] == "prompt" for item in inputs))
 
@@ -186,37 +262,162 @@ class WorkflowTemplateTests(unittest.TestCase):
         for name in sorted(EXPECTED_WORKFLOWS):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
-                if node["type"] == "BytePlusSeedance2":
-                    expected = self.SEEDANCE2_INPUT_ORDERS[node["widgets_values"][0]]
+                names = [item["name"] for item in node["inputs"]]
+                if node["type"] in self.MODEL_KEYED_INPUT_ORDERS:
+                    index, orders = self.MODEL_KEYED_INPUT_ORDERS[node["type"]]
+                    expected = orders[node["widgets_values"][index]]
+                elif node["type"] in self.CORE_STYLE_SEEDANCE2_NODES:
+                    expected = self.core_style_seedance2_inputs(
+                        node["type"], node["widgets_values"][0]
+                    )
+                    sockets = [n for n in names if n.startswith("model.reference_")]
+                    for socket in sockets:
+                        self.assertRegex(socket, self.AUTOGROW_SOCKET_PATTERN)
+                    names = [n for n in names if n not in sockets]
                 else:
                     expected = self.CURRENT_INPUT_ORDERS.get(node["type"])
                 if expected is None:
                     continue
                 found_types.add(node["type"])
-                self.assertEqual(
-                    [item["name"] for item in node["inputs"]],
-                    expected,
-                    msg=f"{name}: {node['type']}",
-                )
+                self.assertEqual(names, expected, msg=f"{name}: {node['type']}")
         self.assertEqual(
-            found_types, set(self.CURRENT_INPUT_ORDERS) | {"BytePlusSeedance2"}
+            found_types,
+            set(self.CURRENT_INPUT_ORDERS)
+            | set(self.MODEL_KEYED_INPUT_ORDERS)
+            | self.CORE_STYLE_SEEDANCE2_NODES,
         )
 
-    def test_seedance_templates_cover_2_0_and_2_5(self):
-        seedance2 = load_workflow("Seedance 2.json")
-        standard_node = next(
-            node for node in seedance2["nodes"] if node["type"] == "BytePlusSeedance2"
+    def test_core_style_seedream_templates(self):
+        seedream = next(
+            node for node in load_workflow("Seedream.json")["nodes"]
+            if node["type"] == "BytePlusSeedream"
         )
-        self.assertEqual(standard_node["widgets_values"][0], "dreamina-seedance-2-0")
+        layers = next(
+            node for node in load_workflow("Seedream Layer Separation.json")["nodes"]
+            if node["type"] == "BytePlusSeedreamLayerSeparation"
+        )
+        for node in (seedream, layers):
+            inputs = {item["name"]: item for item in node["inputs"]}
+            self.assertEqual(inputs["model"]["type"], "COMFY_DYNAMICCOMBO_V3")
+            # Option inputs are namespaced under the DynamicCombo, never bare.
+            self.assertNotIn("seed", inputs)
+            self.assertNotIn("watermark", inputs)
+            self.assertEqual(inputs["model.seed"]["type"], "INT")
 
+        values = seedream["widgets_values"]
+        self.assertTrue(values[0].strip())  # core rejects an empty prompt
+        self.assertEqual(values[1:5], ["seedream 5.0 pro", "(2K) 2048x2048 (1:1)", 2048, 2048])
+        self.assertEqual(values[5], "standard")  # prompt_optimization
+        self.assertEqual(values[6:8], [42, "randomize"])  # seed + control value
+        self.assertEqual(values[8:], [False, True, 1, "jpeg", "opaque"])
+        self.assertEqual(
+            [output["name"] for output in seedream["outputs"]], ["IMAGE", "response", "mask"]
+        )
+
+        self.assertEqual(
+            layers["widgets_values"],
+            ["seedream 5.0 pro", "", "auto", 42, "randomize", "standard", False, False,
+             "png", False, "BytePlus/Layers/Seedream"],
+        )
+        self.assertEqual(
+            [output["name"] for output in layers["outputs"]],
+            ["base_image", "base_mask", "layers", "masks", "bboxes", "layer_stack", "layers_json"],
+        )
+
+    def test_seedance2_template_uses_core_style_nodes(self):
+        workflow = load_workflow("Seedance 2.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        types = {node["type"] for node in nodes.values()}
+        self.assertNotIn("BytePlusSeedance2", types)  # legacy node
+        self.assertTrue(
+            {"BytePlusAPIClient", "BytePlusSeedanceDraftToFinal", "SaveVideo",
+             "LoadImage", "LoadVideo", "LoadAudio"}
+            | self.CORE_STYLE_SEEDANCE2_NODES
+            <= types
+        )
+        labels = {
+            node["widgets_values"][0]
+            for node in nodes.values()
+            if node["type"] in self.CORE_STYLE_SEEDANCE2_NODES
+        }
+        self.assertTrue(any(label.startswith("Seedance 2.0") for label in labels))
+        self.assertTrue(any(label.startswith("Seedance 2.5") for label in labels))
+        # Draft to Final is fed from the draft_task_id output (slot 1) of a Draft run.
+        final = next(n for n in nodes.values() if n["type"] == "BytePlusSeedanceDraftToFinal")
+        draft_input = next(i for i in final["inputs"] if i["name"] == "draft_task_id")
+        link = next(l for l in workflow["links"] if l[0] == draft_input["link"])
+        source = nodes[link[1]]
+        self.assertEqual(link[2], 1)
+        self.assertEqual(source["outputs"][1]["name"], "draft_task_id")
+        self.assertIn("Draft", source["widgets_values"][0])
+        # widgets_values: one value per widget input, plus control_after_generate after seed.
+        for node in nodes.values():
+            if node["type"].startswith("BytePlus"):
+                widgets = [i["name"] for i in node["inputs"] if "widget" in i]
+                self.assertEqual(
+                    len(node["widgets_values"]),
+                    len(widgets) + widgets.count("seed"),
+                    msg=node["type"],
+                )
+        # A seed widget is followed by its control_after_generate value.
+        for node in nodes.values():
+            if node["type"] in self.CORE_STYLE_SEEDANCE2_NODES:
+                values = node["widgets_values"]
+                control = next(
+                    i for i, v in enumerate(values)
+                    if v in ("fixed", "increment", "decrement", "randomize")
+                )
+                self.assertIsInstance(values[control - 1], int)
+
+    def test_updates_template_uses_core_style_nodes(self):
         updates = load_workflow("2.5 Model Updates.json")
-        seedance25_node = next(
-            node for node in updates["nodes"] if node["type"] == "BytePlusSeedance2"
+        nodes = {node["type"]: node for node in updates["nodes"]}
+        for legacy in ("BytePlusSeedance2", "BytePlusSeedream5", "BytePlusVisualUnderstanding"):
+            self.assertNotIn(legacy, nodes)
+        # model, prompt, resolution, ratio, duration, generate_audio
+        self.assertEqual(
+            nodes["BytePlusSeedance2TextToVideo"]["widgets_values"][0:6:2], ["Seedance 2.5", "720p", 30]
         )
-        self.assertEqual(seedance25_node["widgets_values"][0], "dreamina-seedance-2-5")
-        self.assertEqual(seedance25_node["widgets_values"][5], "720p")
-        self.assertEqual(seedance25_node["widgets_values"][8], 30)
-        self.assertEqual(seedance25_node["widgets_values"][12], False)  # draft_mode
+        self.assertEqual(nodes["BytePlusSeedream"]["widgets_values"][1], "seedream 5.0 pro")
+        self.assertEqual(nodes["BytePlusSeed"]["widgets_values"][1], "Seed 2.1 Turbo")
+
+    def test_seedance1_template_widget_positions(self):
+        workflow = load_workflow("Seedance 1.json")
+        nodes = {node["type"]: node for node in workflow["nodes"]}
+        self.assertNotIn("BytePlusSeedance1", nodes)
+        self.assertNotIn("BytePlusSeedance1_5", nodes)
+        # Seedance 1.5 Pro is deprecated by BytePlus (shut down on 2026-11-11).
+        self.assertNotIn("seedance-1-5-pro", json.dumps(workflow))
+        for node_type, model in (
+            ("BytePlusSeedanceTextToVideo", "seedance-1-0-pro-fast-251015"),
+            ("BytePlusSeedanceImageToVideo", "seedance-1-0-pro-fast-251015"),
+            ("BytePlusSeedanceFirstLastFrame", "seedance-1-0-pro-250528"),
+        ):
+            with self.subTest(node=node_type):
+                node = nodes[node_type]
+                widget_inputs = [item["name"] for item in node["inputs"] if "widget" in item]
+                values = node["widgets_values"]
+                # One value per widget, plus control_after_generate right after seed.
+                self.assertEqual(len(values), len(widget_inputs) + 1)
+                seed_index = widget_inputs.index("seed")
+                self.assertEqual(values[0], model)
+                self.assertTrue(values[1].strip())  # prompt (core rejects an empty one)
+                self.assertEqual(values[seed_index + 1], "randomize")
+                named = dict(zip(widget_inputs[: seed_index + 1], values))
+                named.update(zip(widget_inputs[seed_index + 1 :], values[seed_index + 2 :]))
+                self.assertEqual(named["duration"], 5)
+                self.assertEqual(named["generation_count"], 1)
+                for removed in ("generate_audio", "auto_duration", "draft_mode"):
+                    self.assertNotIn(removed, named)
+                self.assertEqual(
+                    [output["name"] for output in node["outputs"]],
+                    ["VIDEO", "last_frame", "response"],
+                )
+                # Core's optional inputs and this pack's extras are optional sockets.
+                optional = {item["name"] for item in node["inputs"] if item.get("shape") == 7}
+                self.assertEqual(
+                    optional, set(self.SEEDANCE1_AFTER_FRAMES[3:]), msg=node_type
+                )
 
     def test_templates_are_english_and_byteplus_only(self):
         for name in sorted(EXPECTED_WORKFLOWS):
@@ -227,12 +428,186 @@ class WorkflowTemplateTests(unittest.TestCase):
                 self.assertNotIn("doubao", text)
                 self.assertNotIn("Jimeng", text)
 
+    def test_vcube_template(self):
+        workflow = load_workflow("vCube Video Enhance.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        enhance = next(node for node in nodes.values() if node["type"] == "BytePlusVideoEnhance")
+        self.assertEqual(enhance["widgets_values"], ["standard", "aigc", "hd", "1080p", "source", "medium", "", 0, True, -1])
+        # Enhanced video and comparison to Save Video; the frame pair to ComfyUI's Compare Images.
+        targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == enhance["id"]}
+        self.assertEqual(targets, {(0, "SaveVideo"), (1, "SaveVideo"), (2, "ImageCompare"), (3, "ImageCompare")})
+
+    def test_video_smoothness_template(self):
+        workflow = load_workflow("Video Smoothness Enhance.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        smooth = next(node for node in nodes.values() if node["type"] == "BytePlusVideoSmoothness")
+        self.assertEqual(smooth["widgets_values"], ["repair", False, "", "remove", "", True])
+        # Repaired video and side-by-side comparison to Save Video; the task JSON to Preview Any.
+        targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == smooth["id"]}
+        self.assertEqual(targets, {(0, "SaveVideo"), (1, "SaveVideo"), (4, "PreviewAny")})
+
+    def test_image_quality_enhance_template(self):
+        workflow = load_workflow("Image Quality Enhance.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        enhance = next(node for node in nodes.values() if node["type"] == "BytePlusImageEnhance")
+        self.assertEqual(enhance["widgets_values"], ["standard", "multiple", 2, ""])
+        # The enhanced image to Save Image; original (image_a) and enhanced (image_b) to Compare Images.
+        targets = {(link[2], nodes[link[3]]["type"], link[4]) for link in workflow["links"] if link[1] == enhance["id"]}
+        self.assertEqual(targets, {(0, "SaveImage", 0), (1, "ImageCompare", 0), (0, "ImageCompare", 1)})
+
+    @staticmethod
+    def edges(workflow):
+        """Links as (origin type, origin slot, target type, target input name)."""
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        return {
+            (nodes[o]["type"], os_, nodes[t]["type"], nodes[t]["inputs"][ts]["name"])
+            for _id, o, os_, t, ts, _type in workflow["links"]
+        }
+
+    def test_text_to_image_to_video_template(self):
+        workflow = load_workflow("Text to Image to Video.json")
+        # Seedream's image is saved and is the first frame of the Seedance clip.
+        self.assertEqual(self.edges(workflow), {
+            ("BytePlusAPIClient", 0, "BytePlusSeedream", "client"),
+            ("BytePlusAPIClient", 0, "BytePlusSeedance2FirstLastFrame", "client"),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("BytePlusSeedream", 0, "BytePlusSeedance2FirstLastFrame", "first_frame"),
+            ("BytePlusSeedance2FirstLastFrame", 0, "SaveVideo", "video"),
+        })
+
+    def test_video_extension_template(self):
+        workflow = load_workflow("Seedance Video Extension.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        clips = [n for n in nodes.values() if n["type"].startswith("BytePlusSeedance2")]
+        self.assertEqual(len(clips), 3)
+        # Each clip starts from the previous clip's last_frame (output 2)...
+        chained = [
+            (nodes[o]["type"], os_, nodes[t]["type"], nodes[t]["inputs"][ts]["name"], o, t)
+            for _id, o, os_, t, ts, _type in workflow["links"]
+            if nodes[t]["inputs"][ts]["name"] == "first_frame"
+        ]
+        self.assertEqual(len(chained), 2)
+        self.assertTrue(all(link[1] == 2 for link in chained))
+        self.assertEqual({(link[4], link[5]) for link in chained}, {(clips[0]["id"], clips[1]["id"]), (clips[1]["id"], clips[2]["id"])})
+        # ...and all three videos are joined, in order, into the one Save Video.
+        concat = next(n for n in nodes.values() if n["type"] == "ConcatenateVideo")
+        joined = {
+            nodes[t]["inputs"][ts]["name"]: o
+            for _id, o, _slot, t, ts, _type in workflow["links"] if t == concat["id"]
+        }
+        self.assertEqual(joined, {f"videos.video{i}": clip["id"] for i, clip in enumerate(clips)})
+        # Only the joined video is saved, not the three intermediate clips.
+        self.assertEqual(sum(n["type"] == "SaveVideo" for n in nodes.values()), 1)
+
+    def test_seed_prompt_writer_template(self):
+        workflow = load_workflow("Seed Prompt Writer.json")
+        # The LLM text is Seedream's prompt (its widget is replaced by the link) and is shown.
+        self.assertEqual(self.edges(workflow), {
+            ("BytePlusAPIClient", 0, "BytePlusSeed", "client"),
+            ("BytePlusAPIClient", 0, "BytePlusSeedream", "client"),
+            ("BytePlusSeed", 0, "PreviewAny", "source"),
+            ("BytePlusSeed", 0, "BytePlusSeedream", "prompt"),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+        })
+
+    def test_generate_and_enhance_template(self):
+        workflow = load_workflow("Generate and Enhance.json")
+        edges = self.edges(workflow)
+        # Two products, two keys: ModelArk generates, MediaKit enhances.
+        self.assertIn(("BytePlusMediaKitClient", 0, "BytePlusImageEnhance", "mediakit_client"), edges)
+        self.assertIn(("BytePlusMediaKitClient", 0, "BytePlusVideoEnhance", "mediakit_client"), edges)
+        self.assertIn(("BytePlusSeedream", 0, "BytePlusImageEnhance", "image"), edges)
+        self.assertIn(("BytePlusSeedance2TextToVideo", 0, "BytePlusVideoEnhance", "video"), edges)
+        self.assertNotIn(("BytePlusAPIClient", 0, "BytePlusImageEnhance", "mediakit_client"), edges)
+        # The image branch runs by default; the (paid, slow) video branch is bypassed.
+        modes = {}
+        for node in workflow["nodes"]:
+            modes.setdefault(node["type"], set()).add(node["mode"])
+        self.assertEqual(modes["BytePlusImageEnhance"], {0})
+        self.assertEqual(modes["BytePlusSeedance2TextToVideo"], {4})
+        self.assertEqual(modes["BytePlusVideoEnhance"], {4})
+
+    def test_private_asset_library_template(self):
+        workflow = load_workflow("Private Asset Library.json")
+        # An existing asset ID (Text node) is a reference of the Seedance node; the API Client
+        # carries the IAM AK/SK that look the asset's type up.
+        self.assertEqual(self.edges(workflow), {
+            ("BytePlusAPIClient", 0, "BytePlusSeedance2Reference", "client"),
+            ("PrimitiveString", 0, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"),
+            ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
+        })
+        reference = next(n for n in workflow["nodes"] if n["type"] == "BytePlusSeedance2Reference")
+        self.assertIn("asset1", reference["widgets_values"][1])
+
+    def test_seedance_video_outputs_are_list_slots(self):
+        # VIDEO is a list output (every video of a generation_count batch); the frontend
+        # saves list outputs with the grid slot shape (LiteGraph GRID_SHAPE = 6).
+        seedance_nodes = self.CORE_STYLE_SEEDANCE2_NODES | {
+            "BytePlusSeedanceTextToVideo", "BytePlusSeedanceImageToVideo",
+            "BytePlusSeedanceFirstLastFrame", "BytePlusSeedanceDraftToFinal",
+        }
+        found = set()
+        for name in sorted(EXPECTED_WORKFLOWS):
+            for node in load_workflow(name)["nodes"]:
+                if node["type"] in seedance_nodes:
+                    found.add(node["type"])
+                    with self.subTest(workflow=name, node=node["id"]):
+                        video = node["outputs"][0]
+                        self.assertEqual((video["name"], video.get("shape")), ("VIDEO", 6))
+                        self.assertTrue(all("shape" not in o for o in node["outputs"][1:]))
+        self.assertEqual(found, seedance_nodes)
+
+    # Nodes ComfyUI runs on their own; every other node runs only when one of these uses its output.
+    OUTPUT_NODE_TYPES = {
+        "SaveImage", "PreviewImage", "SaveVideo", "PreviewAny", "PreviewAudio", "SaveAudio",
+        "ImageCompare", "BytePlusVideoQueryTasks",
+    }
+
+    def test_every_node_leads_to_an_output_node(self):
+        # A node that feeds no output node never runs, and a template without one fails
+        # with "Prompt has no outputs".
+        for name in sorted(EXPECTED_WORKFLOWS):
+            workflow = load_workflow(name)
+            types = {node["id"]: node["type"] for node in workflow["nodes"]}
+            consumers = {}
+            for _link_id, origin, _slot, target, _target_slot, _type in workflow["links"]:
+                consumers.setdefault(origin, set()).add(target)
+            runs = {node_id for node_id, node_type in types.items() if node_type in self.OUTPUT_NODE_TYPES}
+            grew = True
+            while grew:
+                grew = False
+                for node_id in types:
+                    if node_id not in runs and consumers.get(node_id, set()) & runs:
+                        runs.add(node_id)
+                        grew = True
+            with self.subTest(workflow=name):
+                self.assertEqual(sorted(types[node_id] for node_id in set(types) - runs), [])
+
+    def test_quota_settings_template(self):
+        workflow = load_workflow("QuotaSettings.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        quota = next(node for node in nodes.values() if node["type"] == "BytePlusQuotaSettings")
+        seedream = next(node for node in nodes.values() if node["type"] == "BytePlusSeedream")
+        # The guarded client (output 1) feeds the generation node; the status (output 0) is shown.
+        targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == quota["id"]}
+        self.assertEqual(targets, {(1, "BytePlusSeedream"), (0, "PreviewAny")})
+        # A 10-image cap on the model the Seedream node uses (quotas are keyed by model ID).
+        self.assertEqual(quota["widgets_values"], ["dola-seedream-5-0-pro", 10, "None", 0])
+        models = load_models_config()
+        self.assertEqual(
+            models.SEEDREAM_5_MODEL_MAP[quota["widgets_values"][0]],
+            models.SEEDREAM_MODELS[seedream["widgets_values"][1]],
+        )
+
     def test_templates_do_not_embed_api_keys(self):
         for name in sorted(EXPECTED_WORKFLOWS):
             workflow = load_workflow(name)
             for node in workflow["nodes"]:
-                if node["type"] in ("BytePlusAPIClient", "BytePlusSpeechClient"):
+                if node["type"] in ("BytePlusAPIClient", "BytePlusSpeechClient", "BytePlusMediaKitClient"):
                     self.assertEqual(node["widgets_values"][0], "")
+                if node["type"] == "BytePlusAPIClient":
+                    # IAM AK/SK (new_access_key, new_secret_key) are secrets too.
+                    self.assertEqual(node["widgets_values"][4:], ["", ""])
 
 
 if __name__ == "__main__":
