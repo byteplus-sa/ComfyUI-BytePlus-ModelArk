@@ -132,7 +132,10 @@ function credentialEditor({ credential, fields, select, label, showFile = false 
     };
 
     const render = (data) => {
-        if (showFile && data.env_file) fileLine.textContent = `Saved in ${data.env_file}`;
+        if (showFile && data.env_file) {
+            fileLine.textContent = `Saved in ${data.env_file_display || data.env_file}`;
+            fileLine.title = data.env_file;
+        }
         const info = data.credentials?.[credential];
         if (regionSelect && data.regions && !regionSelect.options.length) {
             for (const region of data.regions) regionSelect.add(new Option(region, region));

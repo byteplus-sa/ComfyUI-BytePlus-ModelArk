@@ -288,6 +288,15 @@ class EnvFileTests(IsolatedCredentials):
         self.assertTrue(status["credentials"]["iam"]["configured"])
         self.assertEqual(status["regions"], ["ap-southeast-1", "eu-west-1"])
 
+    def test_the_path_is_shown_with_the_home_folder_as_a_tilde(self):
+        home = os.path.expanduser("~")
+        self.assertEqual(credentials.display_path(os.path.join(home, "ComfyUI", "user", ".env")),
+                         os.path.join("~", "ComfyUI", "user", ".env"))
+        self.assertEqual(credentials.display_path(home + "-other/x"), home + "-other/x")
+        self.assertEqual(credentials.display_path("/opt/ComfyUI/user/.env"), "/opt/ComfyUI/user/.env")
+        status = credentials.credential_status()
+        self.assertEqual(status["env_file_display"], credentials.display_path(self.env_path))
+
     def test_an_environment_variable_that_hides_the_file_is_reported(self):
         self.write_env("BYTEPLUS_API_KEY=file-key-0001\n")
         os.environ["BYTEPLUS_API_KEY"] = "env-key-0002"

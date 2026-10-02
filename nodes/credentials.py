@@ -260,12 +260,21 @@ def key_hint(value):
     return f"ends in {value[-4:]}"
 
 
+def display_path(path):
+    """The path with the home folder shown as ~ (shorter, and no user name on screenshots)."""
+    home = os.path.expanduser("~")
+    if home and home != "~" and (path == home or path.startswith(home + os.sep)):
+        return "~" + path[len(home):]
+    return path
+
+
 def credential_status():
     """
     What is configured, for the Settings dialog. Never contains a key: only
     whether one is set, where it comes from and its last four characters.
     """
-    status = {"env_file": env_file_path(), "credentials": {}}
+    path = env_file_path()
+    status = {"env_file": path, "env_file_display": display_path(path), "credentials": {}}
     for credential, variable in CREDENTIAL_VARS.items():
         names = {"access_key": ACCESS_KEY_ENVS, "secret_key": SECRET_KEY_ENVS}.get(credential, (variable,))
         value = get_setting(*names)

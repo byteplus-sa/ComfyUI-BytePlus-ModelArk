@@ -116,7 +116,9 @@ This sets the ModelArk key once and checks that a workflow without an `API Clien
 - macOS: `~/ComfyUI-Installs/<install name>/ComfyUI/user/.env`
 - Windows: `<base folder>\ComfyUI\user\.env` (whatever the Settings line shows)
 
-The file does not exist until you save a key.
+The file does not exist until you save a key. (Settings shows your home folder as `~`.)
+
+![Settings → BytePlus with no key yet; under the ModelArk row: "Saved in ~/ComfyUI/user/.env"](docs/images/settings-byteplus-not-set.jpg)
 
 **2. Save the key, in one of two ways.**
 
@@ -132,7 +134,11 @@ The file does not exist until you save a key.
 
   Then reopen **Settings → BytePlus**: the row shows `set (ends in xxxx), from user/.env`. No restart is needed; the file is read on every run.
 
-**3. Run a workflow without a client node.** On an empty canvas add **BytePlus LLM** (double-click the canvas and search), type a prompt such as `Reply with OK`, pick **Seed 2.0 Mini**, connect its `STRING` output to a **Preview Any** node and press **Run**. The answer appears in Preview Any; the request was made with the key from `.env`. (Cost: a few tokens.) To check an image node too, add **BytePlus Seedream**, pick **seedream 5.0 flash** with a `(1K)` size, and connect **Preview Image**.
+![Settings → BytePlus after saving: "ModelArk API key: set (ends in abcd), from user/.env."](docs/images/settings-byteplus-key-set.jpg)
+
+**3. Run a workflow without a client node.** On an empty canvas add **BytePlus LLM** (double-click the canvas and search), type a prompt such as `Reply with OK`, pick **Seed 2.0 Mini**, connect its `STRING` output to a **Preview as Text** node (*Preview Any* in older ComfyUI) and press **Run**. The answer appears in the preview node, and the `client` input stays unconnected; the request was made with the key from `.env`. (Cost: a few tokens.) To check an image node too, add **BytePlus Seedream**, pick **seedream 5.0 flash** with a `(1K)` size, and connect **Preview Image**.
+
+![A BytePlus LLM node with nothing connected to its client input, answering in Preview as Text](docs/images/workflow-without-client-node.jpg)
 
 To try a shipped template instead, open one from the template browser and delete its **BytePlus API Client** node (or its links): the nodes then use the default key.
 
