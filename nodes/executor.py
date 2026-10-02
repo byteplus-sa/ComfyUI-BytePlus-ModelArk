@@ -30,6 +30,7 @@ from .nodes_shared import (
     get_text,
     log_msg,
     safe_cat_tensors,
+    send_node_text,
     wait_interruptible,
 )
 from .constants import SEEDANCE_REQUEST_MAX_BYTES, VIDEO_MAX_SEED
@@ -38,16 +39,6 @@ from .constants import SEEDANCE_REQUEST_MAX_BYTES, VIDEO_MAX_SEED
 # tolerated before a task is reported as lost (about 30 s of errors).
 SEEDANCE_POLL_SECONDS = 2
 SEEDANCE_MAX_POLL_ERRORS = 15
-
-
-def _send_node_text(ps_instance, node_id, text):
-    """Progress text under the node (best effort)."""
-    if not (ps_instance and node_id):
-        return
-    try:
-        ps_instance.send_progress_text(text.replace("[BytePlus] ", "", 1), node_id)
-    except Exception:
-        pass
 
 
 def _task_error(task, fallback):
@@ -415,9 +406,12 @@ class BytePlusGenerationExecutor:
         extra_api_params=None,
         return_last_frame=True,
         on_tasks_created=None,
+        offset_seed=False,
     ):
         """
         Run a batch of video tasks: create, poll with progress estimates, handle errors.
+        offset_seed: with several tasks, task i sends seed + i (the core-style nodes; the
+        Legacy nodes keep sending the same seed to every task).
         """
         ark_client = self.ark_client
         ps_instance = self.ps_instance
@@ -548,7 +542,7 @@ class BytePlusGenerationExecutor:
             # Same seed, same prompt: the tasks would be near-duplicates. Offset a
             # fixed seed per task like Seedream does; -1 (random) and no seed stay as is.
             seed = task_kwargs.get("seed")
-            if generation_count > 1 and isinstance(seed, int) and seed >= 0:
+            if offset_seed and generation_count > 1 and isinstance(seed, int) and seed >= 0:
                 task_kwargs["seed"] = (seed + i) % (VIDEO_MAX_SEED + 1)
             if is_multi_content:
                 task_kwargs["content"] = content[i % len(content)]
@@ -872,8 +866,7 @@ class BytePlusGenerationExecutor:
                     left = int(current_max - accumulated_running_time)
                     if left > 0:
                         remaining = get_text("node_poll_remaining", seconds=left)
-                _send_node_text(
-                    ps_instance,
+                send_node_text(
                     node_id,
                     get_text(
                         "node_poll_status",
@@ -884,6 +877,7 @@ class BytePlusGenerationExecutor:
                         elapsed=int(time.time() - poll_started),
                         remaining=remaining,
                     ),
+                    ps_instance,
                 )
 
                 await asyncio.sleep(poll_interval)

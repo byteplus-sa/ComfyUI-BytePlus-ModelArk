@@ -861,6 +861,55 @@ async def sleep_interruptible(seconds):
         await asyncio.sleep(min(0.5, remaining))
 
 
+async def gather_cancelling(awaitables, return_exceptions=False):
+    """
+    asyncio.gather that never leaves siblings running. ComfyUI clears its
+    interrupt flag when the first request raises InterruptProcessingException,
+    so the other requests would not see it and the node would wait for all of
+    them (paid work included). Here an interrupt, or any error unless
+    return_exceptions is set, cancels the rest before it is re-raised.
+    With return_exceptions, other errors are returned in place of results.
+    """
+    tasks = [asyncio.ensure_future(awaitable) for awaitable in awaitables]
+    try:
+        pending = set(tasks)
+        while pending:
+            done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_EXCEPTION)
+            for task in done:
+                error = None if task.cancelled() else task.exception()
+                if error is not None and (
+                    not return_exceptions or isinstance(error, comfy.model_management.InterruptProcessingException)
+                ):
+                    raise error
+    except BaseException:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
+    return [task.exception() or task.result() if return_exceptions else task.result() for task in tasks]
+
+
+def plain_text(key, **kwargs):
+    """A message without the console prefix, for use inside another message or on a node."""
+    text = get_text(key, **kwargs)
+    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
+
+
+def send_node_text(node_id, text, ps_instance=None):
+    """Progress text under the node (best effort); the console prefix is dropped."""
+    if not node_id:
+        return
+    try:
+        if ps_instance is None:
+            from server import PromptServer
+
+            ps_instance = PromptServer.instance
+        if ps_instance:
+            ps_instance.send_progress_text(text.replace(LOG_PREFIX, "", 1), node_id)
+    except Exception:
+        pass
+
+
 async def upload_bytes_to_comfy_storage(node_cls, data, filename, mime_type, cache, *, cache_key, ttl_seconds,
                                         max_entries, unavailable_key, failed_key, done_key=None, **message_kwargs):
     """

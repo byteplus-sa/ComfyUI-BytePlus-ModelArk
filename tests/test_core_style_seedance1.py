@@ -473,6 +473,16 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual([r["seed"] for r in self.submitted], [-1, -1, -1])
 
+    async def test_legacy_batch_keeps_the_same_seed(self):
+        # The Legacy nodes (no list output) keep sending one seed to every task.
+        await nodes_video.BytePlusVideoBase()._common_generation_logic(
+            self._client(), "a fox in the snow", 5, "720p", "16:9", 10, 3, "test", False, True,
+            f"s1-{uuid.uuid4().hex[:8]}",
+            model_name="seedance-1-0-pro-fast-251015", content=[], forbidden_params=[],
+            enable_random_seed=False,
+        )
+        self.assertEqual([r["seed"] for r in self.submitted], [10, 10, 10])
+
 
 @requires_comfyui
 class Seedance1ValidationTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):

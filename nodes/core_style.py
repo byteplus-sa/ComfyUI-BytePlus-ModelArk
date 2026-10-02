@@ -5,15 +5,16 @@ pack's extras as advanced inputs, the linked-output check, and resolving
 reference strings (asset IDs, asset:// URIs, https links) for Seedance.
 """
 import asyncio
+import ipaddress
 import os
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import aiohttp
 from comfy_api.latest import io as comfy_io
 
 from .constants import ASSET_URI_PREFIX
 from .models_config import MODEL_REGION_EXCLUSIONS, RETIRED_MODELS
-from .nodes_shared import BytePlusException, get_text
+from .nodes_shared import BytePlusException, gather_cancelling, get_text, wait_interruptible
 
 SEED_MAX = 2147483647
 SEEDANCE_SEED_TOOLTIP = (
@@ -32,6 +33,8 @@ _URL_EXTENSION_KINDS = {
 }
 _ASSET_TYPE_KINDS = {"Image": "image", "Video": "video", "Audio": "audio"}
 _URL_PROBE_TIMEOUT_SECONDS = 15
+_MAX_PROBE_REDIRECTS = 3
+_REDIRECT_STATUSES = (301, 302, 303, 307, 308)
 # Parallel GetAsset / link probes per node run.
 _REFERENCE_LOOKUP_CONCURRENCY = 8
 
@@ -246,28 +249,62 @@ def _kind_from_content_type(content_type):
     return major if major in REFERENCE_KINDS else None
 
 
+async def _host_is_public(host):
+    """False for hosts that resolve to a private, loopback or link-local address (or not at all)."""
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(host, None)
+    except OSError:
+        return False
+    for info in infos:
+        try:
+            address = ipaddress.ip_address(info[4][0].split("%", 1)[0])
+        except ValueError:
+            return False
+        if not address.is_global:
+            return False
+    return bool(infos)
+
+
+async def _probe_request(session, method, url, headers=None):
+    """(kind, redirect target) of one request without following redirects; both None if it failed."""
+    async with session.request(method, url, headers=headers, allow_redirects=False) as response:
+        if response.status in _REDIRECT_STATUSES and response.headers.get("Location"):
+            return None, urljoin(url, response.headers["Location"])
+        if response.status < 400:
+            return _kind_from_content_type(response.headers.get("Content-Type")), None
+    return None, None
+
+
 async def _probe_url_kind(url):
     """
     image / video / audio from the link's Content-Type: a HEAD request, then a
     one-byte ranged GET for servers that refuse HEAD (e.g. presigned GET URLs).
+    The link is typed into a workflow and requested from the ComfyUI host, so only
+    public https hosts are contacted, including after redirects (at most
+    _MAX_PROBE_REDIRECTS), and the wait is interruptible.
     """
     timeout = aiohttp.ClientTimeout(total=_URL_PROBE_TIMEOUT_SECONDS)
-    try:
+
+    async def probe():
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            try:
-                async with session.head(url, allow_redirects=True) as response:
-                    if response.status < 400:
-                        kind = _kind_from_content_type(response.headers.get("Content-Type"))
+            for method, headers in (("HEAD", None), ("GET", {"Range": "bytes=0-0"})):
+                target = url
+                for _hop in range(_MAX_PROBE_REDIRECTS + 1):
+                    parsed = urlparse(target)
+                    if parsed.scheme != "https" or not parsed.hostname or not await _host_is_public(parsed.hostname):
+                        return None
+                    try:
+                        kind, redirect = await _probe_request(session, method, target, headers)
+                    except (aiohttp.ClientError, asyncio.TimeoutError):
+                        break
+                    if redirect is None:
                         if kind:
                             return kind
-            except (aiohttp.ClientError, asyncio.TimeoutError):
-                pass
-            async with session.get(url, headers={"Range": "bytes=0-0"}, allow_redirects=True) as response:
-                if response.status >= 400:
-                    return None
-                return _kind_from_content_type(response.headers.get("Content-Type"))
-    except (aiohttp.ClientError, asyncio.TimeoutError):
+                        break
+                    target = redirect
         return None
+
+    return await wait_interruptible(probe())
 
 
 def _has_asset_credentials(client):
@@ -281,9 +318,18 @@ def _has_asset_credentials(client):
 
 
 def _asset_library(client):
+    """One AssetLibrary (two signed SDK clients) per API Client, reused by every lookup of a run."""
     from .nodes_assets import AssetLibrary
 
-    return AssetLibrary(client)
+    cached = getattr(client, "_asset_library", None)
+    if cached is not None and type(cached) is AssetLibrary:
+        return cached
+    library = AssetLibrary(client)
+    try:
+        client._asset_library = library
+    except AttributeError:  # a client that takes no attributes: build per call
+        pass
+    return library
 
 
 async def _lookup_asset_kind(library, asset_id, project_name):
@@ -336,7 +382,7 @@ async def resolve_reference_values(client, values, project_name="default"):
             kind = await _lookup_asset_kind(library, target, project_name)
             return {"kind": kind, "uri": ASSET_URI_PREFIX + target, "source": value}
 
-    return list(await asyncio.gather(*(resolve(value, *parts) for value, parts in entries)))
+    return await gather_cancelling([resolve(value, *parts) for value, parts in entries])
 
 
 async def resolve_typed_reference(client, value, expected_kind, project_name="default"):

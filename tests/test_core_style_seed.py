@@ -6,6 +6,7 @@ requests, core's validations, and the example workflows.
 Needs a ComfyUI checkout and a Python env with torch and the BytePlus SDK:
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_core_style_seed
 """
+import asyncio
 import base64
 import importlib
 import inspect
@@ -752,6 +753,28 @@ class SeedAudioRequestTests(unittest.IsolatedAsyncioTestCase):
 
     async def run_node(self, reference_mode, text_prompt="Hello there", **kwargs):
         return await nodes_speech.BytePlusSeedAudio.execute(self.client, text_prompt, reference_mode, **kwargs)
+
+    async def test_interrupt_cancels_every_parallel_request(self):
+        import comfy.model_management as mm
+
+        started, cancelled = [], []
+
+        async def send(method, url, headers, body, timeout):
+            started.append(1)
+            number = len(started)
+            if number == 1:
+                await asyncio.sleep(0.1)
+                raise mm.InterruptProcessingException()  # ComfyUI clears the flag: others never see it
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                cancelled.append(number)
+                raise
+
+        speech_api._send = send
+        with self.assertRaises(mm.InterruptProcessingException):
+            await asyncio.wait_for(self.run_node({"reference_mode": "text only"}, generation_count=3), 5)
+        self.assertEqual(sorted(cancelled), [2, 3])
 
     async def test_preset_voice_request(self):
         fake = self.serve()

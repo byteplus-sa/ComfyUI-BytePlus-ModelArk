@@ -19,10 +19,10 @@ from .constants import (
     SPEECH_SUCCESS_CODES,
 )
 from .nodes_shared import (
-    LOG_PREFIX,
     ApiKeyStore,
     BytePlusException,
     get_text,
+    plain_text,
     sleep_interruptible,
     wait_interruptible,
 )
@@ -83,11 +83,6 @@ def _as_int(value):
         return None
 
 
-def _plain(key, **kwargs):
-    text = get_text(key, **kwargs)
-    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
-
-
 def require_speech_client(client):
     if not getattr(client, "api_key", None) or not getattr(client, "base_url", None):
         raise BytePlusException(get_text("speech_wrong_client"))
@@ -99,21 +94,21 @@ def describe_speech_error(code, message, status=None):
     message = str(message or "").strip()
     lowered = message.lower()
     if status == 401 or code == 45000010 or ("api" in lowered and "key" in lowered and "invalid" in lowered):
-        return _plain("speech_err_auth", url=SPEECH_API_KEYS_CONSOLE_URL)
+        return plain_text("speech_err_auth", url=SPEECH_API_KEYS_CONSOLE_URL)
     if "quota exceeded" in lowered and "concurrency" in lowered:
-        return _plain("speech_err_concurrency")
+        return plain_text("speech_err_concurrency")
     if code == 45000000 and "speaker" in lowered:
-        return _plain("speech_err_speaker")
+        return plain_text("speech_err_speaker")
     if code == 40402003 or "exceededtextlimit" in lowered.replace(" ", ""):
-        return _plain("speech_err_text_limit")
+        return plain_text("speech_err_text_limit")
     if code == 55000031:
-        return _plain("speech_err_busy")
+        return plain_text("speech_err_busy")
     if code == 45000001:
-        return f"{_plain('speech_err_params')}: {message}" if message else _plain("speech_err_params")
+        return f"{plain_text('speech_err_params')}: {message}" if message else plain_text("speech_err_params")
     if code == 45000002:
-        return _plain("speech_err_empty_input_audio")
+        return plain_text("speech_err_empty_input_audio")
     if code == 45000151:
-        return _plain("speech_err_audio_format")
+        return plain_text("speech_err_audio_format")
     if code in SPEECH_ERROR_TEXT:
         text = SPEECH_ERROR_TEXT[code]
         return f"{text} ({message})" if message and message.lower() not in text.lower() else text

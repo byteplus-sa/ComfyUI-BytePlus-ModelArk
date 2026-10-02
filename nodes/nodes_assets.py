@@ -38,12 +38,13 @@ from .constants import (
 from .core_style import core_search_aliases, reference_kind_from_url
 from .nodes_shared import (
     GLOBAL_CATEGORY,
-    LOG_PREFIX,
     BytePlusClientType,
     BytePlusException,
     get_text,
     log_msg,
+    send_node_text,
     sleep_interruptible,
+    upload_bytes_to_comfy_storage,
     video_source_size_bytes,
 )
 
@@ -783,20 +784,25 @@ async def upload_asset_video(node_cls, video):
     return urls[0]
 
 
+ASSET_AUDIO_UPLOAD_CACHE = {}
+ASSET_AUDIO_UPLOAD_CACHE_TTL_SECONDS = 12 * 3600  # Comfy.org links last about 24 h
+ASSET_AUDIO_UPLOAD_CACHE_MAX_ENTRIES = 32
+
+
 async def upload_asset_audio(node_cls, wav_bytes):
-    """Comfy.org upload of connected audio as WAV (CreateAsset needs an HTTPS URL)."""
-    try:
-        from comfy_api_nodes.util import upload_file_to_comfyapi
-    except Exception as e:
-        raise BytePlusException(get_text("err_comfy_audio_upload_unavailable_asset", e=e))
-    try:
-        return await upload_file_to_comfyapi(
-            node_cls, io.BytesIO(wav_bytes), f"{uuid.uuid4()}.wav", "audio/wav", wait_label=None
-        )
-    except comfy.model_management.InterruptProcessingException:
-        raise
-    except Exception as e:
-        raise BytePlusException(get_text("err_comfy_audio_upload_failed_asset", e=e))
+    """Comfy.org upload of connected audio as WAV (CreateAsset needs an HTTPS URL), reused for the same bytes."""
+    return await upload_bytes_to_comfy_storage(
+        node_cls,
+        wav_bytes,
+        f"{uuid.uuid4()}.wav",
+        "audio/wav",
+        ASSET_AUDIO_UPLOAD_CACHE,
+        cache_key=hashlib.sha256(wav_bytes).hexdigest(),
+        ttl_seconds=ASSET_AUDIO_UPLOAD_CACHE_TTL_SECONDS,
+        max_entries=ASSET_AUDIO_UPLOAD_CACHE_MAX_ENTRIES,
+        unavailable_key="err_comfy_audio_upload_unavailable_asset",
+        failed_key="err_comfy_audio_upload_failed_asset",
+    )
 
 
 def _video_digest(video):
@@ -806,20 +812,12 @@ def _video_digest(video):
     return f"video:{key}" if key else None
 
 
-def _send_progress_text(cls, text):
-    try:
-        from server import PromptServer
-
-        PromptServer.instance.send_progress_text(text.replace(LOG_PREFIX, "", 1), cls.hidden.unique_id)
-    except Exception:
-        pass
-
-
 def _core_asset_output(cls, asset, asset_id, group_id):
     summary = _asset_summary(asset, asset_id)
     summary["group_id"] = summary["group_id"] or group_id
-    _send_progress_text(
-        cls, get_text("asset_ids_saved_hint", asset_id=summary["asset_id"], group_id=summary["group_id"])
+    send_node_text(
+        cls.hidden.unique_id,
+        get_text("asset_ids_saved_hint", asset_id=summary["asset_id"], group_id=summary["group_id"]),
     )
     return comfy_io.NodeOutput(
         summary["asset_id"],

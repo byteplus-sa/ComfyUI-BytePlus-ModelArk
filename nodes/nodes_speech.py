@@ -84,6 +84,7 @@ from .nodes_shared import (
     BytePlusException,
     _notify_api_key_saved,
     _tensor2images,
+    gather_cancelling,
     get_text,
     log_msg,
     sleep_interruptible,
@@ -687,15 +688,14 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
         count = max(1, int(generation_count or 1))
         if count > 1:
             log_msg("batch_submit_start", count=count, model=model or SEED_AUDIO_MODELS[0])
-        results = await asyncio.gather(
-            *[_seed_audio_once(speech_client, body, audio_format, sample_rate) for _ in range(count)],
+        # An interrupt cancels the other requests; other failures are collected below.
+        results = await gather_cancelling(
+            [_seed_audio_once(speech_client, body, audio_format, sample_rate) for _ in range(count)],
             return_exceptions=True,
         )
         clips = []
         errors = []
         for result in results:
-            if isinstance(result, comfy.model_management.InterruptProcessingException):
-                raise result
             if isinstance(result, BaseException):
                 errors.append(result)
             else:

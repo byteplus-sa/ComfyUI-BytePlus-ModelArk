@@ -53,8 +53,11 @@ from .nodes_shared import (
     ApiKeyStore,
     BytePlusException,
     _notify_api_key_saved,
+    gather_cancelling,
     get_text,
     log_msg,
+    plain_text,
+    send_node_text,
     sleep_interruptible,
     upload_bytes_to_comfy_storage,
     wait_interruptible,
@@ -115,11 +118,6 @@ class MediaKitClient:
         return f"MediaKitClient(region={self.region!r})"
 
 
-def _plain(key, **kwargs):
-    text = get_text(key, **kwargs)
-    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
-
-
 def describe_mediakit_error(error, status=None, request_id=None):
     """A readable message from MediaKit's error object (code, message, param)."""
     error = error if isinstance(error, dict) else {}
@@ -128,7 +126,7 @@ def describe_mediakit_error(error, status=None, request_id=None):
     param = error.get("param")
     hint = ""
     if code in ("Unauthorized", "InvalidApiKey", "AuthenticationFailed") or status == 401:
-        hint = _plain("mediakit_hint_auth", url=MEDIAKIT_API_KEYS_CONSOLE_URL)
+        hint = plain_text("mediakit_hint_auth", url=MEDIAKIT_API_KEYS_CONSOLE_URL)
     return get_text(
         "err_mediakit_api",
         code=code,
@@ -193,15 +191,6 @@ async def mediakit_request(client, method, path, body=None, timeout_seconds=None
     return data
 
 
-def _send_progress_text(node_id, text):
-    try:
-        from server import PromptServer
-
-        PromptServer.instance.send_progress_text(text, node_id)
-    except Exception:
-        pass
-
-
 async def wait_for_mediakit_task(client, task_id, node_id=None, poll_seconds=None):
     """
     Poll GET /tasks/{task_id} until completed (returns the task) or failed
@@ -235,9 +224,9 @@ async def wait_for_mediakit_task(client, task_id, node_id=None, poll_seconds=Non
                 )
             )
         elapsed = int(time.monotonic() - started)
-        _send_progress_text(
+        send_node_text(
             node_id,
-            _plain("mediakit_task_waiting", task_id=task_id, status=status or "running", elapsed=elapsed),
+            plain_text("mediakit_task_waiting", task_id=task_id, status=status or "running", elapsed=elapsed),
         )
         await sleep_interruptible(poll_seconds)
 
@@ -1172,7 +1161,7 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
         inserted = _detail_count(result, "inserted_frames_detail", "inserted_frame_count")
         duplicates = _detail_count(result, "duplicate_frames_detail", "duplicate_frame_count")
         log_msg("smooth_summary", inserted=inserted, duplicates=duplicates)
-        _send_progress_text(cls.hidden.unique_id, _plain("smooth_summary", inserted=inserted, duplicates=duplicates))
+        send_node_text(cls.hidden.unique_id, plain_text("smooth_summary", inserted=inserted, duplicates=duplicates))
 
         repaired_url = result.get("video_url")
         if not repaired_url:
@@ -1538,9 +1527,9 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
                 if source is not None:
                     encoded = await asyncio.to_thread(encode_image_for_upload, source[0])
                     body["image_url"] = await upload_image_source(cls, *encoded)
-                _send_progress_text(
+                send_node_text(
                     cls.hidden.unique_id,
-                    _plain("image_enhance_submitted", version=version, index=index + 1, count=len(sources)),
+                    plain_text("image_enhance_submitted", version=version, index=index + 1, count=len(sources)),
                 )
                 response = await mediakit_request(
                     mediakit_client, "POST", "/tools-sync/enhance-image", body,
@@ -1564,7 +1553,7 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
                     source = await asyncio.to_thread(_load_image, await _download(link, "image_source", "img"), True)
                 return enhanced, source, {k: v for k, v in response.items() if k != "request_id"}
 
-        done = await asyncio.gather(*(enhance(i, s) for i, s in enumerate(sources)))
+        done = await gather_cancelling([enhance(i, s) for i, s in enumerate(sources)])
         enhanced = [item[0] for item in done]
         height, width = enhanced[0].shape[1:3]
         # A batch is one tensor: results of another size are resized to the first one.

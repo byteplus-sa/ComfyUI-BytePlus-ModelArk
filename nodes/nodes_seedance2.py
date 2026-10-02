@@ -71,6 +71,7 @@ from .nodes_shared import (
     get_node_count_in_workflow,
     get_text,
     log_msg,
+    plain_text,
     video_source_size_bytes,
 )
 from .nodes_video import (
@@ -350,12 +351,6 @@ def _generation_outputs():
 # Request helpers
 # --------------------------------------------------------------------------
 
-def _plain_text(key, **kwargs):
-    """A message without the console prefix, for use inside another message."""
-    text = get_text(key, **kwargs)
-    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
-
-
 def _selected_label(model):
     label = model.get("model") if isinstance(model, dict) else None
     if label not in SEEDANCE2_CORE_MODEL_OPTIONS:
@@ -373,7 +368,7 @@ def _require_prompt(model):
 def validate_draft_output(cls, label):
     """Core's _seedance2_validate_draft_output: draft_task_id (output 1) needs a Draft model."""
     if not _is_draft(label):
-        raise_if_output_linked(cls, 1, _plain_text("err_seedance2_draft_output_linked"))
+        raise_if_output_linked(cls, 1, plain_text("err_seedance2_draft_output_linked"))
 
 
 def _slot_number(key):

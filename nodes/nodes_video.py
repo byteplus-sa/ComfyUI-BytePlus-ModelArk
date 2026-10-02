@@ -1031,6 +1031,7 @@ class BytePlusVideoBase:
             execution_expires_after=execution_expires_after,
             extra_api_params=extra_api_params,
             return_last_frame=True,
+            offset_seed=as_list,
         )
 
         if isinstance(successful_tasks, dict) and successful_tasks.get("non_blocking"):
@@ -1144,6 +1145,7 @@ class BytePlusVideoBase:
                 extra_api_params=extra_api_params,
                 return_last_frame=return_last_frame,
                 on_tasks_created=on_tasks_created,
+                offset_seed=as_list,
             )
 
             if isinstance(successful_tasks, dict) and successful_tasks.get(

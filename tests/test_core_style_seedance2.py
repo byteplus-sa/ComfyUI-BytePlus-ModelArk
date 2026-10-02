@@ -5,11 +5,13 @@ Needs a ComfyUI checkout and a Python env with torch, PyAV and the BytePlus SDK:
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_core_style_seedance2
 The Ark SDK and the asset library are faked; nothing reaches the network.
 """
+import asyncio
 import base64
 import importlib
 import io
 import json
 import os
+import socket
 import sys
 import time
 import types
@@ -129,6 +131,71 @@ class FakeVideo:
 # --------------------------------------------------------------------------
 # Schema
 # --------------------------------------------------------------------------
+
+@requires_comfyui
+class GatherCancellingTests(unittest.IsolatedAsyncioTestCase):
+    """Cancel must stop every parallel request, not only the one that saw the interrupt flag."""
+
+    async def _slow(self, log, name):
+        try:
+            await asyncio.sleep(30)
+            log.append(f"{name} finished")
+        except asyncio.CancelledError:
+            log.append(f"{name} cancelled")
+            raise
+
+    async def test_interrupt_cancels_the_other_requests(self):
+        interrupt = comfy.model_management.InterruptProcessingException
+        log = []
+
+        async def interrupted():
+            await asyncio.sleep(0.01)
+            raise interrupt()
+
+        with self.assertRaises(interrupt):
+            await asyncio.wait_for(
+                nodes_shared.gather_cancelling(
+                    [interrupted(), self._slow(log, "a"), self._slow(log, "b")], return_exceptions=True
+                ),
+                5,
+            )
+        self.assertCountEqual(log, ["a cancelled", "b cancelled"])
+
+    async def test_other_errors_are_returned_when_collecting(self):
+        async def fails():
+            raise ValueError("boom")
+
+        async def works(value):
+            await asyncio.sleep(0.02)
+            return value
+
+        results = await nodes_shared.gather_cancelling([works(1), fails(), works(0)], return_exceptions=True)
+        self.assertEqual(results[0], 1)
+        self.assertIsInstance(results[1], ValueError)
+        self.assertEqual(results[2], 0)  # falsy results stay results
+
+    async def test_first_error_cancels_the_rest_without_return_exceptions(self):
+        log = []
+
+        async def fails():
+            await asyncio.sleep(0.01)
+            raise ValueError("boom")
+
+        with self.assertRaises(ValueError):
+            await asyncio.wait_for(nodes_shared.gather_cancelling([fails(), self._slow(log, "a")]), 5)
+        self.assertEqual(log, ["a cancelled"])
+
+    async def test_outer_cancellation_cancels_every_request(self):
+        log = []
+        task = asyncio.ensure_future(
+            nodes_shared.gather_cancelling([self._slow(log, "a"), self._slow(log, "b")])
+        )
+        await asyncio.sleep(0.01)
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        self.assertCountEqual(log, ["a cancelled", "b cancelled"])
+
 
 @requires_comfyui
 class SchemaTests(unittest.TestCase):
@@ -826,12 +893,13 @@ class ReferenceTests(_ExecutorHarness):
                          [f"asset://asset-{n}" for n in range(6)] + ["https://cdn.example/x.mp3"])
         self.assertEqual([item["kind"] for item in resolved], ["image"] * 6 + ["audio"])
 
-    async def test_link_kind_falls_back_to_ranged_get(self):
+    def _probe_session(self, responses):
+        """A fake aiohttp session answering (method, url) from `responses`; records the calls."""
         calls = []
 
         class Response:
-            def __init__(self, status, content_type):
-                self.status, self.headers = status, {"Content-Type": content_type}
+            def __init__(self, status, headers):
+                self.status, self.headers = status, headers
 
             async def __aenter__(self):
                 return self
@@ -849,19 +917,66 @@ class ReferenceTests(_ExecutorHarness):
             async def __aexit__(self, *exc):
                 return False
 
-            def head(self, url, **kwargs):
-                calls.append(("HEAD", kwargs))
-                return Response(403, "application/xml")  # presigned GET-only URL
+            def request(self, method, url, **kwargs):
+                calls.append((method, url, kwargs))
+                status, headers = responses[(method, url)]
+                return Response(status, headers)
 
-            def get(self, url, **kwargs):
-                calls.append(("GET", kwargs))
-                return Response(206, "video/mp4")
+        return Session, calls
 
-        with mock.patch.object(core_style.aiohttp, "ClientSession", Session):
-            kind = await core_style._probe_url_kind("https://bucket.example/obj?X-Signature=abc")
+    async def test_link_kind_falls_back_to_ranged_get(self):
+        url = "https://bucket.example/obj?X-Signature=abc"
+        session, calls = self._probe_session({
+            ("HEAD", url): (403, {"Content-Type": "application/xml"}),  # presigned GET-only URL
+            ("GET", url): (206, {"Content-Type": "video/mp4"}),
+        })
+        with mock.patch.object(core_style.aiohttp, "ClientSession", session), \
+                mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)):
+            kind = await core_style._probe_url_kind(url)
         self.assertEqual(kind, "video")
-        self.assertEqual([method for method, _ in calls], ["HEAD", "GET"])
-        self.assertEqual(calls[1][1]["headers"], {"Range": "bytes=0-0"})
+        self.assertEqual([method for method, _url, _kw in calls], ["HEAD", "GET"])
+        self.assertEqual(calls[1][2]["headers"], {"Range": "bytes=0-0"})
+        self.assertTrue(all(kw["allow_redirects"] is False for _m, _u, kw in calls))
+
+    async def test_link_probe_follows_only_public_https_redirects(self):
+        start, final = "https://short.example/a", "https://cdn.example/a.bin"
+        session, calls = self._probe_session({
+            ("HEAD", start): (302, {"Location": final}),
+            ("HEAD", final): (200, {"Content-Type": "audio/mpeg"}),
+        })
+        with mock.patch.object(core_style.aiohttp, "ClientSession", session), \
+                mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)):
+            self.assertEqual(await core_style._probe_url_kind(start), "audio")
+        self.assertEqual([url for _m, url, _kw in calls], [start, final])
+
+        # A redirect to a plain-http or internal address is never requested.
+        for location in ("http://cdn.example/a.bin", "https://internal.example/a.bin"):
+            session, calls = self._probe_session({
+                ("HEAD", start): (302, {"Location": location}),
+                ("GET", start): (302, {"Location": location}),
+            })
+            public = mock.AsyncMock(side_effect=lambda host: host != "internal.example")
+            with mock.patch.object(core_style.aiohttp, "ClientSession", session), \
+                    mock.patch.object(core_style, "_host_is_public", public):
+                self.assertIsNone(await core_style._probe_url_kind(start))
+            self.assertEqual({url for _m, url, _kw in calls}, {start})
+
+    async def test_link_probe_skips_non_public_hosts(self):
+        session, calls = self._probe_session({})
+        with mock.patch.object(core_style.aiohttp, "ClientSession", session):
+            for host, addresses in (("localhost", "127.0.0.1"), ("meta.example", "169.254.169.254"),
+                                    ("lan.example", "10.0.0.5"), ("v6.example", "::1")):
+                family = socket.AF_INET6 if ":" in addresses else socket.AF_INET
+                infos = [(family, 1, 6, "", (addresses, 443))]
+                with mock.patch.object(asyncio.get_running_loop(), "getaddrinfo",
+                                       mock.AsyncMock(return_value=infos)):
+                    self.assertFalse(await core_style._host_is_public(host))
+                    self.assertIsNone(await core_style._probe_url_kind(f"https://{host}/x"))
+            infos = [(socket.AF_INET, 1, 6, "", ("93.184.216.34", 443))]
+            with mock.patch.object(asyncio.get_running_loop(), "getaddrinfo",
+                                   mock.AsyncMock(return_value=infos)):
+                self.assertTrue(await core_style._host_is_public("example.com"))
+        self.assertEqual(calls, [])
 
     async def test_video_size_check_never_encodes(self):
         import tempfile

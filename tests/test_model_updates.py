@@ -3599,7 +3599,7 @@ class SpeechHelperTests(unittest.TestCase):
             with open(os.path.join(PLUGIN_ROOT, "nodes", name), encoding="utf-8") as f:
                 source = f.read()
             self.assertTrue(source.isascii(), name)
-            for key in set(re.findall(r'(?:get_text|_plain|log_msg)\(\s*"([a-z0-9_]+)"', source)):
+            for key in set(re.findall(r'(?:get_text|plain_text|log_msg)\(\s*"([a-z0-9_]+)"', source)):
                 self.assertIn(key, constants.MESSAGES, f"{name}: missing message {key}")
 
 
