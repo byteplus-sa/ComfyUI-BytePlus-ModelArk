@@ -4,9 +4,9 @@ ComfyUI custom nodes for **BytePlus ModelArk**: Seedance video generation, Seedr
 
 Generation calls go directly to ModelArk with **your own ModelArk API key**, so usage is billed to your BytePlus account (including contract pricing and resource packs). No Comfy credits are used. Seed Speech nodes use a separate Seed Speech API key (see [Seed Speech API Key](#seed-speech-api-key)), and the MediaKit nodes an AI MediaKit API key (see [AI MediaKit API Key](#ai-mediakit-api-key)). The one exception is local videos for Seedance 2 / 2.5 references, local media for the MediaKit nodes (and media for new private assets), which pass through Comfy.org storage (see [Reference Videos](#reference-videos)).
 
-> **Status: v0.3.1.** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
+> **Status: v0.4.0.** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
 
-**Unreleased:** The new nodes no longer need a client node in the workflow. Save your keys once in **Settings → BytePlus** (or in a `.env` file, or the `BYTEPLUS_API_KEY` environment variable) and every workflow uses them; the `API Client`, `Speech Client` and `MediaKit Client` nodes are optional now, for using another key or region. See [Configure Your API Key](#configure-your-api-key).
+**v0.4.0:** Workflows no longer need a client node. Save your keys once in **Settings → BytePlus** (or in `user/.env`, or the `BYTEPLUS_API_KEY` environment variable) and every workflow uses them; the `API Client`, `Speech Client` and `MediaKit Client` nodes are now optional, for using another key or region. Settings also takes the Seed Speech key, the AI MediaKit key and the asset library AK/SK, and only ever shows a key's last four characters. Saved workflows and templates keep working, and the Legacy nodes are unchanged. See [Configure Your API Key](#configure-your-api-key) and the [step-by-step guide for ComfyUI Desktop](#step-by-step-default-key-in-comfyui-desktop).
 
 **v0.3.1:** The Seedance 1 template no longer includes Video Query Tasks (the node is still available from node search).
 

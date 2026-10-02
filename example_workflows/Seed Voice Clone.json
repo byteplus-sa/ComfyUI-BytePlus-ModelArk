@@ -55,7 +55,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusSpeechClient"
       },
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
@@ -188,7 +188,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusSeedVoiceClone"
       },
       "widgets_values": ["S_your_voice_slot", "en", "", "Hello! This is a preview of my cloned voice.", false]
@@ -443,7 +443,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusSeedTTS"
       },
       "widgets_values": [
