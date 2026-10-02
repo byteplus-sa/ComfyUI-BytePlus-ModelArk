@@ -81,7 +81,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusAPIClient"
       },
       "widgets_values": [
@@ -331,7 +331,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusSeedance2Reference"
       },
       "widgets_values": [

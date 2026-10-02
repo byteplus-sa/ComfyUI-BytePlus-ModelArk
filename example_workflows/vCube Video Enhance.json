@@ -60,7 +60,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusMediaKitClient"
       },
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
@@ -259,7 +259,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusVideoEnhance"
       },
       "widgets_values": ["standard", "aigc", "hd", "1080p", "source", "medium", "", 0, true, -1]

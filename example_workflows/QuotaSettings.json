@@ -73,7 +73,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusAPIClient"
       },
       "widgets_values": ["", "", "Custom", "ap-southeast-1", "", ""]
@@ -139,7 +139,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusQuotaSettings"
       },
       "widgets_values": ["dola-seedream-5-0-pro", 10, "None", 0]
@@ -286,7 +286,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusSeedream"
       },
       "widgets_values": ["A ceramic coffee mug on a pastel pink background, soft studio light, minimalist product photo.", "seedream 5.0 pro", "(2K) 2048x2048 (1:1)", 2048, 2048, "standard", 42, "randomize", false, true, 1, "jpeg", "opaque"]
