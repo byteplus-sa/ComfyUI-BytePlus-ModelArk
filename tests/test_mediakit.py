@@ -30,6 +30,11 @@ if COMFY_ROOT:
     if COMFY_ROOT not in sys.path:
         sys.path.insert(0, COMFY_ROOT)
     import utils  # noqa: F401, E402  (ComfyUI's utils package, before anything shadows it)
+    import comfy.cli_args  # noqa: E402
+
+    # Importing comfy.model_management probes CUDA unless this is set; the tests need no GPU
+    # (CI installs CPU-only torch).
+    comfy.cli_args.args.cpu = True
 
     PACKAGE_NAME = "byteplus_plugin_test"
     if PACKAGE_NAME not in sys.modules:

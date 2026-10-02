@@ -46,7 +46,7 @@ jobs:
         if: matrix.comfyui == 'latest-release'
         working-directory: ComfyUI
         run: |
-          tag="$(git describe --tags --abbrev=0 --match 'v*' origin/HEAD)"
+          tag="$(git describe --tags --abbrev=0 --match 'v*' origin/master)"
           echo "Testing against ComfyUI $tag"
           git checkout -q "$tag"
       - uses: actions/setup-python@v5
