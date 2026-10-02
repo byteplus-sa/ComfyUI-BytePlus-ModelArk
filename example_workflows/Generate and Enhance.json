@@ -82,7 +82,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusAPIClient"
       },
       "widgets_values": [
@@ -160,7 +160,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusMediaKitClient"
       },
       "widgets_values": [
@@ -322,7 +322,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusSeedream"
       },
       "widgets_values": [
@@ -435,7 +435,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusImageEnhance"
       },
       "widgets_values": [
@@ -661,7 +661,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusSeedance2TextToVideo"
       },
       "widgets_values": [
@@ -842,7 +842,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.1",
+        "ver": "0.4.0",
         "Node name for S&R": "BytePlusVideoEnhance"
       },
       "widgets_values": [
