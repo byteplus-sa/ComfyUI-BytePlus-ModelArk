@@ -107,6 +107,47 @@ While `key_name` is **Custom**, the raw key is part of the workflow and of the p
 
 ComfyUI has no login: anyone who can open your ComfyUI page (for example with `--listen` on a shared network) can use your saved keys through your workflows and replace them in Settings. Do not expose ComfyUI to networks you do not trust.
 
+### Step by Step: Default Key in ComfyUI Desktop
+
+This sets the ModelArk key once and checks that a workflow without an `API Client` node uses it. The same steps work for a manual or portable install; only the folder differs.
+
+**1. Find your `.env` file.** Open ComfyUI, then **Settings** (gear icon, or Ctrl+, / Cmd+,) and search for **BytePlus**. Under the ModelArk row it says *Saved in …/user/.env*: that is the file. ComfyUI also prints the folder at startup (`** User directory: …` in the log). For ComfyUI Desktop it is inside the base folder you chose at install, for example:
+
+- macOS: `~/ComfyUI-Installs/<install name>/ComfyUI/user/.env`
+- Windows: `<base folder>\ComfyUI\user\.env` (whatever the Settings line shows)
+
+The file does not exist until you save a key.
+
+**2. Save the key, in one of two ways.**
+
+- *Settings (no file editing):* in **Settings → BytePlus**, paste the ModelArk key, pick its region and press **Save**. The row then shows `set (ends in xxxx), from user/.env`. A wrong key is refused ("BytePlus rejected this API key"); nothing is written.
+- *By hand:* create the file at the path from step 1 and add:
+
+  ```
+  BYTEPLUS_API_KEY=your-modelark-key
+  BYTEPLUS_REGION=ap-southeast-1
+  ```
+
+  On macOS, in Terminal: `nano ~/ComfyUI-Installs/<install name>/ComfyUI/user/.env`, paste the lines, then Ctrl+O, Enter, Ctrl+X, and `chmod 600` the file. (Finder hides names that start with a dot; Cmd+Shift+. shows them. If you use TextEdit, choose Format → Make Plain Text first.) On Windows, in Notepad choose *Save as type: All files* and name it `.env`, or it is saved as `.env.txt`.
+
+  Then reopen **Settings → BytePlus**: the row shows `set (ends in xxxx), from user/.env`. No restart is needed; the file is read on every run.
+
+**3. Run a workflow without a client node.** On an empty canvas add **BytePlus LLM** (double-click the canvas and search), type a prompt such as `Reply with OK`, pick **Seed 2.0 Mini**, connect its `STRING` output to a **Preview Any** node and press **Run**. The answer appears in Preview Any; the request was made with the key from `.env`. (Cost: a few tokens.) To check an image node too, add **BytePlus Seedream**, pick **seedream 5.0 flash** with a `(1K)` size, and connect **Preview Image**.
+
+To try a shipped template instead, open one from the template browser and delete its **BytePlus API Client** node (or its links): the nodes then use the default key.
+
+**4. Check the "no key" case.** Press **Remove** in **Settings → BytePlus** (or delete the line from `.env`), change the prompt, and run again. The node stops with *No BytePlus API key found…* and lists where to set one. If `api_keys.json` holds exactly one saved key, that key is used instead; with several, the error names them.
+
+Change the prompt or seed between test runs: ComfyUI reuses the cached result of an unchanged node, so an identical run makes no request and does not show the new key in use.
+
+**ComfyUI Desktop's own Environment Variables.** Desktop also has an **Environment Variables** field in each installation's settings, passed to ComfyUI when it starts (restart to apply). `BYTEPLUS_API_KEY` set there works too and wins over `.env`; Settings → BytePlus then says *from an environment variable*, and its Remove button only clears the `.env` copy. Desktop itself warns that those values are stored unencrypted in its configuration file and advises against putting API keys there, so prefer Settings → BytePlus.
+
+**If it does not work**
+
+- *No BytePlus page in Settings:* the pack is older than this feature, or the browser shows a cached page. Update the pack (ComfyUI Manager → Update), restart ComfyUI, then reload the page.
+- *Invalid API Key (401):* the key and region do not match. Pick the key's region in Settings (or set `BYTEPLUS_REGION`).
+- *Save says "Requests from another origin are not accepted":* ComfyUI is behind a proxy that hides the address you opened. Edit `.env` by hand instead.
+
 ### Seed Speech API Key
 
 Seed Speech (Seed Audio, TTS, ASR) is a separate BytePlus product with its own API key; ModelArk keys are rejected (`Invalid X-Api-Key`).

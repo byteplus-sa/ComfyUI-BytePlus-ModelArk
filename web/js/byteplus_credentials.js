@@ -77,7 +77,7 @@ const BUTTON_STYLE = {
  * {name, placeholder, type?} (password inputs by default); `select` an optional
  * {name, options} dropdown. `payload(values)` builds the POST body.
  */
-function credentialEditor({ credential, fields, select, label }) {
+function credentialEditor({ credential, fields, select, label, showFile = false }) {
     const root = element("div", {}, {
         display: "flex",
         flexDirection: "column",
@@ -116,6 +116,9 @@ function credentialEditor({ credential, fields, select, label }) {
     row.append(save, remove);
     const status = element("div", {}, { fontSize: "0.8rem", opacity: "0.8", minHeight: "1.1rem" });
     root.append(row, status);
+    // Where the keys are saved, so the file can be found and edited by hand.
+    const fileLine = element("div", {}, { fontSize: "0.75rem", opacity: "0.6", wordBreak: "break-all" });
+    if (showFile) root.append(fileLine);
 
     const show = (text, isError = false) => {
         status.textContent = text;
@@ -129,6 +132,7 @@ function credentialEditor({ credential, fields, select, label }) {
     };
 
     const render = (data) => {
+        if (showFile && data.env_file) fileLine.textContent = `Saved in ${data.env_file}`;
         const info = data.credentials?.[credential];
         if (regionSelect && data.regions && !regionSelect.options.length) {
             for (const region of data.regions) regionSelect.add(new Option(region, region));
@@ -240,6 +244,7 @@ app.registerExtension({
             "Used by the BytePlus nodes when no BytePlus API Client node is connected. Saved to user/.env as BYTEPLUS_API_KEY.",
             {
                 credential: "modelark",
+                showFile: true,
                 label: "ModelArk API key",
                 fields: [{ name: "value", placeholder: "ModelArk API key" }],
                 select: { name: "region" },
