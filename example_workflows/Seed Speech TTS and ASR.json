@@ -55,7 +55,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusSpeechClient"
       },
       "widgets_values": ["", "", "Custom", "ap-southeast-1"]
@@ -286,7 +286,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusSeedTTS"
       },
       "widgets_values": [
@@ -559,7 +559,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.3.0",
+        "ver": "0.3.1",
         "Node name for S&R": "BytePlusSeedASR"
       },
       "widgets_values": [

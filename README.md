@@ -4,7 +4,9 @@ ComfyUI custom nodes for **BytePlus ModelArk**: Seedance video generation, Seedr
 
 Generation calls go directly to ModelArk with **your own ModelArk API key**, so usage is billed to your BytePlus account (including contract pricing and resource packs). No Comfy credits are used. Seed Speech nodes use a separate Seed Speech API key (see [Seed Speech API Key](#seed-speech-api-key)), and the MediaKit nodes an AI MediaKit API key (see [AI MediaKit API Key](#ai-mediakit-api-key)). The one exception is local videos for Seedance 2 / 2.5 references, local media for the MediaKit nodes (and media for new private assets), which pass through Comfy.org storage (see [Reference Videos](#reference-videos)).
 
-> **Status: v0.3.0.** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
+> **Status: v0.3.1.** Nodes target BytePlus ModelArk regions and model IDs. See [Roadmap](#roadmap).
+
+**v0.3.1:** The Seedance 1 template no longer includes Video Query Tasks (the node is still available from node search).
 
 **v0.3.0:** The image, video, understanding and asset nodes now have the same layout as ComfyUI's built-in ByteDance nodes (same node split, inputs, defaults and outputs), plus an `API Client` input and this pack's extras under advanced inputs. The previous nodes stay available as "(Legacy)" so saved workflows still load. Also adds Seed Speech nodes: `Seed Audio 1.0`, `Seed Speech TTS`, `Seed Speech ASR`, `Seed Voice Clone` and the `Speech Client` that holds the Seed Speech API key, and, on AI MediaKit, `vCube Video Enhance` (ComfyUI's built-in ByteDance vCube node), `Video Smoothness Enhance` and `Image Quality Enhance` with the `MediaKit Client`. Requires ComfyUI 0.31.0 or later.
 
