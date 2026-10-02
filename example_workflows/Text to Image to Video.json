@@ -112,6 +112,7 @@
         {
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
+          "shape": 7,
           "link": 1
         },
         {
@@ -322,6 +323,7 @@
         {
           "name": "client",
           "type": "BYTEPLUS_CLIENT",
+          "shape": 7,
           "link": 2
         },
         {

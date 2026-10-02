@@ -122,7 +122,7 @@ class QuotaManager:
 
 
 from comfy_api.latest import io as comfy_io
-from .nodes_shared import GLOBAL_CATEGORY, BytePlusClientType
+from .nodes_shared import GLOBAL_CATEGORY, BytePlusClientType, build_default_client, optional_client_input, with_default_client
 from .core_style import raise_if_model_retired
 from .models_config import RETIRED_VIDEO_UI_OPTIONS, SEEDREAM_4_MODEL_MAP, VIDEO_MODEL_MAP, SEEDREAM_5_MODEL_MAP
 
@@ -148,7 +148,7 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
                 "generation nodes to the client output so the quota applies before they run."
             ),
             inputs=[
-                BytePlusClientType.Input("client"),
+                optional_client_input(),
                 comfy_io.Combo.Input("image_model", options=cls.IMAGE_MODELS, default="None"),
                 comfy_io.Int.Input("image_limit", default=0, min=0, max=2147483647, tooltip="0 to disable"),
                 comfy_io.Combo.Input("video_model", options=cls.VIDEO_MODELS, default="None"),
@@ -167,6 +167,7 @@ class BytePlusQuotaSettings(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_default_client("client", build_default_client)
     def execute(
         cls,
         client,

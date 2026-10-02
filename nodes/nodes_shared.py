@@ -1,5 +1,7 @@
 import os
 import io
+import functools
+import inspect
 import base64
 import hashlib
 import json
@@ -21,6 +23,7 @@ from comfy_api.latest import io as comfy_io
 import logging
 
 from .constants import MESSAGES, ERROR_TEXT_MATCH_RULES, REGION_BASE_URLS, DEFAULT_REGION
+from . import credentials
 
 LOG_PREFIX = "[BytePlus] "
 
@@ -967,6 +970,85 @@ class BytePlusClients:
         QuotaManager.instance().update_usage(self.api_key, model, actual_cost)
 
 
+# The client a node uses when no API Client node is connected: the key from
+# BYTEPLUS_API_KEY (environment or user/.env, see credentials.py), else the one
+# key in api_keys.json. Mutated in place; holds at most the current client.
+_DEFAULT_CLIENT_CACHE = {}
+
+
+def build_default_client():
+    """BytePlusClients for the default ModelArk key; raises when none is set."""
+    api_key = credentials.get_setting(credentials.MODELARK_KEY_ENV)
+    asset_credentials = credentials.get_asset_credentials()
+    if not api_key:
+        # api_keys.json is only used when it leaves no doubt which key is meant.
+        load_api_keys()
+        names = API_KEY_STORE.get_key_names()
+        if len(names) > 1:
+            raise BytePlusException(get_text("err_default_key_ambiguous", names=", ".join(names)))
+        if names:
+            api_key = API_KEY_STORE.find_api_key(names[0])
+            asset_credentials = API_KEY_STORE.find_asset_credentials(names[0]) or asset_credentials
+    if not api_key:
+        raise BytePlusException(get_text("err_no_default_key", path=credentials.env_file_path()))
+
+    region = credentials.get_default_region()
+    stamp = (api_key, region)
+    cached = _DEFAULT_CLIENT_CACHE.get("client")
+    if cached is not None and _DEFAULT_CLIENT_CACHE.get("stamp") == stamp:
+        cached.asset_credentials = asset_credentials
+        return cached
+
+    base_url = REGION_BASE_URLS[region]
+    client = BytePlusClients(
+        Ark(api_key=api_key, base_url=base_url),
+        api_key,
+        region,
+        asset_credentials,
+        billed_ark=Ark(api_key=api_key, base_url=base_url, max_retries=0),
+    )
+    _DEFAULT_CLIENT_CACHE.clear()
+    _DEFAULT_CLIENT_CACHE.update(stamp=stamp, client=client)
+    return client
+
+
+def with_default_client(param, factory):
+    """
+    Decorator for a node's ``execute`` (put it under ``@classmethod``) whose
+    client input is optional: when the node was run without a connected
+    client, ``factory()`` supplies it as ``param``. A client passed
+    positionally or by keyword is used as is.
+    """
+    def decorate(fn):
+        def inject(args, kwargs):
+            if args or kwargs.get(param) is not None:
+                return kwargs
+            return {**kwargs, param: factory()}
+
+        if inspect.iscoroutinefunction(fn):
+            @functools.wraps(fn)
+            async def wrapper(cls, *args, **kwargs):
+                return await fn(cls, *args, **inject(args, kwargs))
+        else:
+            @functools.wraps(fn)
+            def wrapper(cls, *args, **kwargs):
+                return fn(cls, *args, **inject(args, kwargs))
+        return wrapper
+    return decorate
+
+
+def optional_client_input(**kwargs):
+    """The ``client`` socket as every node declares it: optional."""
+    return BytePlusClientType.Input("client", optional=True, tooltip=CLIENT_INPUT_TOOLTIP, **kwargs)
+
+
+CLIENT_INPUT_TOOLTIP = (
+    "Optional. Without it the node uses the default key from Settings > BytePlus "
+    "(BYTEPLUS_API_KEY or user/.env). Connect a BytePlus API Client node to use "
+    "another key or region."
+)
+
+
 # The Ark SDK retries a failed request up to twice: on timeouts, 408, 409, 429
 # and 5xx. For a call that starts paid work (task creation, image generation,
 # LLM responses) a retry after a timeout or server error can create and bill
@@ -1059,6 +1141,11 @@ class BytePlusAPIClient(comfy_io.ComfyNode):
             node_id="BytePlusAPIClient",
             display_name="BytePlus API Client",
             category=GLOBAL_CATEGORY,
+            description=(
+                "Optional. The BytePlus nodes use your default key (Settings > BytePlus, BYTEPLUS_API_KEY "
+                "or user/.env) when no client is connected. Add this node to use another saved key or "
+                "region for the nodes you connect it to."
+            ),
             inputs=[
                 comfy_io.String.Input("new_api_key", default=""),
                 comfy_io.String.Input("new_key_name", default=""),

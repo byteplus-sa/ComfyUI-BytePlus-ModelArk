@@ -67,7 +67,7 @@ jobs:
         run: |
           set -o pipefail
           python -m unittest \
-            tests.test_mediakit tests.test_model_updates tests.test_workflow_templates \
+            tests.test_credentials tests.test_mediakit tests.test_model_updates tests.test_workflow_templates \
             tests.test_core_style_seedance1 tests.test_core_style_seedance2 \
             tests.test_core_style_seedream tests.test_core_style_seed 2>&1 | tee test.log
           if grep -q "skipped=" test.log; then

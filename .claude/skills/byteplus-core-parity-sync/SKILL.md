@@ -27,7 +27,7 @@ Point `COMFYUI_ROOT` at a checkout of the new ComfyUI (`git -C <root> checkout <
 
 ```bash
 COMFYUI_ROOT=<root> <python> -m unittest tests.test_core_style_seedream tests.test_core_style_seedance1 \
-  tests.test_core_style_seedance2 tests.test_core_style_seed tests.test_mediakit -v
+  tests.test_core_style_seedance2 tests.test_core_style_seed tests.test_mediakit tests.test_credentials -v
 ```
 
 How each file compares:

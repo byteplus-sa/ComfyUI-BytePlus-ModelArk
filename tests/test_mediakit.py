@@ -980,6 +980,9 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
 class ClientNodeTests(unittest.TestCase):
     def test_key_sources(self):
         with tempfile.TemporaryDirectory() as tmp:
+            # No .env in the tester's real user folder may leak into the "is not set" case.
+            credentials = sys.modules[nodes_mediakit.__package__ + ".credentials"]
+            self.enterContext(mock.patch.object(credentials, "env_file_path", lambda: os.path.join(tmp, ".env")))
             store = nodes_mediakit.ApiKeyStore(os.path.join(tmp, "mediakit_api_keys.json"))
             notified = []
             with mock.patch.object(nodes_mediakit, "MEDIAKIT_API_KEY_STORE", store), \

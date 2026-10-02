@@ -121,6 +121,7 @@
           "localized_name": "mediakit_client",
           "name": "mediakit_client",
           "type": "BYTEPLUS_MEDIAKIT_CLIENT",
+          "shape": 7,
           "link": 1
         },
         {
