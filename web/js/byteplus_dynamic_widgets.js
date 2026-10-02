@@ -1,5 +1,4 @@
 import { app } from "../../../scripts/app.js";
-import { api } from "../../../scripts/api.js";
 
 function isVueNodesEnabled() {
     try {
@@ -49,30 +48,11 @@ function allGraphNodes() {
     return nodes;
 }
 
-// API Client node classes (ModelArk and Seed Speech keys)
-const API_CLIENT_CLASSES = ["BytePlusAPIClient", "BytePlusSpeechClient", "BytePlusMediaKitClient"];
-
-// API Client widgets shown only while key_name is Custom. They hold secrets until
-// the first run saves them, then onApiKeySaved clears them.
-const CUSTOM_KEY_WIDGETS = ['new_api_key', 'new_key_name', 'new_access_key', 'new_secret_key'];
-
 /**
- * Widgets whose value changes drive visibility logic
+ * Widgets whose value changes drive visibility rules
  * @type {string[]}
  */
-const TARGET_WIDGETS = [
-    'model_version',
-    'size',
-    'enable_group_generation',
-    'generation_count',
-    'enable_random_seed',
-    'auto_duration',
-    'draft_mode',
-    'reuse_last_draft_task',
-    'key_name',
-    'reasoning_mode',
-    'prompt_optimization'
-];
+const TARGET_WIDGETS = ['reasoning_mode'];
 
 /**
  * Extra space kept below the last widget
@@ -249,77 +229,8 @@ function applyBottomPadding(node) {
     return changed;
 }
 
-const AUTOGROW_LABEL_RULES = {
-    BytePlusSeedream4: [
-        { prefix: "image_", label: "Image" },
-    ],
-    BytePlusSeedream5: [
-        { prefix: "image_", label: "Image" },
-    ],
-    BytePlusSeedance2: [
-        { prefix: "ref_image_", label: "Ref Image" },
-        { prefix: "ref_video_", label: "Ref Video" },
-        { prefix: "ref_audio_", label: "Ref Audio" },
-    ],
-};
-
-function getAutogrowLabelRules(node) {
-    if (!node || !node.comfyClass) return [];
-    return AUTOGROW_LABEL_RULES[node.comfyClass] || [];
-}
-
-function escapeRegex(text) {
-    return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function setInputDisplayText(input, text) {
-    const changed =
-        input.label !== text ||
-        input.localized_name !== text ||
-        input.display_name !== text;
-    input.label = text;
-    input.localized_name = text;
-    input.display_name = text;
-    return changed;
-}
-
-function applyAutogrowInputLabels(node) {
-    if (!node.inputs || node.inputs.length === 0) return false;
-    const rules = getAutogrowLabelRules(node);
-    if (!rules || rules.length === 0) return false;
-
-    let changed = false;
-
-    for (const input of node.inputs) {
-        if (!input || !input.name) continue;
-        const inputName = String(input.name);
-        for (const rule of rules) {
-            // Match both plain and namespaced Autogrow input names
-            const pattern = new RegExp(`(?:^|\\.)${escapeRegex(rule.prefix)}(\\d+)$`);
-            const matched = inputName.match(pattern);
-            if (!matched) continue;
-            const suffixNum = parseInt(matched[1], 10);
-            if (!Number.isFinite(suffixNum)) continue;
-            const expectedLabel = `${rule.label} ${suffixNum}`;
-            if (setInputDisplayText(input, expectedLabel)) {
-                changed = true;
-            }
-            break;
-        }
-    }
-    return changed;
-}
-
-function refreshAutogrowInputLabels(node) {
-    if (applyAutogrowInputLabels(node)) {
-        markDirty(node);
-    }
-}
-
+// Nodes with a DynamicCombo input whose saved values need re-applying after load.
 const DYNAMIC_COMBO_NODES = new Set([
-    "BytePlusSeedance2",
-    "BytePlusSeedream5",
-    // Nodes shaped like ComfyUI core's ByteDance nodes
     "BytePlusSeedream",
     "BytePlusSeedreamLayerSeparation",
     "BytePlusSeedance2TextToVideo",
@@ -344,7 +255,8 @@ function restoreDynamicComboWidgetValues(node, values) {
         const widget = widgets[w];
         if (widget.value !== values[index]) widget.value = values[index];
         index++;
-        const nextIsControl = getWidgetBaseName(widgets[w + 1]) === 'control_after_generate';
+        // The control widget may carry a suffix (frontend 1.53 names it "control_after_generate#1").
+        const nextIsControl = getWidgetBaseName(widgets[w + 1]).startsWith('control_after_generate');
         if (getWidgetBaseName(widget) === 'seed' && !nextIsControl &&
             SEED_CONTROL_VALUES.includes(values[index])) {
             index++;
@@ -384,149 +296,22 @@ function refreshAfterConfigure(node, data) {
  */
 function widgetLogic(node, widget) {
     const widgetName = getWidgetBaseName(widget);
-    // 1. Measure how much extra height the user added before the layout changes
-    // so it can be restored after resizing
+    // Measure the extra height the user added before the layout changes, so it
+    // can be restored after resizing.
     let extraHeight = 0;
     if (!isVueNodesEnabled() && node.size && node.computeSize && !node.flags?.collapsed) {
-        const currentMinHeight = node.computeSize()[1];
-        const currentActualHeight = node.size[1];
-        // Clamp negative values
-        extraHeight = Math.max(0, currentActualHeight - currentMinHeight);
+        extraHeight = Math.max(0, node.size[1] - node.computeSize()[1]);
     }
 
     let shouldResize = false;
 
-    // Image nodes
-    if (node.comfyClass === "BytePlusSeedream4" || node.comfyClass === "BytePlusSeedream5") {
-        if (widgetName === 'size') {
-            const isCustom = widget.value === "Custom";
-            const widthWidget = findWidgetByName(node, 'width');
-            const heightWidget = findWidgetByName(node, 'height');
-
-            const changedW = toggleWidget(node, widthWidget, isCustom);
-            const changedH = toggleWidget(node, heightWidget, isCustom);
-
-            if (changedW || changedH) shouldResize = true;
-        }
-
-        if (node.comfyClass === "BytePlusSeedream4" && widgetName === 'model_version') {
-            const optimizePromptWidget = findWidgetByName(node, 'prompt_optimization');
-            const isSupported = widget.value === "seedream-4-0";
-            if (toggleWidget(node, optimizePromptWidget, isSupported)) shouldResize = true;
-        }
+    // BytePlus LLM: effort only applies while thinking is on
+    if (node.comfyClass === "BytePlusSeed" && widgetName === 'reasoning_mode') {
+        const isThinkingEnabled = widget.value !== "disabled";
+        const effortWidget = findWidgetByName(node, 'reasoning_effort');
+        if (toggleWidget(node, effortWidget, isThinkingEnabled)) shouldResize = true;
     }
 
-    // Group generation
-    if (node.comfyClass === "BytePlusSeedream4" || node.comfyClass === "BytePlusSeedream5") {
-        if (widgetName === 'enable_group_generation') {
-            const isGroupMode = widget.value === true;
-            const maxImagesWidget = findWidgetByName(node, 'max_images');
-
-            if (toggleWidget(node, maxImagesWidget, isGroupMode)) shouldResize = true;
-        }
-    }
-
-    // Video nodes
-    if (node.comfyClass === "BytePlusSeedance1" ||
-        node.comfyClass === "BytePlusSeedance1_5" ||
-        node.comfyClass === "BytePlusSeedance2") {
-
-        // 1.5 / 2.x: auto duration hides duration
-        if (node.comfyClass === "BytePlusSeedance1_5" || node.comfyClass === "BytePlusSeedance2") {
-            if (widgetName === 'auto_duration') {
-                const isAuto = widget.value === true;
-                const durationWidget = findWidgetByName(node, 'duration');
-                if (toggleWidget(node, durationWidget, !isAuto)) shouldResize = true;
-            }
-        }
-
-        // 1.5 / 2.5 family: draft mode controls
-        if (node.comfyClass === "BytePlusSeedance1_5" || node.comfyClass === "BytePlusSeedance2") {
-            if (widgetName === 'draft_mode') {
-                const isDraftMode = widget.value === true;
-                const draftTaskWidget = findWidgetByName(node, 'draft_task_id');
-                const reuseWidget = findWidgetByName(node, 'reuse_last_draft_task');
-
-
-                if (toggleWidget(node, reuseWidget, isDraftMode)) shouldResize = true;
-
-                if (isDraftMode) {
-                    if (reuseWidget) {
-                        widgetLogic(node, reuseWidget);
-                    } else {
-                        if (toggleWidget(node, draftTaskWidget, true)) shouldResize = true;
-                    }
-                } else {
-                    if (toggleWidget(node, draftTaskWidget, false)) shouldResize = true;
-                }
-            }
-
-            if (widgetName === 'reuse_last_draft_task') {
-                const isReuse = widget.value === true;
-                const draftTaskWidget = findWidgetByName(node, 'draft_task_id');
-                const draftModeWidget = findWidgetByName(node, 'draft_mode');
-                const isDraftMode = draftModeWidget ? draftModeWidget.value === true : false;
-
-                if (isDraftMode) {
-                    if (toggleWidget(node, draftTaskWidget, !isReuse)) shouldResize = true;
-                } else {
-                    if (toggleWidget(node, draftTaskWidget, false)) shouldResize = true;
-                }
-            }
-        }
-
-        // Batch options shown only for generation_count > 1
-        if (widgetName === 'generation_count') {
-            const isBatch = widget.value > 1;
-            const batchPathWidget = findWidgetByName(node, 'filename_prefix');
-            const saveLastFrameWidget = findWidgetByName(node, 'save_last_frame_batch');
-
-            const changedPath = toggleWidget(node, batchPathWidget, isBatch);
-            const changedSave = toggleWidget(node, saveLastFrameWidget, isBatch);
-
-            if (changedPath || changedSave) shouldResize = true;
-        }
-
-        // Random seed hides the seed controls
-        if (widgetName === 'enable_random_seed') {
-            const useRandom = widget.value === true;
-            const showSeedControls = !useRandom;
-
-            const seedWidget = findWidgetByName(node, 'seed');
-            const controlWidget = findWidgetByName(node, 'control_after_generate');
-
-            const changedSeed = toggleWidget(node, seedWidget, showSeedControls);
-            const changedControl = toggleWidget(node, controlWidget, showSeedControls);
-
-            if (changedSeed || changedControl) shouldResize = true;
-        }
-    }
-
-    // API Client nodes (ModelArk, Seed Speech and MediaKit)
-    if (API_CLIENT_CLASSES.includes(node.comfyClass)) {
-        if (widgetName === 'key_name') {
-            const isCustom = widget.value === "Custom";
-            // new_access_key / new_secret_key exist on the ModelArk client only.
-            let changed = false;
-            for (const name of CUSTOM_KEY_WIDGETS) {
-                if (toggleWidget(node, findWidgetByName(node, name), isCustom)) changed = true;
-            }
-
-            if (changed) shouldResize = true;
-        }
-    }
-
-    // Seed and Visual Understanding (Legacy): effort only applies while thinking is on
-    if (node.comfyClass === "BytePlusSeed" || node.comfyClass === "BytePlusVisualUnderstanding") {
-        if (widgetName === 'reasoning_mode') {
-            const isThinkingEnabled = widget.value !== "disabled";
-            const effortWidget = findWidgetByName(node, 'reasoning_effort');
-            
-            if (toggleWidget(node, effortWidget, isThinkingEnabled)) shouldResize = true;
-        }
-    }
-
-    // 2. If the layout changed, resize and restore the user's extra height
     const paddingChanged = applyBottomPadding(node);
 
     // Skip resizing while loading a workflow so the saved size is kept
@@ -560,102 +345,13 @@ function installWidgetWatchers(node) {
         w._byteplusWatcherInstalled = true;
         widgetLogic(node, w);
 
-        const isModelVersion = getWidgetBaseName(w) === 'model_version';
         const originalCallback = w.callback;
         w.callback = function (...args) {
             const result = originalCallback?.apply(this, args);
             widgetLogic(node, w);
-            if (isModelVersion) {
-                // DynamicCombo replaces the child widgets after the change
-                queueMicrotask(() => installWidgetWatchers(node));
-                setTimeout(() => installWidgetWatchers(node), 0);
-                setTimeout(() => installWidgetWatchers(node), 120);
-            }
             return result;
         };
     });
-}
-
-const API_KEY_SAVED_EVENT = "byteplus.api_key_saved";
-// Key store named in the event -> API Client class holding keys of that store.
-const API_CLIENT_CLASS_BY_STORE = {
-    modelark: "BytePlusAPIClient",
-    speech: "BytePlusSpeechClient",
-    mediakit: "BytePlusMediaKitClient",
-};
-
-async function sha256Hex(text) {
-    const bytes = new TextEncoder().encode(text);
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
-}
-
-/**
- * API Client nodes (of the store the key was saved to) that still hold the key
- * that was just saved: key_name is
- * Custom, new_key_name is the saved name and the pasted key matches the
- * fingerprint. Searches the root graph and subgraphs, so the right node is
- * found even after switching tabs or inside a subgraph, and a different node
- * that merely shares the id is never touched.
- */
-async function findNodesHoldingSavedKey(detail) {
-    const canHash = !!(globalThis.crypto?.subtle && window.isSecureContext !== false);
-    const matches = [];
-    const clientClass = API_CLIENT_CLASS_BY_STORE[detail.store || "modelark"];
-    for (const node of allGraphNodes()) {
-        if (!clientClass || node?.comfyClass !== clientClass) continue;
-        if (findWidgetByName(node, 'key_name')?.value !== "Custom") continue;
-        if (String(findWidgetByName(node, 'new_key_name')?.value ?? "").trim() !== detail.key_name) continue;
-        const pastedKey = String(findWidgetByName(node, 'new_api_key')?.value ?? "").trim();
-        if (!pastedKey) continue;
-        if (canHash && detail.key_fingerprint) {
-            if ((await sha256Hex(pastedKey)).slice(0, 16) !== detail.key_fingerprint) continue;
-        } else if (String(node.id) !== String(detail.node)) {
-            // No Web Crypto (plain-http remote access): fall back to the node id.
-            continue;
-        }
-        matches.push(node);
-    }
-    return matches;
-}
-
-// Record a code-made widget change so the workflow is saved with it.
-function markWorkflowModified(node) {
-    try {
-        app.extensionManager?.workflow?.activeWorkflow?.changeTracker?.checkState?.();
-    } catch {
-    }
-    try {
-        node?.graph?.change?.();
-    } catch {
-    }
-}
-
-/**
- * After a Custom key is saved under new_key_name, switch the API Client to the
- * saved name and clear the raw key, so it is not kept in the workflow or in
- * the prompt metadata of later outputs.
- */
-async function onApiKeySaved({ detail }) {
-    if (!detail?.key_name) return;
-    for (const node of await findNodesHoldingSavedKey(detail)) {
-        const keyNameWidget = findWidgetByName(node, 'key_name');
-        if (keyNameWidget) {
-            const values = keyNameWidget.options?.values;
-            if (Array.isArray(values) && !values.includes(detail.key_name)) {
-                const customIndex = values.indexOf("Custom");
-                values.splice(customIndex >= 0 ? customIndex : values.length, 0, detail.key_name);
-            }
-            keyNameWidget.value = detail.key_name;
-        }
-        for (const name of CUSTOM_KEY_WIDGETS) {
-            const widget = findWidgetByName(node, name);
-            if (widget) widget.value = "";
-        }
-        if (keyNameWidget) widgetLogic(node, keyNameWidget);
-        markDirty(node);
-        markWorkflowModified(node);
-    }
 }
 
 // Re-apply every rule after the renderer is switched, so widgets disabled in
@@ -672,10 +368,7 @@ app.registerExtension({
     name: "ComfyUI.BytePlus.DynamicWidgets",
 
     async setup() {
-        api.addEventListener(API_KEY_SAVED_EVENT, onApiKeySaved);
         app.ui?.settings?.addEventListener?.(`${VUE_NODES_SETTING}.change`, onRendererChanged);
-        const mode = isVueNodesEnabled() ? "Node2.0(Vue)" : "Legacy(Canvas)";
-        console.log(`%c[BytePlus] Dynamic Widgets Extension Loaded (${mode})`, "color:green; font-weight:bold;");
     },
 
     nodeCreated(node) {
@@ -691,22 +384,14 @@ app.registerExtension({
             return r;
         };
 
+        // A widget converted to a linked input is never hidden, so re-evaluate
+        // the rules when links change.
         const onConnectionsChange = node.onConnectionsChange;
-        node.onConnectionsChange = function (type, index, connected, link_info, slot) {
+        node.onConnectionsChange = function () {
             const r = onConnectionsChange ? onConnectionsChange.apply(this, arguments) : undefined;
-            if (!this._isConfiguring) {
-                refreshAutogrowInputLabels(this);
-                // A widget converted to a linked input is never hidden, so
-                // re-evaluate the rules when links change.
-                applyAllWidgetRules(this);
-            }
+            if (!this._isConfiguring) applyAllWidgetRules(this);
             return r;
         };
-
-        refreshAutogrowInputLabels(node);
-        setTimeout(() => refreshAutogrowInputLabels(node), 0);
-        setTimeout(() => refreshAutogrowInputLabels(node), 120);
-        setTimeout(() => refreshAutogrowInputLabels(node), 360);
 
         installWidgetWatchers(node);
         setTimeout(() => installWidgetWatchers(node), 0);

@@ -229,10 +229,6 @@ Connected videos and images are uploaded to Comfy.org storage first (**Comfy.org
 - `output_size`: a `multiple` (default 2x) or a `target size`. Size limits are checked before upload. Each image in a batch is enhanced separately.
 - Also outputs `original` (the input resized to the result's size) for the `Compare Images` slider.
 
-### Other
-
-**Quota Settings** caps image count and video tokens per model to avoid overspending. Connect its output to the generation nodes it should limit.
-
 ## Guides
 
 ### Reference Videos

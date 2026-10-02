@@ -6,7 +6,6 @@ import base64
 import hashlib
 import json
 import re
-import folder_paths
 import time
 import numpy
 import PIL.Image
@@ -18,7 +17,6 @@ import threading
 import comfy.model_management
 from byteplussdkarkruntime import Ark
 
-from comfy_api.latest import io as comfy_io
 
 import logging
 
@@ -62,117 +60,7 @@ if not logger.handlers:
 GLOBAL_CATEGORY = "BytePlus ModelArk"
 
 byteplus_api_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-API_KEYS_FILE = os.path.join(byteplus_api_dir, "api_keys.json")
 FILES_UPLOAD_CACHE_FILE = os.path.join(byteplus_api_dir, "files_upload_cache.json")
-
-BytePlusClientType = comfy_io.Custom("BYTEPLUS_CLIENT")
-
-
-class ApiKeyStore:
-    def __init__(self, config_file):
-        self.config_file = config_file
-        self._lock = threading.RLock()
-        self._items = []
-
-    def load(self):
-        loaded_items = []
-
-        try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file, "r", encoding="utf-8") as f:
-                    keys_data = json.load(f)
-                if isinstance(keys_data, list):
-                    for item in keys_data:
-                        if "customName" in item and "apiKey" in item:
-                            loaded_items.append(item)
-        except Exception as e:
-            log_msg("api_load_error", e=e)
-
-        with self._lock:
-            self._items = loaded_items
-
-    def save(self):
-        with self._lock:
-            serializable_items = list(self._items)
-        try:
-            with open(self.config_file, "w", encoding="utf-8") as f:
-                json.dump(serializable_items, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            logger.error(f"Failed to save API key: {e}")
-            return False
-        return True
-
-    def upsert(self, name, key, access_key="", secret_key="", region=""):
-        """
-        Add or update a key entry. IAM AK/SK (asset library) are stored with the
-        entry only when both are given; an update without them keeps the ones
-        already saved. New AK/SK replace an old session token, which belonged
-        to the old pair. ``region`` (the region the key was used with) lets the
-        default client use the right endpoint when this is the only saved key.
-        """
-        with self._lock:
-            entry = next((item for item in self._items if item["customName"] == name), None)
-            if entry is None:
-                entry = {"customName": name, "apiKey": key}
-                self._items.append(entry)
-            entry["apiKey"] = key
-            if access_key and secret_key:
-                entry["accessKey"] = access_key
-                entry["secretKey"] = secret_key
-                entry.pop("sessionToken", None)
-            if region:
-                entry["region"] = region
-
-        return self.save()
-
-    def remember_region(self, name, region):
-        """Record the region a saved key was used with; writes only when it changed."""
-        with self._lock:
-            entry = next((item for item in self._items if item["customName"] == name), None)
-            if entry is None or not region or entry.get("region") == region:
-                return
-            entry["region"] = region
-        self.save()
-
-    def find_region(self, key_name):
-        with self._lock:
-            for item in self._items:
-                if item["customName"] == key_name:
-                    return item.get("region") or ""
-        return ""
-
-    def get_items(self):
-        with self._lock:
-            return [dict(item) for item in self._items]
-
-    def get_key_names(self):
-        with self._lock:
-            return [item["customName"] for item in self._items]
-
-    def find_api_key(self, key_name):
-        with self._lock:
-            for item in self._items:
-                if item["customName"] == key_name:
-                    return item["apiKey"]
-        return None
-
-    def find_asset_credentials(self, key_name):
-        """
-        Optional IAM AK/SK stored with a key entry ("accessKey", "secretKey",
-        "sessionToken"); needed only for the asset library OpenAPI.
-        """
-        with self._lock:
-            for item in self._items:
-                if item["customName"] == key_name and item.get("accessKey") and item.get("secretKey"):
-                    return {
-                        "access_key": item["accessKey"],
-                        "secret_key": item["secretKey"],
-                        "session_token": item.get("sessionToken") or "",
-                    }
-        return None
-
-
-API_KEY_STORE = ApiKeyStore(API_KEYS_FILE)
 
 
 def get_text(key, **kwargs):
@@ -326,21 +214,6 @@ def format_api_error(e):
     return f"{LOG_PREFIX}Error: {err_msg}{request_suffix}"
 
 
-def load_api_keys():
-    """
-    Load the API key file (api_keys.json).
-    """
-    API_KEY_STORE.load()
-
-
-def save_api_key(name, key, access_key="", secret_key="", region=""):
-    """
-    Save a new API key (and optional IAM AK/SK and its region) to api_keys.json.
-    """
-    if API_KEY_STORE.upsert(name, key, access_key, secret_key, region):
-        logger.info(f"Saved API Key: {name}")
-
-
 def check_api_key(api_key: str, base_url: str):
     """
     Ask the region's endpoint about the API key: True when it is accepted,
@@ -357,13 +230,6 @@ def check_api_key(api_key: str, base_url: str):
         logger.error(f"API Key validation error: {e}")
         return None
     return response.status_code != 401
-
-
-def validate_api_key(api_key: str, base_url: str) -> bool:
-    """
-    Check that the API key is accepted by the region's endpoint.
-    """
-    return check_api_key(api_key, base_url) is True
 
 
 def _normalize_expire_seconds(expire_seconds):
@@ -715,14 +581,6 @@ def _image_to_base64(image: torch.Tensor) -> str:
     return base64.b64encode(data_bytes).decode("utf-8")
 
 
-def create_white_image_tensor(width=1024, height=1024):
-    """
-    Create a plain white image tensor of the given size.
-    Shape: [1, height, width, 3]
-    """
-    return torch.ones((1, height, width, 3), dtype=torch.float32)
-
-
 def safe_cat_tensors(tensors, dim=0):
     """
     Concatenate tensors, resizing any that differ from the first.
@@ -753,51 +611,6 @@ def safe_cat_tensors(tensors, dim=0):
             processed_tensors.append(t)
 
     return torch.cat(processed_tensors, dim=dim)
-
-
-def create_white_video(width=1024, height=1024, fps=24):
-    """
-    One-frame white VIDEO (placeholder output when failures are ignored).
-    Built with ComfyUI's own video types, so no OpenCV is needed.
-    """
-    try:
-        from fractions import Fraction
-        from comfy_api.latest import InputImpl, Types
-
-        frames = torch.ones((1, height, width, 3), dtype=torch.float32)
-        return InputImpl.VideoFromComponents(
-            Types.VideoComponents(images=frames, frame_rate=Fraction(fps))
-        )
-    except Exception as e:
-        log_msg("err_create_dummy_video", e=e)
-        return None
-
-
-def probe_video_file(path):
-    """
-    Read fps, frame count, duration and codecs of a local video with PyAV
-    (shipped with ComfyUI). Returns {} when the file cannot be read.
-    """
-    try:
-        import av
-
-        with av.open(path) as container:
-            video_stream = next((s for s in container.streams if s.type == "video"), None)
-            audio_stream = next((s for s in container.streams if s.type == "audio"), None)
-            info = {}
-            if video_stream is not None:
-                if video_stream.average_rate:
-                    info["fps"] = float(video_stream.average_rate)
-                if video_stream.frames:
-                    info["frame_count"] = int(video_stream.frames)
-                info["video_codec"] = video_stream.codec_context.name
-            if audio_stream is not None:
-                info["audio_codec"] = audio_stream.codec_context.name
-            if container.duration:
-                info["duration"] = float(container.duration) / av.time_base
-            return info
-    except Exception:
-        return {}
 
 
 def video_source_size_bytes(video):
@@ -966,8 +779,8 @@ async def upload_bytes_to_comfy_storage(node_cls, data, filename, mime_type, cac
 
 class BytePlusClients:
     """
-    Wraps the Ark client together with its API key, region and (optional)
-    asset-library IAM credentials. Never serialized into outputs.
+    The Ark client with its API key, region and (optional) asset-library IAM
+    credentials. Never serialized into outputs.
     billed_ark: the same client without automatic retries, for calls that
     start paid work (see call_billed).
     """
@@ -978,57 +791,24 @@ class BytePlusClients:
         self.region = region
         self.asset_credentials = asset_credentials
 
-    def check_quota(self, model: str, estimated_cost: int):
-        if not self.api_key:
-            return
-        from .quota import QuotaManager
-        QuotaManager.instance().check_quota(self.api_key, model, estimated_cost)
 
-    def update_usage(self, model: str, actual_cost: int):
-        if not self.api_key:
-            return
-        from .quota import QuotaManager
-        QuotaManager.instance().update_usage(self.api_key, model, actual_cost)
+# The ModelArk client every node uses: the key and region saved in Settings >
+# BytePlus (BYTEPLUS_API_KEY / BYTEPLUS_REGION, from the environment or
+# user/.env; see credentials.py). Rebuilt when the key or region changes, so a
+# new key needs no restart. Mutated in place; holds at most the current client.
+_CLIENT_CACHE = {}
 
 
-# The client a node uses when no API Client node is connected: the key from
-# BYTEPLUS_API_KEY (environment or user/.env, see credentials.py), else the one
-# key in api_keys.json. Mutated in place; holds at most the current client.
-_DEFAULT_CLIENT_CACHE = {}
-
-
-def single_saved_key_name(store, ambiguous_message_key):
-    """
-    The name of the only key in a key store, None when it is empty. A store
-    with several keys raises: which one is meant is never guessed.
-    """
-    store.load()
-    names = store.get_key_names()
-    if len(names) > 1:
-        raise BytePlusException(get_text(ambiguous_message_key, names=", ".join(names)))
-    return names[0] if names else None
-
-
-def build_default_client():
-    """BytePlusClients for the default ModelArk key; raises when none is set."""
+def get_client():
+    """BytePlusClients for the saved ModelArk key; raises when none is set."""
     api_key = credentials.get_setting(credentials.MODELARK_KEY_ENV)
+    if not api_key:
+        raise BytePlusException(get_text("err_no_api_key", path=credentials.env_file_path()))
     asset_credentials = credentials.get_asset_credentials()
-    saved_region = ""
-    if not api_key:
-        # api_keys.json is only used when it leaves no doubt which key is meant.
-        name = single_saved_key_name(API_KEY_STORE, "err_default_key_ambiguous")
-        if name:
-            api_key = API_KEY_STORE.find_api_key(name)
-            asset_credentials = API_KEY_STORE.find_asset_credentials(name) or asset_credentials
-            # The region the API Client used it with, unless BYTEPLUS_REGION says otherwise.
-            saved_region = API_KEY_STORE.find_region(name)
-    if not api_key:
-        raise BytePlusException(get_text("err_no_default_key", path=credentials.env_file_path()))
-
-    region = credentials.get_default_region(fallback=saved_region or DEFAULT_REGION)
+    region = credentials.get_default_region()
     stamp = (api_key, region)
-    cached = _DEFAULT_CLIENT_CACHE.get("client")
-    if cached is not None and _DEFAULT_CLIENT_CACHE.get("stamp") == stamp:
+    cached = _CLIENT_CACHE.get("client")
+    if cached is not None and _CLIENT_CACHE.get("stamp") == stamp:
         cached.asset_credentials = asset_credentials
         return cached
 
@@ -1040,17 +820,16 @@ def build_default_client():
         asset_credentials,
         billed_ark=Ark(api_key=api_key, base_url=base_url, max_retries=0),
     )
-    _DEFAULT_CLIENT_CACHE.clear()
-    _DEFAULT_CLIENT_CACHE.update(stamp=stamp, client=client)
+    _CLIENT_CACHE.clear()
+    _CLIENT_CACHE.update(stamp=stamp, client=client)
     return client
 
 
-def with_default_client(param, factory):
+def with_client(param, factory):
     """
-    Decorator for a node's ``execute`` (put it under ``@classmethod``) whose
-    client input is optional: when the node was run without a connected
-    client, ``factory()`` supplies it as ``param``. A client passed
-    positionally or by keyword is used as is.
+    Decorator for a node's ``execute`` (put it under ``@classmethod``): the
+    client is not a node input, so ``factory()`` supplies it as ``param``.
+    Tests pass their own client, positionally or by keyword.
     """
     def decorate(fn):
         def inject(args, kwargs):
@@ -1068,18 +847,6 @@ def with_default_client(param, factory):
                 return fn(cls, *args, **inject(args, kwargs))
         return wrapper
     return decorate
-
-
-def optional_client_input(**kwargs):
-    """The ``client`` socket as every node declares it: optional."""
-    return BytePlusClientType.Input("client", optional=True, tooltip=CLIENT_INPUT_TOOLTIP, **kwargs)
-
-
-CLIENT_INPUT_TOOLTIP = (
-    "Optional. Without it the node uses the default key from Settings > BytePlus "
-    "(BYTEPLUS_API_KEY or user/.env). Connect a BytePlus API Client node to use "
-    "another key or region."
-)
 
 
 # The Ark SDK retries a failed request up to twice: on timeouts, 408, 409, 429
@@ -1118,147 +885,8 @@ def call_billed(create, /, **kwargs):
             time.sleep(2 ** attempt)
 
 
-API_KEY_SAVED_EVENT = "byteplus.api_key_saved"
-
-
 def api_key_fingerprint(api_key):
-    """Short one-way fingerprint so the frontend can find the node holding this key."""
+    """Short one-way fingerprint of a key, to tell keys apart without storing them."""
     return hashlib.sha256(api_key.strip().encode("utf-8")).hexdigest()[:16]
 
 
-def _notify_api_key_saved(node_id, key_name, api_key, store="modelark"):
-    """
-    Tell the frontend a Custom key was saved, so the node switches to the saved
-    name and clears the raw key. Otherwise the key stays in the workflow and in
-    the prompt metadata embedded in every saved image or video.
-
-    Sent only to the browser client that queued the prompt (not broadcast), with
-    a fingerprint of the key: the frontend switches only API Client nodes whose
-    pasted key matches, wherever they are (other tabs, subgraphs), and never
-    receives the key itself. ``store`` tells ModelArk keys ("modelark") from
-    Seed Speech keys ("speech"), which live in separate files and nodes.
-    """
-    if not node_id:
-        return
-    try:
-        from server import PromptServer
-
-        server = PromptServer.instance
-        server.send_sync(
-            API_KEY_SAVED_EVENT,
-            {
-                "node": str(node_id),
-                "key_name": key_name,
-                "key_fingerprint": api_key_fingerprint(api_key),
-                "store": store,
-                "prompt_id": getattr(server, "last_prompt_id", None),
-            },
-            getattr(server, "client_id", None),
-        )
-    except Exception as e:
-        logger.warning(f"Could not notify the frontend that the API key was saved: {e}")
-
-
-class BytePlusAPIClient(comfy_io.ComfyNode):
-    """
-    BytePlus ModelArk API client node.
-    Loads the API key and creates the Ark client for the selected region.
-    """
-    @classmethod
-    def define_schema(cls) -> comfy_io.Schema:
-        load_api_keys()
-        key_names = API_KEY_STORE.get_key_names()
-        key_names.append("Custom")
-
-        return comfy_io.Schema(
-            node_id="BytePlusAPIClient",
-            display_name="BytePlus API Client",
-            category=GLOBAL_CATEGORY,
-            description=(
-                "Optional. The BytePlus nodes use your default key (Settings > BytePlus, BYTEPLUS_API_KEY "
-                "or user/.env) when no client is connected. Add this node to use another saved key or "
-                "region for the nodes you connect it to."
-            ),
-            inputs=[
-                comfy_io.String.Input("new_api_key", default=""),
-                comfy_io.String.Input("new_key_name", default=""),
-                comfy_io.Combo.Input("key_name", options=key_names),
-                comfy_io.Combo.Input(
-                    "region",
-                    options=list(REGION_BASE_URLS.keys()),
-                    default=DEFAULT_REGION,
-                    tooltip="ModelArk region. API keys and model activation are per region.",
-                ),
-                comfy_io.String.Input(
-                    "new_access_key",
-                    default="",
-                    optional=True,
-                    tooltip=(
-                        "Optional IAM access key (AK), only for the asset library nodes "
-                        "(Create Image / Video / Audio Asset, Asset Library, and asset_N references). "
-                        "Use it with new_secret_key while key_name is Custom: it is saved with the key "
-                        "under new_key_name and then cleared from this node. Use an IAM sub-user "
-                        "whose policy only allows the asset library."
-                    ),
-                ),
-                comfy_io.String.Input(
-                    "new_secret_key",
-                    default="",
-                    optional=True,
-                    tooltip="Optional IAM secret key (SK) that goes with new_access_key. Cleared from this node after it is saved.",
-                ),
-            ],
-            outputs=[BytePlusClientType.Output(display_name="client")],
-            hidden=[comfy_io.Hidden.unique_id],
-        )
-
-    @classmethod
-    def execute(
-        cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_REGION,
-        new_access_key="", new_secret_key="",
-    ) -> comfy_io.NodeOutput:
-        api_key = None
-        asset_credentials = None
-        base_url = REGION_BASE_URLS.get(region, REGION_BASE_URLS[DEFAULT_REGION])
-
-        if key_name == "Custom":
-            if not new_api_key or not new_api_key.strip():
-                raise BytePlusException(get_text("err_new_key_empty"))
-            
-            api_key = new_api_key.strip()
-            access_key = (new_access_key or "").strip()
-            secret_key = (new_secret_key or "").strip()
-            if bool(access_key) != bool(secret_key):
-                raise BytePlusException(get_text("err_new_asset_credentials_incomplete"))
-
-            if not validate_api_key(api_key, base_url):
-                raise BytePlusException(get_text("err_new_key_invalid"))
-
-            if access_key:
-                # Usable in this run even when the key is not saved.
-                asset_credentials = {"access_key": access_key, "secret_key": secret_key, "session_token": ""}
-
-            if new_key_name and new_key_name.strip():
-                save_api_key(new_key_name.strip(), api_key, access_key, secret_key, region)
-                print(get_text("info_new_key_saved", name=new_key_name.strip()))
-                if access_key:
-                    print(get_text("info_new_asset_credentials_saved", name=new_key_name.strip()))
-                _notify_api_key_saved(cls.hidden.unique_id, new_key_name.strip(), api_key)
-
-        else:
-            api_key = API_KEY_STORE.find_api_key(key_name)
-            asset_credentials = API_KEY_STORE.find_asset_credentials(key_name)
-            if api_key:
-                # So the default client (no API Client node) uses this region for the key too.
-                API_KEY_STORE.remember_region(key_name, region)
-
-        if not api_key:
-            log_msg("api_key_not_found", key_name=key_name)
-            raise BytePlusException(get_text("popup_key_valid_err").format(key=key_name))
-
-        ark_client = Ark(api_key=api_key, base_url=base_url)
-        billed_client = Ark(api_key=api_key, base_url=base_url, max_retries=0)
-
-        return comfy_io.NodeOutput(
-            BytePlusClients(ark_client, api_key, region, asset_credentials, billed_ark=billed_client)
-        )

@@ -244,7 +244,7 @@ app.registerExtension({
         setting(
             "ModelArk",
             "ModelArk API key",
-            "Used by the BytePlus nodes when no BytePlus API Client node is connected. Saved to user/.env as BYTEPLUS_API_KEY.",
+            "Used by the Seedream, Seedance, LLM and asset nodes. Saved to user/.env as BYTEPLUS_API_KEY.",
             {
                 credential: "modelark",
                 showFile: true,
@@ -256,7 +256,7 @@ app.registerExtension({
         setting(
             "SeedSpeech",
             "Seed Speech API key",
-            "Separate from the ModelArk key. Used by the Seed Audio, TTS, ASR and Voice Clone nodes when no BytePlus Speech Client node is connected. Saved as BYTEPLUS_SEED_SPEECH_API_KEY.",
+            "Separate from the ModelArk key. Used by the Seed Audio, TTS, ASR and Voice Clone nodes. Saved as BYTEPLUS_SEED_SPEECH_API_KEY.",
             {
                 credential: "speech",
                 label: "Seed Speech API key",
@@ -266,7 +266,7 @@ app.registerExtension({
         setting(
             "MediaKit",
             "AI MediaKit API key",
-            "Separate from the ModelArk key. Used by the Video / Image Enhance nodes when no BytePlus MediaKit Client node is connected. Saved as BYTEPLUS_VOD_MEDIAKIT_API_KEY.",
+            "Separate from the ModelArk key. Used by the Video / Image Enhance nodes. Saved as BYTEPLUS_VOD_MEDIAKIT_API_KEY.",
             {
                 credential: "mediakit",
                 label: "AI MediaKit API key",

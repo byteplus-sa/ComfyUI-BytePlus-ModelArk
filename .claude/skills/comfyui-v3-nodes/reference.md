@@ -20,7 +20,7 @@ Source: Comfy-Org/ComfyUI `comfy_api/latest/_io.py`, `_ui.py`, `__init__.py`, `e
 | `not_idempotent` | `False` | Disables cross-node cache reuse. |
 | `enable_expand` | `False` | Required to return `NodeOutput(expand=...)`. |
 | `accept_all_inputs` | `False` | (v0.11.0) Pass undeclared prompt inputs as kwargs. |
-| `price_badge` | `None` | (v0.9.2) `io.PriceBadge(expr=<JSONata>, depends_on=io.PriceBadgeDepends(widgets=[...], inputs=[...], input_groups=[...]))`. Nested widget names are dotted (`"model_version.resolution"`). Unknown names raise at schema time. |
+| `price_badge` | `None` | (v0.9.2) `io.PriceBadge(expr=<JSONata>, depends_on=io.PriceBadgeDepends(widgets=[...], inputs=[...], input_groups=[...]))`. Nested widget names are dotted (`"model.resolution"`). Unknown names raise at schema time. |
 | `essentials_category` | `None` | (v0.15.0) |
 | `has_intermediate_output` | `False` | (v0.19.0) |
 | `loop_boundary` | `None` | (v0.36.0) `"start"`/`"end"`. |
@@ -40,7 +40,7 @@ Common: `Input(id, display_name=None, optional=False, tooltip=None, lazy=None, e
 | `io.Combo.Input` | `options: list[str] \| list[int] \| Enum, default, control_after_generate, upload: io.UploadType.image/audio/video/model, image_folder, remote: io.RemoteOptions` |
 | `io.MultiCombo.Input` | `options, default: list[str], placeholder, chip` |
 | `io.Image/Mask/Video/Audio/Latent.Input` | socket only |
-| `io.Custom("MY_TYPE").Input/Output` | custom socket type (this pack: `BYTEPLUS_CLIENT`) |
+| `io.Custom("MY_TYPE").Input/Output` | custom socket type |
 | `io.AnyType` | `"*"` |
 | `io.MultiType.Input(id \| <Input>, types=[...])` | Accepts any listed type; passing an Input instance reuses its widget config. |
 | `io.MatchType.Template("T", allowed_types=...)` + `io.MatchType.Input(id, template=T)` / `io.MatchType.Output(template=T)` | Output type follows the connected input. |
@@ -66,7 +66,7 @@ Outputs: `X.Output(id=None, display_name=None, tooltip=None, is_output_list=Fals
 
 ## Lifecycle classmethods (any may be `async def`)
 
-- `define_schema() -> Schema` — called at load **and again on every `INPUT_TYPES()` call** (each `/object_info` request and prompt validation), so inputs can change at runtime (this pack re-reads `api_keys.json` there → new keys appear after a browser refresh). Output types and flags are cached on the class after the first `GET_SCHEMA()`. Keep it cheap and side-effect free.
+- `define_schema() -> Schema` — called at load **and again on every `INPUT_TYPES()` call** (each `/object_info` request and prompt validation), so inputs can change at runtime. Output types and flags are cached on the class after the first `GET_SCHEMA()`. Keep it cheap and side-effect free.
 - `execute(**inputs) -> NodeOutput` — sync or async (`inspect.iscoroutinefunction`).
 - `validate_inputs(**kw) -> bool | str` — constant values only; named inputs skip built-in validation; an `input_types` param skips link type checks.
 - `fingerprint_inputs(**kw) -> Any` — cache key; exception → NaN → always rerun.

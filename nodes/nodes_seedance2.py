@@ -19,7 +19,6 @@ import comfy.model_management
 from comfy_api.latest import io as comfy_io
 
 from .constants import (
-    DEFAULT_FILENAME_PREFIX,
     IMAGE_MAX_EDGE,
     IMAGE_MAX_RATIO,
     IMAGE_MIN_EDGE,
@@ -63,9 +62,8 @@ from .models_config import (
     VIDEO_MODEL_MAP,
 )
 from .nodes_shared import (
-    build_default_client,
-    optional_client_input,
-    with_default_client,
+    get_client,
+    with_client,
     GLOBAL_CATEGORY,
     LOG_PREFIX,
     BytePlusException,
@@ -77,6 +75,7 @@ from .nodes_shared import (
     video_source_size_bytes,
 )
 from .nodes_video import (
+    resolve_model_id,
     BytePlusVideoBase,
     _parse_draft_task_ids,
     build_draft_final_content,
@@ -84,7 +83,6 @@ from .nodes_video import (
     validate_seedance2_duration,
     validate_seedance2_resolution,
 )
-from .nodes_video_schema import resolve_model_id
 
 SEEDANCE_MODEL_TOOLTIP = (
     "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; "
@@ -446,20 +444,16 @@ async def _generate(cls, client, model, label, content, prompt, ratio, seed, wat
         ratio,
         seed,
         extras["generation_count"],
-        DEFAULT_FILENAME_PREFIX,  # unused: core-style nodes save nothing themselves
-        False,
         extras["non_blocking"],
         cls.hidden.unique_id,
         model_name=resolve_model_id(model_key),
         content=content,
         forbidden_params=FORBIDDEN_PROMPT_PARAMS,
-        enable_random_seed=False,
         is_auto_duration=auto_duration,
         extra_api_params=extra_api_params,
         return_last_frame=not _is_draft(label),
         node_class_type=cls.NODE_ID,
         workflow_prompt=getattr(cls.hidden, "prompt", None),
-        as_list=True,
     )
     video, last_frame, response = result.args
     return comfy_io.NodeOutput(video, task_ids_from_response(response), last_frame, response)
@@ -833,9 +827,8 @@ class BytePlusSeedance2TextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
             search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
             description="Generate video using Seedance 2.5 or 2.0 models based on a text prompt. "
-            "Calls BytePlus ModelArk directly with the API Client's key.",
+            "Calls BytePlus ModelArk directly with your API key.",
             inputs=[
-                optional_client_input(),
                 _model_input(lambda label: _text_option_inputs(label)),
                 seed_input(),
                 watermark_input(),
@@ -846,7 +839,7 @@ class BytePlusSeedance2TextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -890,9 +883,8 @@ class BytePlusSeedance2FirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
             search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
             description="Generate video using Seedance 2.5 or 2.0 from a first frame image "
-            "and optional last frame image. Calls BytePlus ModelArk directly with the API Client's key.",
+            "and optional last frame image. Calls BytePlus ModelArk directly with your API key.",
             inputs=[
-                optional_client_input(),
                 _model_input(
                     lambda label: _text_option_inputs(label, with_ratio=False, default_ratio="adaptive")
                 ),
@@ -931,7 +923,7 @@ class BytePlusSeedance2FirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -1029,11 +1021,10 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
             category=GLOBAL_CATEGORY,
             description="Generate, edit, or extend video using Seedance 2.5 or 2.0 with reference "
             "images, videos, and audio. Supports multimodal reference, video editing, and video extension. "
-            "Calls BytePlus ModelArk directly with the API Client's key; connected reference videos are "
+            "Calls BytePlus ModelArk directly with your API key; connected reference videos are "
             "uploaded to Comfy.org storage (needs a Comfy.org login), or pass links / asset IDs in "
             "reference_assets.",
             inputs=[
-                optional_client_input(),
                 _model_input(_reference_option_inputs),
                 seed_input(),
                 watermark_input(),
@@ -1049,7 +1040,7 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -1314,7 +1305,6 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
             "Draft (4k). The final keeps the draft's scene and motion, and reuses its prompt, references, "
             "duration, aspect ratio, and audio setting. The model is read from the draft task.",
             inputs=[
-                optional_client_input(),
                 comfy_io.String.Input(
                     "draft_task_id",
                     default="",
@@ -1336,7 +1326,7 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -1369,14 +1359,11 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
             estimation_duration=duration if duration > 0 else 5,
             resolution=resolution,
             generation_count=count,
-            filename_prefix=DEFAULT_FILENAME_PREFIX,  # unused: nothing is saved here
-            save_last_frame_batch=False,
             non_blocking=bool(non_blocking),
             extra_api_params=extra_api_params,
             service_tier=service_tier,
             execution_expires_after=execution_expires_after,
             ignore_errors=node_count > 1,
-            as_list=True,
         )
         return comfy_io.NodeOutput(*result.args)
 

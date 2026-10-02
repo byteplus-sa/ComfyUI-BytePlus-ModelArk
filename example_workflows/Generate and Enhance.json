@@ -5,179 +5,12 @@
   "last_link_id": 12,
   "nodes": [
     {
-      "id": 1,
-      "type": "BytePlusAPIClient",
-      "pos": [
-        20,
-        100
-      ],
-      "size": [
-        300,
-        190
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "new_api_key",
-          "type": "STRING",
-          "widget": {
-            "name": "new_api_key"
-          },
-          "link": null
-        },
-        {
-          "name": "new_key_name",
-          "type": "STRING",
-          "widget": {
-            "name": "new_key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "key_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "region",
-          "type": "COMBO",
-          "widget": {
-            "name": "region"
-          },
-          "link": null
-        },
-        {
-          "name": "new_access_key",
-          "type": "STRING",
-          "shape": 7,
-          "widget": {
-            "name": "new_access_key"
-          },
-          "link": null
-        },
-        {
-          "name": "new_secret_key",
-          "type": "STRING",
-          "shape": 7,
-          "widget": {
-            "name": "new_secret_key"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "links": [
-            1,
-            7
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
-        "Node name for S&R": "BytePlusAPIClient"
-      },
-      "widgets_values": [
-        "",
-        "",
-        "Custom",
-        "ap-southeast-1",
-        "",
-        ""
-      ],
-      "title": "ModelArk API Client"
-    },
-    {
-      "id": 2,
-      "type": "BytePlusMediaKitClient",
-      "pos": [
-        20,
-        330
-      ],
-      "size": [
-        300,
-        138
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "new_api_key",
-          "name": "new_api_key",
-          "type": "STRING",
-          "widget": {
-            "name": "new_api_key"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "new_key_name",
-          "name": "new_key_name",
-          "type": "STRING",
-          "widget": {
-            "name": "new_key_name"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "key_name",
-          "name": "key_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "key_name"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "region",
-          "name": "region",
-          "type": "COMBO",
-          "widget": {
-            "name": "region"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "mediakit_client",
-          "name": "mediakit_client",
-          "type": "BYTEPLUS_MEDIAKIT_CLIENT",
-          "links": [
-            2,
-            8
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
-        "Node name for S&R": "BytePlusMediaKitClient"
-      },
-      "widgets_values": [
-        "",
-        "",
-        "Custom",
-        "ap-southeast-1"
-      ],
-      "title": "MediaKit Client"
-    },
-    {
       "id": 3,
       "type": "BytePlusSeedream",
       "pos": [
-        390,
-        100
-      ],
+               20,
+               100
+             ],
       "size": [
         450,
         450
@@ -186,12 +19,6 @@
       "order": 2,
       "mode": 0,
       "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "shape": 7,
-          "link": 1
-        },
         {
           "name": "prompt",
           "type": "STRING",
@@ -345,9 +172,9 @@
       "id": 4,
       "type": "BytePlusImageEnhance",
       "pos": [
-        900,
-        100
-      ],
+               530,
+               100
+             ],
       "size": [
         400,
         190
@@ -356,13 +183,6 @@
       "order": 3,
       "mode": 0,
       "inputs": [
-        {
-          "localized_name": "mediakit_client",
-          "name": "mediakit_client",
-          "type": "BYTEPLUS_MEDIAKIT_CLIENT",
-          "shape": 7,
-          "link": 2
-        },
         {
           "localized_name": "image",
           "name": "image",
@@ -449,9 +269,9 @@
       "id": 5,
       "type": "SaveImage",
       "pos": [
-        1360,
-        100
-      ],
+               990,
+               100
+             ],
       "size": [
         300,
         270
@@ -489,9 +309,9 @@
       "id": 6,
       "type": "ImageCompare",
       "pos": [
-        1360,
-        420
-      ],
+               990,
+               420
+             ],
       "size": [
         400,
         330
@@ -536,9 +356,9 @@
       "id": 7,
       "type": "BytePlusSeedance2TextToVideo",
       "pos": [
-        390,
-        920
-      ],
+               20,
+               920
+             ],
       "size": [
         460,
         400
@@ -547,12 +367,6 @@
       "order": 6,
       "mode": 4,
       "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "shape": 7,
-          "link": 7
-        },
         {
           "name": "model",
           "type": "COMFY_DYNAMICCOMBO_V3",
@@ -682,9 +496,9 @@
       "id": 8,
       "type": "BytePlusVideoEnhance",
       "pos": [
-        900,
-        920
-      ],
+               530,
+               920
+             ],
       "size": [
         440,
         354
@@ -693,13 +507,6 @@
       "order": 7,
       "mode": 4,
       "inputs": [
-        {
-          "localized_name": "mediakit_client",
-          "name": "mediakit_client",
-          "type": "BYTEPLUS_MEDIAKIT_CLIENT",
-          "shape": 7,
-          "link": 8
-        },
         {
           "localized_name": "video",
           "name": "video",
@@ -862,9 +669,9 @@
       "id": 9,
       "type": "SaveVideo",
       "pos": [
-        1400,
-        920
-      ],
+               1030,
+               920
+             ],
       "size": [
         300,
         106
@@ -920,9 +727,9 @@
       "id": 10,
       "type": "ImageCompare",
       "pos": [
-        1400,
-        1080
-      ],
+               1030,
+               1080
+             ],
       "size": [
         400,
         330
@@ -966,27 +773,11 @@
   ],
   "links": [
     [
-      1,
-      1,
-      0,
-      3,
-      0,
-      "BYTEPLUS_CLIENT"
-    ],
-    [
-      2,
-      2,
-      0,
-      4,
-      0,
-      "BYTEPLUS_MEDIAKIT_CLIENT"
-    ],
-    [
       3,
       3,
       0,
       4,
-      1,
+      0,
       "IMAGE"
     ],
     [
@@ -1012,29 +803,13 @@
       6,
       1,
       "IMAGE"
-    ],
-    [
-      7,
-      1,
-      0,
-      7,
-      0,
-      "BYTEPLUS_CLIENT"
-    ],
-    [
-      8,
-      2,
-      0,
-      8,
-      0,
-      "BYTEPLUS_MEDIAKIT_CLIENT"
     ],
     [
       9,
       7,
       0,
       8,
-      1,
+      0,
       "VIDEO"
     ],
     [
@@ -1067,11 +842,11 @@
       "id": 1,
       "title": "Image: Seedream, then Image Quality Enhance",
       "bounding": [
-        370,
-        20,
-        1450,
-        780
-      ],
+                    0,
+                    20,
+                    1450,
+                    780
+                  ],
       "color": "#3f789e",
       "font_size": 22,
       "flags": {}
@@ -1080,11 +855,11 @@
       "id": 2,
       "title": "Video: Seedance, then vCube Video Enhance (enable as needed)",
       "bounding": [
-        370,
-        840,
-        1450,
-        620
-      ],
+                    0,
+                    840,
+                    1450,
+                    620
+                  ],
       "color": "#3f789e",
       "font_size": 22,
       "flags": {}

@@ -166,29 +166,13 @@ SPEECH_ERROR_TEXT = {
     55001307: "Voice cloning failed on the server. Try again.",
 }
 
-# General
-MAX_SEED = 2147483647
-MIN_SEED = -1
-DEFAULT_GUIDANCE_SCALE = 5.0
-MAX_GENERATION_COUNT = 2048
 
-# Image resolution limits
-MIN_IMAGE_PIXELS_V4_5 = 3686400
-MAX_IMAGE_PIXELS_V4 = 4096 * 4096
-MIN_IMAGE_PIXELS_V5 = 3686400
-MAX_IMAGE_PIXELS_V5 = 4096 * 4096
-MIN_IMAGE_PIXELS_V5_PRO = 1280 * 720
-MAX_IMAGE_PIXELS_V5_PRO = 4624220  # 2048 x 2048 x 1.1025
-MIN_LAYER_INPUT_PIXELS = 512 * 512
-MAX_LAYER_INPUT_PIXELS = 6000 * 6000
 MIN_ASPECT_RATIO = 1.0 / 16.0
 MAX_ASPECT_RATIO = 16.0
 
 # Video limits
 VIDEO_MAX_SEED = 2147483647
 VIDEO_DEFAULT_TIMEOUT = 172800
-VIDEO_MIN_TIMEOUT = 3600
-VIDEO_MAX_TIMEOUT = 259200
 IMAGE_MIN_EDGE = 300
 IMAGE_MAX_EDGE = 6000
 IMAGE_MIN_RATIO = 0.4
@@ -198,9 +182,6 @@ REF_IMAGE_MAX_TOTAL_REQUEST_MB = 64.0
 REF_MEDIA_MIN_DURATION = 2.0
 REF_MEDIA_MAX_DURATION = 15.2
 REF_MEDIA_MAX_DURATION_SEEDANCE_2_5 = 30.2
-REF_VIDEO_MIN_DURATION = REF_MEDIA_MIN_DURATION
-REF_VIDEO_MAX_DURATION = REF_MEDIA_MAX_DURATION
-REF_VIDEO_MAX_TOTAL_DURATION = REF_MEDIA_MAX_DURATION
 REF_VIDEO_MAX_SIZE_MB = 200.0
 # Seedance 2.5 edit tasks need a reference video of at least 4 s.
 SEEDANCE_2_5_EDIT_MIN_DURATION = 4.0
@@ -211,25 +192,13 @@ REF_VIDEO_MAX_FPS = 60.0
 SEEDANCE_REQUEST_MAX_BYTES = 64 * 1024 * 1024
 REF_AUDIO_MIN_DURATION = REF_MEDIA_MIN_DURATION
 REF_AUDIO_MAX_DURATION = REF_MEDIA_MAX_DURATION
-REF_AUDIO_MAX_TOTAL_DURATION = REF_MEDIA_MAX_DURATION
 REF_AUDIO_MAX_SIZE_MB = 15.0
 REF_AUDIO_MAX_TOTAL_REQUEST_MB = 64.0
-DEFAULT_VISUAL_SYSTEM_PROMPT = "You are a helpful assistant that describes and analyzes images and videos accurately."
-DEFAULT_VISUAL_USER_PROMPT = "Describe the content of this image or video."
 VIDEO_FRAME_RATE = 24.0
 VIDEO_MIN_FRAMES = 29
 VIDEO_MAX_FRAMES = 289
 VIDEO_FRAME_STEP = 4.0
 VIDEO_BASE_FRAMES = 25.0
-VIDEO_RESOLUTIONS = ["480p", "720p", "1080p", "4k"]
-# Approximate pixel count per video resolution
-VIDEO_RESOLUTION_PIXELS = {
-    "480p": 409920,
-    "720p": 921600,
-    "1080p": 2073600,
-    "4k": 8294400,
-}
-DEFAULT_FILENAME_PREFIX = "BytePlus/Video/Batch/Seedance"
 
 MESSAGES = {
     "init_credentials_routes_failed": "Could not register the BytePlus credentials routes ({e}); Settings > BytePlus will not work. The nodes still load.",
@@ -243,10 +212,6 @@ MESSAGES = {
     "err_file_processing_failed": "ModelArk could not process file {id}: {reason}",
     "err_file_processing_timeout": "File {id} was not ready after {seconds} s. Try again, or use a smaller file.",
     "err_file_status_check": "Could not check the status of file {id}: {e}",
-    "api_file_not_found": "Info: API keys file not found. Please rename 'api_keys.json.example' to 'api_keys.json' and fill in your keys.",
-    "api_file_empty": "Warning: 'api_keys.json' is empty or not formatted correctly.",
-    "api_load_error": "Error: Failed to load 'api_keys.json': {e}",
-    "api_key_not_found": "Error: API Key for '{key_name}' not found.",
     "est_fallback": "Fallback Default",
     "est_history": "History Average",
     "est_regression": "Linear Regression",
@@ -280,16 +245,12 @@ MESSAGES = {
     "task_finished_single": "Task completed successfully.",
     "batch_finished_stats": "Batch finished. Success: {success}, Failed: {failed}.",
     "batch_handling": "Handling {count} successful tasks. Sorting by seed and downloading...",
-    "batch_copying": "Copying files to output directory: {path}",
     "batch_last_frame_missing": "No last frame for {missing} of {total} videos; the last_frame batch leaves them out.",
     "err_download_url": "Async download failed, URL: {url}, Error: {e}",
     "err_video_download_failed": "The task(s) succeeded (and were billed) but their videos could not be downloaded: {task_ids}. The videos stay available for 24 hours: fetch them with the Video Query Tasks node or from the ModelArk console.",
     "batch_video_download_partial": "Downloaded {done} of {total} videos; could not download task(s) {task_ids}. They stay available for 24 hours (Video Query Tasks node or the ModelArk console).",
     "check_status": "Checking status of {count} pending task(s)...",
-    "err_create_dummy_video": "Failed to create placeholder video: {e}",
     "err_on_tasks_created": "Failed to record created task IDs: {e}",
-    "err_task_create": "Task creation failed: {e}",
-    "err_task_check": "Failed to check status for {tid}: {e}",
     "err_task_fail_msg": "Task {tid} failed: {msg}",
     "err_batch_fail_all": "Batch failed: No tasks succeeded.",
     "err_task_poll_failed": "Could not check task {task_id} ({count} attempt(s)): {reason} The task may still finish and be billed; check it with the Video Query Tasks node or in the ModelArk console.",
@@ -303,65 +264,33 @@ MESSAGES = {
     "stream_partial_fail": "Streaming Warning: Image {index} failed: {msg}",
     "popup_req_failed": "Request failed: {msg}",
     "popup_task_failed": "Task {task_id} failed: {msg}",
-    "popup_batch_pending": "Batch ({count} tasks) is pending. Run again to check results.",
-    "popup_task_pending": "Task {task_id} is {status}. Run again to check results.",
     "popup_param_not_allowed": "Parameter Error: Parameter '--{param}' is not allowed in the prompt. Please use the node's widget for this value.",
     "popup_first_frame_missing": "Parameter Error: A first frame image must be provided when using a last frame image.",
-    "popup_ref_missing": "Parameter Error: At least one reference image must be provided.",
     "popup_audio_invalid": "Parameter Error: Invalid reference audio input. Please provide a valid ComfyUI audio object.",
-    "popup_video_prompt_or_ref_required": "Parameter Error: A prompt or at least one reference input is required.",
-    "popup_audio_requires_visual_ref": "Parameter Error: Audio reference requires at least one reference image or reference video.",
-    "popup_first_last_conflict_with_refs": "Parameter Error: First/last frame mode cannot be used together with reference inputs. Please choose one.",
-    "popup_ref_count_exceeded": "Parameter Error: Model {model} supports at most {max} {kind} inputs. Current: {count}",
-    "ref_kind_images": "reference image",
-    "ref_kind_videos": "reference video",
-    "ref_kind_audios": "reference audio",
     "popup_ref_image_hw_out_of_range": "Parameter Error: Reference image width/height must be between {min}px and {max}px. Current: {width}x{height}",
     "popup_ref_image_ratio_out_of_range": "Parameter Error: Reference image ratio must be between {min} and {max}. Current: {ratio}",
     "popup_ref_image_size_exceeded": "Parameter Error: Single reference image Base64 size cannot exceed {max_mb}MB. Current: {size_mb}MB",
     "popup_ref_image_total_size_exceeded": "Parameter Error: Total reference image Base64 size cannot exceed {max_mb}MB. Current: {size_mb}MB",
-    "popup_ref_video_invalid": "Parameter Error: Invalid reference video input. Please provide a valid video object.",
-    "popup_ref_video_url_format": "Parameter Error: Reference video URL must be mp4 or mov.",
-    "popup_ref_video_format": "Parameter Error: Reference video format must be mp4 or mov. Current: {fmt}",
     "popup_ref_video_hw_out_of_range": "Parameter Error: Reference video width/height must be between {min}px and {max}px. Current: {width}x{height}",
     "popup_ref_video_ratio_out_of_range": "Parameter Error: Reference video ratio must be between {min} and {max}. Current: {ratio}",
-    "popup_ref_video_pixels_out_of_range": "Parameter Error: Reference video pixel count must be between {min} and {max}. Current: {pixels}",
-    "popup_ref_video_duration_out_of_range": "Parameter Error: Single reference video duration must be between {min}s and {max}s. Current: {duration}s",
-    "popup_ref_video_total_duration_exceeded": "Parameter Error: Total reference video duration cannot exceed {max}s. Current: {duration}s",
     "popup_ref_video_size_exceeded": "Parameter Error: Single reference video size cannot exceed {max_mb}MB. Current: {size_mb}MB",
     "popup_ref_video_fps_out_of_range": "Parameter Error: Reference video frame rate must be between {min} and {max} FPS. Current: {fps} FPS",
-    "popup_ref_video_codec_unsupported": "Parameter Error: Reference video codec must be H.264 or H.265. Current: {codec}",
-    "popup_ref_audio_codec_unsupported": "Parameter Error: Audio codec in the reference video must be AAC or MP3. Current: {codec}",
     "popup_ref_audio_duration_out_of_range": "Parameter Error: Single reference audio duration must be between {min}s and {max}s. Current: {duration}s",
-    "popup_ref_audio_total_duration_exceeded": "Parameter Error: Total reference audio duration cannot exceed {max}s. Current: {duration}s",
     "popup_ref_audio_size_exceeded": "Parameter Error: Single reference audio size cannot exceed {max_mb}MB. Current: {size_mb}MB",
     "popup_ref_audio_total_size_exceeded": "Parameter Error: Total reference audio request size cannot exceed {max_mb}MB. Current: {size_mb}MB",
-    "popup_prepare_failed": "Failed to prepare task: {e}",
-    "err_pixels_range": "Parameter Error: Total pixels must be between {min} and {max}. Your current: {current}",
-    "err_aspect_ratio": "Parameter Error: Aspect ratio must be between {min} and {max}. Your current: {current}",
     "err_download_img": "Error: Failed to download the generated image.",
     "err_model_not_supported": "This node does not support model {model}.",
-    "err_seedream_flash_prompt_optimization": "Seedream 5.0 Flash supports only standard prompt optimization.",
     "err_seedance2_resolution_unsupported": "Model {model} does not support {resolution}. Supported resolutions: {supported}.",
     "err_seedance2_duration_unsupported": "Model {model} requires a duration between {min} and {max} seconds. Current: {duration}",
-    "err_seedance25_editing_params": "Seedance 2.5 video editing (task_type edit) requires the adaptive aspect ratio and auto duration.",
-    "err_no_draft_to_reuse": "reuse_last_draft_task is on, but this node has no draft to reuse (drafts are remembered per node and model until ComfyUI restarts). Turn off reuse and paste the draft task ID into draft_task_id, or generate a draft first.",
-    "err_draft_final_resolution": "Final videos rendered from a {model} draft support only {supported}. Current resolution: {resolution}.",
-    "err_seedance25_first_frame_ratio": "Seedance 2.5 image-to-video keeps the first frame's aspect ratio. Set aspect_ratio to adaptive.",
-    "err_seedance25_task_type_needs_video": "Seedance 2.5 task_type '{task_type}' needs at least one reference video.",
-    "err_seedance25_extend_params": "Seedance 2.5 video extension requires the adaptive aspect ratio.",
-    "err_asset_credentials_missing": "The asset library needs IAM AK/SK with asset-library permission (plus Dreamina Seedance Advanced Creation Rights on the account). Add them in Settings > BytePlus (Asset library IAM AK/SK), or set key_name to Custom on the API Client, paste the API key again under the same new_key_name together with new_access_key and new_secret_key, and run once (they are saved with the key). Alternatively add \"accessKey\" and \"secretKey\" (and \"sessionToken\" for STS keys) to the entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY.",
+    "err_asset_credentials_missing": "The asset library needs IAM AK/SK with asset-library permission (plus Dreamina Seedance Advanced Creation Rights on the account). Add them in Settings > BytePlus (Asset library IAM AK/SK), or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY (and BYTEPLUS_SESSION_TOKEN for STS keys) in user/.env or the environment.",
     "err_asset_api": "Asset library {action} failed: {code}: {message}{hint}",
-    "hint_asset_auth": " Check the AK/SK in Settings > BytePlus, api_keys.json or the BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY environment variables.",
+    "hint_asset_auth": " Check the IAM AK/SK in Settings > BytePlus.",
     "hint_asset_denied": " The IAM user needs asset-library permission in this project, and the account needs Dreamina Seedance Advanced Creation Rights.",
     "hint_asset_throttled": " CreateAsset is rate-limited by your Advanced Creation Rights tier (Entry 3, Advanced 120, Premium 300 per minute); wait and retry.",
     "err_asset_no_id": "Asset library {action} returned no ID. Try again; if it repeats, check the asset library in the ModelArk console.",
-    "err_asset_source_missing": "Connect an image or set image_url (a public HTTPS URL) for the asset.",
-    "err_asset_url_invalid": "image_url must be an HTTPS URL. Current: {url}",
     "err_asset_group_ambiguous": "{count} asset groups are named '{name}'. Set group_id to choose one.",
     "err_asset_failed": "Asset {asset_id} failed processing or review (status {status}). Check the material and try another image.",
     "err_asset_timeout": "Asset {asset_id} is still {status} after {seconds}s. It may still become Active; list it with Asset Library before creating it again.",
-    "err_asset_uri_invalid": "Not a valid reference: '{value}'. Use an https:// URL or asset://<asset_id>, one per line.",
     "err_comfy_image_upload_unavailable": "Local images are uploaded through Comfy.org storage to get the HTTPS URL CreateAsset needs, which is unavailable in this ComfyUI ({e}). Pass a public image_url instead.",
     "err_comfy_image_upload_failed": "Uploading the image to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or pass a public image_url instead.",
     "asset_group_created": "Created asset group {group_id} ('{name}').",
@@ -373,25 +302,8 @@ MESSAGES = {
     "err_request_body_too_large": "The final request body exceeds the 64 MiB limit (maximum {max_bytes} bytes; current {current_bytes} bytes). Reduce reference media.",
     "err_transparent_needs_one_image": "Transparent background needs exactly one reference image with an alpha channel (connect its mask to reference_mask). Current reference images: {n}.",
     "err_transparent_needs_png": "Transparent background returns PNG; set output_format to png.",
-    "err_layer_input_pixels": "Layer decomposition input must be between {min} and {max} total pixels. Current: {current}.",
-    "err_layer_decomposition_empty": "Layer decomposition returned no images.",
-    "err_gen_model": "Failed to generate image with model {model}: {e}",
-    "err_img_limit_10": "Parameter Error: The number of input images cannot exceed 10.",
-    "err_img_limit_15": "Parameter Error: The sum of input images ({n}) and max generated images ({max}) cannot exceed 15.",
-    "err_img_limit_group_15": "Parameter Error: The sum of input images ({n}) and max generated images ({max}) cannot exceed 15 in group mode (Total: {total}).",
-    "popup_key_valid_err": "Config Error: Selected key '{key}' is invalid or not found. Please check api_keys.json.",
-    "err_new_key_empty": "Config Error: Manual entry enabled but API Key is empty.",
-    "err_new_key_invalid": "Auth Failed: Input API Key is invalid. Connection rejected by server.",
-    "info_new_key_saved": "Info: New key '{name}' verified and saved to api_keys.json.",
-    "info_new_asset_credentials_saved": "Info: IAM AK/SK saved with key '{name}' for the asset library.",
-    "err_new_asset_credentials_incomplete": "Config Error: new_access_key and new_secret_key go together. Fill in both, or leave both empty.",
-    "quota_exceeded": "Quota Exceeded: Usage limit for model {model} reached ({used}/{limit}). Estimated cost: {estimated}. Limit has been automatically removed. Please run again or set a new quota.",
-    "quota_update_failed": "Warning: Failed to update quota usage: {e}",
-    "quota_set_log": "Set quota for {model}: {limit} ({type})",
-    "quota_update_log": "Updated usage for {model}: +{cost} (Total: {total})",
 
     # Visual Understanding
-    "visual_processing_input": "Processing visual_input_{i}, type: {type}",
     "visual_found_file": "Found file in input directory: {path}",
     "visual_uploading": "Uploading file: {path}",
     "visual_uploaded": "Uploaded file_id: {id}, Status: {status}",
@@ -401,19 +313,14 @@ MESSAGES = {
     "visual_cont_conv": "Continuing conversation {id}...",
     "visual_cached_id": "Cached response_id for next turn: {id}",
     "visual_stream_start": "Starting Streaming Response...",
-    "visual_stream_complete": "Stream Completed.",
     "visual_task_created": "Response Task Created",
-    "visual_polling": "Polling Response Task: {id}",
     "visual_task_complete": "Task {id} completed.",
     "visual_task_failed": "Task {id} failed: {msg}",
 
     # Default credentials (Settings > BytePlus, BYTEPLUS_* variables, user/.env)
-    "err_no_default_key": "No BytePlus API key found. Add it in Settings > BytePlus, set the BYTEPLUS_API_KEY environment variable, or put BYTEPLUS_API_KEY=... in {path}. You can also connect a BytePlus API Client node.",
-    "err_default_key_ambiguous": "No default BytePlus API key is set, and api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus API Client node.",
-    "err_default_speech_key_ambiguous": "No default Seed Speech API key is set, and speech_api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus Speech Client node.",
-    "err_default_mediakit_key_ambiguous": "No default AI MediaKit API key is set, and mediakit_api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus MediaKit Client node.",
-    "err_no_default_speech_key": "No Seed Speech API key found. Add it in Settings > BytePlus, set BYTEPLUS_SEED_SPEECH_API_KEY, or put BYTEPLUS_SEED_SPEECH_API_KEY=... in {path}. You can also connect a BytePlus Speech Client node.",
-    "err_no_default_mediakit_key": "No AI MediaKit API key found. Add it in Settings > BytePlus, set BYTEPLUS_VOD_MEDIAKIT_API_KEY, or put BYTEPLUS_VOD_MEDIAKIT_API_KEY=... in {path}. You can also connect a BytePlus MediaKit Client node.",
+    "err_no_api_key": "No BytePlus API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_API_KEY=... in {path} (or set the BYTEPLUS_API_KEY environment variable).",
+    "err_no_speech_key": "No Seed Speech API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_SEED_SPEECH_API_KEY=... in {path} (or set the environment variable).",
+    "err_no_mediakit_key": "No AI MediaKit API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_VOD_MEDIAKIT_API_KEY=... in {path} (or set the environment variable).",
     "cred_unknown": "Unknown credential.",
     "cred_bad_request": "The request is not valid.",
     "cred_forbidden_origin": "Requests from another origin are not accepted.",
@@ -428,12 +335,6 @@ MESSAGES = {
     "cred_saved_log": "Default credentials updated in {path}: {names}.",
 
     # Seed Speech (Seed Audio, TTS, ASR)
-    "speech_key_empty": "Paste a Seed Speech API key into new_api_key, or pick a saved key.",
-    "speech_key_not_found": "Seed Speech API key '{key_name}' was not found in speech_api_keys.json.",
-    "speech_env_key_missing": "The environment variable {env} is not set. Set it to your Seed Speech API key, or pick another key.",
-    "speech_key_save_failed": "Could not write speech_api_keys.json; key '{name}' was not saved and stays in the node.",
-    "speech_key_saved": "Seed Speech API key '{name}' saved to speech_api_keys.json.",
-    "speech_wrong_client": "Connect a BytePlus Speech Client. Seed Speech needs its own API key; the ModelArk API Client does not work here.",
     "speech_request_failed": "Seed Speech {operation} failed (HTTP {status}, code {code}): {message}{logid}",
     "speech_network_error": "Could not reach Seed Speech ({operation}): {e}",
     "speech_timeout": "Seed Speech {operation} timed out after {seconds} s.",
@@ -494,17 +395,17 @@ MESSAGES = {
     "asr_silent_audio": "No speech was found in the audio.",
     "asr_task_submitted": "ASR task submitted: {task_id}",
 
-    # Core-style nodes (shaped like ComfyUI core's ByteDance nodes): shared helpers in core_style.py
+    # Shared helpers in core_style.py
     "err_output_linked": "{reason} (currently linked: {consumers}).",
     "err_reference_value_invalid": "Not a valid reference: '{value}'. Use an asset ID, asset://<asset_id> or an https:// link.",
     "err_reference_value_multiple": "Each reference input takes one asset ID, asset://<asset_id> or https:// link, but got several (or spaces): '{value}'. Connect each reference to its own asset_N slot.",
     "err_reference_url_type_unknown": "Could not tell whether {url} is an image, video or audio file. Use a link ending in the file extension (for example .png, .mp4 or .mp3).",
-    "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add them in Settings > BytePlus (Asset library IAM AK/SK), or add \"accessKey\" and \"secretKey\" to the selected entry in api_keys.json, or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY.",
+    "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add them in Settings > BytePlus (Asset library IAM AK/SK).",
     "err_reference_asset_not_active": "Reference asset {asset_id} is not Active (status: {status}).",
     "err_reference_asset_type_unknown": "Reference asset {asset_id} has an unknown asset type.",
     "err_reference_type_mismatch": "'{value}' is {kind}, but this input needs {expected}.",
 
-    # Core-style nodes: Seedance 2 / 2.5 and asset creation (nodes_seedance2.py, nodes_assets.py)
+    # Seedance 2 / 2.5 and asset creation (nodes_seedance2.py, nodes_assets.py)
     "err_seedance2_prompt_empty": "Enter a prompt.",
     "err_seedance2_draft_output_linked": "Only the Seedance 2.5 Draft and Seedance 2.5 Premium Draft models produce a draft_task_id. Select one of them as the model, or disconnect the draft_task_id output",
     "err_seedance2_first_frame_both": "Provide only one of first_frame or first_frame_asset_id, not both.",
@@ -551,15 +452,14 @@ MESSAGES = {
     "err_comfy_audio_upload_failed_asset": "Uploading the audio to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or pass a public audio_url instead.",
     "asset_ids_saved_hint": "Save the asset_id and group_id for reuse.\n\nasset_id: {asset_id}\n\ngroup_id: {group_id}",
 
-    # Core-style nodes: Seedance 1.x (nodes_seedance1.py)
-    "err_model_retired": "{model} is deprecated by BytePlus (shut down on 2026-11-11), so this pack no longer uses it. Switch to {replacement}.",
-    "err_model_region_unavailable": "{model} is not available in {region}. Pick another model, or use an API Client in another region.",
+    # Seedance 1.x (nodes_seedance1.py)
+    "err_model_region_unavailable": "{model} is not available in {region}. Pick another model, or another region in Settings > BytePlus.",
     "err_seedance1_prompt_empty": "prompt is empty. Describe the video to generate.",
     "err_seedance1_image_missing": "{name} is required.",
     "err_seedance1_image_size": "{name}: width and height must be between {min} and {max} pixels (got {width}x{height}).",
     "err_seedance1_image_ratio": "{name}: aspect ratio (width / height) must be between {min} and {max} (got {ratio}).",
 
-    # Core-style nodes: Seedream and Layer Separation (nodes_seedream.py)
+    # Seedream and Layer Separation (nodes_seedream.py)
     "seedream_err_prompt_empty": "Prompt cannot be empty.",
     "seedream_err_unknown_model": "Unknown Seedream model: {model}.",
     "seedream_err_min_pixels": "Minimum image resolution for the selected model is {min_mp:.2f}MP, but {mp:.2f}MP provided.",
@@ -582,7 +482,7 @@ MESSAGES = {
     "seedream_layers_warn_dropped": "Seedream layer separation: {dropped} of {count} returned elements had no image data and were dropped.",
     "seedream_layers_warn_flagged": "Seedream layer separation: layer {index} ({name}) flagged {flags}.",
 
-    # Core-style nodes: Seed LLM and Seed Audio (nodes_seed.py, nodes_speech.py)
+    # Seed LLM and Seed Audio (nodes_seed.py, nodes_speech.py)
     "seed_llm_prompt_empty": "prompt is empty.",
     "seed_llm_unknown_model": "Unknown model: {model}.",
     "seed_llm_too_many_images": "Up to {max} images are supported per request; {count} are connected.",
@@ -603,11 +503,6 @@ MESSAGES = {
     "seed_audio_tag_preset_mode": "'preset voice' mode uses a single voice, so @Audio{tag} is out of range. Remove the @AudioN tags; the whole prompt is read in the selected voice.",
 
     # BytePlus VOD AI MediaKit (nodes_mediakit.py)
-    "mediakit_key_empty": "MediaKit Client: key_name is Custom but new_api_key is empty.",
-    "mediakit_key_saved": "MediaKit API key '{name}' saved to mediakit_api_keys.json.",
-    "mediakit_key_save_failed": "Could not write mediakit_api_keys.json; key '{name}' was not saved and stays in the node.",
-    "mediakit_key_not_found": "MediaKit API key '{key_name}' was not found in mediakit_api_keys.json.",
-    "mediakit_env_key_missing": "Environment variable {env} is not set. Set it to your AI MediaKit API key and restart ComfyUI, or pick Custom.",
     "mediakit_hint_auth": " Check the MediaKit API key (AI MediaKit console > Settings > API key: {url}); ModelArk and Seed Speech keys do not work here.",
     "err_mediakit_api": "MediaKit request failed: {code}{param}: {message}.{request_id}{hint}",
     "err_mediakit_network": "Could not reach AI MediaKit: {e}",
@@ -648,12 +543,12 @@ MESSAGES = {
     "err_comfy_video_upload_failed_mediakit": "Uploading the video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set video_url to a public link instead.",
 
     "api_errors": {
-        "AuthenticationError": "Invalid API Key (401). Check the key (Settings > BytePlus, BYTEPLUS_API_KEY or api_keys.json), and that the region (BYTEPLUS_REGION or the API Client) matches the region the key was created in.",
+        "AuthenticationError": "Invalid API Key (401). Check the key in Settings > BytePlus, and that the region there matches the region the key was created in.",
         "AccessDenied": "Access Denied (403). No permission or IP whitelist issue.",
         "AccountOverdueError": "Account Overdue (403). Top up your BytePlus account in the BytePlus console billing center.",
         "ServiceOverdue": "Service Overdue (403). Top up your BytePlus account in the BytePlus console billing center.",
         "ServiceNotOpen": "Service Not Open (403). Activate the model in the ModelArk console (Model activation).",
-        "ModelNotOpen": "Your account %s has not activated the model %s. Activate it in the ModelArk console (Model activation) for the region selected in the API Client.",
+        "ModelNotOpen": "Your account %s has not activated the model %s. Activate it in the ModelArk console (Model activation) for the region selected in Settings > BytePlus.",
         "TaskRunningCannotCancel": "Task is currently running and cannot be cancelled (409).",
         "RateLimitExceeded": "Rate Limit Exceeded (429). Please try again later.",
         "RateLimitExceeded.EndpointRPMExceeded": "Endpoint RPM limit exceeded (429). Please try again later.",

@@ -5,81 +5,12 @@
   "last_link_id": 3,
   "nodes": [
     {
-      "id": 1,
-      "type": "BytePlusSpeechClient",
-      "pos": [
-        20,
-        80
-      ],
-      "size": [
-        320,
-        138
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "new_api_key",
-          "type": "STRING",
-          "widget": {
-            "name": "new_api_key"
-          },
-          "link": null
-        },
-        {
-          "name": "new_key_name",
-          "type": "STRING",
-          "widget": {
-            "name": "new_key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "key_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "region",
-          "type": "COMBO",
-          "widget": {
-            "name": "region"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "speech_client",
-          "type": "BYTEPLUS_SPEECH_CLIENT",
-          "links": [
-            1
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
-        "Node name for S&R": "BytePlusSpeechClient"
-      },
-      "widgets_values": [
-        "",
-        "",
-        "Custom",
-        "ap-southeast-1"
-      ]
-    },
-    {
       "id": 2,
       "type": "BytePlusSeedAudio",
       "pos": [
-        380,
-        80
-      ],
+               20,
+               80
+             ],
       "size": [
         460,
         576
@@ -88,12 +19,6 @@
       "order": 1,
       "mode": 0,
       "inputs": [
-        {
-          "name": "speech_client",
-          "type": "BYTEPLUS_SPEECH_CLIENT",
-          "shape": 7,
-          "link": 1
-        },
         {
           "name": "text_prompt",
           "type": "STRING",
@@ -301,9 +226,9 @@
       "id": 3,
       "type": "PreviewAudio",
       "pos": [
-        900,
-        80
-      ],
+               540,
+               80
+             ],
       "size": [
         320,
         110
@@ -330,9 +255,9 @@
       "id": 4,
       "type": "PreviewAny",
       "pos": [
-        900,
-        240
-      ],
+               540,
+               240
+             ],
       "size": [
         380,
         260
@@ -357,14 +282,6 @@
     }
   ],
   "links": [
-    [
-      1,
-      1,
-      0,
-      2,
-      0,
-      "BYTEPLUS_SPEECH_CLIENT"
-    ],
     [
       2,
       2,

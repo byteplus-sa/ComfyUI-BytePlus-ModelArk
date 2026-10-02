@@ -3,12 +3,9 @@ import threading
 import time
 import math
 import datetime
-import logging
 import json
 import aiohttp
-import torch
 import random
-from byteplussdkarkruntime import Ark
 from byteplussdkarkruntime.types.responses.response_completed_event import ResponseCompletedEvent
 from byteplussdkarkruntime.types.responses.response_reasoning_summary_text_delta_event import ResponseReasoningSummaryTextDeltaEvent
 from byteplussdkarkruntime.types.responses.response_output_item_added_event import ResponseOutputItemAddedEvent
@@ -25,7 +22,6 @@ from .nodes_shared import (
     BytePlusException,
     billed_ark,
     call_billed,
-    create_white_image_tensor,
     format_api_error,
     get_text,
     log_msg,
@@ -376,21 +372,6 @@ class BytePlusGenerationExecutor:
             
         raise BytePlusException(display_msg)
 
-    def _create_pending_json(self, status, task_id=None, task_count=0):
-        """
-        Raise a pending-status exception, shown in the UI in non-blocking mode.
-        """
-        if task_count > 0:
-            msg = get_text("popup_batch_pending").format(count=task_count)
-        else:
-            msg = get_text("popup_task_pending").format(task_id=task_id, status=status)
-        
-        if self.ignore_errors:
-            print(f"[BytePlus] Pending (Ignored for multi-node): {msg}")
-            return
-
-        raise BytePlusException(msg)
-
     async def run_batch_tasks(
         self,
         model_name,
@@ -406,12 +387,10 @@ class BytePlusGenerationExecutor:
         extra_api_params=None,
         return_last_frame=True,
         on_tasks_created=None,
-        offset_seed=False,
     ):
         """
         Run a batch of video tasks: create, poll with progress estimates, handle errors.
-        offset_seed: with several tasks, task i sends seed + i (the core-style nodes; the
-        Legacy nodes keep sending the same seed to every task).
+        With several tasks, task i sends seed + i, so the videos differ.
         """
         ark_client = self.ark_client
         ps_instance = self.ps_instance
@@ -542,7 +521,7 @@ class BytePlusGenerationExecutor:
             # Same seed, same prompt: the tasks would be near-duplicates. Offset a
             # fixed seed per task like Seedream does; -1 (random) and no seed stay as is.
             seed = task_kwargs.get("seed")
-            if offset_seed and generation_count > 1 and isinstance(seed, int) and seed >= 0:
+            if generation_count > 1 and isinstance(seed, int) and seed >= 0:
                 task_kwargs["seed"] = (seed + i) % (VIDEO_MAX_SEED + 1)
             if is_multi_content:
                 task_kwargs["content"] = content[i % len(content)]

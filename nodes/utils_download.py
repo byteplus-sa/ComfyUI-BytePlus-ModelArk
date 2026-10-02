@@ -1,6 +1,5 @@
 import os
 import io
-import time
 import base64
 import asyncio
 import aiohttp
@@ -9,7 +8,6 @@ import numpy
 import PIL.Image
 import folder_paths
 import random
-import shutil
 import comfy.model_management
 from .nodes_shared import log_msg
 
@@ -274,25 +272,3 @@ async def download_image_to_temp(
     return (tensor, path)
 
 
-def save_to_output(src_path: str, filename_prefix: str):
-    """
-    Copy a temp file into the ComfyUI output directory.
-    """
-    if not src_path or not os.path.exists(src_path):
-        return
-
-    try:
-        output_dir = folder_paths.get_output_directory()
-        
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, output_dir)
-        
-        ext = os.path.splitext(src_path)[1]
-        if not ext:
-            ext = ".mp4"
-
-        dest_filename = f"{filename}_{counter:05}_{ext}"
-        dest_path = os.path.join(full_output_folder, dest_filename)
-
-        shutil.copy2(src_path, dest_path)
-    except Exception as e:
-        log_msg("err_copy_fail", path=src_path, e=e)

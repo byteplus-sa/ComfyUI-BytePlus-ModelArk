@@ -14,7 +14,7 @@ description: Step-by-step workflow for adding, re-dating, retiring or region-lim
 
 ## 1. New dated version of an existing model
 
-Change only the value in the map (`VIDEO_MODEL_MAP`, `SEEDREAM_*_MODEL_MAP`, `VISUAL_MODEL_MAP`, `SEED_LLM_MODEL_MAP`, core-style `SEEDREAM_MODELS` / `SEEDANCE_1_MODELS` …). UI names are saved in workflows — keep them. Then grep the old ID across the repo (`git grep <old-id>`): tests, README and example workflows often hard-code it.
+Change only the value in the ID map (`VIDEO_MODEL_MAP`, `SEEDREAM_4_MODEL_MAP` / `SEEDREAM_5_MODEL_MAP`, `VISUAL_MODEL_MAP` for Seed LLMs, `SEED_LLM_MODEL_MAP` for the others; `SEEDREAM_MODELS`, `SEEDANCE_1_MODELS` and `SEED_LLM_MODEL_MAP` read their IDs from the first three). Option labels are saved in workflows — keep them. Then grep the old ID across the repo (`git grep <old-id>`): tests, README and example workflows often hard-code it.
 
 ## 2. New model
 
@@ -25,29 +25,24 @@ Add it to **every** table of its family:
 | Seedance 2.x | `VIDEO_MODEL_MAP`, `VIDEO_2_UI_OPTIONS`, `VIDEO_2_MODEL_RESOLUTIONS`, `VIDEO_2_MODEL_MAX_DURATIONS`, `VIDEO_2_MODEL_REFERENCE_LIMITS`, `SEEDANCE2_CORE_MODEL_OPTIONS` (label → key; add a `… Draft` label + `SEEDANCE2_CORE_DRAFT_OPTIONS` if it drafts), `SEEDANCE2_REF_VIDEO_DOWNSCALE_TARGETS` if core has budgets for it |
 | Seedance 2.5-family | also `SEEDANCE_2_5_FAMILY` and `SEEDANCE_DRAFT_FINAL_RESOLUTIONS` — missing ones raise KeyError while building the schema and **the whole pack fails to load** |
 | Seedance 1.x | `VIDEO_MODEL_MAP`, `VIDEO_1_UI_OPTIONS`, `SEEDANCE_1_MODELS` (+ FLF options if it supports first/last frame) |
-| Seedream | Legacy `SEEDREAM_4/5_MODEL_MAP` + core-style `SEEDREAM_MODELS`, `SEEDREAM_MODEL_CAPS` (pixel range, refs, outputs); layer separation in `SEEDREAM_LAYER_SEPARATION_MODELS`; size presets in `nodes_image_schema.py` |
-| LLM (`BytePlusSeed`) | `SEED_LLM_MODEL_MAP` (core's three labels stay first — first option is the default); `SEED_LLM_NO_REASONING_EFFORT` if it rejects `reasoning.effort`; `SEED_LLM_AUDIO_MODELS` if it takes audio input (`SEED_LLM_MAX_AUDIOS` caps the clips). Non-Seed LLMs are fine if ModelArk hosts them and they take the same request |
-| Legacy Visual | `VISUAL_MODEL_MAP` (first entry = default) |
+| Seedream | ID in `SEEDREAM_4_MODEL_MAP` / `SEEDREAM_5_MODEL_MAP`, label → ID in `SEEDREAM_MODELS`, `SEEDREAM_MODEL_CAPS` (pixel range, refs, batch vs URL, `fast`/`thinking`, adaptive sizes); layer separation in `SEEDREAM_LAYER_SEPARATION_MODELS`; size presets in `seedream_utils.py` (`SEEDREAM_PRESETS`) |
+| LLM (`BytePlusSeed`) | Seed IDs in `VISUAL_MODEL_MAP`, then `SEED_LLM_MODEL_MAP` (core's three labels stay first — first option is the default); `SEED_LLM_NO_REASONING_EFFORT` if it rejects `reasoning.effort`; `SEED_LLM_AUDIO_MODELS` if it takes audio input (`SEED_LLM_MAX_AUDIOS` caps the clips). Non-Seed LLMs are fine if ModelArk hosts them and they take the same request |
 | Seed Speech | `SEED_AUDIO_MODELS` / `SEED_TTS_MODELS` / `SEED_ASR_MODELS` (TTS model = `X-Api-Resource-Id`) |
 | MediaKit | tool-version inputs in `nodes_mediakit.py` and `IMAGE_VERSION_LIMITS` |
 
 Then check logic that keys on substrings or UI constants rather than tables:
 - `"seedance-2-"` in `executor.py` (request policy, 64 MiB limit, time estimate).
-- `SEEDREAM_4_0_UI_MODEL`, `SEEDREAM_5_PRO_UI_MODEL`, `SEEDREAM_5_URL_MODELS` branches in `nodes_image.py`.
-- JS: `git grep -n "<family prefix>" web/js` (e.g. `"seedream-4-0"` drives `prompt_optimization` visibility).
-- Quota: `quota.py` builds its model list from the maps; check the token estimate if pricing differs.
+- Seedream branches read `SEEDREAM_MODEL_CAPS` (`nodes_seedream.py`); a new behaviour needs a new caps key, not a label check.
+- JS: `git grep -n "<family prefix>" web/js` (today no rule keys on a model name).
 - Validation for new limits next to the `validate_seedance2_*` helpers in `nodes_video.py`.
 
 Deliberate differences from core (BytePlus-only model, different limits) go in the deviation sets of the core-parity tests — see `byteplus-core-parity-sync`.
 
 ## 3. Retire a model
 
-1. Remove it from every map and option list above.
-2. Add `"<ui-name>": ("<model-id>", "<replacement-model-id>")` to `RETIRED_MODELS`, with the notice date in the comment. `RETIRED_VIDEO_UI_OPTIONS` / `RETIRED_SEED_UI_OPTIONS` derive from its prefix — a new prefix needs a new derived list.
-3. Legacy nodes keep the name in their combo (so saved workflows load) and call `core_style.raise_if_model_retired(model)` before any request. Never change a Legacy node's inputs.
-4. Core-style nodes simply drop it; if core still lists it, add the input to the test's deviation set (see `DEPRECATED_MODEL` in `tests/test_core_style_seedance1.py`).
-5. `QUERY_TASKS_MODEL_LIST` keeps retired video models last so old tasks stay queryable.
-6. Example workflows using it must switch to the replacement.
+1. Remove it from every map and option list above; nodes simply stop offering it. If core still lists it, add it to the test's deviation set (see `DEPRECATED_MODEL` in `tests/test_core_style_seedance1.py`).
+2. A retired Seedance model goes into `RETIRED_MODELS` as `"<ui-name>": ("<model-id>", "<replacement-model-id>")`, with the notice date in the comment: `RETIRED_VIDEO_UI_OPTIONS` derives from it and `QUERY_TASKS_MODEL_LIST` keeps those names last, so Video Query Tasks can still list old tasks. That is its only use.
+3. Example workflows using it must switch to the replacement.
 
 ## 4. Region-limited model
 

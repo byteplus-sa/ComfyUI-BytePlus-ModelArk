@@ -2,12 +2,10 @@ import asyncio
 import base64
 import binascii
 import json
-import os
 import re
 import uuid
 
 import aiohttp
-from comfy_api.latest import io as comfy_io
 
 from .constants import (
     DEFAULT_SPEECH_REGION,
@@ -19,7 +17,6 @@ from .constants import (
     SPEECH_SUCCESS_CODES,
 )
 from .nodes_shared import (
-    ApiKeyStore,
     BytePlusException,
     get_text,
     plain_text,
@@ -27,20 +24,11 @@ from .nodes_shared import (
     wait_interruptible,
 )
 
-# Seed Speech keys are a different product key from ModelArk keys, so they get
-# their own file (git-ignored runtime file in the repo root) and socket type.
-SPEECH_API_KEYS_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "speech_api_keys.json"
-)
-SPEECH_API_KEY_STORE = ApiKeyStore(SPEECH_API_KEYS_FILE)
-
-BytePlusSpeechClientType = comfy_io.Custom("BYTEPLUS_SPEECH_CLIENT")
-
 
 class SeedSpeechClient:
     """
-    Seed Speech API key and endpoint for the region. Passed between nodes on
-    the BYTEPLUS_SPEECH_CLIENT socket; never serialized into outputs.
+    Seed Speech API key and endpoint for the region. Never serialized into
+    outputs.
     """
     def __init__(self, api_key, region=DEFAULT_SPEECH_REGION):
         self.api_key = api_key
@@ -81,12 +69,6 @@ def _as_int(value):
         return int(str(value).strip())
     except (TypeError, ValueError):
         return None
-
-
-def require_speech_client(client):
-    if not getattr(client, "api_key", None) or not getattr(client, "base_url", None):
-        raise BytePlusException(get_text("speech_wrong_client"))
-    return client
 
 
 def describe_speech_error(code, message, status=None):
@@ -178,7 +160,6 @@ async def speech_post(client, path, body, *, operation, headers=None,
     X-Api-Request-Id (callers may override it). Raises BytePlusException for
     network errors and HTTP errors; the caller checks body/header codes.
     """
-    require_speech_client(client)
     request_headers = {
         "X-Api-Key": client.api_key,
         "X-Api-Request-Id": str(uuid.uuid4()),

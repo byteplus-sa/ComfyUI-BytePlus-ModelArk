@@ -5,67 +5,6 @@
   "last_link_id": 6,
   "nodes": [
     {
-      "id": 1,
-      "type": "BytePlusMediaKitClient",
-      "pos": [20, 80],
-      "size": [300, 138],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "new_api_key",
-          "name": "new_api_key",
-          "type": "STRING",
-          "widget": {
-            "name": "new_api_key"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "new_key_name",
-          "name": "new_key_name",
-          "type": "STRING",
-          "widget": {
-            "name": "new_key_name"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "key_name",
-          "name": "key_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "key_name"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "region",
-          "name": "region",
-          "type": "COMBO",
-          "widget": {
-            "name": "region"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "mediakit_client",
-          "name": "mediakit_client",
-          "type": "BYTEPLUS_MEDIAKIT_CLIENT",
-          "links": [1]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
-        "Node name for S&R": "BytePlusMediaKitClient"
-      },
-      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
-    },
-    {
       "id": 2,
       "type": "LoadVideo",
       "pos": [20, 290],
@@ -117,13 +56,6 @@
       "order": 2,
       "mode": 0,
       "inputs": [
-        {
-          "localized_name": "mediakit_client",
-          "name": "mediakit_client",
-          "type": "BYTEPLUS_MEDIAKIT_CLIENT",
-          "shape": 7,
-          "link": 1
-        },
         {
           "localized_name": "video",
           "name": "video",
@@ -404,8 +336,7 @@
     }
   ],
   "links": [
-    [1, 1, 0, 3, 0, "BYTEPLUS_MEDIAKIT_CLIENT"],
-    [2, 2, 0, 3, 1, "VIDEO"],
+    [2, 2, 0, 3, 0, "VIDEO"],
     [3, 3, 0, 4, 0, "VIDEO"],
     [4, 3, 1, 5, 0, "VIDEO"],
     [5, 3, 2, 6, 0, "IMAGE"],

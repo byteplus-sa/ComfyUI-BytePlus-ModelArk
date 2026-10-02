@@ -11,11 +11,11 @@ Verified against Comfy-Org/ComfyUI_frontend `main` (2026-09-27; releases v1.53�
 
 | File | Extension name | Does |
 |---|---|---|
-| `web/js/byteplus_dynamic_widgets.js` | `ComfyUI.BytePlus.DynamicWidgets` | Show/hide rules (`TARGET_WIDGETS`, `widgetLogic`, run from chained `widget.callback` and `applyAllWidgetRules` after load), Autogrow input relabels (`AUTOGROW_LABEL_RULES`), DynamicCombo value restore after load (`restoreDynamicComboWidgetValues`, nodes in `DYNAMIC_COMBO_NODES`), bottom padding, `byteplus.api_key_saved` listener. |
+| `web/js/byteplus_dynamic_widgets.js` | `ComfyUI.BytePlus.DynamicWidgets` | Show/hide rules (`TARGET_WIDGETS`, `widgetLogic`, run from chained `widget.callback` and `applyAllWidgetRules` after load; today only `BytePlusSeed`'s `reasoning_mode` → `reasoning_effort`), DynamicCombo value restore after load (`restoreDynamicComboWidgetValues`, nodes in `DYNAMIC_COMBO_NODES`), bottom padding. |
 | `web/js/byteplus_credentials.js` | `ComfyUI.BytePlus.Credentials` | Settings > BytePlus: four setting rows whose `type` is a function returning a DOM element (supported by the settings dialog of frontend 1.53: `FormItem.vue` renders it through `CustomFormValue`, which re-runs the function on every re-render, so each editor is built once and reused). They talk to `/byteplus/credentials` and never call the setter, so nothing reaches `comfy.settings.json`. |
 | `web/js/byteplus_progress.js` | `ComfyUI.BytePlus.ProgressBar` | Listens to `progress`/`executed`; draws a bar + "Ns / Ms" in `onDrawForeground` (**Classic Canvas only**). |
 
-Both match nodes with `isBytePlusNode()` (`comfyClass` guarded — progress events are broadcast and can name frontend-only nodes). `Comfy.VueNodes.Enabled` is read each time a rule is applied, and `app.ui.settings.addEventListener("Comfy.VueNodes.Enabled.change", …)` (fires on 1.52.7) re-applies all rules, so switching renderers needs no reload; `toggleWidget` clears the other mode's hide/disable state. Linking/unlinking a widget input re-runs the rules (linked widgets are always shown).
+`byteplus_dynamic_widgets.js` and `byteplus_progress.js` match nodes with `isBytePlusNode()` (`comfyClass` guarded — progress events are broadcast and can name frontend-only nodes). `Comfy.VueNodes.Enabled` is read each time a rule is applied, and `app.ui.settings.addEventListener("Comfy.VueNodes.Enabled.change", …)` (fires on 1.52.7) re-applies all rules, so switching renderers needs no reload; `toggleWidget` clears the other mode's hide/disable state. Linking/unlinking a widget input re-runs the rules (linked widgets are always shown).
 
 When you change a Python input name that JS keys on, grep `web/js` for it — the JS is keyed by widget **name** strings and will silently stop working.
 
@@ -47,7 +47,7 @@ React to value changes by chaining `widget.callback` — both the canvas and Vue
 
 The frontend itself implements `COMFY_DYNAMICCOMBO_V3` (adds/removes the selected option's widgets named `<combo>.<child>`, restores previous values when switching back, resizes), `COMFY_AUTOGROW_V3` and `COMFY_MATCHTYPE_V3`. **Do not write JS to show/hide DynamicCombo children.** Custom JS is only for rules the schema can't express (e.g. "`size == Custom` shows width/height" on a plain combo).
 
-Before touching `restoreDynamicComboWidgetValues`, reproduce the original bug (saved Seedance 2 / Seedream 5 workflow reloading with shifted `widgets_values`) on the current frontend — it may be obsolete.
+Before touching `restoreDynamicComboWidgetValues`, reproduce the original bug (a saved workflow with a `seed` inside a DynamicCombo — Seedream, Seedance 2 — reloading with shifted `widgets_values`, because the saved `control_after_generate` slot has no widget) on the current frontend — it may be obsolete.
 
 ## Hooks and order
 

@@ -100,12 +100,8 @@ REMOVED_CORE_INPUTS = {"generate_audio"}
 
 
 def frontend_input_order(info):
-    """
-    Input names as the node's workflow JSON lists them: the optional client
-    socket first, then required inputs, then the other optional ones.
-    """
-    optional = [name for name in info["input_order"]["optional"] if name != "client"]
-    return ["client"] + info["input_order"]["required"] + optional
+    """Input names as the node's workflow JSON lists them: required, then optional."""
+    return info["input_order"]["required"] + info["input_order"]["optional"]
 
 
 def _with_frames(frames):
@@ -115,10 +111,9 @@ def _with_frames(frames):
 @requires_comfyui
 class Seedance1SchemaTests(unittest.TestCase):
     EXPECTED_INPUTS = {
-        "BytePlusSeedanceTextToVideo": ["client"] + _with_frames([]) + EXTRA_INPUTS,
-        "BytePlusSeedanceImageToVideo": ["client"] + _with_frames(["image"]) + EXTRA_INPUTS,
-        "BytePlusSeedanceFirstLastFrame": ["client"] + _with_frames(["first_frame", "last_frame"])
-        + EXTRA_INPUTS,
+        "BytePlusSeedanceTextToVideo": _with_frames([]) + EXTRA_INPUTS,
+        "BytePlusSeedanceImageToVideo": _with_frames(["image"]) + EXTRA_INPUTS,
+        "BytePlusSeedanceFirstLastFrame": _with_frames(["first_frame", "last_frame"]) + EXTRA_INPUTS,
     }
 
     def test_nodes_are_registered_in_order(self):
@@ -132,7 +127,7 @@ class Seedance1SchemaTests(unittest.TestCase):
             ],
         )
 
-    def test_input_order_core_first_client_first_extras_last(self):
+    def test_input_order_core_first_extras_last(self):
         for node in seedance1.NODES:
             info = node.GET_NODE_INFO_V1()
             order = frontend_input_order(info)
@@ -152,7 +147,7 @@ class Seedance1SchemaTests(unittest.TestCase):
             FLF: (full[:1], "seedance-1-0-pro-250528"),
         }
         for node, (options, default) in expected.items():
-            model = node.define_schema().inputs[1]
+            model = node.define_schema().inputs[0]
             with self.subTest(node=node.__name__):
                 self.assertEqual(model.id, "model")
                 self.assertEqual(model.options, options)
@@ -196,11 +191,9 @@ class Seedance1SchemaTests(unittest.TestCase):
                 for name in EXTRA_INPUTS:
                     self.assertTrue(inputs[name].advanced, name)
                     self.assertTrue(inputs[name].optional, name)
-                # Optional: without a connected client the node uses the default key.
-                self.assertTrue(inputs["client"].optional)
 
         ratios = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]
-        self.assertEqual(T2V.define_schema().inputs[4].options, ratios)
+        self.assertEqual(T2V.define_schema().inputs[3].options, ratios)
         for node in (I2V, FLF):
             aspect = next(i for i in node.define_schema().inputs if i.id == "aspect_ratio")
             self.assertEqual(aspect.options, ["adaptive"] + ratios)
@@ -236,7 +229,7 @@ class Seedance1SchemaTests(unittest.TestCase):
             ]
             order = frontend_input_order(info)
             with self.subTest(node=info["name"]):
-                self.assertEqual(order[1 : 1 + len(core_order)], core_order)
+                self.assertEqual(order[: len(core_order)], core_order)
                 for section in ("required", "optional"):
                     for name, spec in core_info["input"][section].items():
                         if name in BYTEPLUS_DEVIATIONS:
@@ -282,16 +275,6 @@ class Seedance1SchemaTests(unittest.TestCase):
                 # Nothing else is missing.
                 self.assertEqual(set(core_inputs) - set(inputs), REMOVED_CORE_INPUTS)
 
-    def test_legacy_nodes_are_deprecated_but_unchanged(self):
-        for node, name in (
-            (nodes_video.BytePlusSeedance1, "BytePlus Seedance 1.0 (Legacy)"),
-            (nodes_video.BytePlusSeedance1_5, "BytePlus Seedance 1.5 Pro (Legacy)"),
-        ):
-            schema = node.define_schema()
-            self.assertTrue(schema.is_deprecated)
-            self.assertEqual(schema.display_name, name)
-            self.assertIn("enable_random_seed", [item.id for item in schema.inputs])
-
 
 class _NodeRunner:
     """Runs a node's execute with a fake Ark client and the real executor."""
@@ -299,7 +282,6 @@ class _NodeRunner:
     def setUp(self):
         super().setUp()
         self.submitted = []
-        self.quota_checks = []
         self._old_server = getattr(executor.PromptServer, "instance", None)
         executor.PromptServer.instance = SimpleNamespace(
             send_progress_text=lambda *_a, **_k: None, send_sync=lambda *_a, **_k: None
@@ -342,8 +324,6 @@ class _NodeRunner:
 
         return SimpleNamespace(
             ark=SimpleNamespace(content_generation=SimpleNamespace(tasks=Tasks())),
-            check_quota=lambda model, cost: self.quota_checks.append((model, cost)),
-            update_usage=lambda *_args: None,
         )
 
     def _set_hidden(self, node_cls, node_id, prompt):
@@ -393,7 +373,6 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         # Seedance 1.0 has no audio and no draft mode (both were 1.5 Pro only).
         for absent in ("generate_audio", "draft", "frames"):
             self.assertNotIn(absent, request)
-        self.assertEqual(self.quota_checks[0][0], "seedance-1-0-pro-fast-251015")
 
         # Pending non_blocking run: no video yet (nodes using it are skipped), task IDs in response.
         video, last_frame, response = result.args
@@ -479,26 +458,6 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
     async def test_single_generation_keeps_the_seed(self):
         await self._run(T2V, model="seedance-1-0-pro-fast-251015", seed=10, generation_count=1)
         self.assertEqual([r["seed"] for r in self.submitted], [10])
-
-    async def test_batch_keeps_random_seed(self):
-        # Legacy nodes send -1 (random) when enable_random_seed is on: every task stays random.
-        await nodes_video.BytePlusVideoBase()._common_generation_logic(
-            self._client(), "a fox in the snow", 5, "720p", "16:9", 10, 3, "test", False, True,
-            f"s1-{uuid.uuid4().hex[:8]}",
-            model_name="seedance-1-0-pro-fast-251015", content=[], forbidden_params=[],
-            enable_random_seed=True,
-        )
-        self.assertEqual([r["seed"] for r in self.submitted], [-1, -1, -1])
-
-    async def test_legacy_batch_keeps_the_same_seed(self):
-        # The Legacy nodes (no list output) keep sending one seed to every task.
-        await nodes_video.BytePlusVideoBase()._common_generation_logic(
-            self._client(), "a fox in the snow", 5, "720p", "16:9", 10, 3, "test", False, True,
-            f"s1-{uuid.uuid4().hex[:8]}",
-            model_name="seedance-1-0-pro-fast-251015", content=[], forbidden_params=[],
-            enable_random_seed=False,
-        )
-        self.assertEqual([r["seed"] for r in self.submitted], [10, 10, 10])
 
 
 @requires_comfyui
@@ -721,7 +680,6 @@ class Seedance1PollingTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
 
         client = SimpleNamespace(
             ark=SimpleNamespace(content_generation=SimpleNamespace(tasks=Tasks())),
-            check_quota=lambda *_a: None, update_usage=lambda *_a: None,
         )
 
         async def interrupt_soon():
@@ -753,20 +711,18 @@ class Seedance1PollingTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
 
 @requires_comfyui
 class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
-    """generation_count above 1: every video, paired last frames, and where videos are saved."""
+    """generation_count above 1: every video and the paired last frames, nothing saved."""
 
     # Task ID -> seed; results are ordered by seed: cgt-2, cgt-3, cgt-1.
     SEEDS = {"cgt-1": 12, "cgt-2": 10, "cgt-3": 11}
 
     def setUp(self):
         super().setUp()
-        self.saved = []
         self.frames = {f"/tmp/{tid}.mp4": torch.full((1, 8, 8, 3), seed / 100) for tid, seed in self.SEEDS.items()}
         replacements = {
             "download_video_to_temp": self._fake_download,
             "extract_last_frame_tensor": lambda path: self.frames.get(path),
             "VideoFromFile": lambda path: ("video", path),
-            "save_to_output": lambda path, prefix: self.saved.append((path, prefix)),
         }
         for name, replacement in replacements.items():
             self.addCleanup(setattr, nodes_video, name, getattr(nodes_video, name))
@@ -788,14 +744,13 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             for tid, seed in self.SEEDS.items()
         ]
 
-    async def _handle(self, as_list, generation_count=3, save_videos=None):
+    async def _handle(self, generation_count=3):
         return await nodes_video.BytePlusVideoBase()._handle_batch_success_async(
-            self._tasks(), "BytePlus/Test", generation_count, False, None,
-            as_list=as_list, save_videos=save_videos,
+            self._tasks(), generation_count, None
         )
 
     async def test_every_video_with_its_last_frame_in_seed_order(self):
-        video, last_frame, response = (await self._handle(as_list=True)).args
+        video, last_frame, response = (await self._handle()).args
         order = ["cgt-2", "cgt-3", "cgt-1"]
         self.assertEqual(video, [("video", f"/tmp/{tid}.mp4") for tid in order])
         self.assertEqual(tuple(last_frame.shape), (3, 8, 8, 3))
@@ -805,39 +760,25 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_last_frame_is_left_out_of_the_batch(self):
         del self.frames["/tmp/cgt-2.mp4"]
-        video, last_frame, _ = (await self._handle(as_list=True)).args
+        video, last_frame, _ = (await self._handle()).args
         self.assertEqual(len(video), 3)
         self.assertEqual(tuple(last_frame.shape), (2, 8, 8, 3))
         self.assertTrue(torch.equal(last_frame[0:1], self.frames["/tmp/cgt-3.mp4"]))
 
-    async def test_legacy_outputs_pair_the_first_video_with_its_own_frame(self):
-        video, last_frame, _ = (await self._handle(as_list=False)).args
-        self.assertEqual(video, ("video", "/tmp/cgt-2.mp4"))
-        self.assertTrue(torch.equal(last_frame, self.frames["/tmp/cgt-2.mp4"]))
-        # Its frame missing: no frame, not the frame of another video.
-        del self.frames["/tmp/cgt-2.mp4"]
-        video, last_frame, _ = (await self._handle(as_list=False)).args
-        self.assertEqual(video, ("video", "/tmp/cgt-2.mp4"))
-        self.assertIsNone(last_frame)
 
     async def test_no_downloaded_video_blocks_the_list_outputs(self):
         async def no_video(*_args):
             return None
 
         nodes_video.download_video_to_temp = no_video
-        for as_list in (True, False):
-            with self.subTest(as_list=as_list):
-                video, last_frame, response = (await self._handle(as_list=as_list)).args
-                # Paid tasks with no downloadable video: blocked with the reason, not silently.
-                for blocked in (video, last_frame):
-                    self.assertIsInstance(blocked, ExecutionBlocker)
-                    self.assertIn("cgt-1", blocked.message)
-                    self.assertIn("24 hours", blocked.message)
-                self.assertEqual(len(json.loads(response)), 3)  # the links are still in response
+        video, last_frame, response = (await self._handle()).args
+        # Paid tasks with no downloadable video: blocked with the reason, not silently.
+        for blocked in (video, last_frame):
+            self.assertIsInstance(blocked, ExecutionBlocker)
+            self.assertIn("cgt-1", blocked.message)
+            self.assertIn("24 hours", blocked.message)
+        self.assertEqual(len(json.loads(response)), 3)  # the links are still in response
 
-    async def test_single_video_is_not_saved_here(self):
-        await self._handle(as_list=True, generation_count=1)
-        self.assertEqual(self.saved, [])
 
     async def _run_batch(self, prompt_graph):
         return await self._run(
@@ -850,32 +791,19 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             non_blocking=False,
         )
 
-    # Like core's nodes, the core-style nodes save nothing: every video reaches
-    # the VIDEO output and Save Video keeps it. (One run per test: runs of the
-    # same node share task state.)
-    async def test_batch_into_save_video_is_not_saved_here(self):
+    # Like core's nodes, these nodes save nothing: every video reaches the VIDEO
+    # output and Save Video keeps it. (One run per test: runs of the same node
+    # share task state.)
+    async def test_every_video_of_a_batch_reaches_the_output(self):
         result = await self._run_batch({"8": {"class_type": "SaveVideo", "inputs": {"video": ["7", 0]}}})
         self.assertEqual(len(result.args[0]), 3)
-        self.assertEqual(self.saved, [])
-
-    async def test_batch_without_a_video_consumer_is_not_saved_either(self):
-        # Only last_frame (output 1) is connected.
-        result = await self._run_batch({"9": {"class_type": "PreviewImage", "inputs": {"images": ["7", 1]}}})
-        self.assertEqual(len(result.args[0]), 3)
-        self.assertEqual(self.saved, [])
-
-    def test_only_legacy_batches_are_saved(self):
-        # Legacy nodes output only the first video, so they keep writing the batch to the output folder.
-        self.assertTrue(nodes_video._save_batch_videos(3, as_list=False))
-        self.assertFalse(nodes_video._save_batch_videos(1, as_list=False))
-        self.assertFalse(nodes_video._save_batch_videos(3, as_list=True))
 
 
 @requires_comfyui
 class Seedance1TemplateTests(unittest.TestCase):
     """example_workflows/Seedance 1.json against the live schema."""
 
-    SOCKET_TYPES = {"BYTEPLUS_CLIENT", "IMAGE"}
+    SOCKET_TYPES = {"IMAGE"}
 
     def test_template_matches_the_schema(self):
         path = os.path.join(PLUGIN_ROOT, "example_workflows", "Seedance 1.json")

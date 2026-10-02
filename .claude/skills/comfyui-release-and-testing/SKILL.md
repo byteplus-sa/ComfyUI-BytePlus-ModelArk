@@ -15,16 +15,19 @@ python3 -m unittest tests.test_workflow_templates -v
 
 # Node behaviour: needs a ComfyUI checkout + an interpreter with torch,
 # ComfyUI's requirements and this pack's requirements.txt
-COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_model_updates -v
+COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit \
+  tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 \
+  tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed -v
 ```
 
-Without `COMFYUI_ROOT` the node tests (60 as of 2026-09-27) report **skipped**, not passed — say so when reporting results. The local portable install's `standalone-env` python lacks torch and the Ark SDK, so it can't run them as-is; don't pip-install into the user's ComfyUI env without asking.
+Without `COMFYUI_ROOT` the node tests report **skipped**, not passed — say so when reporting results. The local portable install's `standalone-env` python lacks torch and the Ark SDK, so it can't run them as-is; don't pip-install into the user's ComfyUI env without asking.
 
 Writing node tests (`tests/test_model_updates.py` pattern):
 - The plugin is loaded as a synthetic package (`byteplus_plugin_test`) after putting ComfyUI on `sys.path`.
+- `setUpModule` calls `tests/support.py`'s `isolate_credentials()` (empty temporary `.env`, no `BYTEPLUS_*` variables); every module that loads the pack must, or the tester's real keys leak in.
 - Fake the Ark client with `types.SimpleNamespace` objects exposing the SDK methods you exercise (`content_generation.tasks.create/get/delete`, `images.generate`, `responses.create`, `files.create`).
 - Swap `executor.PromptServer.instance` for a stub with `send_sync`; stub `sys.modules["comfy_api_nodes.util"]` for the Comfy.org upload; patch `cls.hidden` where `execute` reads it.
-- Call classmethods directly: `asyncio.run(Node.execute(...))`. Never hit the real ModelArk API in tests.
+- Call classmethods directly, passing the fake client as the first argument (`@with_client` only calls the factory when none is given): `asyncio.run(Node.execute(fake_client, ...))`. Never hit the real ModelArk API in tests.
 
 ## 2. Example workflows (`example_workflows/`)
 
@@ -32,13 +35,13 @@ They appear in ComfyUI's template browser under the pack's folder name; the titl
 
 - **Thumbnail must be `<same basename>.jpg`** — the frontend only requests `.jpg` for custom-node templates. To retake one: load the template in the smoke-test ComfyUI (Classic Canvas, focus mode, Canvas Info and Canvas Menu off, `LiteGraph.Canvas.LowQualityRenderingZoomThreshold` 0.1), `app.loadGraphData(wf, true, false)` (restore_view off, or the saved view wins), fit the graph at scale ≥ 0.55 (frame the main groups of tall templates), call `app.canvas.draw(true, true)`, wait ~1.5 s, then screenshot (800×600 JPEG). Before capturing, grow nodes to `node.computeSize()` and keep groups around their nodes, and write the layout back to the JSON.
 - Format is the UI export, schema `version: 0.4` (tested). Every BytePlus node needs `properties.cnr_id == "ComfyUI-BytePlus-ModelArk"` (must equal `[project].name`) and `properties.ver == <pyproject version>`.
-- `widgets_values` is **positional**. Adding/removing/reordering a widget — including the hidden `control_after_generate` value after a `seed` — shifts every later value. DynamicCombo nodes serialize children as `<combo>.<name>` — `model.<name>` on core-style nodes (the templates), `model_version.<name>` on Legacy ones — and the set changes with the selected option.
+- `widgets_values` is **positional**. Adding/removing/reordering a widget — including the hidden `control_after_generate` value after a `seed` — shifts every later value. DynamicCombo nodes serialize children as `<combo>.<name>` (`model.<name>`), and the set changes with the selected option.
 - Best way to update after a schema change: load the old workflow in a live ComfyUI with the new code, fix values, **re-export**, then update the expected input orders: class attributes of `WorkflowTemplateTests` in `tests/test_workflow_templates.py` (`SEEDANCE1_*`, `SEEDREAM_*`, `MODEL_KEYED_INPUT_ORDERS`, `CORE_STYLE_SEEDANCE2_NODES`, …) and the per-node template checks in `tests/test_core_style_*.py` (e.g. `CURRENT_INPUT_ORDERS` in `test_core_style_seed.py`).
-- Keep the API Client key widget empty, no third-party nodes (rgthree/pysssss/Note), no CJK / "Jimeng" / "doubao" text — all tested.
-- New template file → add it to `EXPECTED_WORKFLOWS` in the test. Templates use only the core-style nodes (Legacy nodes stay out of them). Hand-written templates load correctly, but the frontend re-saves required sockets before widget inputs and adds a trailing `control_after_generate` value for seeds inside a DynamicCombo (core's nodes do the same in frontend 1.52.7).
+- No client nodes or client inputs, no third-party nodes (rgthree/pysssss/Note), no CJK / "Jimeng" / "doubao" text — all tested.
+- New template file → add it to `EXPECTED_WORKFLOWS` in the test. Hand-written templates load correctly, but the frontend re-saves required sockets before widget inputs and adds a trailing `control_after_generate` value for seeds inside a DynamicCombo (core's nodes do the same in frontend 1.52.7).
 - **Checklist when a template changes** (schema change, new default model, new template):
   1. Load it in the smoke-test ComfyUI with the new code, fix values, re-export (or hand-edit `inputs` order **and** `widgets_values` positions together).
-  2. `properties.ver` = pyproject version and `cnr_id` on every BytePlus node; API Client key empty.
+  2. `properties.ver` = pyproject version and `cnr_id` on every BytePlus node.
   3. Expected input orders (see the re-export bullet above) and `EXPECTED_WORKFLOWS` for a new file.
   4. Retake `<name>.jpg` (procedure above) whenever the graph looks different.
   5. Run `python3 -m unittest tests.test_workflow_templates` and the `tests.test_core_style_*` files (need `COMFYUI_ROOT`), then load it in Classic Canvas and Nodes 2.0.
@@ -61,7 +64,7 @@ They appear in ComfyUI's template browser under the pack's folder name; the titl
 ## 5. Publishing
 
 - `.github/workflows/publish_action.yml` is **manual** (`workflow_dispatch`) and both jobs run only on `main`.
-- It uses `Comfy-Org/publish-node-action@main` with secret `REGISTRY_ACCESS_TOKEN`; the action runs `comfy node publish` and publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.agents/`, `.claude/`, `tests/`, `CLAUDE.md`, `AGENTS.md`. `api_keys.json.example` must ship (README setup step).
+- It uses `Comfy-Org/publish-node-action@main` with secret `REGISTRY_ACCESS_TOKEN`; the action runs `comfy node publish` and publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.agents/`, `.claude/`, `tests/`, `CLAUDE.md`, `AGENTS.md`.
 - Local equivalent: `comfy node validate`, `comfy node pack` (inspect `node.zip`), `comfy node publish --token …`.
 - `[project].name` is the immutable registry id and the install folder name for registry installs.
 - `pyproject.toml` declares `requires-python`, `classifiers = ["Operating System :: OS Independent"]` (API-only, no GPU classifier), `Issues` URL (comfy-cli reads only Homepage/Documentation/Repository/Issues), `requires-comfyui = ">=0.31.0"` (keep in sync with README), and a repository-hosted `[tool.comfy] Icon` (https URL, square ≤ 400 px).

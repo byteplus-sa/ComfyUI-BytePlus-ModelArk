@@ -2,7 +2,7 @@
 Seedream nodes shaped like ComfyUI core's ByteDanceSeedreamNodeV3 and
 ByteDanceSeedreamLayerSeparationNodeV2 (comfy_api_nodes/nodes_bytedance.py):
 the same inputs, defaults, tooltips and outputs, but calling BytePlus ModelArk
-directly with the API Client's key. This pack's extras (parallel generations,
+directly with the user's key (Settings > BytePlus). This pack's extras (parallel generations,
 output format, transparent background, saving layer files) come after core's
 inputs as advanced widgets, and extra outputs come after core's.
 """
@@ -42,7 +42,7 @@ from .models_config import (
     SEEDREAM_LAYER_SEPARATION_MODELS,
     SEEDREAM_LAYER_SIZES,
 )
-from .nodes_image import (
+from .seedream_utils import (
     _b64_to_rgba_image,
     _bbox_dict,
     _collect_image_tensors,
@@ -52,15 +52,14 @@ from .nodes_image import (
     _split_rgba,
     request_url_images,
 )
-from .nodes_image_schema import (
+from .seedream_utils import (
     SEEDREAM_PRESETS,
     seedream_adaptive_label,
     seedream_size_options,
 )
 from .nodes_shared import (
-    build_default_client,
-    optional_client_input,
-    with_default_client,
+    get_client,
+    with_client,
     GLOBAL_CATEGORY,
     BytePlusException,
     billed_ark,
@@ -417,7 +416,6 @@ class BytePlusSeedream(comfy_io.ComfyNode):
             category=GLOBAL_CATEGORY,
             description=SEEDREAM_DESCRIPTION,
             inputs=[
-                optional_client_input(),
                 comfy_io.String.Input(
                     "prompt",
                     multiline=True,
@@ -450,7 +448,7 @@ class BytePlusSeedream(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(cls, client, prompt, model) -> comfy_io.NodeOutput:
         plan = build_seedream_plan(model if isinstance(model, dict) else {"model": model}, prompt)
         model_id = plan["model_id"]
@@ -458,7 +456,6 @@ class BytePlusSeedream(comfy_io.ComfyNode):
         generation_count = plan["generation_count"]
         batch_mode = plan["max_images"] > 1
 
-        client.check_quota(model_id, generation_count * plan["max_images"])
         if generation_count > 1:
             log_msg("batch_submit_start", count=generation_count, model=model_id)
 
@@ -494,10 +491,6 @@ class BytePlusSeedream(comfy_io.ComfyNode):
             return comfy_io.NodeOutput(blocked, "[]", blocked)
 
         received = sum(int(t.shape[0]) for t in tensors)
-        try:
-            client.update_usage(model_id, received)
-        except Exception:
-            pass
         if plan["fail_on_partial"]:
             if partial_failures:
                 raise BytePlusException(
@@ -915,7 +908,6 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
             ),
             description=LAYER_SEPARATION_DESCRIPTION,
             inputs=[
-                optional_client_input(),
                 comfy_io.DynamicCombo.Input(
                     "model",
                     options=[
@@ -933,7 +925,7 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(cls, client, model) -> comfy_io.NodeOutput:
         label = model.get("model")
         model_id = SEEDREAM_LAYER_SEPARATION_MODELS.get(label)
@@ -971,7 +963,6 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
                 mode=model["prompt_optimization"]
             )
 
-        client.check_quota(model_id, 1)
         try:
             comfy.model_management.throw_exception_if_processing_interrupted()
             response = await wait_interruptible(
@@ -996,7 +987,6 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
         ) = await asyncio.to_thread(
             assemble_layer_outputs, base_rgba, layers_rgba, layer_items, crop_layers
         )
-        client.update_usage(model_id, 1)
 
         saved = {}
         if model.get("save_layers", False):

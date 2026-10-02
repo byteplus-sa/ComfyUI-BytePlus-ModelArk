@@ -5,62 +5,6 @@
   "last_link_id": 6,
   "nodes": [
     {
-      "id": 1,
-      "type": "BytePlusSpeechClient",
-      "pos": [20, 80],
-      "size": [320, 138],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "new_api_key",
-          "type": "STRING",
-          "widget": {
-            "name": "new_api_key"
-          },
-          "link": null
-        },
-        {
-          "name": "new_key_name",
-          "type": "STRING",
-          "widget": {
-            "name": "new_key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "key_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "region",
-          "type": "COMBO",
-          "widget": {
-            "name": "region"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "speech_client",
-          "type": "BYTEPLUS_SPEECH_CLIENT",
-          "links": [1, 4]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
-        "Node name for S&R": "BytePlusSpeechClient"
-      },
-      "widgets_values": ["", "", "Custom", "ap-southeast-1"]
-    },
-    {
       "id": 2,
       "type": "LoadAudio",
       "pos": [20, 260],
@@ -117,12 +61,6 @@
       "order": 2,
       "mode": 0,
       "inputs": [
-        {
-          "name": "speech_client",
-          "type": "BYTEPLUS_SPEECH_CLIENT",
-          "shape": 7,
-          "link": 1
-        },
         {
           "name": "speaker_id",
           "type": "STRING",
@@ -225,12 +163,6 @@
       "order": 4,
       "mode": 0,
       "inputs": [
-        {
-          "name": "speech_client",
-          "type": "BYTEPLUS_SPEECH_CLIENT",
-          "shape": 7,
-          "link": 4
-        },
         {
           "name": "model",
           "type": "COMBO",
@@ -499,11 +431,9 @@
     }
   ],
   "links": [
-    [1, 1, 0, 3, 0, "BYTEPLUS_SPEECH_CLIENT"],
-    [2, 2, 0, 3, 6, "AUDIO"],
+    [2, 2, 0, 3, 5, "AUDIO"],
     [3, 3, 1, 4, 0, "AUDIO"],
-    [4, 1, 0, 5, 0, "BYTEPLUS_SPEECH_CLIENT"],
-    [5, 3, 0, 5, 4, "STRING"],
+    [5, 3, 0, 5, 3, "STRING"],
     [6, 5, 0, 6, 0, "AUDIO"]
   ],
   "groups": [],

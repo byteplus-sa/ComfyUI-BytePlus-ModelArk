@@ -8,11 +8,6 @@ SEEDREAM_4_MODEL_MAP = {
     "seedream-4-0": "seedream-4-0-250828",
 }
 
-SEEDREAM_4_0_UI_MODEL = "seedream-4-0"
-
-# Prompt optimization modes (optimize_prompt_options.mode). "fast" is supported
-# by Seedream 5.0 Pro and 4.0; 5.0 Flash, 5.0 Lite and 4.5 use "standard".
-PROMPT_OPTIMIZATION_MODES = ["standard", "fast"]
 
 # Seedream 5
 SEEDREAM_5_MODEL_MAP = {
@@ -24,7 +19,6 @@ SEEDREAM_5_MODEL_MAP = {
 SEEDREAM_5_PRO_UI_MODEL = "dola-seedream-5-0-pro"
 SEEDREAM_5_FLASH_UI_MODEL = "dola-seedream-5-0-flash"
 SEEDREAM_5_LITE_UI_MODEL = "seedream-5-0-lite"
-SEEDREAM_5_URL_MODELS = (SEEDREAM_5_PRO_UI_MODEL, SEEDREAM_5_FLASH_UI_MODEL)
 
 # Model ID -> regions where it must not be used. Seedream 5.0 Lite was
 # deactivated in eu-west-1 on 2026-09-10 (model deprecation notice).
@@ -32,10 +26,6 @@ MODEL_REGION_EXCLUSIONS = {
     "seedream-5-0-260128": ("eu-west-1",),
 }
 
-# Seedream 5.0 Pro / Flash layer decomposition: one input image -> base image + up to 16 layers
-SEEDREAM_LAYER_MODEL_MAP = {
-    model: SEEDREAM_5_MODEL_MAP[model] for model in SEEDREAM_5_URL_MODELS
-}
 SEEDREAM_LAYER_SIZES = ["auto", "1K", "1.5K", "2K"]
 
 # Seedance video models
@@ -56,24 +46,15 @@ VIDEO_1_UI_OPTIONS = [
 ]
 
 # Models BytePlus deprecated on 2026-09-15 and shuts down on 2026-11-11 (model
-# deprecation notice): removed from every node. The Legacy nodes that saved them still load and explain
-# the replacement when run. UI name -> (model ID, replacement).
+# deprecation notice): no node offers them. Video Query Tasks can still list
+# their tasks. UI name -> (model ID, replacement).
 RETIRED_MODELS = {
     "seedance-1-5-pro": ("seedance-1-5-pro-251215", "dreamina-seedance-2-0-mini-260615"),
-    "seed-1-8": ("seed-1-8-251228", "seed-2-0-lite-260428"),
-    "seed-1-6": ("seed-1-6-250915", "seed-2-0-lite-260428"),
-    "seed-1-6-flash": ("seed-1-6-flash-250715", "seed-2-0-mini-260428"),
 }
 
-# Retired names that nodes still list so saved workflows load.
+# Retired Seedance models, listed in Video Query Tasks.
 RETIRED_VIDEO_UI_OPTIONS = [name for name in RETIRED_MODELS if name.startswith("seedance-")]
-RETIRED_SEED_UI_OPTIONS = [name for name in RETIRED_MODELS if name.startswith("seed-")]
 
-# Legacy Seedance 1.5 Pro node options (kept so saved workflows load; the
-# model is retired, see RETIRED_MODELS)
-VIDEO_1_5_UI_OPTIONS = [
-    "seedance-1-5-pro",
-]
 
 # Seedance 2 node options
 VIDEO_2_UI_OPTIONS = [
@@ -140,7 +121,6 @@ VISUAL_MODEL_MAP = {
     "seed-2-0-lite": "seed-2-0-lite-260428",
     "seed-2-0-mini": "seed-2-0-mini-260428",
 }
-VISUAL_UI_OPTIONS = list(VISUAL_MODEL_MAP.keys())
 
 # Seed Speech models (separate API key, see constants.SPEECH_REGION_BASE_URLS).
 # Seed Audio 1.0: the model ID goes in the request body.

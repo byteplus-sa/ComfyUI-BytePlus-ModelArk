@@ -1,6 +1,7 @@
 """
-Default credentials: environment variables and the ``.env`` file in ComfyUI's
-user folder, so a workflow needs no API Client node (or any key) in it.
+The BytePlus keys and region: saved from Settings > BytePlus into the ``.env``
+file in ComfyUI's user folder, or set as environment variables. Workflows never
+contain a key.
 
 Lookup order for every variable: the process environment first, then the
 ``.env`` file (like dotenv, a real environment variable wins). The file is
@@ -159,12 +160,10 @@ def setting_source(*names):
     return None
 
 
-def get_default_region(fallback=DEFAULT_REGION):
-    """BYTEPLUS_REGION when it names a known region, else ``fallback``."""
+def get_default_region():
+    """BYTEPLUS_REGION when it names a known region, else the default region."""
     region = get_setting(REGION_ENV)
-    if region in REGION_BASE_URLS:
-        return region
-    return fallback if fallback in REGION_BASE_URLS else DEFAULT_REGION
+    return region if region in REGION_BASE_URLS else DEFAULT_REGION
 
 
 def get_asset_credentials():
