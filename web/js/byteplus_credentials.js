@@ -91,10 +91,15 @@ function credentialEditor({ credential, fields, select, label }) {
         const input = element("input", {
             type: "password",
             placeholder: field.placeholder,
-            autocomplete: "off",
+            // "new-password" (not "off", which browsers ignore for passwords) and the
+            // password managers' own opt-outs: an API key is not a login to remember.
+            autocomplete: "new-password",
             spellcheck: false,
             name: `byteplus-${credential}-${field.name}`,
         }, INPUT_STYLE);
+        for (const attribute of ["data-1p-ignore", "data-lpignore", "data-bwignore", "data-form-type"]) {
+            input.setAttribute(attribute, attribute === "data-form-type" ? "other" : "true");
+        }
         inputs[field.name] = input;
         row.append(input);
     }
@@ -145,10 +150,15 @@ function credentialEditor({ credential, fields, select, label }) {
             if (info.shadowed) text += ". An environment variable overrides the value in user/.env";
             show(text + ".");
         }
-        removable = !!info?.configured && info.source === "file";
-        remove.title = info?.configured && !removable
-            ? "This value comes from an environment variable; remove it there."
-            : "";
+        // Remove deletes what user/.env holds, also when an environment variable hides it.
+        removable = !!info?.in_file;
+        if (!removable && info?.configured) {
+            remove.title = "This value comes from an environment variable; remove it there.";
+        } else if (removable && info.source === "environment") {
+            remove.title = "Removes the value in user/.env; the environment variable stays in use.";
+        } else {
+            remove.title = "";
+        }
         syncButtons();
     };
 

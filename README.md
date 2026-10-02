@@ -153,7 +153,7 @@ Already have assets? Use `Asset Library` to list them (virtual portraits, or `Li
 
 Managing assets uses the signed ModelArk OpenAPI, which needs **IAM AK/SK** with asset-library permission, not the API key. Use an IAM sub-user whose policy only allows the asset library. To set them:
 
-- **In Settings → BytePlus:** the "Asset library IAM AK/SK" field saves them as `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` in the `.env` file, with no client node.
+- **In Settings → BytePlus:** the "Asset library IAM AK/SK" field saves them as `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` in the `.env` file, with no client node. Saving or removing the pair there also removes a `BYTEPLUS_SESSION_TOKEN` from the file, since an STS token belongs to the old pair.
 - **In the node:** on the `API Client`, set `key_name` to **Custom**, paste the API key, give it a `new_key_name`, and fill in `new_access_key` and `new_secret_key`. After the first run they are saved with the key in `api_keys.json` and cleared from the node. To add AK/SK to a key you already saved, do the same with that key and the same name; nothing else about the entry changes.
 - **In a file:** add them to the key's entry in `api_keys.json`, or set `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` (and `BYTEPLUS_SESSION_TOKEN` for STS keys) in the environment or the `.env` file. `sessionToken` for STS keys can only be set this way.
 

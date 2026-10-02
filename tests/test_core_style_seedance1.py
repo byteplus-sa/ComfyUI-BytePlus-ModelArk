@@ -56,6 +56,14 @@ if COMFY_ROOT:
     FLF = seedance1.BytePlusSeedanceFirstLastFrame
 
 
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 def assert_matches_sdk(method, kwargs):
     """Bind request kwargs to the real SDK signature (fakes accept anything)."""
     import inspect

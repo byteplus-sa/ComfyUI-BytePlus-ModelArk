@@ -62,6 +62,15 @@ if COMFY_ROOT:
 
 # --- schema helpers ---------------------------------------------------------
 
+
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 CLIENT_INPUT_IDS = ("client", "speech_client", "mediakit_client")
 
 

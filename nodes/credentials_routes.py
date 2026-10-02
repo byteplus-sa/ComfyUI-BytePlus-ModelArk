@@ -34,14 +34,30 @@ def _error(message_key, status=400, **kwargs):
 
 def _same_origin(request):
     """
-    Reject browser requests from another site. A request without an Origin
-    header (curl, scripts on the same machine) has nothing to protect against.
+    False for a request a page on another site made.
+
+    Browsers send Sec-Fetch-Site and page scripts cannot set it, so when it is
+    there it decides: "same-origin" (the Settings page) and "none" (typed in the
+    address bar) pass, "same-site" and "cross-site" do not. This works behind
+    reverse proxies and tunnels, where Host is the upstream address. Browsers
+    without it fall back to comparing Origin with the address the browser used:
+    Host, or X-Forwarded-Host behind a proxy (a page cannot add that header to
+    a cross-origin request without a CORS preflight, which ComfyUI does not
+    grant). A request with neither header is not from a web page (curl, local
+    scripts) and passes, like ComfyUI's own origin check.
     """
+    fetch_site = request.headers.get("Sec-Fetch-Site")
+    if fetch_site:
+        return fetch_site.lower() in ("same-origin", "none")
     origin = request.headers.get("Origin")
     if not origin:
         return True
-    host = request.headers.get("Host", "")
-    return urlparse(origin).netloc.lower() == host.lower()
+    origin_host = urlparse(origin).netloc.lower()
+    hosts = {request.headers.get("Host", "").strip().lower()}
+    for host in request.headers.get("X-Forwarded-Host", "").split(","):
+        hosts.add(host.strip().lower())
+    hosts.discard("")
+    return bool(origin_host) and origin_host in hosts
 
 
 async def handle_status(request):
@@ -101,6 +117,8 @@ async def handle_save(request):
                 updates[credentials.REGION_ENV] = region
             updates[variable] = value
     elif credential == "iam":
+        # A session token belongs to the old pair (STS), so it goes with it.
+        updates[credentials.SESSION_TOKEN_ENV] = ""
         if clear:
             updates[credentials.CREDENTIAL_VARS["access_key"]] = ""
             updates[credentials.CREDENTIAL_VARS["secret_key"]] = ""

@@ -46,6 +46,15 @@ if COMFY_ROOT:
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
     from comfy_execution.graph_utils import ExecutionBlocker
 
+
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 STANDARD = {"tool_version": "standard", "scene": "aigc", "enhance_style": "hd"}
 PROFESSIONAL = {"tool_version": "professional", "enhance_style": "natural"}
 EXTRAS = ["video_url", "bitrate", "comparison", "compare_time"]

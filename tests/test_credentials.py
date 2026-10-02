@@ -58,6 +58,15 @@ if COMFY_ROOT:
     quota = importlib.import_module(f"{PACKAGE_NAME}.nodes.quota")
     BytePlusException = nodes_shared.BytePlusException
 
+
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 def constants_base(region):
     return importlib.import_module(f"{PACKAGE_NAME}.nodes.constants").REGION_BASE_URLS[region]
 
@@ -91,6 +100,30 @@ class IsolatedCredentials(unittest.TestCase):
         os.makedirs(os.path.dirname(self.env_path), exist_ok=True)
         with open(self.env_path, "w", encoding="utf-8") as file:
             file.write(text)
+
+
+@requires_comfyui
+class TestIsolationTests(unittest.TestCase):
+    def test_every_module_that_loads_the_pack_hides_real_credentials(self):
+        # A tester's own user/.env (Settings > BytePlus) must never reach the tests.
+        tests_dir = os.path.dirname(os.path.abspath(__file__))
+        for name in sorted(os.listdir(tests_dir)):
+            if not (name.startswith("test_") and name.endswith(".py")):
+                continue
+            with open(os.path.join(tests_dir, name), encoding="utf-8") as file:
+                source = file.read()
+            if 'PACKAGE_NAME}.nodes.' in source:
+                with self.subTest(module=name):
+                    self.assertIn("def setUpModule():", source)
+                    self.assertIn("unittest.addModuleCleanup(isolate_credentials())", source)
+
+    def test_the_real_user_folder_is_not_read(self):
+        import folder_paths
+
+        real = os.path.realpath(folder_paths.get_user_directory())
+        self.assertFalse(os.path.realpath(credentials.env_file_path()).startswith(real + os.sep))
+        for name in CREDENTIAL_ENV_VARS:
+            self.assertNotIn(name, os.environ)
 
 
 @requires_comfyui
@@ -184,6 +217,51 @@ class EnvFileTests(IsolatedCredentials):
         self.assertEqual(os.listdir(os.path.dirname(self.env_path)), [".env"])
         self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "keep")
 
+    def test_a_byte_order_mark_does_not_hide_the_first_line(self):
+        # Notepad saves UTF-8 with a BOM.
+        with open(self._mkdir(), "w", encoding="utf-8-sig") as file:
+            file.write("BYTEPLUS_API_KEY=first-line\nOTHER=x\n")
+        self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "first-line")
+        credentials.update_env_file({"BYTEPLUS_API_KEY": "replaced"})
+        with open(self.env_path, encoding="utf-8") as file:
+            self.assertEqual(file.read(), "BYTEPLUS_API_KEY=replaced\nOTHER=x\n")
+
+    def _mkdir(self):
+        os.makedirs(os.path.dirname(self.env_path), exist_ok=True)
+        return self.env_path
+
+    def test_aliases_go_when_the_variable_is_written_or_removed(self):
+        self.write_env("BYTEPLUS_ACCESSKEY=old-ak\nBYTEPLUS_SECRETKEY=old-sk\nKEEP=1\n")
+        self.assertEqual(credentials.get_asset_credentials()["access_key"], "old-ak")
+        credentials.update_env_file({"BYTEPLUS_ACCESS_KEY": "", "BYTEPLUS_SECRET_KEY": ""})
+        self.assertIsNone(credentials.get_asset_credentials())
+        self.write_env("BYTEPLUS_ACCESSKEY=old-ak\nBYTEPLUS_SECRETKEY=old-sk\n")
+        credentials.update_env_file({"BYTEPLUS_ACCESS_KEY": "AK2", "BYTEPLUS_SECRET_KEY": "SK2"})
+        with open(self.env_path, encoding="utf-8") as file:
+            self.assertEqual(file.read(), "BYTEPLUS_ACCESS_KEY=AK2\nBYTEPLUS_SECRET_KEY=SK2\n")
+
+    @unittest.skipIf(os.name != "posix", "symlinks need POSIX here")
+    def test_a_symlinked_file_stays_a_link(self):
+        target = os.path.join(self.tmp.name, "secrets", "byteplus.env")
+        os.makedirs(os.path.dirname(target))
+        with open(target, "w", encoding="utf-8") as file:
+            file.write("OTHER=1\n")
+        self._mkdir()
+        os.symlink(target, self.env_path)
+        credentials.update_env_file({"BYTEPLUS_API_KEY": "via-link"})
+        self.assertTrue(os.path.islink(self.env_path))
+        with open(target, encoding="utf-8") as file:
+            self.assertEqual(file.read(), "OTHER=1\nBYTEPLUS_API_KEY=via-link\n")
+        self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "via-link")
+
+    def test_the_new_file_is_on_disk_before_it_replaces_the_old_one(self):
+        order = []
+        real_fsync, real_replace = os.fsync, os.replace
+        with mock.patch.object(credentials.os, "fsync", lambda fd: (order.append("fsync"), real_fsync(fd))), \
+                mock.patch.object(credentials.os, "replace", lambda a, b: (order.append("replace"), real_replace(a, b))):
+            credentials.update_env_file({"BYTEPLUS_API_KEY": "k"})
+        self.assertEqual(order, ["fsync", "replace"])
+
     def test_region_and_asset_credentials(self):
         self.assertEqual(credentials.get_default_region(), "ap-southeast-1")
         self.write_env("BYTEPLUS_REGION=eu-west-1\nBYTEPLUS_ACCESS_KEY=AK\nBYTEPLUS_SECRET_KEY=SK\n")
@@ -215,6 +293,18 @@ class EnvFileTests(IsolatedCredentials):
         os.environ["BYTEPLUS_API_KEY"] = "env-key-0002"
         info = credentials.credential_status()["credentials"]["modelark"]
         self.assertEqual((info["source"], info["shadowed"], info["hint"]), ("environment", True, "ends in 0002"))
+        # The file's value can still be removed from Settings.
+        self.assertTrue(info["in_file"])
+        os.environ["BYTEPLUS_API_KEY"] = "file-key-0001"  # the same value: not shadowed, still in the file
+        info = credentials.credential_status()["credentials"]["modelark"]
+        self.assertEqual((info["shadowed"], info["in_file"]), (False, True))
+        os.remove(self.env_path)
+        self.assertFalse(credentials.credential_status()["credentials"]["modelark"]["in_file"])
+
+    def test_in_file_counts_the_alias_spellings(self):
+        self.write_env("BYTEPLUS_ACCESSKEY=AK\nBYTEPLUS_SECRETKEY=SK\n")
+        iam = credentials.credential_status()["credentials"]["iam"]
+        self.assertEqual((iam["configured"], iam["in_file"], iam["source"]), (True, True, "file"))
 
 
 @requires_comfyui
@@ -480,11 +570,37 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         same = {"Origin": "http://127.0.0.1:8188"}
         status, _ = await self.save({"credential": "speech", "value": "s-key-123456"}, headers=same)
         self.assertEqual(status, 200)
-        status, body = await self.save(
-            {"credential": "speech", "value": "other"}, headers={"Origin": "https://evil.example"}
+        refused = (
+            {"Origin": "https://evil.example"},
+            {"Origin": "null"},
+            {"Origin": "https://evil.example", "X-Forwarded-Host": "comfy.example.com"},
+            # Sec-Fetch-Site decides when the browser sends it, whatever Origin says.
+            {"Origin": "http://127.0.0.1:8188", "Sec-Fetch-Site": "cross-site"},
+            {"Origin": "https://other.example.com", "Sec-Fetch-Site": "same-site"},
         )
-        self.assertEqual(status, 403)
+        for headers in refused:
+            with self.subTest(headers=headers):
+                status, _ = await self.save({"credential": "speech", "value": "other"}, headers=headers)
+                self.assertEqual(status, 403)
         self.assertEqual(credentials.get_setting("BYTEPLUS_SEED_SPEECH_API_KEY"), "s-key-123456")
+
+    async def test_behind_a_reverse_proxy_or_tunnel(self):
+        # The browser addresses https://comfy.example.com; ComfyUI sees the upstream Host.
+        for headers in (
+            {"Origin": "https://comfy.example.com", "Sec-Fetch-Site": "same-origin"},
+            {"Origin": "https://comfy.example.com", "X-Forwarded-Host": "comfy.example.com"},
+            {"Sec-Fetch-Site": "none"},
+            {},  # not from a web page (curl, local scripts)
+        ):
+            with self.subTest(headers=headers):
+                status, _ = await self.save(
+                    {"credential": "speech", "value": "proxied-key-1234"}, headers=headers
+                )
+                self.assertEqual(status, 200)
+        response = await credentials_routes.handle_status(self.request(headers={
+            "Origin": "https://comfy.example.com", "Sec-Fetch-Site": "same-origin",
+        }))
+        self.assertEqual(response.status, 200)
 
     async def test_save_and_clear_a_speech_key(self):
         status, body = await self.save({"credential": "speech", "value": "  speech-key-123456 "})
@@ -548,6 +664,14 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(credentials.get_asset_credentials()["secret_key"], "SK")
         status, body = await self.save({"credential": "iam", "clear": True})
         self.assertIsNone(credentials.get_asset_credentials())
+
+    async def test_a_new_or_removed_iam_pair_drops_the_old_session_token(self):
+        self.write_env("BYTEPLUS_ACCESS_KEY=AK\nBYTEPLUS_SECRET_KEY=SK\nBYTEPLUS_SESSION_TOKEN=sts-token\n")
+        self.assertEqual(credentials.get_asset_credentials()["session_token"], "sts-token")
+        status, _ = await self.save({"credential": "iam", "access_key": "AK2", "secret_key": "SK2"})
+        self.assertEqual(status, 200)
+        self.assertEqual(credentials.get_asset_credentials(),
+                         {"access_key": "AK2", "secret_key": "SK2", "session_token": ""})
 
     async def test_bad_requests(self):
         for body, expected in (

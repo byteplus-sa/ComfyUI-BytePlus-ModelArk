@@ -51,6 +51,15 @@ if COMFY_ROOT:
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
     from comfy_execution.graph_utils import ExecutionBlocker  # noqa: E402
 
+
+def setUpModule():
+    # Hide the tester's own BYTEPLUS_* variables and user/.env (see tests/support.py).
+    if COMFY_ROOT:
+        from tests.support import isolate_credentials
+
+        unittest.addModuleCleanup(isolate_credentials())
+
+
 ASSET_ENV_KEYS = (
     "BYTEPLUS_ACCESS_KEY", "BYTEPLUS_SECRET_KEY", "BYTEPLUS_ACCESSKEY", "BYTEPLUS_SECRETKEY",
     "BYTEPLUS_SESSION_TOKEN",

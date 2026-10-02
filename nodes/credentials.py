@@ -37,8 +37,11 @@ CREDENTIAL_VARS = {
     "access_key": ACCESS_KEY_ENVS[0],
     "secret_key": SECRET_KEY_ENVS[0],
 }
+# Other spellings read for a variable. Writing or removing the variable also
+# removes them, or a stale alias would keep the old value active.
+ALIASES = {ACCESS_KEY_ENVS[0]: ACCESS_KEY_ENVS[1:], SECRET_KEY_ENVS[0]: SECRET_KEY_ENVS[1:]}
 # Variables a request may write; everything else in the file is left alone.
-WRITABLE_VARS = set(CREDENTIAL_VARS.values()) | {REGION_ENV}
+WRITABLE_VARS = set(CREDENTIAL_VARS.values()) | {REGION_ENV, SESSION_TOKEN_ENV}
 
 _write_lock = threading.Lock()
 _read_cache = {"stamp": None, "values": {}}
@@ -116,7 +119,8 @@ def read_env_file():
     if _read_cache["stamp"] == stamp:
         return dict(_read_cache["values"])
     try:
-        with open(path, "r", encoding="utf-8") as handle:
+        # utf-8-sig: editors such as Notepad start the file with a BOM.
+        with open(path, "r", encoding="utf-8-sig") as handle:
             values = parse_env_text(handle.read())
     except (OSError, UnicodeDecodeError):
         return {}
@@ -195,10 +199,12 @@ def update_env_file(updates):
         if value is not None and any(c in value for c in "\r\n\0"):
             raise ValueError(f"{name} must be a single line")
 
-    path = env_file_path()
+    # A symlinked .env stays a link: the file it points to is replaced.
+    path = os.path.realpath(env_file_path())
+    drop = {alias for name in updates for alias in ALIASES.get(name, ())}
     with _write_lock:
         try:
-            with open(path, "r", encoding="utf-8") as handle:
+            with open(path, "r", encoding="utf-8-sig") as handle:
                 lines = handle.read().splitlines()
         except FileNotFoundError:
             lines = []
@@ -208,6 +214,8 @@ def update_env_file(updates):
         for line in lines:
             parts = _split_line(line)
             name = parts[0] if parts else None
+            if name in drop:
+                continue
             if name in updates:
                 # The new value goes where the variable was first set; any later
                 # line for it is dropped, since the last one would win on read.
@@ -226,6 +234,9 @@ def update_env_file(updates):
         try:
             with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as temp:
                 temp.write("\n".join(output) + ("\n" if output else ""))
+                # On disk before the swap, so a crash cannot leave an empty file.
+                temp.flush()
+                os.fsync(temp.fileno())
             try:
                 os.chmod(temp_path, 0o600)
             except OSError:
@@ -259,12 +270,15 @@ def credential_status():
         names = {"access_key": ACCESS_KEY_ENVS, "secret_key": SECRET_KEY_ENVS}.get(credential, (variable,))
         value = get_setting(*names)
         source = setting_source(*names)
-        file_value = (read_env_file().get(variable) or "").strip()
+        file_values = read_env_file()
+        file_value = next((file_values[name].strip() for name in names if (file_values.get(name) or "").strip()), "")
         status["credentials"][credential] = {
             "configured": bool(value),
             "source": source,
             "hint": key_hint(value) if value else "",
-            # An environment variable hides what is in the file.
+            # The file holds a value (Remove can delete it), even one an environment variable hides.
+            "in_file": bool(file_value),
+            # An environment variable hides a different value in the file.
             "shadowed": source == "environment" and bool(file_value) and file_value != value,
         }
     access, secret = status["credentials"]["access_key"], status["credentials"]["secret_key"]
@@ -273,6 +287,7 @@ def credential_status():
         "configured": access["configured"] and secret["configured"],
         "source": access["source"] if secret["source"] == access["source"] else (access["source"] or secret["source"]),
         "hint": access["hint"],
+        "in_file": access["in_file"] or secret["in_file"],
         "shadowed": access["shadowed"] or secret["shadowed"],
     }
     status["region"] = get_default_region()
