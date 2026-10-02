@@ -49,6 +49,7 @@ from .constants import (
 from .core_style import core_search_aliases
 from . import credentials
 from .nodes_shared import (
+    single_saved_key_name,
     with_default_client,
     GLOBAL_CATEGORY,
     LOG_PREFIX,
@@ -77,14 +78,12 @@ def build_default_mediakit_client():
     api_key = credentials.get_setting(MEDIAKIT_API_KEY_ENV)
     if not api_key:
         # mediakit_api_keys.json is only used when it leaves no doubt which key is meant.
-        MEDIAKIT_API_KEY_STORE.load()
-        names = MEDIAKIT_API_KEY_STORE.get_key_names()
-        if len(names) == 1:
-            api_key = MEDIAKIT_API_KEY_STORE.find_api_key(names[0])
+        name = single_saved_key_name(MEDIAKIT_API_KEY_STORE, "err_default_mediakit_key_ambiguous")
+        if name:
+            api_key = MEDIAKIT_API_KEY_STORE.find_api_key(name)
     if not api_key:
         raise BytePlusException(get_text("err_no_default_mediakit_key", path=credentials.env_file_path()))
     return MediaKitClient(api_key, DEFAULT_MEDIAKIT_REGION)
-
 
 
 # MediaKit keys are their own product key, so they get their own file

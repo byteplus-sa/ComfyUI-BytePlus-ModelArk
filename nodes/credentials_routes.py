@@ -16,7 +16,7 @@ from aiohttp import web
 
 from . import credentials
 from .constants import REGION_BASE_URLS
-from .nodes_shared import get_text, plain_text, validate_api_key
+from .nodes_shared import check_api_key, get_text, plain_text
 
 logger = logging.getLogger("BytePlus")
 
@@ -73,6 +73,7 @@ async def handle_save(request):
     credential = body.get("credential")
     clear = body.get("clear") is True
     updates = {}
+    message_key = "cred_cleared" if clear else "cred_saved"
 
     if credential in ("modelark", "speech", "mediakit"):
         variable = credentials.CREDENTIAL_VARS[credential]
@@ -84,12 +85,19 @@ async def handle_save(request):
                 return _error("cred_empty")
             if credential == "modelark":
                 region = body.get("region") or credentials.get_default_region()
-                if region not in REGION_BASE_URLS:
+                if not isinstance(region, str) or region not in REGION_BASE_URLS:
                     return _error("cred_bad_request")
+                env_region = credentials.get_default_region()
+                if credentials.setting_source(credentials.REGION_ENV) == "environment" and region != env_region:
+                    # The key would be checked against one region and used against another.
+                    return _error("cred_region_env_conflict", 409, region=env_region)
                 # Same check as the API Client node; blocking, so off the event loop.
-                accepted = await asyncio.to_thread(validate_api_key, value, REGION_BASE_URLS[region])
-                if not accepted:
+                accepted = await asyncio.to_thread(check_api_key, value, REGION_BASE_URLS[region])
+                if accepted is False:
                     return _error("cred_key_rejected", 422)
+                if accepted is None:
+                    # Unreachable is not rejected: save, and say the key is unchecked.
+                    message_key = "cred_key_unchecked"
                 updates[credentials.REGION_ENV] = region
             updates[variable] = value
     elif credential == "iam":
@@ -116,17 +124,21 @@ async def handle_save(request):
 
     logger.info(get_text("cred_saved_log", path=path, names=", ".join(sorted(updates))))
     result = credentials.credential_status()
-    result["message"] = plain_text("cred_cleared" if clear else "cred_saved", path=path)
+    result["message"] = plain_text(message_key, path=path)
     return _json(result)
 
 
 def register():
-    """Add the routes to ComfyUI's server; False when there is no server (tests, tools)."""
+    """
+    Add the routes to ComfyUI's server. Without a server (tests, tools) it
+    logs why and returns False, so the nodes still load.
+    """
     try:
         from server import PromptServer
 
         routes = PromptServer.instance.routes
-    except Exception:
+    except Exception as e:
+        logger.warning(get_text("init_credentials_routes_failed", e=e))
         return False
     routes.get(ROUTE)(handle_status)
     routes.post(ROUTE)(handle_save)

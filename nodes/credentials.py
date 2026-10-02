@@ -55,23 +55,34 @@ def env_file_path():
     return os.path.join(user_dir, ENV_FILE_NAME)
 
 
+def _split_line(line):
+    """
+    ``(name, rest)`` for a line that sets a variable (optional ``export``
+    prefix), else None. Shared by the parser and the writer so both agree on
+    which lines set which variable.
+    """
+    line = line.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        return None
+    if line.startswith("export ") or line.startswith("export\t"):
+        line = line[7:].lstrip()
+    name, _, rest = line.partition("=")
+    name = name.strip()
+    return (name, rest.strip()) if name else None
+
+
 def parse_env_text(text):
     """
     Parse ``NAME=value`` lines: optional ``export``, ``#`` comments, single or
     double quotes (``\\"`` and ``\\\\`` are unescaped inside double quotes).
+    A variable set on several lines takes the last value.
     """
     values = {}
     for raw_line in (text or "").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
+        parts = _split_line(raw_line)
+        if not parts:
             continue
-        if line.startswith("export ") or line.startswith("export\t"):
-            line = line[7:].lstrip()
-        name, _, rest = line.partition("=")
-        name = name.strip()
-        if not name:
-            continue
-        rest = rest.strip()
+        name, rest = parts
         if rest[:1] in ('"', "'"):
             quote = rest[0]
             value, index = [], 1
@@ -144,10 +155,12 @@ def setting_source(*names):
     return None
 
 
-def get_default_region():
-    """BYTEPLUS_REGION when it names a known region, else the default."""
+def get_default_region(fallback=DEFAULT_REGION):
+    """BYTEPLUS_REGION when it names a known region, else ``fallback``."""
     region = get_setting(REGION_ENV)
-    return region if region in REGION_BASE_URLS else DEFAULT_REGION
+    if region in REGION_BASE_URLS:
+        return region
+    return fallback if fallback in REGION_BASE_URLS else DEFAULT_REGION
 
 
 def get_asset_credentials():
@@ -190,21 +203,22 @@ def update_env_file(updates):
         except FileNotFoundError:
             lines = []
 
-        pending = dict(updates)
+        written = set()
         output = []
         for line in lines:
-            stripped = line.strip()
-            candidate = stripped[7:].lstrip() if stripped.startswith("export ") else stripped
-            name = candidate.partition("=")[0].strip() if "=" in candidate and not candidate.startswith("#") else None
-            if name in pending:
-                value = pending.pop(name)
-                if value:
-                    output.append(f"{name}={_format_value(value)}")
-                # an empty value drops the line
+            parts = _split_line(line)
+            name = parts[0] if parts else None
+            if name in updates:
+                # The new value goes where the variable was first set; any later
+                # line for it is dropped, since the last one would win on read.
+                # An empty value drops every line.
+                if name not in written and updates[name]:
+                    output.append(f"{name}={_format_value(updates[name])}")
+                written.add(name)
                 continue
             output.append(line)
-        for name, value in pending.items():
-            if value:
+        for name, value in updates.items():
+            if name not in written and value:
                 output.append(f"{name}={_format_value(value)}")
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -262,5 +276,7 @@ def credential_status():
         "shadowed": access["shadowed"] or secret["shadowed"],
     }
     status["region"] = get_default_region()
+    # An environment variable fixes the region: the one picked in Settings would be ignored.
+    status["region_source"] = setting_source(REGION_ENV)
     status["regions"] = list(REGION_BASE_URLS)
     return status

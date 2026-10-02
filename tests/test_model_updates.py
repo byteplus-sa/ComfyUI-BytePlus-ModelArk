@@ -1816,7 +1816,11 @@ class BilledCallTests(unittest.IsolatedAsyncioTestCase):
             built.append(kwargs)
             return SimpleNamespace(**kwargs)
 
-        store = SimpleNamespace(find_api_key=lambda name: "ark-key", find_asset_credentials=lambda name: None)
+        store = SimpleNamespace(
+            find_api_key=lambda name: "ark-key",
+            find_asset_credentials=lambda name: None,
+            remember_region=lambda name, region: None,
+        )
         with mock.patch.object(nodes_shared, "Ark", fake_ark), mock.patch.object(nodes_shared, "API_KEY_STORE", store):
             client = nodes_shared.BytePlusAPIClient.execute("work").args[0]
         self.assertNotIn("max_retries", built[0])  # polling and uploads keep the SDK's retries
@@ -2518,7 +2522,7 @@ class ApiKeySavedEventTests(unittest.TestCase):
         saved = {}
         patches = {
             "validate_api_key": lambda key, url: True,
-            "save_api_key": lambda name, key, access_key="", secret_key="": saved.update({name: key}),
+            "save_api_key": lambda name, key, access_key="", secret_key="", region="": saved.update({name: key}),
             "Ark": lambda **kwargs: SimpleNamespace(**kwargs),
         }
         old = {name: getattr(nodes_shared, name) for name in patches}
@@ -2581,7 +2585,11 @@ class ApiKeySavedEventTests(unittest.TestCase):
         self.assertEqual(client.asset_credentials, expected)
         self.assertEqual(
             store.get_items(),
-            [{"customName": "work", "apiKey": "sk-1", "accessKey": "AKLT1", "secretKey": "s3cret"}],
+            [{
+                "customName": "work", "apiKey": "sk-1", "accessKey": "AKLT1", "secretKey": "s3cret",
+                # The region the key was checked against, for the default client.
+                "region": "ap-southeast-1",
+            }],
         )
         self.assertEqual(store.find_asset_credentials("work"), expected)
         # The frontend event names the key and carries no AK/SK, only the key's fingerprint.

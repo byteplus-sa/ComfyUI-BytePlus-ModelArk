@@ -161,12 +161,9 @@ if _dependencies_ready:
 
     from .nodes import credentials_routes
 
-    # Settings > BytePlus talks to these routes (needs ComfyUI's server, so a
-    # failure here must not stop the nodes from loading).
-    try:
-        credentials_routes.register()
-    except Exception as e:
-        print(get_init_text("init_credentials_routes_failed", e=e))
+    # Settings > BytePlus talks to these routes. Without ComfyUI's server,
+    # register() logs why and the nodes still load.
+    credentials_routes.register()
 
     _registered_nodes = [
         BytePlusAPIClient,

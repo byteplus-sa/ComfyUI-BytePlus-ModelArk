@@ -81,6 +81,7 @@ from .models_config import (
 )
 from . import credentials
 from .nodes_shared import (
+    single_saved_key_name,
     with_default_client,
     GLOBAL_CATEGORY,
     BytePlusException,
@@ -120,10 +121,9 @@ def build_default_speech_client():
     api_key = credentials.get_setting(SPEECH_API_KEY_ENV)
     if not api_key:
         # speech_api_keys.json is only used when it leaves no doubt which key is meant.
-        SPEECH_API_KEY_STORE.load()
-        names = SPEECH_API_KEY_STORE.get_key_names()
-        if len(names) == 1:
-            api_key = SPEECH_API_KEY_STORE.find_api_key(names[0])
+        name = single_saved_key_name(SPEECH_API_KEY_STORE, "err_default_speech_key_ambiguous")
+        if name:
+            api_key = SPEECH_API_KEY_STORE.find_api_key(name)
     if not api_key:
         raise BytePlusException(get_text("err_no_default_speech_key", path=credentials.env_file_path()))
     return SeedSpeechClient(api_key, DEFAULT_SPEECH_REGION)

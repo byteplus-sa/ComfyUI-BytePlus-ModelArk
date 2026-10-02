@@ -410,6 +410,8 @@ MESSAGES = {
     # Default credentials (Settings > BytePlus, BYTEPLUS_* variables, user/.env)
     "err_no_default_key": "No BytePlus API key found. Add it in Settings > BytePlus, set the BYTEPLUS_API_KEY environment variable, or put BYTEPLUS_API_KEY=... in {path}. You can also connect a BytePlus API Client node.",
     "err_default_key_ambiguous": "No default BytePlus API key is set, and api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus API Client node.",
+    "err_default_speech_key_ambiguous": "No default Seed Speech API key is set, and speech_api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus Speech Client node.",
+    "err_default_mediakit_key_ambiguous": "No default AI MediaKit API key is set, and mediakit_api_keys.json has several keys ({names}), so none is picked for you. Set the default in Settings > BytePlus, or connect a BytePlus MediaKit Client node.",
     "err_no_default_speech_key": "No Seed Speech API key found. Add it in Settings > BytePlus, set BYTEPLUS_SEED_SPEECH_API_KEY, or put BYTEPLUS_SEED_SPEECH_API_KEY=... in {path}. You can also connect a BytePlus Speech Client node.",
     "err_no_default_mediakit_key": "No AI MediaKit API key found. Add it in Settings > BytePlus, set BYTEPLUS_VOD_MEDIAKIT_API_KEY, or put BYTEPLUS_VOD_MEDIAKIT_API_KEY=... in {path}. You can also connect a BytePlus MediaKit Client node.",
     "cred_unknown": "Unknown credential.",
@@ -417,6 +419,8 @@ MESSAGES = {
     "cred_forbidden_origin": "Requests from another origin are not accepted.",
     "cred_empty": "Paste a key first.",
     "cred_key_rejected": "BytePlus rejected this API key for the selected region, so it was not saved.",
+    "cred_key_unchecked": "Saved, but BytePlus could not be reached to check the key; if the nodes report 401, check the key and region.",
+    "cred_region_env_conflict": "The BYTEPLUS_REGION environment variable is set to {region}, and it overrides the region picked here. Change or remove that variable (then restart ComfyUI), or pick {region}.",
     "cred_pair_incomplete": "The IAM access key and secret key go together: fill in both.",
     "cred_write_failed": "Could not write {path}: {e}",
     "cred_saved": "Saved.",

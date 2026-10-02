@@ -149,6 +149,21 @@ class EnvFileTests(IsolatedCredentials):
         with open(self.env_path, encoding="utf-8") as file:
             self.assertEqual(file.read(), "# my notes\nOTHER=keep me\nBYTEPLUS_REGION=eu-west-1\n")
 
+    def test_update_replaces_every_line_that_sets_the_variable(self):
+        # A hand-edited file may set a variable twice (the last one wins on read) or
+        # use "export<TAB>": saving must win and removing must remove all of them.
+        self.write_env("BYTEPLUS_API_KEY=first\nOTHER=x\nexport\tBYTEPLUS_API_KEY=second\n")
+        self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "second")
+        credentials.update_env_file({"BYTEPLUS_API_KEY": "new"})
+        with open(self.env_path, encoding="utf-8") as file:
+            self.assertEqual(file.read(), "BYTEPLUS_API_KEY=new\nOTHER=x\n")
+        self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "new")
+        self.write_env("export\tBYTEPLUS_API_KEY=old\nBYTEPLUS_API_KEY=old2\n")
+        credentials.update_env_file({"BYTEPLUS_API_KEY": ""})
+        self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "")
+        with open(self.env_path, encoding="utf-8") as file:
+            self.assertEqual(file.read(), "")
+
     def test_update_creates_the_folder_and_round_trips_odd_values(self):
         value = 'a "quoted" \\ value # not a comment'
         credentials.update_env_file({"BYTEPLUS_API_KEY": value})
@@ -246,6 +261,23 @@ class DefaultClientTests(IsolatedCredentials):
         client = nodes_shared.build_default_client()
         self.assertEqual(client.api_key, "saved-key")
         self.assertEqual(client.asset_credentials["access_key"], "AK")
+        self.assertEqual(client.region, "ap-southeast-1")
+
+    def test_a_single_saved_key_keeps_the_region_it_was_used_with(self):
+        self.store.upsert("work", "saved-key", region="eu-west-1")
+        self.assertEqual(nodes_shared.build_default_client().region, "eu-west-1")
+        # BYTEPLUS_REGION still wins.
+        self.write_env("BYTEPLUS_REGION=ap-southeast-1\n")
+        self.assertEqual(nodes_shared.build_default_client().region, "ap-southeast-1")
+
+    def test_the_api_client_records_the_region_of_a_saved_key(self):
+        self.store.upsert("work", "saved-key")
+        with mock.patch.object(nodes_shared, "Ark", lambda **kwargs: SimpleNamespace(**kwargs)):
+            nodes_shared.BytePlusAPIClient.execute("work", region="eu-west-1")
+        reloaded = nodes_shared.ApiKeyStore(self.store.config_file)
+        reloaded.load()
+        self.assertEqual(reloaded.find_region("work"), "eu-west-1")
+        self.assertEqual(nodes_shared.build_default_client().region, "eu-west-1")
 
     def test_the_environment_beats_a_saved_key(self):
         self.store.upsert("work", "saved-key")
@@ -306,8 +338,12 @@ class DefaultClientTests(IsolatedCredentials):
             speech_store.upsert("only", "saved-speech")
             self.assertEqual(nodes_speech.build_default_speech_client().api_key, "saved-speech")
             speech_store.upsert("second", "other")
-            with self.assertRaises(BytePlusException):
+            with self.assertRaisesRegex(BytePlusException, r"several keys \(only, second\)"):
                 nodes_speech.build_default_speech_client()
+            mediakit_store.upsert("a", "mk-a")
+            mediakit_store.upsert("b", "mk-b")
+            with self.assertRaisesRegex(BytePlusException, r"several keys \(a, b\)"):
+                nodes_mediakit.build_default_mediakit_client()
 
     def test_client_nodes_read_the_env_option_from_the_file_too(self):
         self.write_env("BYTEPLUS_SEED_SPEECH_API_KEY=speech-key\nBYTEPLUS_VOD_MEDIAKIT_API_KEY=mk-key\n")
@@ -467,7 +503,7 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
             seen.append((key, base_url))
             return key == "good-key-0001"
 
-        with mock.patch.object(credentials_routes, "validate_api_key", validate):
+        with mock.patch.object(credentials_routes, "check_api_key", validate):
             status, body = await self.save({"credential": "modelark", "value": "bad-key", "region": "eu-west-1"})
             self.assertEqual(status, 422)
             self.assertIn("rejected", body["error"])
@@ -480,6 +516,27 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "good-key-0001")
         self.assertEqual(credentials.get_default_region(), "eu-west-1")
         self.assertEqual(body["region"], "eu-west-1")
+        self.assertEqual(body["message"], "Saved.")
+
+    async def test_an_unreachable_endpoint_is_not_a_rejected_key(self):
+        with mock.patch.object(credentials_routes, "check_api_key", lambda key, url: None):
+            status, body = await self.save({"credential": "modelark", "value": "key-0001"})
+        self.assertEqual(status, 200)
+        self.assertIn("could not be reached", body["message"])
+        self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "key-0001")
+
+    async def test_a_region_fixed_by_the_environment_is_not_overridden(self):
+        os.environ["BYTEPLUS_REGION"] = "ap-southeast-1"
+        checked = []
+        with mock.patch.object(credentials_routes, "check_api_key", lambda key, url: checked.append(url) or True):
+            status, body = await self.save({"credential": "modelark", "value": "key-0001", "region": "eu-west-1"})
+            self.assertEqual(status, 409)
+            self.assertIn("BYTEPLUS_REGION", body["error"])
+            self.assertEqual(checked, [])
+            self.assertFalse(os.path.exists(self.env_path))
+            status, body = await self.save({"credential": "modelark", "value": "key-0001", "region": "ap-southeast-1"})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["region_source"], "environment")
 
     async def test_iam_pair(self):
         status, body = await self.save({"credential": "iam", "access_key": "AK"})
@@ -498,6 +555,7 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
             ({"credential": "speech", "value": "   "}, 400),
             ({"credential": "speech"}, 400),
             ({"credential": "modelark", "value": "key-0001", "region": "mars-1"}, 400),
+            ({"credential": "modelark", "value": "key-0001", "region": ["eu-west-1"]}, 400),
             (["not", "an", "object"], 400),
             (ValueError("not json"), 400),
         ):

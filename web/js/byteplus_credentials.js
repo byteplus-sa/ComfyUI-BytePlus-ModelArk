@@ -33,6 +33,18 @@ async function request(method, body) {
     return data;
 }
 
+// The four rows render together and the status covers all of them, so they
+// share one request (also when the dialog re-renders them).
+let statusRequest = null;
+function loadStatus() {
+    if (!statusRequest) {
+        statusRequest = request("GET");
+        const reset = () => setTimeout(() => { statusRequest = null; }, 1000);
+        statusRequest.then(reset, reset);
+    }
+    return statusRequest;
+}
+
 function element(tag, props = {}, style = {}) {
     const node = document.createElement(tag);
     Object.assign(node, props);
@@ -87,8 +99,11 @@ function credentialEditor({ credential, fields, select, label }) {
         row.append(input);
     }
     let regionSelect = null;
+    // A region the user picked but has not saved yet survives re-renders.
+    let regionTouched = false;
     if (select) {
         regionSelect = element("select", {}, { ...INPUT_STYLE, flex: "0 0 auto" });
+        regionSelect.addEventListener("change", () => { regionTouched = true; });
         row.append(regionSelect);
     }
     const save = element("button", { type: "button", textContent: "Save" }, BUTTON_STYLE);
@@ -113,7 +128,15 @@ function credentialEditor({ credential, fields, select, label }) {
         if (regionSelect && data.regions && !regionSelect.options.length) {
             for (const region of data.regions) regionSelect.add(new Option(region, region));
         }
-        if (regionSelect && data.region) regionSelect.value = data.region;
+        if (regionSelect) {
+            // BYTEPLUS_REGION in the environment overrides whatever is picked here.
+            const locked = data.region_source === "environment";
+            regionSelect.disabled = locked;
+            regionSelect.title = locked
+                ? "Set by the BYTEPLUS_REGION environment variable; change it there."
+                : "";
+            if (data.region && (locked || !regionTouched)) regionSelect.value = data.region;
+        }
         if (!info?.configured) {
             show(`${label}: not set.`);
         } else {
@@ -131,7 +154,7 @@ function credentialEditor({ credential, fields, select, label }) {
 
     const refresh = async () => {
         try {
-            render(await request("GET"));
+            render(await loadStatus());
         } catch (error) {
             show(`Could not read the credential status: ${error.message}`, true);
         }
@@ -142,7 +165,9 @@ function credentialEditor({ credential, fields, select, label }) {
         try {
             const data = await request("POST", { credential, ...body });
             for (const input of Object.values(inputs)) input.value = "";
-            render(data);
+            regionTouched = false;
+            // The answer is the full status: update every row, not only this one.
+            for (const editor of editors.values()) editor.render?.(data);
             if (data.message) status.textContent += ` ${data.message}`;
         } catch (error) {
             show(error.message, true);
@@ -166,6 +191,7 @@ function credentialEditor({ credential, fields, select, label }) {
     refresh();
     // Re-read when the Settings dialog shows this row again (another tab may have changed the file).
     root.refresh = refresh;
+    root.render = render;
     return root;
 }
 
