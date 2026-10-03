@@ -1,0 +1,55 @@
+---
+title: "Seedance Video Extension"
+description: "Make a 15 second video by generating a 5 second clip and extending it twice with Seedance 2.5, then joining the three parts."
+template_file: Seedance Video Extension.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Seedance Video Extension.json" />
+
+## What it makes
+
+One 15 second video with sound. The template starts with a 5 second text-to-video clip of a paper boat drifting down a rain-soaked city street, then asks Seedance 2.5 twice to continue that clip. Each extension picks up the motion, the scene and the sound where the previous clip stopped and contains only the new seconds. A **Concatenate Video** node joins all three parts into one file.
+
+## The workflow
+
+<Shot src="templates/seedance-video-extension-workflow.webp" alt="The Seedance Video Extension template in five groups: a note, Clip 1, Extension 1, Extension 2 and the join and save step" caption="Five groups from left to right: the note, the first clip, two extensions, and the join." />
+
+1. **How to use** is a note that explains the idea.
+2. **[Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/)**, titled Clip 1, creates the first 5 seconds at `720p` and `16:9` from the paper boat prompt.
+3. **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)**, titled Extension 1, has `task_type` set to `extend`. It receives Clip 1 as `video_1` and a prompt that starts with "Extend the video forward": the boat is swept toward a storm drain and spins in a small whirlpool. It creates 5 new seconds.
+4. A second **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** node, titled Extension 2, receives Extension 1 as `video_1` and continues it: the boat escapes into a calm canal and the camera rises above it.
+5. **Concatenate Video** joins Clip 1, Extension 1 and Extension 2 in that order, and **Save Video** writes the long video.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Log in to your Comfy.org account in ComfyUI. The reference video you connect to an extension node is uploaded through Comfy.org storage first.
+3. Open the template browser and choose **Seedance Video Extension** under BytePlus.
+4. Press **Run**. The three clips are made one after another, because each extension needs the clip before it. The joined video appears in **Save Video**.
+
+## Settings worth changing
+
+- **Clip 1 prompt:** describe the scene and the camera. Everything that follows builds on it.
+- **Extension prompts:** start with "Extend the video forward" and say what should happen next. The extension keeps the source clip's aspect ratio, so the `ratio` widget has no effect there.
+- **`duration`:** each part is 5 seconds in the template. The node only changes the length of the new part; the final length is the sum of all three.
+- **A third extension:** copy an Extension node, feed it the previous extension, and add its output to **Concatenate Video**.
+- **`resolution`:** all three nodes are set to `720p`. Keep them the same so the joined video has one size.
+
+## Example result
+
+<Shot src="templates/seedance-video-extension-result.webp" alt="The finished template and six frames from the 15 second video: the paper boat, then a storm drain, then a neon canal" caption="Result of the live test run: the joined video is 15 seconds long at 1280x720 with sound." />
+
+<Media kind="video" file="seedance-video-extension.mp4" caption="The joined 15 second video from the live test." />
+
+## Time and cost
+
+The live test took about 627 seconds (about 10.5 minutes) for the three clips. Each Seedance node bills once per run, so one run bills three 5 second clips. Running again with unchanged settings reuses ComfyUI's cached results and does not bill; the seed widgets are set to `randomize`, so they change after every run and a new run generates three new clips.
+
+## Related
+
+- Nodes: [Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/), [Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)
+- Next step: [Seedance Task Query](../seedance-task-query/) shows how to find a Seedance task again by its ID.

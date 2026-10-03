@@ -15,6 +15,7 @@ npm run build                    # also validates every link
 
 ## Rules for all text
 
+- Frontmatter `title` and `description` are always in double quotes.
 - English, plain words, short sentences. Write for someone who has used ComfyUI but never these nodes.
 - Address the reader as “you”. Use present tense and active voice.
 - Name UI elements as they appear: **Settings → BytePlus**, **Save Image**, `size_preset`. Input and output names in `code`.
@@ -28,12 +29,12 @@ npm run build                    # also validates every link
 
 ## Node page: `src/content/docs/nodes/<slug>.mdx`
 
-`<slug>` and `node_id` come from `src/data/nodes.json`. The title is the node's display name without the “BytePlus ” prefix.
+`<slug>` and `node_id` come from `src/data/nodes.json`. The title is the node's display name without the “BytePlus ” prefix (or the full display name when the short one would be unclear, as for “BytePlus LLM”).
 
 ```mdx
 ---
 title: Seedream 4.5 & 5.0
-description: <one sentence, 40 to 160 characters, starts with a verb>
+description: "<one sentence, 40 to 160 characters, starts with a verb>"
 node_id: BytePlusSeedream
 ---
 
@@ -67,7 +68,7 @@ named `nodes/<slug>-<variant>.png`.
 ```mdx
 ---
 title: Seedream
-description: <one sentence, 40 to 160 characters>
+description: "<one sentence, 40 to 160 characters>"
 template_file: Seedream.json
 ---
 

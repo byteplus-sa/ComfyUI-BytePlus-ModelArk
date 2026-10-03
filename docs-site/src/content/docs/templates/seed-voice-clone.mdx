@@ -1,0 +1,52 @@
+---
+title: "Seed Voice Clone"
+description: "Clone a voice from a short clip with Seed Voice Clone, then speak new text in that voice with Seed Speech TTS (seed-icl-2.0)."
+template_file: Seed Voice Clone.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Seed Voice Clone.json" />
+
+## What it makes
+
+Two audio clips. Seed Voice Clone trains a voice from your reference clip and returns a demo clip that says "Hello! This is a preview of my cloned voice." Seed Speech TTS then speaks "Now I can say anything in my own voice." with the cloned voice, using model `seed-icl-2.0`. The voice is identified by a speaker ID that the clone node passes to the TTS node.
+
+## The workflow
+
+<Shot src="templates/seed-voice-clone-workflow.webp" alt="The Seed Voice Clone template: Load Audio into Seed Voice Clone, whose speaker ID feeds Seed Speech TTS, with a Preview Audio after each" caption="Five nodes: Load Audio, Seed Voice Clone, Seed Speech TTS and two Preview Audio." />
+
+1. **Load Audio** supplies the reference clip. The template ships with no file chosen.
+2. **[Seed Voice Clone](../../nodes/seed-voice-clone/)** trains the voice into your voice slot, with `language` en, and waits until it is ready. Its `demo_audio` goes to a **Preview Audio**.
+3. **[Seed Speech TTS](../../nodes/seed-tts/)** receives the `speaker_id` as `custom_speaker_id` and speaks the new sentence with `seed-icl-2.0`.
+4. The second **Preview Audio** plays the result.
+
+## Run it
+
+1. Add your Seed Speech API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. In **Load Audio**, choose a clip of 10 to 15 seconds of clear speech, up to 10 MB.
+3. In Seed Voice Clone, replace the placeholder in `speaker_id` with your voice slot ID (starts with `S_`, bought in the Seed Speech console) or your own postpaid custom voice ID.
+4. Set `language` to the language spoken in the clip. Cross-language cloning is not supported, so write the TTS text in the same language.
+5. Press **Run**. The demo clip and the new sentence appear in the two **Preview Audio** nodes.
+
+## Settings worth changing
+
+- **`speaker_id`:** the voice slot to train into. Each slot can be trained 15 times.
+- **`reference_text`:** optional, the words spoken in the clip. Training fails if the audio differs too much from it.
+- **`demo_text`:** optional text for the demo clip, 4 to 80 characters in the same language.
+- **`text` (TTS):** the sentence to say in the cloned voice.
+- **`tone_fidelity` (TTS):** stays as close as possible to the training audio's voice, emotion and accent, for the same language only.
+
+## Example result
+
+This template has not been run end to end. In the live test the Seed Voice Clone step stopped after about 1 second because no voice slot ID was available for the test account, and the API answered with a clear error. The TTS step therefore never ran, and there is no result picture or sample audio to show. Run it with your own slot to hear the result.
+
+## Time and cost
+
+There is no measured run time, because the live test stopped at the first node. The voice clone step bills when it trains. Every run with changed inputs trains the slot again, and a slot can be trained 15 times. According to the pack's README, the first TTS call with the voice starts the slot's billing. A re-run with unchanged inputs reuses ComfyUI's cached result.
+
+## Related
+
+- Nodes: [Seed Voice Clone](../../nodes/seed-voice-clone/), [Seed Speech TTS](../../nodes/seed-tts/)
+- Next step: [Multilingual Dubbing](../multilingual-dubbing/) transcribes, translates and speaks a clip with Seed Speech.

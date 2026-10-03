@@ -1,0 +1,54 @@
+---
+title: "Keys and regions"
+description: "Which key each node needs, which regions exist, and how a changed key takes effect."
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Every node page has a **Keys needed** row. This page explains how those keys relate to regions and models.
+
+## Which key a node needs
+
+| Nodes | Key | Region |
+|---|---|---|
+| Seedream, Seedance, Video Query Tasks, BytePlus LLM | ModelArk API key | `ap-southeast-1` or `eu-west-1` |
+| Create Image, Video and Audio Asset, Asset Library | ModelArk API key and IAM access key and secret key | Follows the ModelArk region |
+| Seed Audio, Seed Speech TTS, ASR, Voice Clone | Seed Speech API key | `ap-southeast-1` only |
+| vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance | AI MediaKit API key | `ap-southeast-1` only |
+
+The keys are separate products and never interchangeable. Using a ModelArk key on a speech node gives an *Invalid X-Api-Key* error. How to create and save each key: [API keys](../../get-started/api-keys/).
+
+## Regions
+
+ModelArk has two regions:
+
+- `ap-southeast-1` (Singapore), the default.
+- `eu-west-1`.
+
+A ModelArk key belongs to the region where you created it. Pick the same region in **Settings → BytePlus** next to the key. If they do not match, BytePlus answers *Invalid API Key (401)*.
+
+Seed Speech and AI MediaKit run in `ap-southeast-1` only. They have no region setting.
+
+<Aside>
+The region picked in Settings is saved as `BYTEPLUS_REGION`. An environment variable with that name wins over the file, and Settings then refuses to save a different region. Change or remove the variable and restart ComfyUI, or pick the region it names.
+</Aside>
+
+## Models are activated per region
+
+Each model must be activated in the ModelArk console for the region you use. A model you have not activated fails with *has not activated the model*. Activating it in one region does not activate it in the other.
+
+Some models are not offered in every region. **Seedream 5.0 Lite is not available in `eu-west-1`.** If you pick it there, the node stops before sending anything and tells you to choose another model or region.
+
+## Changing a key takes effect at once
+
+You do not need to restart ComfyUI after you save, replace or remove a key in Settings, or after you edit `user/.env`. The pack reads the file again whenever it changes and rebuilds its connection when the key or region changes. The same holds for the IAM access key and secret key used by the asset library.
+
+An environment variable is read when ComfyUI starts, so changing one needs a restart.
+
+## Caching
+
+ComfyUI caches a node's result by its input values. The key is not an input. If you run an unchanged workflow after changing a key, ComfyUI reuses the cached result and sends no new request. Change a prompt or seed to force a fresh run.
+
+## Where the key is stored
+
+Keys live in `user/.env` in your ComfyUI folder, written so that only you can read it. They are not in workflows, node outputs or logs. Settings can only show whether a key is set and its last four characters.

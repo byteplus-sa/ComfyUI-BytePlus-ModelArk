@@ -1,0 +1,50 @@
+---
+title: "Seedream Layer Separation"
+description: "Split a picture into a background and separate transparent layers with Seedream 5.0 Pro, then preview the base and save the layers."
+template_file: Seedream Layer Separation.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Seedream Layer Separation.json" />
+
+## What it makes
+
+A background image and a stack of layers. Seedream looks at one picture (the ComfyUI logo) and decomposes it into a base image plus the elements on top of it, each as its own layer. In the live test it found two layers: the yellow ring and the word ComfyUI. You can then move or edit each layer on its own.
+
+## The workflow
+
+<Shot src="templates/seedream-layer-separation-workflow.webp" alt="Load Image feeding the Seedream Layer Separation node, whose base_image goes to Preview Image and layers go to Save Image" caption="Four nodes: Load Image, Layer Separation, Preview Image and Save Image." />
+
+1. **Load Image** supplies one picture. The node takes exactly one image.
+2. **[Seedream 5.0 Layer Separation](../../nodes/seedream-layer-separation/)** runs with the model `seedream 5.0 pro`, an empty `prompt` (it finds the main elements by itself), `size` set to `auto` and `crop_layers` on `full canvas`.
+3. **Preview Image** shows `base_image`, the background plate.
+4. **Save Image** receives `layers` and writes each layer to the output folder as `BytePlus/Layers/Seedream`. With `full canvas` every layer sits on a black canvas the size of the base at its own position.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Open the template browser and choose **Seedream Layer Separation** under BytePlus.
+3. Press **Run**. The background shows in **Preview Image** and the layers in **Save Image**.
+
+## Settings worth changing
+
+- **Image:** pick your own picture in **Load Image**. The image must be one picture of at least 262,144 pixels (for example 512x512).
+- **`prompt`:** leave it empty to separate all major elements, or name the elements you want in plain words. You can also target regions with `<bbox>left top right bottom</bbox>` tags.
+- **`crop_layers`:** switch to `minimal size` to crop each layer to its bounding box. That gives smaller images; use the `bboxes` output to put them back.
+- **`save_layers`:** an advanced input. Turn it on to also write the base image and the original layer PNGs from the node itself.
+- **`prompt_optimization`:** `standard` is set; `fast` shortens generation time.
+
+## Example result
+
+<Shot src="templates/seedream-layer-separation-result.webp" alt="The purple gradient base image in Preview Image, and two saved layers on black: the word ComfyUI and a yellow ring" caption="Result of the live test run: the background and two layers." />
+
+## Time and cost
+
+The live test took about 31 seconds. ModelArk bills one image generation per run. The `seed` control is set to `randomize`, so every run asks again; set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
+
+## Related
+
+- Node: [Seedream 5.0 Layer Separation](../../nodes/seedream-layer-separation/)
+- Next step: [Image Quality Enhance](../image-quality-enhance/) raises the resolution of an image.

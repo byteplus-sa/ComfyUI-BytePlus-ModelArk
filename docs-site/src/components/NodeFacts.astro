@@ -1,12 +1,12 @@
 ---
-import { getNode, base } from './lib';
+import { getNode, base, shortName } from './lib';
 const { id } = Astro.props;
 const node = getNode(id);
 ---
 <dl class="facts">
 	<dt>Node name</dt><dd>{node.display_name}</dd>
 	<dt>Node ID</dt><dd><code>{node.id}</code></dd>
-	<dt>Find it</dt><dd>Double-click the canvas and search for “{node.display_name.replace(/^BytePlus /, '')}”, or browse <code>{node.category}</code></dd>
+	<dt>Find it</dt><dd>Double-click the canvas and search for “{shortName(node)}”, or browse <code>{node.category}</code></dd>
 	<dt>Keys needed</dt>
 	<dd>
 		{node.keys.map((key: string, index: number) => (

@@ -1,5 +1,5 @@
 {
-  "name": "docs-site",
+  "name": "byteplus-modelark-docs",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
@@ -7,7 +7,9 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "generate": "python3 scripts/generate_data.py --object-info http://127.0.0.1:8188/object_info",
+    "check": "node scripts/check-docs.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.5",
@@ -15,5 +17,6 @@
     "sharp": "^0.35.3",
     "starlight-image-zoom": "^0.16.0",
     "starlight-links-validator": "^0.26.0"
-  }
+  },
+  "private": true
 }

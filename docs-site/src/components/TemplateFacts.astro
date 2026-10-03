@@ -1,5 +1,5 @@
 ---
-import { getTemplate, getNode, nodeUrl, base } from './lib';
+import { getTemplate, getNode, nodeUrl, base, shortName } from './lib';
 import evidence from '../data/evidence.json';
 const { file } = Astro.props;
 const t = getTemplate(file);
@@ -11,7 +11,7 @@ const run = (evidence as any)[t.slug];
 	<dt>BytePlus nodes</dt>
 	<dd>
 		{t.nodes.map((n: any, index: number) => (
-			<>{index > 0 && ', '}<a href={nodeUrl(n.id)}>{getNode(n.id).display_name.replace(/^BytePlus /, '')}</a>{n.count > 1 && ` ×${n.count}`}</>
+			<>{index > 0 && ', '}<a href={nodeUrl(n.id)}>{shortName(getNode(n.id))}</a>{n.count > 1 && ` ×${n.count}`}</>
 		))}
 	</dd>
 	<dt>Keys needed</dt>

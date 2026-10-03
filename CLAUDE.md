@@ -52,6 +52,7 @@ The project release skill is `.claude/skills/comfyui-registry-release/SKILL.md`.
 | `web/js/byteplus_progress.js` | Canvas progress bar driven by the `progress` websocket event. |
 | `docs/images/` | Screenshots for the README's Settings > BytePlus guide (taken on a throwaway ComfyUI with a fake key; retake them when the Settings rows change). |
 | `example_workflows/*.json` | Templates shipped to the ComfyUI template browser; guarded by tests. They contain no client nodes. Each has a `<name>.jpg` thumbnail (a screenshot of the graph); retake it when the template changes. Templates show current models only: no Seedance 1.x or Seedream 4.x (`LEGACY_MODEL_PREFIXES`, tested). Those nodes and options stay in the pack without a template. |
+| `docs-site/` | The documentation site (Astro Starlight, published to GitHub Pages by `.github/workflows/docs.yml`): one page per node and per template, guides, models, troubleshooting. Input/output tables, facts cards and the model table are **generated** from the code (`scripts/generate_data.py` reads a running ComfyUI's `/object_info`, `example_workflows/` and `models_config.py` into `src/data/*.json`), so pages hold only hand-written text. Page format and rules: `docs-site/CONTRIBUTING-DOCS.md`; `node scripts/check-docs.mjs --strict` enforces it (CI runs it, plus `npm run build`, which validates links). `tests/test_docs_data.py` fails when a node or template has no page. Screenshots and sample media come from a live run (`scripts/import_evidence.py`, `redact_results.py`); never publish asset, group or task IDs or signed URLs in images. |
 | `.comfyignore` | Dev files excluded from the registry package. |
 
 ## Commands
@@ -84,13 +85,15 @@ Tests use stdlib `unittest` (pytest is not a dependency). `test_model_updates` f
 
 ## Change checklists
 
-**Add a node** → put it in its module's `NODES` (registered by `__init__.py`); take the client as `execute`'s first parameter with `@with_client("client", get_client)` (or the speech / MediaKit factory); add it to `ALL_NODES` in `tests/test_credentials.py` (it checks there is no client input and `execute` is wrapped).
+**Add a node** → put it in its module's `NODES` (registered by `__init__.py`); take the client as `execute`'s first parameter with `@with_client("client", get_client)` (or the speech / MediaKit factory); add it to `ALL_NODES` in `tests/test_credentials.py` (it checks there is no client input and `execute` is wrapped); add its slug and group to `NODES` in `docs-site/scripts/generate_data.py`, regenerate the docs data, take its canvas screenshot, and write its page (`docs-site/CONTRIBUTING-DOCS.md`).
 
 **Add/rename an input** → `define_schema` (or `_model_inputs` for DynamicCombo nodes) → `execute` kwarg (DynamicCombo values arrive as a dict under `model`; unpack them) → request mapping → `MESSAGES` → JS `TARGET_WIDGETS` if it drives visibility → example workflow `inputs` order **and** `widgets_values` positions → expected orders in `tests/test_workflow_templates.py`.
 
 **Add a model** → `models_config.py` maps/options/capability tables (Seedance 2.5-family also needs `SEEDANCE_2_5_FAMILY` and `SEEDANCE_DRAFT_FINAL_RESOLUTIONS`, else KeyError at schema build) → check `"seedance-2-"` substring logic in `executor.py` → README model list → `tests/test_model_updates.py`.
 
 **Retire a model** → remove it from every map/option list in `models_config.py` (a retired Seedance model goes into `RETIRED_MODELS` so Video Query Tasks can still list its tasks). Region-limited models go in `MODEL_REGION_EXCLUSIONS` (checked by `raise_if_model_unavailable_in_region`).
+
+**Add or change a template** → regenerate the docs data (`docs-site/scripts/generate_data.py`; a new template also needs a group in `TEMPLATE_GROUPS`), retake its docs images, and write or update its page under `docs-site/src/content/docs/templates/`.
 
 **Bump version** → `pyproject.toml` `version` **and** `properties.ver` on every BytePlus node in every `example_workflows/*.json` (tested) **and** README status line.
 

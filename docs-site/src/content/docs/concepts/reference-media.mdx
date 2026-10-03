@@ -1,0 +1,70 @@
+---
+title: "Reference media, links and assets"
+description: "How images, videos and audio reach Seedance, and when to use an asset ID or a link instead."
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Seedance 2.5 and 2.0 can follow reference images, videos and audio. There are three ways to give them a reference.
+
+| Way | How it works | Needs |
+|---|---|---|
+| Connect a node | Connect an image, video or audio output to the reference slots. | Images and audio: nothing extra. Videos: a Comfy.org login. |
+| Paste an asset ID or `asset://` link | Put it in an `asset_N` input. | The private asset library for new assets. |
+| Paste a public `https://` link | Put it in an `asset_N` input. | A link BytePlus can reach. |
+
+## Connected images and audio
+
+Connected images and audio are sent inside the request itself. Nothing is uploaded anywhere else.
+
+## Connected videos
+
+Seedance only accepts reference videos as links. A video you connect to **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** is therefore uploaded first to Comfy.org storage, and BytePlus fetches it from there.
+
+- You must be logged in to **Comfy.org** in ComfyUI (or have a Comfy.org API key). It does not work if ComfyUI runs with `--disable-api-nodes`.
+- Uploads are deleted after about 24 hours. The pack reuses an upload of the same file for up to 12 hours.
+- Trimming or cropping the video creates a different upload.
+- To skip the upload, use a link or an asset instead (below).
+
+Local media is never added to your private asset library automatically.
+
+## `asset_N` slots
+
+**Reference to Video** has `asset_N` inputs, and **First-Last-Frame to Video** has `first_frame_asset_id` and `last_frame_asset_id`. Each takes one of:
+
+- an **asset ID**, for example the `asset_id` output of [Create Image Asset](../../nodes/create-image-asset/);
+- an **`asset://<ASSET_ID>`** link, for example from [Asset Library](../../nodes/asset-library/);
+- a public **`https://`** link to an image, video or audio file. Type it into a String node and connect it.
+
+For `asset_N`, a link is recognized by its file extension or content type. Asset IDs are looked up in your asset library to find out whether they are images, videos or audio, and that lookup needs the IAM keys.
+
+### Using links as a bypass
+
+A link or asset ID skips the Comfy.org upload completely. That is the way to use reference videos without a Comfy.org login, or to reuse a file you already host. The file must be a public link that BytePlus can open.
+
+### Naming references in the prompt
+
+Refer to references by position: *Image 1*, *Video 1*, and so on. Connected inputs come first, then the `asset_N` entries. You can also write `asset1`, `asset2` in the prompt, and the node replaces them with the matching position.
+
+## The private asset library
+
+With **Dreamina Seedance Advanced Creation Rights** you can keep authorized media, such as virtual portraits or verified real people, in a private asset library and use it in Seedance 2.5 and 2.0.
+
+1. Save an IAM access key and secret key with asset-library permission in **Settings → BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Add [Create Image Asset](../../nodes/create-image-asset/) (or [Video](../../nodes/create-video-asset/) or [Audio](../../nodes/create-audio-asset/)). Connect the media or set a public HTTPS link.
+3. Give an existing `group_id`, or leave it empty and set `group_name` to find or create a virtual-portrait group.
+4. Run. The node waits until the asset is **Active** and outputs `asset_id`, `group_id` and `asset_uri`. Running again with the same image reuses the asset.
+5. Connect `asset_id` to an `asset_N` input.
+
+Good to know:
+
+- BytePlus verifies **real people** only in the ModelArk console. Create those groups there and pass their `group_id`.
+- [Asset Library](../../nodes/asset-library/) lists the assets you already have.
+- Connected media for a new asset is uploaded to Comfy.org storage first. A URL input skips the upload.
+- `CreateAsset` is rate limited by your tier: 3, 120 or 300 requests per minute (Entry, Advanced, Premium).
+
+<Aside type="caution">
+Only use media you are authorized to use. Keep the IAM keys in Settings or `.env`, never in a widget.
+</Aside>
+
+See the templates [Virtual Portrait - Existing Asset](../../templates/virtual-portrait-existing-asset/) and [Virtual Portrait - New Asset](../../templates/virtual-portrait-new-asset/) for working examples.

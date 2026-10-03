@@ -1,0 +1,56 @@
+---
+title: "Podcast Clip"
+description: "Turn a topic into a two-voice podcast clip with SRT subtitles and cover art, using an LLM, Seed Speech TTS and ASR, and Seedream."
+template_file: Podcast Clip.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Podcast Clip.json" />
+
+## What it makes
+
+A short audio episode with a host and a guest, an SRT subtitle file for it and a square cover picture. It is for creators who want a quick explainer clip on any topic. The idea: one language model writes the dialogue and the cover prompt, two TTS voices speak the two roles, speech recognition turns the finished audio back into timed subtitles and Seedream paints the cover.
+
+## The workflow
+
+<Shot src="templates/podcast-clip-workflow.webp" alt="The Podcast Clip template in five groups: topic, dialogue, voices, subtitles, cover art" caption="Five groups. Both voices run in parallel and meet in the Join node." />
+
+1. A **Topic** text node holds the subject ("Why do cats purr? A friendly two-person explainer").
+2. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo) replies with `HOST:`, `GUEST:` and `COVER:` lines. Three **Extract Regex** nodes split them, and **Preview Any** nodes show the host and guest lines.
+3. Two **[Seed Speech TTS](../../nodes/seed-tts/)** nodes, **Host voice** (an English female voice) and **Guest voice** (an English male voice), speak the lines with `seed-tts-2.0`.
+4. **Audio Concat** joins the two clips, guest after host, and **Save Audio** writes an MP3 to `BytePlus/Audio/podcast`.
+5. **[Seed Speech ASR](../../nodes/seed-asr/)** (`seed-asr-fast`) transcribes the joined audio. Its `srt` output is shown in a **Preview Any** node.
+6. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (Seedream 5.0 Flash, 1:1 at 1K) paints the cover from the `COVER:` prompt, and **Save Image** keeps it.
+
+## Run it
+
+1. Add your ModelArk API key and your Seed Speech API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The template needs both.
+2. Open the template browser and choose **Podcast Clip** under BytePlus.
+3. Type your own subject in **Topic**.
+4. Press **Run**. The dialogue appears first, then the audio, the subtitles and the cover.
+
+## Settings worth changing
+
+- **Topic:** add the tone or the audience, for example "for ten-year-olds".
+- **Host voice and Guest voice:** pick two clearly different voices. The voice list on each node shows which languages a voice supports.
+- **System prompt of the LLM:** change the number of sentences, or the language of the dialogue (then pick matching voices).
+- **`model` in Seed Speech ASR:** `seed-asr-fast` handles audio up to 2 hours in one request. The 2.0 and 1.0 models upload the audio to Comfy.org storage and need a login.
+- **Cover `model` and `size_preset`:** switch to Seedream 5.0 Pro for a sharper cover or a different ratio.
+
+## Example result
+
+<Shot src="templates/podcast-clip-result.webp" alt="The finished graph with the saved episode, the SRT subtitles, the orange cat cover art and the written host and guest lines" caption="Result of the live test run: an 81 second episode and a cover of a sleeping orange cat." />
+
+<Media kind="audio" file="podcast-clip-0.mp3" caption="The saved episode from the live test." />
+
+## Time and cost
+
+The live test took about 22 seconds. The LLM and Seedream nodes bill on your ModelArk account, and the two TTS nodes and the ASR node bill on your Seed Speech account. Running again with unchanged inputs reuses ComfyUI's cached results and does not bill. Read the subtitles before you publish them: in the live test the recognizer misheard the guest's name in one line.
+
+## Related
+
+- Nodes: [BytePlus LLM](../../nodes/byteplus-llm/), [Seed Speech TTS](../../nodes/seed-tts/), [Seed Speech ASR](../../nodes/seed-asr/), [Seedream 4.5 & 5.0](../../nodes/seedream/)
+- Next step: [Multilingual Dubbing](../multilingual-dubbing/) turns a speech clip into another language.

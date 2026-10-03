@@ -1,0 +1,69 @@
+---
+title: "Seedance Text to Video"
+description: "Generate a video from a text prompt with Seedance 1.0 Pro or Pro Fast, from 480p to 1080p and 2 to 12 seconds long."
+node_id: BytePlusSeedanceTextToVideo
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedanceTextToVideo" />
+
+## What it does
+
+Creates a video from a text prompt with Seedance 1.0 on BytePlus ModelArk. It needs no image or other input, only a prompt, a resolution, an aspect ratio and a duration.
+
+The node bills for every video it generates. It does not save anything itself: connect **Save Video** to keep the result. Seedance 1.0 is the older family. For clips up to 30 seconds, use the newer [Seedance 2.5 Text to Video](../seedance-2-5-text-to-video/).
+
+## On the canvas
+
+<Shot src="nodes/seedance-1-text-to-video.png" alt="The Seedance Text to Video node with the Pro Fast model, a prompt about a paper boat, 480p, 16:9 and a duration of 5 seconds" caption="The default setup: Seedance 1.0 Pro Fast, 480p, 16:9, 5 seconds. The advanced inputs sit at the bottom." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedanceTextToVideo" />
+
+### Notes on inputs
+
+- **Model:** `seedance-1-0-pro-fast-251015` (Pro Fast) is the default. `seedance-1-0-pro-250528` (Pro) is the other option.
+- **Settings go in the widgets:** do not write flags such as `--resolution`, `--ratio`, `--dur`, `--frames`, `--seed`, `--camerafixed` or `--watermark` in the prompt. The node refuses a prompt that contains them.
+- **Camera:** `camera_fixed` adds an instruction to keep the camera still. BytePlus does not guarantee the effect.
+- **Lower price:** `enable_offline_inference` uses the flex tier. It costs less, but the result can take up to 48 hours.
+- **Several videos in one run:** raise `generation_count`. The runs go in parallel and generation N uses `seed` + N, so the videos differ.
+- **Come back later:** with `non_blocking` on, the node submits the task and returns at once. Run it again to collect the finished video.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedanceTextToVideo" />
+
+### Notes on outputs
+
+- `VIDEO` is a list output. With `generation_count` above 1, the next node runs once per video.
+- `last_frame` holds the final frame of every video as one image batch, in the same order. It is handy as the first frame of the next clip.
+- With `non_blocking` on, `response` lists the pending task IDs. `VIDEO` and `last_frame` stay empty, so nodes connected to them are skipped until the video is ready.
+
+## Limits and tips
+
+- Duration is 2 to 12 seconds. Resolution is 480p, 720p or 1080p. This node has no `adaptive` aspect ratio, because there is no image to follow.
+- Activate each Seedance model in the ModelArk console for the region you use.
+- The node keeps waiting until the task ends and shows its queued or running status under the node.
+- If you interrupt the run, the node cancels the tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed, and the message lists its ID so you can find it with [Video Query Tasks](../video-query-tasks/).
+- A failed request that may have billed is never sent twice automatically.
+- Seedance 1.5 Pro is not offered here because BytePlus deprecated it and shuts it down on 2026-11-11. Use Seedance 1.0 or the newer 2.5 family.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No BytePlus API key is set` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `has not activated the model` | Open the ModelArk console and activate the model for the same region as your key. |
+| `Parameter '--resolution' is not allowed in the prompt` | Remove the flag from the prompt and use the node's widget instead. |
+| `prompt is empty. Describe the video to generate.` | Write a prompt. |
+| `Generated video contains sensitive content` | Run again with another seed or rephrase the prompt. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedanceTextToVideo" />

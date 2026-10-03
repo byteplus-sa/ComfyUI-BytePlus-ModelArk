@@ -1,0 +1,64 @@
+---
+title: "Video Query Tasks"
+description: "List your recent ModelArk video tasks by status, model or task ID as JSON, to check a result or find a task ID again."
+node_id: BytePlusVideoQueryTasks
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusVideoQueryTasks" />
+
+## What it does
+
+Lists the video generation tasks of your ModelArk account as JSON, newest first. Filter by status, model or task ID to check on a task that is still running, to see why one failed, or to find a task whose ID you lost.
+
+It starts no generation, so it creates no new video. It is an output node: it runs on its own, with nothing connected to its outputs.
+
+## On the canvas
+
+<Shot src="nodes/video-query-tasks.png" alt="The Video Query Tasks node with page number, page size, status, service tier, task IDs and model version" caption="The default setup lists the 10 newest tasks of all models in the default service tier." />
+
+## Inputs
+
+<NodeInputs id="BytePlusVideoQueryTasks" />
+
+### Notes on inputs
+
+- **Task IDs:** put one ID per line in `task_ids` to look up those tasks. Leave it empty to list by `status` and `model_version`.
+- **Where to find a task ID:** a single-video run prints a `Task ID` line in the ComfyUI console. A Seedance 2.5 Draft run also outputs `draft_task_id`. With `non_blocking` on, the video node returns the pending IDs in its `response` output.
+- **Service tier:** tasks are listed per tier. Set `service_tier` to `flex` to see tasks you started with `enable_offline_inference`.
+- **Model:** `model_version` covers Seedance 1.0, 2.0, 2.5 and 2.5 Premium. It also lists the retired Seedance 1.5 Pro, so you can still find its old tasks.
+- **Seed:** `seed` has no effect on the result. It only makes ComfyUI run the node again when the seed control changes.
+
+## Outputs
+
+<NodeOutputs id="BytePlusVideoQueryTasks" />
+
+### Notes on outputs
+
+- `task_list_json` is a JSON list with one entry per task. Times are shown as `YYYY-MM-DD HH:MM:SS` in the time zone of the ComfyUI machine.
+- `total_tasks` is the total that ModelArk reports for your filters.
+- If the request fails, `task_list_json` holds `{"error": ...}` with the reason and `total_tasks` is 0.
+
+## Limits and tips
+
+- ModelArk keeps tasks for 7 days, so older tasks no longer appear.
+- Use `page_num` and `page_size` to walk through a long list.
+- Looking up task IDs that all do not exist stops the node with a "No task found" error. If only some are missing, the node lists the ones it found and writes "Not found" with the missing IDs to the console.
+- A task that was still running when you interrupted a video node cannot be cancelled and is billed. Look it up here with the ID from the node's message.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No BytePlus API key is set` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `No task found for` | Check the task ID. It is the Task ID line in the console or the `draft_task_id` output of a Seedance 2.5 Draft run. Tasks older than 7 days are gone. |
+| `Invalid API Key (401)` | The key and region do not match. Pick the key's region in **Settings → BytePlus**. This text appears inside the `error` field of `task_list_json`. |
+
+## Used in templates
+
+<UsedIn id="BytePlusVideoQueryTasks" />
