@@ -1,112 +1,32 @@
 {
-  "id": "aa577a67-5b7c-4b3c-8ee9-6f69dec65db5",
+  "id": "551a5b78-28c7-4281-8436-89130dfc5dac",
   "revision": 0,
-  "last_node_id": 6,
-  "last_link_id": 9,
+  "last_node_id": 8,
+  "last_link_id": 12,
   "nodes": [
     {
-      "id": 2,
+      "id": 1,
       "type": "BytePlusSeedance2TextToVideo",
       "pos": [
-               20,
-               100
-             ],
+        662,
+        108
+      ],
       "size": [
-        460,
-        400
+        340,
+        412
       ],
       "flags": {},
-      "order": 1,
+      "order": 0,
       "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "COMFY_DYNAMICCOMBO_V3",
-          "widget": {
-            "name": "model"
-          },
-          "link": null
-        },
-        {
-          "name": "model.prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "model.prompt"
-          },
-          "link": null
-        },
-        {
-          "name": "model.resolution",
-          "type": "COMBO",
-          "widget": {
-            "name": "model.resolution"
-          },
-          "link": null
-        },
-        {
-          "name": "model.ratio",
-          "type": "COMBO",
-          "widget": {
-            "name": "model.ratio"
-          },
-          "link": null
-        },
-        {
-          "name": "model.duration",
-          "type": "INT",
-          "widget": {
-            "name": "model.duration"
-          },
-          "link": null
-        },
-        {
-          "name": "model.generate_audio",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "model.generate_audio"
-          },
-          "link": null
-        },
-        {
-          "name": "seed",
-          "type": "INT",
-          "widget": {
-            "name": "seed"
-          },
-          "link": null
-        },
-        {
-          "name": "watermark",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "watermark"
-          },
-          "link": null
-        },
-        {
-          "name": "generation_count",
-          "type": "INT",
-          "widget": {
-            "name": "generation_count"
-          },
-          "link": null
-        },
-        {
-          "name": "non_blocking",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "non_blocking"
-          },
-          "link": null
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
           "name": "VIDEO",
-          "type": "VIDEO",
           "shape": 6,
+          "type": "VIDEO",
           "links": [
-            6
+            7,
+            9
           ]
         },
         {
@@ -117,9 +37,7 @@
         {
           "name": "last_frame",
           "type": "IMAGE",
-          "links": [
-            4
-          ]
+          "links": null
         },
         {
           "name": "response",
@@ -127,161 +45,81 @@
           "links": null
         }
       ],
+      "title": "Clip 1 (Seedance 2.5 Text to Video)",
       "properties": {
+        "Node name for S&R": "BytePlusSeedance2TextToVideo",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.1",
-        "Node name for S&R": "BytePlusSeedance2TextToVideo"
+        "ver": "0.5.1"
       },
       "widgets_values": [
-        "Seedance 2.0",
+        "Seedance 2.5",
         "A small paper boat drifts down a rain-soaked city street at dusk, neon signs reflecting in the puddles. The camera tracks low behind the boat.",
         "720p",
         "16:9",
         5,
         true,
-        0,
+        "mp4",
+        1,
         "randomize",
         false,
         1,
         false
-      ],
-      "title": "Clip 1: Text to Video"
+      ]
     },
     {
-      "id": 3,
-      "type": "BytePlusSeedance2FirstLastFrame",
+      "id": 2,
+      "type": "BytePlusSeedance2Reference",
       "pos": [
-               530,
-               100
-             ],
+        1098,
+        108
+      ],
       "size": [
-        460,
-        450
+        340,
+        504
       ],
       "flags": {},
       "order": 2,
       "mode": 0,
       "inputs": [
         {
-          "name": "model",
-          "type": "COMFY_DYNAMICCOMBO_V3",
-          "widget": {
-            "name": "model"
-          },
-          "link": null
-        },
-        {
-          "name": "model.prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "model.prompt"
-          },
-          "link": null
-        },
-        {
-          "name": "model.resolution",
-          "type": "COMBO",
-          "widget": {
-            "name": "model.resolution"
-          },
-          "link": null
-        },
-        {
-          "name": "model.ratio",
-          "type": "COMBO",
-          "widget": {
-            "name": "model.ratio"
-          },
-          "link": null
-        },
-        {
-          "name": "model.duration",
-          "type": "INT",
-          "widget": {
-            "name": "model.duration"
-          },
-          "link": null
-        },
-        {
-          "name": "model.generate_audio",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "model.generate_audio"
-          },
-          "link": null
-        },
-        {
-          "name": "seed",
-          "type": "INT",
-          "widget": {
-            "name": "seed"
-          },
-          "link": null
-        },
-        {
-          "name": "watermark",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "watermark"
-          },
-          "link": null
-        },
-        {
-          "name": "first_frame",
+          "name": "model.reference_images.image_1",
+          "shape": 7,
           "type": "IMAGE",
-          "link": 4,
-          "shape": 7
+          "link": null
         },
         {
-          "name": "last_frame",
-          "type": "IMAGE",
-          "link": null,
-          "shape": 7
+          "name": "model.reference_videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 7
         },
         {
-          "name": "first_frame_asset_id",
+          "name": "model.reference_videos.video_2",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "shape": 7,
           "type": "STRING",
-          "widget": {
-            "name": "first_frame_asset_id"
-          },
-          "link": null,
-          "shape": 7
-        },
-        {
-          "name": "last_frame_asset_id",
-          "type": "STRING",
-          "widget": {
-            "name": "last_frame_asset_id"
-          },
-          "link": null,
-          "shape": 7
-        },
-        {
-          "name": "generation_count",
-          "type": "INT",
-          "widget": {
-            "name": "generation_count"
-          },
-          "link": null,
-          "shape": 7
-        },
-        {
-          "name": "non_blocking",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "non_blocking"
-          },
-          "link": null,
-          "shape": 7
+          "link": null
         }
       ],
       "outputs": [
         {
           "name": "VIDEO",
-          "type": "VIDEO",
           "shape": 6,
+          "type": "VIDEO",
           "links": [
-            7
+            8,
+            10
           ]
         },
         {
@@ -292,9 +130,7 @@
         {
           "name": "last_frame",
           "type": "IMAGE",
-          "links": [
-            5
-          ]
+          "links": null
         },
         {
           "name": "response",
@@ -302,163 +138,83 @@
           "links": null
         }
       ],
+      "title": "Extension 1 (task_type = extend)",
       "properties": {
+        "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.1",
-        "Node name for S&R": "BytePlusSeedance2FirstLastFrame"
+        "ver": "0.5.1"
       },
       "widgets_values": [
-        "Seedance 2.0",
-        "The boat is swept toward a storm drain and spins in a small whirlpool. The camera circles to the side, rain streaking past.",
+        "Seedance 2.5",
+        "Extend the video forward: the boat is swept toward a storm drain and spins in a small whirlpool. The camera circles to the side, rain streaking past.",
         "720p",
-        "adaptive",
+        "16:9",
         5,
         true,
-        0,
+        "extend",
+        "mp4",
+        true,
+        false,
+        2,
         "randomize",
         false,
-        "",
-        "",
         1,
         false
-      ],
-      "title": "Clip 2: continues from clip 1's last frame"
+      ]
     },
     {
-      "id": 4,
-      "type": "BytePlusSeedance2FirstLastFrame",
+      "id": 3,
+      "type": "BytePlusSeedance2Reference",
       "pos": [
-               1040,
-               100
-             ],
+        1534,
+        108
+      ],
       "size": [
-        460,
-        450
+        340,
+        504
       ],
       "flags": {},
       "order": 3,
       "mode": 0,
       "inputs": [
         {
-          "name": "model",
-          "type": "COMFY_DYNAMICCOMBO_V3",
-          "widget": {
-            "name": "model"
-          },
-          "link": null
-        },
-        {
-          "name": "model.prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "model.prompt"
-          },
-          "link": null
-        },
-        {
-          "name": "model.resolution",
-          "type": "COMBO",
-          "widget": {
-            "name": "model.resolution"
-          },
-          "link": null
-        },
-        {
-          "name": "model.ratio",
-          "type": "COMBO",
-          "widget": {
-            "name": "model.ratio"
-          },
-          "link": null
-        },
-        {
-          "name": "model.duration",
-          "type": "INT",
-          "widget": {
-            "name": "model.duration"
-          },
-          "link": null
-        },
-        {
-          "name": "model.generate_audio",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "model.generate_audio"
-          },
-          "link": null
-        },
-        {
-          "name": "seed",
-          "type": "INT",
-          "widget": {
-            "name": "seed"
-          },
-          "link": null
-        },
-        {
-          "name": "watermark",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "watermark"
-          },
-          "link": null
-        },
-        {
-          "name": "first_frame",
+          "name": "model.reference_images.image_1",
+          "shape": 7,
           "type": "IMAGE",
-          "link": 5,
-          "shape": 7
+          "link": null
         },
         {
-          "name": "last_frame",
-          "type": "IMAGE",
-          "link": null,
-          "shape": 7
+          "name": "model.reference_videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 8
         },
         {
-          "name": "first_frame_asset_id",
+          "name": "model.reference_videos.video_2",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "shape": 7,
           "type": "STRING",
-          "widget": {
-            "name": "first_frame_asset_id"
-          },
-          "link": null,
-          "shape": 7
-        },
-        {
-          "name": "last_frame_asset_id",
-          "type": "STRING",
-          "widget": {
-            "name": "last_frame_asset_id"
-          },
-          "link": null,
-          "shape": 7
-        },
-        {
-          "name": "generation_count",
-          "type": "INT",
-          "widget": {
-            "name": "generation_count"
-          },
-          "link": null,
-          "shape": 7
-        },
-        {
-          "name": "non_blocking",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "non_blocking"
-          },
-          "link": null,
-          "shape": 7
+          "link": null
         }
       ],
       "outputs": [
         {
           "name": "VIDEO",
-          "type": "VIDEO",
           "shape": 6,
+          "type": "VIDEO",
           "links": [
-            8
+            11
           ]
         },
         {
@@ -477,116 +233,101 @@
           "links": null
         }
       ],
+      "title": "Extension 2 (task_type = extend)",
       "properties": {
+        "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.1",
-        "Node name for S&R": "BytePlusSeedance2FirstLastFrame"
+        "ver": "0.5.1"
       },
       "widgets_values": [
-        "Seedance 2.0",
-        "The boat escapes into a calm canal glowing with neon reflections. The camera rises slowly above it and the rain fades.",
+        "Seedance 2.5",
+        "Extend the video forward: the boat escapes into a calm canal glowing with neon reflections. The camera rises slowly above it and the rain fades.",
         "720p",
-        "adaptive",
+        "16:9",
         5,
         true,
-        0,
+        "extend",
+        "mp4",
+        true,
+        false,
+        3,
         "randomize",
         false,
-        "",
-        "",
         1,
         false
-      ],
-      "title": "Clip 3: continues from clip 2's last frame"
+      ]
     },
     {
-      "id": 5,
+      "id": 4,
       "type": "ConcatenateVideo",
       "pos": [
-               530,
-               640
-             ],
+        1970,
+        108
+      ],
       "size": [
-        270,
-        160
+        340,
+        138
       ],
       "flags": {},
       "order": 4,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "video0",
           "name": "videos.video0",
           "type": "VIDEO",
-          "link": 6
+          "link": 9
         },
         {
-          "localized_name": "video1",
           "name": "videos.video1",
-          "type": "VIDEO",
-          "link": 7,
-          "shape": 7
-        },
-        {
-          "localized_name": "video2",
-          "name": "videos.video2",
-          "type": "VIDEO",
-          "link": 8,
-          "shape": 7
-        },
-        {
-          "localized_name": "video3",
-          "name": "videos.video3",
-          "type": "VIDEO",
-          "link": null,
-          "shape": 7
-        },
-        {
-          "localized_name": "complete_audio",
-          "name": "complete_audio",
           "shape": 7,
-          "type": "AUDIO",
+          "type": "VIDEO",
+          "link": 10
+        },
+        {
+          "name": "videos.video2",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 11
+        },
+        {
+          "name": "videos.video3",
+          "shape": 7,
+          "type": "VIDEO",
           "link": null
         },
         {
-          "localized_name": "codec",
-          "name": "codec",
-          "type": "COMBO",
-          "widget": {
-            "name": "codec"
-          },
+          "name": "complete_audio",
+          "shape": 7,
+          "type": "AUDIO",
           "link": null
         }
       ],
       "outputs": [
         {
-          "localized_name": "VIDEO",
           "name": "VIDEO",
           "type": "VIDEO",
           "links": [
-            9
+            12
           ]
         }
       ],
+      "title": "Join clip 1 and the two extensions",
       "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.37.4",
         "Node name for S&R": "ConcatenateVideo"
       },
       "widgets_values": [
         "auto"
-      ],
-      "title": "Join the clips"
+      ]
     },
     {
-      "id": 6,
+      "id": 5,
       "type": "SaveVideo",
       "pos": [
-               860,
-               640
-             ],
+        1970,
+        300
+      ],
       "size": [
-        300,
+        340,
         106
       ],
       "flags": {},
@@ -596,106 +337,172 @@
         {
           "name": "video",
           "type": "VIDEO",
-          "link": 9
-        },
-        {
-          "name": "filename_prefix",
-          "type": "STRING",
-          "widget": {
-            "name": "filename_prefix"
-          },
-          "link": null
-        },
-        {
-          "name": "format",
-          "type": "COMBO",
-          "widget": {
-            "name": "format"
-          },
-          "link": null
-        },
-        {
-          "name": "codec",
-          "type": "COMBO",
-          "widget": {
-            "name": "codec"
-          },
-          "link": null
+          "link": 12
         }
       ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.2",
-        "Node name for S&R": "SaveVideo"
-      },
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "Save the long video",
+      "properties": {},
       "widgets_values": [
         "BytePlus/Video/Seedance_extended",
         "auto",
+        "auto",
         "auto"
       ]
+    },
+    {
+      "id": 8,
+      "type": "MarkdownNote",
+      "pos": [
+        26,
+        108
+      ],
+      "size": [
+        540,
+        560
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Seedance video extension\n\nClip 1 is a normal text-to-video. Each **Extension** node is *Seedance 2.5 Reference to Video* with **task_type = extend**: it receives the previous clip as its reference video and continues it forward, picking up the motion, the scene and the sound where that clip stopped. The extension contains only the new seconds, so **Concatenate Video** joins clip 1 and both extensions into one 15 s video.\n\nWrite what should happen next in each extension prompt (start with 'Extend the video forward'). To add a third extension, copy an Extension node and feed it the previous one. A connected reference video is uploaded through Comfy.org storage, so log in to your Comfy.org account in ComfyUI. Needs a ModelArk key in Settings > BytePlus."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
     }
   ],
   "links": [
     [
-      4,
-      2,
-      2,
-      3,
-      8,
-      "IMAGE"
-    ],
-    [
-      5,
-      3,
-      2,
-      4,
-      8,
-      "IMAGE"
-    ],
-    [
-      6,
-      2,
-      0,
-      5,
-      0,
-      "VIDEO"
-    ],
-    [
       7,
-      3,
+      1,
       0,
-      5,
+      2,
       1,
       "VIDEO"
     ],
     [
       8,
-      4,
-      0,
-      5,
       2,
+      0,
+      3,
+      1,
       "VIDEO"
     ],
     [
       9,
-      5,
+      1,
       0,
-      6,
+      4,
+      0,
+      "VIDEO"
+    ],
+    [
+      10,
+      2,
+      0,
+      4,
+      1,
+      "VIDEO"
+    ],
+    [
+      11,
+      3,
+      0,
+      4,
+      2,
+      "VIDEO"
+    ],
+    [
+      12,
+      4,
+      0,
+      5,
       0,
       "VIDEO"
     ]
   ],
-  "groups": [],
+  "groups": [
+    {
+      "id": 11,
+      "title": "1 · How it works",
+      "bounding": [
+        0,
+        0,
+        592,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 12,
+      "title": "2 · Clip 1",
+      "bounding": [
+        636,
+        0,
+        392,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 13,
+      "title": "3 · Extension 1",
+      "bounding": [
+        1072,
+        0,
+        392,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 14,
+      "title": "4 · Extension 2",
+      "bounding": [
+        1508,
+        0,
+        392,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 15,
+      "title": "5 · Join and save",
+      "bounding": [
+        1944,
+        0,
+        392,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.45,
+      "scale": 1,
       "offset": [
         40,
-        40
+        30
       ]
-    }
+    },
+    "frontendVersion": "1.53.6"
   },
   "version": 0.4
 }

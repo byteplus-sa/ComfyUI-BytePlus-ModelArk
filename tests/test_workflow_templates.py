@@ -39,6 +39,7 @@ EXPECTED_WORKFLOWS = {
     "Video and Audio Assets.json",
 }
 NEW_TEMPLATE_FILES = {
+    "Seedance Video Extension.json",  # rebuilt on Seedance 2.5 task_type = extend (saved by frontend 1.53.6)
     "Image to UGC Video.json",
     "Product Ad in One Click.json",
     "Old Photo to Living Memory.json",
@@ -54,6 +55,17 @@ NEW_TEMPLATE_FILES = {
 
 # Node counts and links (origin type, origin slot, target type, target input) of the showcase and coverage templates.
 NEW_TEMPLATES = {
+    "Seedance Video Extension.json": {
+        "nodes": {"BytePlusSeedance2Reference": 2, "BytePlusSeedance2TextToVideo": 1, "ConcatenateVideo": 1, "MarkdownNote": 1, "SaveVideo": 1},
+        "edges": [
+            ('BytePlusSeedance2Reference', 0, 'BytePlusSeedance2Reference', 'model.reference_videos.video_1'),
+            ('BytePlusSeedance2Reference', 0, 'ConcatenateVideo', 'videos.video1'),
+            ('BytePlusSeedance2Reference', 0, 'ConcatenateVideo', 'videos.video2'),
+            ('BytePlusSeedance2TextToVideo', 0, 'BytePlusSeedance2Reference', 'model.reference_videos.video_1'),
+            ('BytePlusSeedance2TextToVideo', 0, 'ConcatenateVideo', 'videos.video0'),
+            ('ConcatenateVideo', 0, 'SaveVideo', 'video'),
+        ],
+    },
     "Image to UGC Video.json": {
         "nodes": {"BytePlusSeed": 1, "BytePlusSeedTTS": 1, "BytePlusSeedance2Reference": 1, "CreateVideo": 1, "GetVideoComponents": 1, "LoadImage": 1, "MarkdownNote": 1, "PreviewAny": 2, "PrimitiveString": 1, "RegexExtract": 2, "SaveVideo": 1},
         "edges": [
@@ -627,25 +639,38 @@ class WorkflowTemplateTests(unittest.TestCase):
     def test_video_extension_template(self):
         workflow = load_workflow("Seedance Video Extension.json")
         nodes = {node["id"]: node for node in workflow["nodes"]}
-        clips = [n for n in nodes.values() if n["type"].startswith("BytePlusSeedance2")]
-        self.assertEqual(len(clips), 3)
-        # Each clip starts from the previous clip's last_frame (output 2)...
-        chained = [
-            (nodes[o]["type"], os_, nodes[t]["type"], nodes[t]["inputs"][ts]["name"], o, t)
-            for _id, o, os_, t, ts, _type in workflow["links"]
-            if nodes[t]["inputs"][ts]["name"] == "first_frame"
-        ]
-        self.assertEqual(len(chained), 2)
-        self.assertTrue(all(link[1] == 2 for link in chained))
-        self.assertEqual({(link[4], link[5]) for link in chained}, {(clips[0]["id"], clips[1]["id"]), (clips[1]["id"], clips[2]["id"])})
-        # ...and all three videos are joined, in order, into the one Save Video.
+        (clip1,) = [n for n in nodes.values() if n["type"] == "BytePlusSeedance2TextToVideo"]
+        extensions = [n for n in nodes.values() if n["type"] == "BytePlusSeedance2Reference"]
+        self.assertEqual(len(extensions), 2)
+        self.assertEqual(clip1["widgets_values"][0], "Seedance 2.5")
+        # Both extensions use the real extend task (not first/last frames): model, prompt,
+        # resolution, ratio, duration, generate_audio, task_type.
+        for extension in extensions:
+            values = extension["widgets_values"]
+            self.assertEqual(values[0], "Seedance 2.5")
+            self.assertEqual(values[6], "extend")
+            self.assertTrue(values[1].startswith("Extend the video forward"))
+        self.assertFalse(any(n["type"] == "BytePlusSeedance2FirstLastFrame" for n in nodes.values()))
+        # Each extension gets the previous clip as its reference video.
+        reference = {
+            n["id"]: next(i for i in n["inputs"] if i["name"] == "model.reference_videos.video_1")["link"]
+            for n in extensions
+        }
+        sources = {
+            eid: next(l for l in workflow["links"] if l[0] == link)[1] for eid, link in reference.items()
+        }
+        first, second = sorted(extensions, key=lambda n: n["id"])
+        self.assertEqual(sources[first["id"]], clip1["id"])
+        self.assertEqual(sources[second["id"]], first["id"])
+        # An extension holds only the new seconds, so all three videos are joined, in order.
         concat = next(n for n in nodes.values() if n["type"] == "ConcatenateVideo")
         joined = {
             nodes[t]["inputs"][ts]["name"]: o
             for _id, o, _slot, t, ts, _type in workflow["links"] if t == concat["id"]
         }
-        self.assertEqual(joined, {f"videos.video{i}": clip["id"] for i, clip in enumerate(clips)})
-        # Only the joined video is saved, not the three intermediate clips.
+        self.assertEqual(
+            joined, {"videos.video0": clip1["id"], "videos.video1": first["id"], "videos.video2": second["id"]}
+        )
         self.assertEqual(sum(n["type"] == "SaveVideo" for n in nodes.values()), 1)
 
     def test_seed_prompt_writer_template(self):

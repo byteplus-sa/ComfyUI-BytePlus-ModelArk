@@ -290,7 +290,7 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Template | What it does |
 |---|---|
 | Text to Image to Video | Seedream makes the first frame, Seedance animates it. |
-| Seedance Video Extension | Three Seedance clips, each starting from the previous clip's `last_frame`, joined into one video (needs ComfyUI 0.36+ for `Concatenate Video`). |
+| Seedance Video Extension | A Seedance 2.5 clip, then two Seedance 2.5 Reference nodes with `task_type = extend`, each continuing the previous clip's motion and sound; Concatenate Video joins the three into one 15 s video (the reference video goes through Comfy.org storage, so log in; needs ComfyUI 0.36+ for `Concatenate Video`). |
 | Seed Prompt Writer | The LLM turns a short idea into a detailed Seedream prompt. |
 | Generate and Enhance | Seedream → Image Quality Enhance; Seedance → vCube Video Enhance (ModelArk + MediaKit keys). |
 | Virtual Portrait - Existing Asset | Uses an asset already in your library as an `asset_N` reference in Seedance 2.5: paste its ID, or look it up by name with Asset Library (IAM AK/SK + Advanced Creation Rights). |
