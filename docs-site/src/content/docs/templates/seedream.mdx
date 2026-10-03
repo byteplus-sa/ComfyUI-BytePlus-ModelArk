@@ -1,0 +1,48 @@
+---
+title: Seedream
+description: Turn a reference image into a new picture with Seedream 5.0 Pro, the simplest way to try the image nodes.
+template_file: Seedream.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Seedream.json" />
+
+## What it makes
+
+One image. The template sends a reference picture (the ComfyUI logo) and a prompt to Seedream 5.0 Pro, which turns the logo into a glossy 3D badge on a white studio background. Swap the picture and the prompt to restyle anything of your own.
+
+## The workflow
+
+<Shot src="templates/seedream-workflow.webp" alt="The Seedream template: Load Image into the Seedream node, then Save Image" caption="Three nodes: Load Image, Seedream and Save Image." />
+
+1. **Load Image** supplies the reference picture.
+2. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** receives it as `image_1` together with the prompt and creates the new image.
+3. **Save Image** keeps the result in the ComfyUI output folder.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Open the template browser, choose **Seedream** under BytePlus.
+3. Press **Run**. The picture appears in **Save Image** when the model finishes.
+
+## Settings worth changing
+
+- **Prompt:** describe the result you want. With a reference image, say what to keep and what to change.
+- **Reference image:** pick another file in **Load Image**, or delete the node to generate from the prompt alone.
+- **`size_preset`:** choose another ratio or resolution, for example a 16:9 size for a banner.
+- **`model`:** switch to Seedream 5.0 Flash for a faster and cheaper draft.
+
+## Example result
+
+<Shot src="templates/seedream-result.webp" alt="The generated 3D badge next to the reference logo" caption="Result of the live test run." />
+
+## Time and cost
+
+The live test took about 100 seconds for one image with Seedream 5.0 Pro at 2K. The node bills once per generated image; running again with an unchanged workflow reuses ComfyUI's cached result and does not bill.
+
+## Related
+
+- Node: [Seedream 4.5 & 5.0](../../nodes/seedream/)
+- Next step: [Text to Image to Video](../text-to-image-to-video/) turns a Seedream image into a clip.

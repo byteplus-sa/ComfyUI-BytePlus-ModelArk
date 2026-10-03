@@ -1,0 +1,34 @@
+---
+import { getTemplate, getNode, nodeUrl, base } from './lib';
+import evidence from '../data/evidence.json';
+const { file } = Astro.props;
+const t = getTemplate(file);
+const run = (evidence as any)[t.slug];
+---
+<dl class="facts">
+	<dt>Template</dt><dd>{t.title}, in the ComfyUI template browser under BytePlus</dd>
+	<dt>Workflow file</dt><dd><a href={`${base}/workflows/${t.slug}.json`} download={t.file}>{t.file}</a></dd>
+	<dt>BytePlus nodes</dt>
+	<dd>
+		{t.nodes.map((n: any, index: number) => (
+			<>{index > 0 && ', '}<a href={nodeUrl(n.id)}>{getNode(n.id).display_name.replace(/^BytePlus /, '')}</a>{n.count > 1 && ` ×${n.count}`}</>
+		))}
+	</dd>
+	<dt>Keys needed</dt>
+	<dd>
+		{t.keys.length === 0 && 'None'}
+		{t.keys.map((key: string, index: number) => (
+			<>{index > 0 && ', '}<a href={`${base}/get-started/api-keys/`}>{key}</a></>
+		))}
+	</dd>
+	<dt>Also uses</dt><dd>{t.other_nodes.length ? t.other_nodes.join(', ') + ' (built into ComfyUI)' : 'Only BytePlus nodes'}</dd>
+	{run && (
+		<>
+			<dt>Last live test</dt>
+			<dd>
+				{run.status === 'success' ? `Passed on ${run.tested}` : `Not completed on ${run.tested}`}
+				{run.status === 'success' && run.seconds > 0 && `, ${run.seconds >= 120 ? `${(run.seconds / 60).toFixed(1)} min` : `${run.seconds} s`} for one run`}
+			</dd>
+		</>
+	)}
+</dl>

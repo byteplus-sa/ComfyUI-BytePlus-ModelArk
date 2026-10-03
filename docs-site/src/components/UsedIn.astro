@@ -1,0 +1,12 @@
+---
+import { templatesUsing, templateUrl } from './lib';
+const { id } = Astro.props;
+const list = templatesUsing(id);
+---
+{list.length === 0 ? (
+	<p>No template uses this node yet.</p>
+) : (
+	<ul>
+		{list.map((t) => <li><a href={templateUrl(t)}>{t.title}</a></li>)}
+	</ul>
+)}

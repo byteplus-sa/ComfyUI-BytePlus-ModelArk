@@ -1,0 +1,17 @@
+---
+import { getNode } from './lib';
+const { id } = Astro.props;
+const node = getNode(id);
+---
+<table class="ref-table">
+	<thead><tr><th>Output</th><th>Type</th><th>What it holds</th></tr></thead>
+	<tbody>
+		{node.outputs.map((output: any) => (
+			<tr>
+				<td><code>{output.name}</code></td>
+				<td>{output.type}{output.is_list ? ' (list)' : ''}</td>
+				<td>{output.tooltip}</td>
+			</tr>
+		))}
+	</tbody>
+</table>

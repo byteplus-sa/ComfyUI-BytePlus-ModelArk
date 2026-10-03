@@ -1,0 +1,858 @@
+[
+ {
+  "file": "Seedream.json",
+  "title": "Seedream",
+  "slug": "seedream",
+  "group": "Start here",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadImage",
+   "SaveImage"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seedance 2.json",
+  "title": "Seedance 2",
+  "slug": "seedance-2",
+  "group": "Start here",
+  "nodes": [
+   {
+    "id": "BytePlusSeedance2TextToVideo",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedanceDraftToFinal",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2FirstLastFrame",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadAudio",
+   "LoadImage",
+   "LoadVideo",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "Seedance 2.5 Text to Video: review the draft, then enable Draft to Final",
+   "First-Last-Frame to Video (set the group to Always to use it)",
+   "Reference to Video (set the group to Always to use it)"
+  ],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seed.json",
+  "title": "Seed",
+  "slug": "seed",
+  "group": "Start here",
+  "nodes": [
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadImage",
+   "PreviewAny"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Text to Image to Video.json",
+  "title": "Text to Image to Video",
+  "slug": "text-to-image-to-video",
+  "group": "Start here",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2FirstLastFrame",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "SaveImage",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seedream Layer Separation.json",
+  "title": "Seedream Layer Separation",
+  "slug": "seedream-layer-separation",
+  "group": "Images",
+  "nodes": [
+   {
+    "id": "BytePlusSeedreamLayerSeparation",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadImage",
+   "PreviewImage",
+   "SaveImage"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Image Quality Enhance.json",
+  "title": "Image Quality Enhance",
+  "slug": "image-quality-enhance",
+  "group": "Images",
+  "nodes": [
+   {
+    "id": "BytePlusImageEnhance",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "ImageCompare",
+   "LoadImage",
+   "SaveImage"
+  ],
+  "keys": [
+   "AI MediaKit API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Generate and Enhance.json",
+  "title": "Generate and Enhance",
+  "slug": "generate-and-enhance",
+  "group": "Images",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   },
+   {
+    "id": "BytePlusImageEnhance",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2TextToVideo",
+    "count": 1
+   },
+   {
+    "id": "BytePlusVideoEnhance",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "ImageCompare",
+   "SaveImage",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "AI MediaKit API key"
+  ],
+  "groups": [
+   "Image: Seedream, then Image Quality Enhance",
+   "Video: Seedance, then vCube Video Enhance (enable as needed)"
+  ],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "2.5 Model Updates.json",
+  "title": "2.5 Model Updates",
+  "slug": "2-5-model-updates",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2TextToVideo",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "PreviewAny",
+   "SaveImage",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "2.5 Model Updates"
+  ],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seedance Video Extension.json",
+  "title": "Seedance Video Extension",
+  "slug": "seedance-video-extension",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusSeedance2TextToVideo",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 2
+   }
+  ],
+  "other_nodes": [
+   "ConcatenateVideo",
+   "MarkdownNote",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · How it works",
+   "2 · Clip 1",
+   "3 · Extension 1",
+   "4 · Extension 2",
+   "5 · Join and save"
+  ],
+  "note": "## Seedance video extension\n\nClip 1 is a normal text-to-video. Each **Extension** node is *Seedance 2.5 Reference to Video* with **task_type = extend**: it receives the previous clip as its reference video and continues it forward, picking up the motion, the scene and the sound where that clip stopped. The extension contains only the new seconds, so **Concatenate Video** joins clip 1 and both extensions into one 15 s video.\n\nWrite what should happen next in each extension prompt (start with 'Extend the video forward'). To add a third extension, copy an Extension node and feed it the previous one. A connected reference video is uploaded through Comfy.org storage, so log in to your Comfy.org account in ComfyUI. Needs a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seedance Task Query.json",
+  "title": "Seedance Task Query",
+  "slug": "seedance-task-query",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusVideoQueryTasks",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "PreviewAny",
+   "PrimitiveString",
+   "RegexExtract"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · Which task?",
+   "2 · Collect it (Video Query Tasks)"
+  ],
+  "note": "## Seedance task query\n\nA Seedance task keeps running on BytePlus after you close ComfyUI, and its result stays for 24 hours. Paste a **task ID** and this node collects it: how many tasks matched, their status and the model that made them.\n\nWhere to find a task ID: the *Task ID* line in the ComfyUI console while a video runs, the *draft_task_id* output of a Seedance 2.5 Draft node, or leave the ID empty to list your latest tasks (filter with *status* and *model_version*).\n\nNeeds a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "vCube Video Enhance.json",
+  "title": "vCube Video Enhance",
+  "slug": "vcube-video-enhance",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusVideoEnhance",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "ImageCompare",
+   "LoadVideo",
+   "SaveVideo"
+  ],
+  "keys": [
+   "AI MediaKit API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Video Smoothness Enhance.json",
+  "title": "Video Smoothness Enhance",
+  "slug": "video-smoothness-enhance",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusVideoSmoothness",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadVideo",
+   "PreviewAny",
+   "SaveVideo"
+  ],
+  "keys": [
+   "AI MediaKit API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seed Prompt Writer.json",
+  "title": "Seed Prompt Writer",
+  "slug": "seed-prompt-writer",
+  "group": "Language",
+  "nodes": [
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "PreviewAny",
+   "SaveImage"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seed Audio.json",
+  "title": "Seed Audio",
+  "slug": "seed-audio",
+  "group": "Speech",
+  "nodes": [
+   {
+    "id": "BytePlusSeedAudio",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "PreviewAny",
+   "PreviewAudio"
+  ],
+  "keys": [
+   "Seed Speech API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seed Speech TTS and ASR.json",
+  "title": "Seed Speech TTS and ASR",
+  "slug": "seed-speech-tts-and-asr",
+  "group": "Speech",
+  "nodes": [
+   {
+    "id": "BytePlusSeedTTS",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedASR",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "PreviewAny",
+   "PreviewAudio"
+  ],
+  "keys": [
+   "Seed Speech API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Seed Voice Clone.json",
+  "title": "Seed Voice Clone",
+  "slug": "seed-voice-clone",
+  "group": "Speech",
+  "nodes": [
+   {
+    "id": "BytePlusSeedVoiceClone",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedTTS",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadAudio",
+   "PreviewAudio"
+  ],
+  "keys": [
+   "Seed Speech API key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Virtual Portrait - Existing Asset.json",
+  "title": "Virtual Portrait - Existing Asset",
+  "slug": "virtual-portrait-existing-asset",
+  "group": "Assets",
+  "nodes": [
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 2
+   },
+   {
+    "id": "BytePlusAssetLibrary",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "PreviewAny",
+   "PrimitiveString",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "IAM access key and secret key"
+  ],
+  "groups": [
+   "Option A: you know the asset ID",
+   "Option B: find the asset by name (set the group to Always to use it)"
+  ],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Virtual Portrait - New Asset.json",
+  "title": "Virtual Portrait - New Asset",
+  "slug": "virtual-portrait-new-asset",
+  "group": "Assets",
+  "nodes": [
+   {
+    "id": "BytePlusCreateImageAsset",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadImage",
+   "PreviewAny",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "IAM access key and secret key"
+  ],
+  "groups": [],
+  "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Video and Audio Assets.json",
+  "title": "Video and Audio Assets",
+  "slug": "video-and-audio-assets",
+  "group": "Assets",
+  "nodes": [
+   {
+    "id": "BytePlusSeedance2TextToVideo",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedAudio",
+    "count": 1
+   },
+   {
+    "id": "BytePlusCreateVideoAsset",
+    "count": 1
+   },
+   {
+    "id": "BytePlusCreateAudioAsset",
+    "count": 1
+   },
+   {
+    "id": "BytePlusAssetLibrary",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "PreviewAny",
+   "RegexExtract",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "Seed Speech API key",
+   "IAM access key and secret key"
+  ],
+  "groups": [
+   "1 · Media",
+   "2 · Register as assets",
+   "3 · Library",
+   "4 · Use the assets in Seedance"
+  ],
+  "note": "## Video and audio assets\n\nRegister a **video** and an **audio clip** in your private asset library, list the library, and reference both by their `asset://` URIs in **Seedance 2.5 Reference** (inputs *asset_1* and *asset_2*).\n\nA sample clip and a sample voice line are generated so the template runs as it is. To use your own media, paste public https links into *video_url* / *audio_url*, or connect *Load Video* / *Load Audio* to the *video* / *audio* sockets (local uploads need a Comfy.org login).\n\nNeeds a ModelArk key, a Seed Speech key and IAM AK/SK with asset-library permission in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Image to UGC Video.json",
+  "title": "Image to UGC Video",
+  "slug": "image-to-ugc-video",
+  "group": "Showcase",
+  "nodes": [
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedTTS",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "CreateVideo",
+   "GetVideoComponents",
+   "LoadImage",
+   "MarkdownNote",
+   "PreviewAny",
+   "PrimitiveString",
+   "RegexExtract",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "Seed Speech API key"
+  ],
+  "groups": [
+   "1 · Your product",
+   "2 · Script and shot prompt (BytePlus LLM)",
+   "3 · Creator video (Seedance 2.5 Reference)",
+   "4 · Voiceover (Seed TTS)",
+   "5 · Mix and save"
+  ],
+  "note": "## Image to UGC video\n\n1. Load your **product photo** and describe the product in **Product brief**.\n2. **BytePlus LLM** looks at the photo and writes a one-line script and a handheld, selfie-style shot prompt.\n3. **Seedance 2.5 Reference** shoots a 9:16 creator video with your product as the reference image.\n4. **Seed TTS** reads the script as a voiceover and the core video nodes put it on the clip.\n\nChange the voice in *Voiceover*, the length in *Creator video* (8 s default). Needs a ModelArk key and a Seed Speech key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Product Ad in One Click.json",
+  "title": "Product Ad in One Click",
+  "slug": "product-ad-in-one-click",
+  "group": "Showcase",
+  "nodes": [
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2FirstLastFrame",
+    "count": 1
+   },
+   {
+    "id": "BytePlusVideoEnhance",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "PreviewAny",
+   "PrimitiveStringMultiline",
+   "RegexExtract",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "AI MediaKit API key"
+  ],
+  "groups": [
+   "1 · Brief",
+   "2 · Creative director (BytePlus LLM)",
+   "3 · Hero shot (Seedream 5.0 Pro)",
+   "4 · Animate (Seedance 2.0)",
+   "5 · Enhance and save"
+  ],
+  "note": "## Product ad in one click\n\nType a **one-line brief**. The LLM writes an image prompt and a motion prompt, **Seedream 5.0 Pro** makes the 16:9 hero shot, **Seedance 2.0** animates it, and **vCube** upscales and cleans the clip to 1080p.\n\nvCube takes the clip as a link (the Seedance response), so no Comfy.org login is needed. Needs a ModelArk key and a MediaKit key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Old Photo to Living Memory.json",
+  "title": "Old Photo to Living Memory",
+  "slug": "old-photo-to-living-memory",
+  "group": "Showcase",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   },
+   {
+    "id": "BytePlusImageEnhance",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2FirstLastFrame",
+    "count": 1
+   },
+   {
+    "id": "BytePlusVideoSmoothness",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "RegexExtract",
+   "SaveImage",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "AI MediaKit API key"
+  ],
+  "groups": [
+   "1 · Input photo",
+   "2 · Restore and upscale",
+   "3 · Add motion (Seedance)",
+   "4 · Smooth and save"
+  ],
+  "note": "## Old photo to living memory\n\n1. **Image Quality Enhance** restores and upscales the photo.\n2. **Seedance 2.0** animates the restored photo (first frame only) with subtle, natural motion.\n3. **Video Smoothness Enhance** finishes the clip.\n\nThe first group creates a stand-in old photo so the template runs as it is. To use your own photo, delete that group and paste a public https link into *image_url* of the restore node (or connect a Load Image; local images need a Comfy.org login). Needs ModelArk and MediaKit keys in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Podcast Clip.json",
+  "title": "Podcast Clip",
+  "slug": "podcast-clip",
+  "group": "Showcase",
+  "nodes": [
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedTTS",
+    "count": 2
+   },
+   {
+    "id": "BytePlusSeedASR",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "AudioConcat",
+   "MarkdownNote",
+   "PreviewAny",
+   "PrimitiveStringMultiline",
+   "RegexExtract",
+   "SaveAudioAdvanced",
+   "SaveImage"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "Seed Speech API key"
+  ],
+  "groups": [
+   "1 · Topic",
+   "2 · Write the dialogue (BytePlus LLM)",
+   "3 · Voices (Seed TTS)",
+   "4 · Subtitles (Seed ASR)",
+   "5 · Cover art (Seedream)"
+  ],
+  "note": "## Podcast clip\n\nWrite a topic. The LLM writes a short HOST and GUEST dialogue, **Seed TTS** voices both speakers, **Seed ASR** turns the result into SRT subtitles and **Seedream** paints the cover art.\n\nChange the voices in *Host voice* and *Guest voice*. Needs ModelArk and Seed Speech keys in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Multilingual Dubbing.json",
+  "title": "Multilingual Dubbing",
+  "slug": "multilingual-dubbing",
+  "group": "Showcase",
+  "nodes": [
+   {
+    "id": "BytePlusSeedASR",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedTTS",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadAudio",
+   "MarkdownNote",
+   "PreviewAny",
+   "SaveAudioAdvanced"
+  ],
+  "keys": [
+   "Seed Speech API key",
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · Source speech",
+   "2 · Transcribe (Seed ASR)",
+   "3 · Translate (BytePlus LLM)",
+   "4 · Dub (Seed TTS)"
+  ],
+  "note": "## Multilingual dubbing\n\n1. Load a speech clip in **Speech to dub**.\n2. **Seed ASR** transcribes it.\n3. **BytePlus LLM** translates it. The target language is in the LLM's *system_prompt* (default Japanese); change it there.\n4. **Seed TTS** speaks the translation. Pick a voice for that language in *Dub*.\n\nNeeds ModelArk and Seed Speech keys in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Product Lookbook.json",
+  "title": "Product Lookbook",
+  "slug": "product-lookbook",
+  "group": "Showcase",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "LoadImage",
+   "MarkdownNote",
+   "SaveImage"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · Product",
+   "2 · Generate four scenes (Seedream)"
+  ],
+  "note": "## Lookbook from sequential images\n\nOne prompt, one reference photo, **four coherent images**: set *max_images* in the Seedream node (up to 15 with the reference images counted) and describe each scene in the prompt.\n\nNeeds a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Sound Design.json",
+  "title": "Sound Design",
+  "slug": "sound-design",
+  "group": "Showcase",
+  "nodes": [
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedAudio",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "PreviewAny",
+   "PrimitiveStringMultiline",
+   "SaveAudioAdvanced"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "Seed Speech API key"
+  ],
+  "groups": [
+   "1 · Scene",
+   "2 · Write the sound prompt (BytePlus LLM)",
+   "3 · Render (Seed Audio 1.0)"
+  ],
+  "note": "## Sound design with Seed Audio\n\nDescribe a scene. The LLM turns it into a sound-design prompt, **Seed Audio 1.0** renders **two takes** (*generation_count*), and Save keeps both.\n\nNeeds ModelArk and Seed Speech keys in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Consistent Character Shots.json",
+  "title": "Consistent Character Shots",
+  "slug": "consistent-character-shots",
+  "group": "Showcase",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   },
+   {
+    "id": "BytePlusCreateImageAsset",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 3
+   }
+  ],
+  "other_nodes": [
+   "ConcatenateVideo",
+   "MarkdownNote",
+   "PreviewAny",
+   "PrimitiveStringMultiline",
+   "RegexExtract",
+   "SaveVideo"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "IAM access key and secret key"
+  ],
+  "groups": [
+   "1 · Character",
+   "2 · Portrait and asset",
+   "3 · Three shots (Seedance 2.0 Reference)",
+   "4 · Join and save"
+  ],
+  "note": "## Consistent character across shots\n\nDescribe a character. **Seedream** paints the portrait, **Create Image Asset** registers it in your private asset library, and three **Seedance 2.0 Reference** shots use the asset as *asset_1*: write `asset1` in each prompt and the same person appears in every shot. **Concatenate Video** joins them.\n\nThe asset can be reused in later runs: use *Asset Library* to find it, or paste its ID into *asset_1*. Needs a ModelArk key and IAM AK/SK with asset-library permission in Settings > BytePlus.",
+  "has_thumbnail": true
+ }
+]

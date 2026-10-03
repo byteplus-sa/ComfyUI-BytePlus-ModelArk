@@ -1,0 +1,580 @@
+{
+  "id": "7f1f70c4-4e61-49be-96d1-2e3f1c490007",
+  "revision": 0,
+  "last_node_id": 7,
+  "last_link_id": 6,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "BytePlusSeedream",
+      "pos": [20, 80],
+      "size": [450, 520],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.size_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.size_preset"
+          },
+          "link": null
+        },
+        {
+          "name": "model.width",
+          "type": "INT",
+          "widget": {
+            "name": "model.width"
+          },
+          "link": null
+        },
+        {
+          "name": "model.height",
+          "type": "INT",
+          "widget": {
+            "name": "model.height"
+          },
+          "link": null
+        },
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "model.prompt_optimization",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.prompt_optimization"
+          },
+          "link": null
+        },
+        {
+          "name": "model.seed",
+          "type": "INT",
+          "widget": {
+            "name": "model.seed"
+          },
+          "link": null
+        },
+        {
+          "name": "model.watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "model.thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.thinking"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "model.generation_count"
+          },
+          "link": null
+        },
+        {
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "name": "model.background",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.background"
+          },
+          "link": null
+        },
+        {
+          "name": "model.reference_mask",
+          "type": "MASK",
+          "shape": 7,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [4]
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1",
+        "Node name for S&R": "BytePlusSeedream"
+      },
+      "widgets_values": [
+        "A minimalist poster for a spring tea festival: a porcelain teapot surrounded by cherry blossoms, soft pastel colors, the title \"Spring Tea Festival\" in elegant type.",
+        "seedream 5.0 pro",
+        "(2K) 2048x2048 (1:1)",
+        2048,
+        2048,
+        "standard",
+        42,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SaveImage",
+      "pos": [520, 80],
+      "size": [300, 270],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": ["BytePlus/Image/Seedream"]
+    },
+    {
+      "id": 4,
+      "type": "BytePlusSeedance2TextToVideo",
+      "pos": [20, 640],
+      "size": [460, 420],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model.resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "model.ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.duration",
+          "type": "INT",
+          "widget": {
+            "name": "model.duration"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generate_audio",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.generate_audio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "link": null
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "shape": 6,
+          "links": [5]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1",
+        "Node name for S&R": "BytePlusSeedance2TextToVideo"
+      },
+      "widgets_values": [
+        "Seedance 2.5",
+        "A lighthouse keeper climbs the spiral stairs at dusk, lights the lamp and looks out over a stormy sea. Waves crash against the rocks; thunder rolls in the distance.",
+        "720p",
+        "16:9",
+        30,
+        true,
+        "mp4",
+        0,
+        "randomize",
+        false,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 5,
+      "type": "SaveVideo",
+      "pos": [520, 640],
+      "size": [300, 106],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 5
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": ["BytePlus/Video/Seedance2_5", "auto", "auto"]
+    },
+    {
+      "id": 6,
+      "type": "BytePlusSeed",
+      "pos": [20, 1160],
+      "size": [440, 520],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.images.image_1",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "model.videos.video_1",
+          "type": "VIDEO",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "model.temperature",
+          "type": "FLOAT",
+          "widget": {
+            "name": "model.temperature"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "system_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "detail",
+          "type": "COMBO",
+          "widget": {
+            "name": "detail"
+          },
+          "link": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": null
+        },
+        {
+          "name": "reasoning_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "reasoning_mode"
+          },
+          "link": null
+        },
+        {
+          "name": "reasoning_effort",
+          "type": "COMBO",
+          "widget": {
+            "name": "reasoning_effort"
+          },
+          "link": null
+        },
+        {
+          "name": "turns",
+          "type": "INT",
+          "widget": {
+            "name": "turns"
+          },
+          "link": null
+        },
+        {
+          "name": "stream",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "stream"
+          },
+          "link": null
+        },
+        {
+          "name": "file_expire_seconds",
+          "type": "INT",
+          "widget": {
+            "name": "file_expire_seconds"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [6]
+        },
+        {
+          "name": "raw_json",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1",
+        "Node name for S&R": "BytePlusSeed"
+      },
+      "widgets_values": [
+        "Write a three-shot storyboard for a 15-second product video of a smart watch. For each shot give the camera move, the action and one line of voice-over.",
+        "Seed 2.1 Turbo",
+        1.0,
+        0,
+        "randomize",
+        "You are a helpful assistant that describes and analyzes images and videos accurately.",
+        "high",
+        1.0,
+        "auto",
+        "medium",
+        1,
+        false,
+        604800
+      ]
+    },
+    {
+      "id": 7,
+      "type": "PreviewAny",
+      "pos": [520, 1160],
+      "size": [400, 320],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [4, 2, 0, 3, 0, "IMAGE"],
+    [5, 4, 0, 5, 0, "VIDEO"],
+    [6, 6, 0, 7, 0, "STRING"]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "2.5 Model Updates",
+      "bounding": [0, -4, 940, 1704],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.72,
+      "offset": [80, 80]
+    }
+  },
+  "version": 0.4
+}
