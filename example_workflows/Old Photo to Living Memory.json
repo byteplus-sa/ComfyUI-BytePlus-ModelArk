@@ -1,5 +1,5 @@
 {
-  "id": "b352aaa2-b8db-4b6e-9ebd-dddf049ed3d2",
+  "id": "0cd0537f-9bcd-4a9d-a69e-f834c08fe236",
   "revision": 0,
   "last_node_id": 11,
   "last_link_id": 14,
@@ -186,23 +186,30 @@
     },
     {
       "id": 4,
-      "type": "BytePlusSeedanceImageToVideo",
+      "type": "BytePlusSeedance2FirstLastFrame",
       "pos": [
         26,
         1668
       ],
       "size": [
         340,
-        392
+        436
       ],
       "flags": {},
       "order": 4,
       "mode": 0,
       "inputs": [
         {
-          "name": "image",
+          "name": "first_frame",
+          "shape": 7,
           "type": "IMAGE",
           "link": 10
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
         }
       ],
       "outputs": [
@@ -210,6 +217,11 @@
           "name": "VIDEO",
           "shape": 6,
           "type": "VIDEO",
+          "links": null
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
           "links": null
         },
         {
@@ -225,23 +237,24 @@
           ]
         }
       ],
-      "title": "Bring it to life (Seedance image to video)",
+      "title": "Bring it to life (Seedance 2.0 image to video)",
       "properties": {
-        "Node name for S&R": "BytePlusSeedanceImageToVideo",
+        "Node name for S&R": "BytePlusSeedance2FirstLastFrame",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
         "ver": "0.5.1"
       },
       "widgets_values": [
-        "seedance-1-0-pro-250528",
+        "Seedance 2.0",
         "The couple smiles warmly and blinks softly, a gentle breeze moves their hair, very subtle natural motion, the camera stays almost still.",
         "720p",
-        "3:4",
+        "adaptive",
         5,
+        false,
         34,
         "randomize",
         false,
-        false,
-        false,
+        "",
+        "",
         1,
         false
       ]
@@ -251,7 +264,7 @@
       "type": "RegexExtract",
       "pos": [
         26,
-        2114
+        2158
       ],
       "size": [
         340,
@@ -458,7 +471,7 @@
       "title": "How to use",
       "properties": {},
       "widgets_values": [
-        "## Old photo to living memory\n\n1. **Image Quality Enhance** restores and upscales the photo.\n2. **Seedance image to video** adds subtle, natural motion.\n3. **Video Smoothness Enhance** finishes the clip.\n\nThe first group creates a stand-in old photo so the template runs as it is. To use your own photo, delete that group and paste a public https link into *image_url* of the restore node (or connect a Load Image; local images need a Comfy.org login). Needs ModelArk and MediaKit keys in Settings > BytePlus."
+        "## Old photo to living memory\n\n1. **Image Quality Enhance** restores and upscales the photo.\n2. **Seedance 2.0** animates the restored photo (first frame only) with subtle, natural motion.\n3. **Video Smoothness Enhance** finishes the clip.\n\nThe first group creates a stand-in old photo so the template runs as it is. To use your own photo, delete that group and paste a public https link into *image_url* of the restore node (or connect a Load Image; local images need a Comfy.org login). Needs ModelArk and MediaKit keys in Settings > BytePlus."
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -492,7 +505,7 @@
     [
       11,
       4,
-      2,
+      3,
       5,
       0,
       "STRING"
@@ -554,7 +567,7 @@
         0,
         1560,
         392,
-        852
+        896
       ],
       "color": "#3f789e",
       "flags": {}
@@ -566,7 +579,7 @@
         436,
         1560,
         416.3951171875,
-        852
+        896
       ],
       "color": "#3f789e",
       "flags": {}
@@ -575,10 +588,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.5588235294117647,
+      "scale": 1,
       "offset": [
-        526.578947368421,
-        53.68421052631584
+        40,
+        30
       ]
     },
     "frontendVersion": "1.53.6"

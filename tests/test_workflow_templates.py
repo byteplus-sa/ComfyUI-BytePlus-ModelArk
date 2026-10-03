@@ -98,11 +98,11 @@ NEW_TEMPLATES = {
         ],
     },
     "Old Photo to Living Memory.json": {
-        "nodes": {"BytePlusImageEnhance": 1, "BytePlusSeedanceImageToVideo": 1, "BytePlusSeedream": 1, "BytePlusVideoSmoothness": 1, "MarkdownNote": 1, "RegexExtract": 2, "SaveImage": 1, "SaveVideo": 1},
+        "nodes": {"BytePlusImageEnhance": 1, "BytePlusSeedance2FirstLastFrame": 1, "BytePlusSeedream": 1, "BytePlusVideoSmoothness": 1, "MarkdownNote": 1, "RegexExtract": 2, "SaveImage": 1, "SaveVideo": 1},
         "edges": [
-            ('BytePlusImageEnhance', 0, 'BytePlusSeedanceImageToVideo', 'image'),
+            ('BytePlusImageEnhance', 0, 'BytePlusSeedance2FirstLastFrame', 'first_frame'),
             ('BytePlusImageEnhance', 0, 'SaveImage', 'images'),
-            ('BytePlusSeedanceImageToVideo', 2, 'RegexExtract', 'string'),
+            ('BytePlusSeedance2FirstLastFrame', 3, 'RegexExtract', 'string'),
             ('BytePlusSeedream', 1, 'RegexExtract', 'string'),
             ('BytePlusVideoSmoothness', 0, 'SaveVideo', 'video'),
             ('RegexExtract', 0, 'BytePlusImageEnhance', 'image_url'),
@@ -912,7 +912,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         workflow = load_workflow("Old Photo to Living Memory.json")
         edges = self.edges(workflow)
         self.assertIn(("RegexExtract", 0, "BytePlusImageEnhance", "image_url"), edges)
-        self.assertIn(("BytePlusImageEnhance", 0, "BytePlusSeedanceImageToVideo", "image"), edges)
+        self.assertIn(("BytePlusImageEnhance", 0, "BytePlusSeedance2FirstLastFrame", "first_frame"), edges)
         self.assertIn(("RegexExtract", 0, "BytePlusVideoSmoothness", "video_url"), edges)
 
     def test_podcast_template_uses_two_different_voices(self):

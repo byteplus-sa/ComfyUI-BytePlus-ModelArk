@@ -297,7 +297,7 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Virtual Portrait - New Asset | Uploads an image as a new virtual portrait asset and uses it in Seedance 2.5 in the same run. |
 | Image to UGC Video | A product photo and a one-line brief become a 9:16 creator video: the LLM writes the script and the shot prompt, Seedance 2.5 Reference shoots it with the product as reference, Seed TTS adds the voiceover (ModelArk + Seed Speech keys). |
 | Product Ad in One Click | A one-line brief: the LLM writes an image and a motion prompt, Seedream 5.0 Pro makes the hero shot, Seedance 2.0 animates it, vCube enhances it to 1080p (ModelArk + MediaKit keys). |
-| Old Photo to Living Memory | Image Quality Enhance restores and upscales a photo, Seedance image to video adds subtle motion, Video Smoothness Enhance finishes the clip (a stand-in photo is generated so it runs as it is). |
+| Old Photo to Living Memory | Image Quality Enhance restores and upscales a photo, Seedance 2.0 animates the restored photo with subtle motion, Video Smoothness Enhance finishes the clip (a stand-in photo is generated so it runs as it is). |
 | Podcast Clip | The LLM writes a HOST and GUEST dialogue, two Seed TTS voices speak it, Seed ASR makes SRT subtitles, Seedream paints the cover art. |
 | Multilingual Dubbing | Seed ASR transcribes a speech clip, the LLM translates it, Seed TTS speaks the translation in another language. |
 | Product Lookbook | One product photo and one prompt give four coherent lifestyle images with Seedream sequential generation. |
