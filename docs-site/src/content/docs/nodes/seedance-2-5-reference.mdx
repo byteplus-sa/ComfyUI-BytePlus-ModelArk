@@ -1,0 +1,71 @@
+---
+title: "Seedance 2.5 Reference to Video"
+description: "Generate, edit or extend video from reference images, videos and audio with Seedance 2.5, 2.5 Premium or 2.0."
+node_id: BytePlusSeedance2Reference
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedance2Reference" />
+
+## What it does
+
+Creates a video with BytePlus Seedance guided by reference media: images, videos and audio, connected to the slots or passed as asset IDs and links. With `task_type` you choose what to do with them: make a new video (`reference`), change a clip you connected (`edit`) or continue it (`extend`). The prompt names the references by position, for example "the woman from Image 1".
+
+The node bills for every video it generates and waits until the task finishes. It does not save anything itself: connect **Save Video** to keep the result. Connected reference videos are uploaded to Comfy.org storage first, so you must be logged in to Comfy.org.
+
+## On the canvas
+
+<Shot src="nodes/seedance-2-5-reference.png" alt="The Seedance 2.5 Reference to Video node with image_1, video_1, audio_1 and asset_1 inputs, model Seedance 2.5, a prompt about a woman on a beach and the task_type setting on auto" caption="Seedance 2.5 selected. Each reference group shows one free slot and grows as you connect more." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedance2Reference" />
+
+### Notes on inputs
+
+- **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/). The Draft options render a 480p preview for [Draft to Final Video](../seedance-2-5-draft-to-final/). `task_type` and `output_format` exist on the Seedance 2.5 options only.
+- **task_type:** `reference` makes a new video from the references. `edit` changes a connected reference video; the result keeps the source clip's length and aspect ratio, and `duration` and `ratio` are ignored. `extend` continues a connected video; the prompt should say "extend forward", "extend backward" or "continue", and the result holds only the new segment, not the source clip.
+- **auto is risky with a video:** with a reference video connected, `auto` can be rejected after generation has started. Set `reference`, `edit` or `extend` instead. Any value except `auto` is checked before the task is submitted.
+- **Slots:** `image_N`, `video_N`, `audio_N` take connected media. `asset_N` takes an asset ID, `asset://<asset_id>` or an https link to an image, video or audio file. See [Create Image Asset](../create-image-asset/) and [Asset Library](../asset-library/).
+- **Links and assets:** a link is recognized by its file extension, or by its content type if it has no extension. Asset IDs are looked up in your asset library, which needs the IAM keys in **Settings → BytePlus**.
+- **Naming in the prompt:** connected media comes first, so `image_1` is "Image 1", `video_1` is "Video 1". `asset_N` entries continue the count of their type. You can also write `asset1`, `asset2` and so on; the node replaces them with the matching label.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedance2Reference" />
+
+### Notes on outputs
+
+- With `generation_count` above 1, `VIDEO` is a list: the next node runs once per video, and `last_frame` holds their last frames as one batch in the same order.
+- `draft_task_id` only has a value for the two Draft models.
+- With `non_blocking` on, the first run returns at once with the task IDs in `response`. Run the node again to collect the video.
+
+## Limits and tips
+
+- Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips) and 15 on Seedance 2.0 (9, 3 and 3). Connected media and `asset_N` entries count together.
+- You need at least one image, video or asset. Audio alone is accepted on Seedance 2.5 only.
+- Reference videos go through Comfy.org storage: log in to your Comfy.org account in ComfyUI. This does not work with `--disable-api-nodes`. To skip the upload, pass a link or an asset ID in `asset_N`.
+- Each reference video needs 300 to 6000 px per side, 407,696 to 8,295,044 pixels in total, an aspect ratio of 0.4 to 2.5, 24 to 60 fps, at most 200 MB and at least 2 s. `auto_downscale` (on by default) shrinks oversize videos and `auto_upscale` enlarges small ones.
+- Total reference video length is at most 15.2 s on Seedance 2.0 and 30.2 s on 2.5. Audio has the same total limit. An `edit` task on Seedance 2.5 needs a video of at least 4 s.
+- Connected images and audio are sent inside the request. A whole request may not exceed 64 MiB.
+- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again.
+- Only use media you are allowed to use. Input containing a real person can be refused by BytePlus.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `At least one reference image or video or asset is required.` | Connect an image or video, or fill an `asset_N` slot. Audio alone works on Seedance 2.5 only. |
+| `task needs at least one reference video` | `edit` and `extend` need a video. Connect it, or set `task_type` to `reference`. |
+| `The task type is incompatible with the current parameters` | With a video connected, set `task_type` to `reference`, `edit` or `extend` instead of `auto`. |
+| `Uploading the reference video to Comfy.org storage failed` | Log in to Comfy.org in ComfyUI, or pass a public mp4/mov link or an asset ID in an `asset_N` slot. |
+| `Too many reference` | Remove references until you are inside the limits for the selected model. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedance2Reference" />

@@ -1,0 +1,49 @@
+---
+title: "Seed"
+description: "Ask a BytePlus LLM about a picture. Seed 2.0 Pro describes the image and suggests a title, and you read the answer in a text preview."
+template_file: Seed.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Seed.json" />
+
+## What it makes
+
+Text. The template sends an image (the ComfyUI logo) and a prompt to Seed 2.0 Pro, which describes the subject, the setting, the colors and the mood and suggests a short title. Change the prompt to ask anything else about the picture.
+
+## The workflow
+
+<Shot src="templates/seed-workflow.webp" alt="The Seed template: Load Image connected to image_1 of the BytePlus LLM node, whose text goes to Preview as Text" caption="Three nodes: Load Image, BytePlus LLM and Preview as Text." />
+
+1. **Load Image** supplies the picture.
+2. **[BytePlus LLM](../../nodes/byteplus-llm/)** receives it as `image_1` together with the prompt "Describe this image in detail: the subject, the setting, the colors and the mood. Then suggest a short title for it." The model is Seed 2.0 Pro.
+3. **Preview as Text** shows the `STRING` output. The node also has a `raw_json` output that is not connected.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Open the template browser and choose **Seed** under BytePlus.
+3. Press **Run**. The answer appears in **Preview as Text**.
+
+## Settings worth changing
+
+- **`prompt`:** ask for what you need, for example alt text, a list of objects or a caption in a given tone.
+- **`model`:** the list also has Seed 2.0 Lite and Mini, Seed 2.1 Turbo, DeepSeek V4.1 Flash and GLM 5.3 Flash. They take the same image input.
+- **`system_prompt`:** an advanced input. The template sets a short assistant role; change it to set a style or a language for the answer.
+- **`reasoning_mode` and `reasoning_effort`:** the template uses `auto` and `medium`. Raise the effort for harder questions; it makes the model think longer.
+- **`detail`:** the image detail level sent with each image; the template uses `high`, and `low` is the other choice.
+
+## Example result
+
+<Shot src="templates/seed-result.webp" alt="The text answer in Preview as Text: a description of the ComfyUI logo with subject, layout, colors and mood" caption="Result of the live test run." />
+
+## Time and cost
+
+The live test took about 21 seconds. ModelArk bills each request by the tokens it uses. The `seed` control is set to `randomize`, so every run asks the model again and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
+
+## Related
+
+- Node: [BytePlus LLM](../../nodes/byteplus-llm/)
+- Next step: [Seed Prompt Writer](../seed-prompt-writer/) lets the LLM write the prompt for an image.

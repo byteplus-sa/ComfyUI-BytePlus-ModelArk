@@ -1,0 +1,55 @@
+---
+title: "Consistent Character Shots"
+description: "Paint one character with Seedream, register it as a private asset and use it in three Seedance shots so the same person appears in each."
+template_file: Consistent Character Shots.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Consistent Character Shots.json" />
+
+## What it makes
+
+A 15-second 16:9 sequence of three shots in which the same invented person walks into a cafe, reads a letter and says goodbye in the street. It is for storytellers who need one character to stay recognisable across clips. The idea: paint the character once, register the portrait in your private asset library, and give that asset to every Seedance shot as `asset_1`.
+
+## The workflow
+
+<Shot src="templates/consistent-character-shots-workflow.webp" alt="The Consistent Character Shots template in four groups: character, portrait and asset, three shots, join and save" caption="Four groups. The asset link from the second group feeds all three shots." />
+
+1. A **Character description (change me)** text node holds the character. The template uses a young woman with short curly hair, a mustard cardigan and round glasses.
+2. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (Seedream 5.0 Pro, 3:4 at 1K) paints the portrait. An **Extract Regex** node turns its `response` into an image link.
+3. **[Create Image Asset](../../nodes/create-image-asset/)** registers that link in your private asset library, in the group "ComfyUI characters", and waits until the asset is active. A **Preview Any** node shows the `asset://` link it outputs.
+4. Three **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** nodes, set to Seedance 2.0, each get that link as `asset_1`. Each prompt starts with `asset1`, which the node replaces with the reference. All three make 5 seconds at 720p, 16:9, with audio.
+5. **Concatenate Video** joins the shots in order, and **Save Video** writes the result to `BytePlus/Video/character_shots`.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus**, and the IAM access key and secret key for the asset library in the same place ([API keys](../../get-started/api-keys/)). The IAM pair needs asset-library permission, and your account needs Seedance Advanced Creation Rights.
+2. Open the template browser and choose **Consistent Character Shots** under BytePlus.
+3. Rewrite **Character description (change me)** and, if you like, the three shot prompts.
+4. Press **Run**. The portrait comes first, then the asset, then the three shots.
+
+## Settings worth changing
+
+- **Character description:** be specific about hair, clothes and accessories, because the portrait is the only reference every shot gets.
+- **Shot prompts:** keep `asset1` as the subject of each sentence and change the action, the place and the light.
+- **`group_name` and `asset_name` in Create Image Asset:** use one group per person, so that later runs can add more assets to it.
+- **`duration` and `resolution` in each shot:** 5 seconds at 720p by default.
+- **A fourth shot:** copy a shot node, connect the same asset link and join it in **Concatenate Video**.
+
+## Example result
+
+<Shot src="templates/consistent-character-shots-result.webp" alt="The finished graph with three frames of the same woman in a cafe, reading a letter and waving in a sunlit street" caption="Result of the live test run: 1280x720, 15 seconds, the same woman in each shot." />
+
+<Media kind="video" file="consistent-character-shots.mp4" caption="The joined sequence from the live test." />
+
+## Time and cost
+
+The live test took about 319 seconds, a little over 5 minutes. Seedream and the three Seedance nodes bill on your ModelArk account, so three video generations are billed per run. Running again with unchanged inputs reuses ComfyUI's cached results and does not bill, and the asset is reused when you register the same image again. The asset can also be reused in later workflows: look it up with Asset Library or paste its ID into `asset_1`. No Comfy.org login is needed because the portrait goes to the asset library as a link.
+
+## Related
+
+- Nodes: [Seedream 4.5 & 5.0](../../nodes/seedream/), [Create Image Asset](../../nodes/create-image-asset/), [Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)
+- Next step: [Text to Image to Video](../text-to-image-to-video/) is the simpler path when you do not need the same person across shots.

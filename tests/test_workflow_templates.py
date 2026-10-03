@@ -9,7 +9,6 @@ PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKFLOW_DIR = os.path.join(PLUGIN_ROOT, "example_workflows")
 EXPECTED_WORKFLOWS = {
     "2.5 Model Updates.json",
-    "Seedance 1.json",
     "Seedance 2.json",
     "Seed Audio.json",
     "Seed Speech TTS and ASR.json",
@@ -208,11 +207,9 @@ def load_models_config():
 
 class WorkflowTemplateTests(unittest.TestCase):
 
-    SEEDANCE1_BEFORE_FRAMES = ["model", "prompt"]
-    SEEDANCE1_AFTER_FRAMES = [
-        "resolution", "aspect_ratio", "duration", "seed", "camera_fixed", "watermark",
-        "enable_offline_inference", "generation_count", "non_blocking",
-    ]
+    # Models that no template shows (their nodes stay; see test_templates_show_current_models_only).
+    LEGACY_MODEL_PREFIXES = ("seedance-1-", "seedream-4-")
+
     # BytePlusSeedream / BytePlusSeedreamLayerSeparation (core-style): inputs per
     # selected model; widgets_values index of the model value.
     SEEDREAM_INPUTS_HEAD = [
@@ -287,12 +284,6 @@ class WorkflowTemplateTests(unittest.TestCase):
         return ["model", *text, "seed", "watermark"] + cls.CORE_STYLE_EXTRAS
 
     CURRENT_INPUT_ORDERS = {
-        # Seedance 1.x: core's inputs, then this pack's extras.
-        "BytePlusSeedanceTextToVideo": SEEDANCE1_BEFORE_FRAMES + SEEDANCE1_AFTER_FRAMES,
-        "BytePlusSeedanceImageToVideo": SEEDANCE1_BEFORE_FRAMES + ["image"]
-        + SEEDANCE1_AFTER_FRAMES,
-        "BytePlusSeedanceFirstLastFrame": SEEDANCE1_BEFORE_FRAMES
-        + ["first_frame", "last_frame"] + SEEDANCE1_AFTER_FRAMES,
         # As the frontend saves it: sockets, then the DynamicCombo children before their parent.
         "BytePlusVideoEnhance": [
             "video", "tool_version.scene", "tool_version.enhance_style",
@@ -548,39 +539,14 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertEqual(nodes["BytePlusSeedream"]["widgets_values"][1], "seedream 5.0 pro")
         self.assertEqual(nodes["BytePlusSeed"]["widgets_values"][1], "Seed 2.1 Turbo")
 
-    def test_seedance1_template_widget_positions(self):
-        workflow = load_workflow("Seedance 1.json")
-        nodes = {node["type"]: node for node in workflow["nodes"]}
-        # Seedance 1.5 Pro is deprecated by BytePlus (shut down on 2026-11-11).
-        self.assertNotIn("seedance-1-5-pro", json.dumps(workflow))
-        for node_type, model in (
-            ("BytePlusSeedanceTextToVideo", "seedance-1-0-pro-fast-251015"),
-            ("BytePlusSeedanceImageToVideo", "seedance-1-0-pro-fast-251015"),
-            ("BytePlusSeedanceFirstLastFrame", "seedance-1-0-pro-250528"),
-        ):
-            with self.subTest(node=node_type):
-                node = nodes[node_type]
-                widget_inputs = [item["name"] for item in node["inputs"] if "widget" in item]
-                values = node["widgets_values"]
-                # One value per widget, plus control_after_generate right after seed.
-                self.assertEqual(len(values), len(widget_inputs) + 1)
-                seed_index = widget_inputs.index("seed")
-                self.assertEqual(values[0], model)
-                self.assertTrue(values[1].strip())  # prompt (core rejects an empty one)
-                self.assertEqual(values[seed_index + 1], "randomize")
-                named = dict(zip(widget_inputs[: seed_index + 1], values))
-                named.update(zip(widget_inputs[seed_index + 1 :], values[seed_index + 2 :]))
-                self.assertEqual(named["duration"], 5)
-                self.assertEqual(named["generation_count"], 1)
-                for removed in ("generate_audio", "auto_duration", "draft_mode"):
-                    self.assertNotIn(removed, named)
-                self.assertEqual(
-                    [output["name"] for output in node["outputs"]],
-                    ["VIDEO", "last_frame", "response"],
-                )
-                # Core's optional inputs and this pack's extras are optional sockets.
-                optional = {item["name"] for item in node["inputs"] if item.get("shape") == 7}
-                self.assertEqual(optional, set(self.SEEDANCE1_AFTER_FRAMES[3:]), msg=node_type)
+    def test_templates_show_current_models_only(self):
+        # Seedance 1.x and Seedream 4.x keep their nodes / dropdown options, but
+        # no template shows them (Seedance 1.5 is retired and not offered at all).
+        for name in sorted(EXPECTED_WORKFLOWS):
+            text = json.dumps(load_workflow(name))
+            for prefix in self.LEGACY_MODEL_PREFIXES:
+                with self.subTest(workflow=name, prefix=prefix):
+                    self.assertNotIn(prefix, text)
 
     def test_templates_are_english_and_byteplus_only(self):
         for name in sorted(EXPECTED_WORKFLOWS):
@@ -740,10 +706,7 @@ class WorkflowTemplateTests(unittest.TestCase):
     def test_seedance_video_outputs_are_list_slots(self):
         # VIDEO is a list output (every video of a generation_count batch); the frontend
         # saves list outputs with the grid slot shape (LiteGraph GRID_SHAPE = 6).
-        seedance_nodes = self.CORE_STYLE_SEEDANCE2_NODES | {
-            "BytePlusSeedanceTextToVideo", "BytePlusSeedanceImageToVideo",
-            "BytePlusSeedanceFirstLastFrame", "BytePlusSeedanceDraftToFinal",
-        }
+        seedance_nodes = self.CORE_STYLE_SEEDANCE2_NODES | {"BytePlusSeedanceDraftToFinal"}
         found = set()
         for name in sorted(EXPECTED_WORKFLOWS):
             for node in load_workflow(name)["nodes"]:

@@ -1,0 +1,55 @@
+---
+title: "Old Photo to Living Memory"
+description: "Restore an old photograph, let Seedance 2.0 add gentle natural motion to it, and smooth the finished clip."
+template_file: Old Photo to Living Memory.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Old Photo to Living Memory.json" />
+
+## What it makes
+
+A restored, larger copy of an old photo and a 5-second clip in which the people in it smile and blink. It is for anyone with a family picture they would like to see move. The idea: restore first, animate second, so the video starts from a clean frame, and finish with a smoothing pass that repairs stutter.
+
+## The workflow
+
+<Shot src="templates/old-photo-to-living-memory-workflow.webp" alt="The Old Photo to Living Memory template in four groups: input photo, restore and upscale, add motion, smooth and save" caption="Four groups. The first one only creates a stand-in photo so the template runs as it is." />
+
+1. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (Seedream 5.0 Flash) paints a faded black-and-white portrait of an elderly couple as a stand-in for your photo. An **Extract Regex** node turns its `response` into a link.
+2. **[Image Quality Enhance](../../nodes/image-quality-enhance/)** restores and upscales the photo from that link with `tool_version` standard and `output_size` multiple at 2.0. **Save Image** keeps the restored photo.
+3. **[Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/)** with the model set to Seedance 2.0 uses the restored photo as its first frame and the prompt "The couple smiles warmly and blinks softly ... very subtle natural motion, the camera stays almost still." It makes 5 seconds at 720p with the ratio on adaptive and no audio.
+4. A second **Extract Regex** node pulls the video link out of the Seedance `response`.
+5. **[Video Smoothness Enhance](../../nodes/video-smoothness-enhance/)** gets that link, repairs periodic stutter and removes duplicate frames. **Save Video** writes the clip to `BytePlus/Video/LivingMemory`.
+
+## Run it
+
+1. Add your ModelArk API key and your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The template needs both.
+2. Open the template browser and choose **Old Photo to Living Memory** under BytePlus.
+3. To use your own photo, delete the first group and paste a public https link to the picture into `image_url` of **Image Quality Enhance**. A **Load Image** node also works, but local images need a Comfy.org login.
+4. Press **Run**. The restored photo appears first, the video follows.
+
+## Settings worth changing
+
+- **Prompt of the Seedance node:** describe the motion you want and keep it small, such as a blink, a smile or a breeze.
+- **`tool_version` in Image Quality Enhance:** standard is the fast clean-up. Professional is meant for fine texture on old photos and portraits; check the node page for its limits.
+- **`multiple` in Image Quality Enhance:** 2.0 here. Choose `target size` to set a width and height instead.
+- **`duration`:** 5 seconds by default. Short clips keep the motion believable.
+- **`periodic_stutter` and `duplicate_frames`:** set either to `detect only` to count issues without changing the video.
+
+## Example result
+
+<Shot src="templates/old-photo-to-living-memory-result.webp" alt="The finished graph with three frames of the animated couple and the restored 1728x2304 photo below" caption="Result of the live test run: the clip is 834x1112 and 5 seconds long." />
+
+<Media kind="video" file="old-photo-to-living-memory.mp4" caption="The saved living memory from the live test." />
+
+## Time and cost
+
+The live test took about 341 seconds, close to 6 minutes. Seedream and Seedance bill on your ModelArk account; Image Quality Enhance and Video Smoothness Enhance bill on your AI MediaKit account. Running again with unchanged inputs reuses ComfyUI's cached results and does not bill. Both MediaKit nodes read their input from a link, so no Comfy.org login is needed as long as you keep the links.
+
+## Related
+
+- Nodes: [Seedream 4.5 & 5.0](../../nodes/seedream/), [Image Quality Enhance](../../nodes/image-quality-enhance/), [Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/), [Video Smoothness Enhance](../../nodes/video-smoothness-enhance/)
+- Next step: [Video Smoothness Enhance](../video-smoothness-enhance/) shows the smoothing node on its own, with a side-by-side comparison.

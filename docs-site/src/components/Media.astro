@@ -1,0 +1,10 @@
+---
+import { base } from './lib';
+// <Media kind="video" file="seedance-2.mp4" />  (file under public/media/)
+const { kind, file, caption } = Astro.props;
+const src = `${base}/media/${file}`;
+---
+<figure class="shot">
+	{kind === 'video' ? <video controls preload="metadata" src={src} style="max-width:100%"></video> : <audio controls preload="metadata" src={src}></audio>}
+	{caption && <figcaption>{caption}</figcaption>}
+</figure>

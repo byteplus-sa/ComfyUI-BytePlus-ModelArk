@@ -1,0 +1,65 @@
+---
+title: "Asset Library"
+description: "List the assets in your private BytePlus asset library as asset:// URIs, filtered by group type, group, status or name."
+node_id: BytePlusAssetLibrary
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusAssetLibrary" />
+
+## What it does
+
+Lists the assets in your private asset library, which holds virtual portraits and verified real people for Seedance 2 and 2.5. Use it to find an asset you made earlier, or one created in the ModelArk console, and pass it to a Seedance node.
+
+It needs the ModelArk API key and the IAM access key and secret key saved in **Settings → BytePlus**, plus Dreamina Seedance Advanced Creation Rights. See [API keys](../../get-started/api-keys/). It lists only and creates nothing.
+
+## On the canvas
+
+<Shot src="nodes/asset-library.png" alt="The Asset Library node with group_type AIGC, status Active and max_results 20" caption="Default values: Active virtual portrait assets, at most 20." />
+
+## Inputs
+
+<NodeInputs id="BytePlusAssetLibrary" />
+
+### Notes on inputs
+
+- **Group type:** `AIGC` lists virtual portraits. `LivenessFace` lists verified real people.
+- **Filters:** `group_id` and `name` are optional and stay out of the request while empty. `status` defaults to `Active`, the status a Seedance reference needs. Choose `all` to also see Processing and Failed assets.
+- **Results:** `max_results` goes from 1 to 100. The node asks once and does not page, so narrow the filters if the asset you want is missing.
+- **Project:** `project_name` is the ModelArk project that holds the library, `default` unless you use another.
+
+## Outputs
+
+<NodeOutputs id="BytePlusAssetLibrary" />
+
+### Notes on outputs
+
+- `asset_uris` has one `asset://` URI per line.
+- `assets_json` is a JSON list. Each entry has `asset_id`, `asset_uri`, `name`, `group_id`, `asset_type`, `status` and `create_time`.
+- An `asset_N` slot of [Seedance 2.5 Reference to Video](../seedance-2-5-reference/) takes one asset only. To connect `asset_uris` to a slot, filter to one asset first, for example with `name` and `max_results` set to 1.
+
+## Limits and tips
+
+- The node is an output node, so it runs even when nothing is connected to it.
+- Copy an ID from `assets_json` into `first_frame_asset_id` or `last_frame_asset_id` on [Seedance 2.5 First-Last-Frame](../seedance-2-5-first-last-frame/).
+- Using an asset in Seedance needs only the ModelArk key, except that an `asset_N` slot looks up the asset's type with your IAM keys.
+- A Seedance reference refuses an asset that is not Active.
+- To make new assets, use [Create Image Asset](../create-image-asset/), [Create Video Asset](../create-video-asset/) or [Create Audio Asset](../create-audio-asset/).
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No BytePlus API key is set` | Add your ModelArk key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `The asset library needs IAM AK/SK` | Add the IAM access key and secret key in **Settings → BytePlus**. |
+| `Check the IAM AK/SK in Settings > BytePlus` | The keys were rejected. Re-enter them and check that they are for the right account. |
+| `The IAM user needs asset-library permission` | Give the IAM user asset-library permission in this project. The account also needs Advanced Creation Rights. |
+
+## Used in templates
+
+<UsedIn id="BytePlusAssetLibrary" />

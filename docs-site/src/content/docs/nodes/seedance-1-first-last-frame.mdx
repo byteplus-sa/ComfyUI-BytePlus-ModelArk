@@ -1,0 +1,68 @@
+---
+title: "Seedance First-Last-Frame to Video"
+description: "Generate a video that starts on one image and ends on another with Seedance 1.0 Pro, from 480p to 1080p and 2 to 12 seconds long."
+node_id: BytePlusSeedanceFirstLastFrame
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedanceFirstLastFrame" />
+
+## What it does
+
+Creates a video that begins on `first_frame` and ends on `last_frame`, with Seedance 1.0 Pro on BytePlus ModelArk. The prompt describes how the scene gets from one image to the other.
+
+The node bills for every video it generates. It does not save anything itself: connect **Save Video** to keep the result. Seedance 1.0 is the older family. The newer [Seedance 2.5 First-Last-Frame](../seedance-2-5-first-last-frame/) node covers the same job with the 2.5 models.
+
+## On the canvas
+
+<Shot src="nodes/seedance-1-first-last-frame.png" alt="The Seedance First-Last-Frame to Video node with first_frame and last_frame image inputs, a prompt and the video settings" caption="Both frames are required. The advanced inputs sit at the bottom." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedanceFirstLastFrame" />
+
+### Notes on inputs
+
+- **Model:** only `seedance-1-0-pro-250528` (Pro) is offered. Pro Fast does not support a last frame.
+- **Both frames are required.** Connect an image to `first_frame` and one to `last_frame`.
+- **Aspect ratio:** `adaptive` leaves the choice of ratio to the model. Pick a fixed ratio to force one.
+- **Settings go in the widgets:** do not write flags such as `--resolution`, `--ratio`, `--dur`, `--frames`, `--seed`, `--camerafixed` or `--watermark` in the prompt. The node refuses a prompt that contains them.
+- **Several videos in one run:** raise `generation_count`. The runs go in parallel and generation N uses `seed` + N, so the videos differ.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedanceFirstLastFrame" />
+
+### Notes on outputs
+
+- `VIDEO` is a list output. With `generation_count` above 1, the next node runs once per video.
+- `last_frame` holds the final frame of every video as one image batch, in the same order.
+- With `non_blocking` on, `response` lists the pending task IDs. `VIDEO` and `last_frame` stay empty, so nodes connected to them are skipped until the video is ready.
+
+## Limits and tips
+
+- Each frame must be 300 to 6000 pixels on each side, with a width to height ratio from 0.4 to 2.5. The node checks both frames before it sends anything.
+- Frames are sent inline as base64. A single image cannot exceed 30 MB in that form, and the two together cannot exceed 64 MB.
+- Duration is 2 to 12 seconds. Resolution is 480p, 720p or 1080p.
+- Describe in the prompt how the scene moves from the first frame to the last.
+- If you interrupt the run, the node cancels the tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed, and the message lists its ID so you can find it with [Video Query Tasks](../video-query-tasks/).
+- A failed request that may have billed is never sent twice automatically.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No BytePlus API key is set` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `first_frame: width and height must be between 300 and 6000 pixels` | Resize the frame so both sides are within the range. The same check names `last_frame` when that one is wrong. |
+| `last_frame: aspect ratio (width / height) must be between 0.4 and 2.5` | Crop or pad the frame to a less extreme shape. |
+| `has not activated the model` | Open the ModelArk console and activate the model for the same region as your key. |
+| `Input image contains sensitive content` | Use another image. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedanceFirstLastFrame" />

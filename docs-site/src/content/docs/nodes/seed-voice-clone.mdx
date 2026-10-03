@@ -1,0 +1,68 @@
+---
+title: "Seed Voice Clone"
+description: "Train a cloned voice from a 10 to 15 second clip with Voice Replication 2.0 and get a speaker ID for Seed Speech TTS and Seed Audio."
+node_id: BytePlusSeedVoiceClone
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedVoiceClone" />
+
+## What it does
+
+Trains a voice on a clip of someone speaking and outputs its `speaker_id`. You then give that ID to [Seed Speech TTS](../seed-tts/) with the model `seed-icl-2.0`, or use it as a reference source in [Seed Audio 1.0](../seed-audio/).
+
+The node needs your separate Seed Speech API key (Singapore region only) and a voice slot from the Seed Speech console. **This node could not be tested end to end:** in the live test run no voice slot was available, so the steps below describe what the code does, not a verified result.
+
+## On the canvas
+
+<Shot src="nodes/seed-voice-clone.png" alt="The Seed Voice Clone node with an audio socket, an empty speaker_id, language en and the three outputs speaker_id, demo_audio and status_json" caption="Default settings. Connect the reference clip to audio and enter a voice slot ID." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedVoiceClone" />
+
+### Notes on inputs
+
+- **`speaker_id`:** a voice slot ID that starts with `S_`, bought in the Seed Speech console, or your own postpaid custom voice ID. A custom ID has 8 to 256 letters, digits, `-` or `_`, starts with a letter and avoids the reserved prefixes and suffixes of Seed Speech.
+- **Reference clip:** connect 10 to 15 seconds of clear speech to `audio`, for example from **Load Audio**. The clip is sent as WAV, up to 10 MB.
+- **`language`:** the language spoken in the clip. Cloning across languages is not supported.
+- **`reference_text`:** optional. If you give the text that is read in the clip, training can fail when the audio differs too much from it.
+- **`demo_text`:** optional text of 4 to 80 characters for the demo clip, in the same language.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedVoiceClone" />
+
+### Notes on outputs
+
+- `speaker_id` is the voice you trained. Pass it to `custom_speaker_id` of Seed Speech TTS.
+- `demo_audio` is the demo clip from the service. If the service returns none, the node outputs half a second of silence and logs a message.
+- `status_json` is the last status answer of the service, without the demo link.
+
+## Limits and tips
+
+- Each voice slot can be trained 15 times. Every run with changed inputs trains again and uses one of them.
+- The node starts the training, then checks its status every 2 seconds. It stops waiting after 600 seconds and tells you to run the node again later.
+- The voice is ready when the status is 2 (success) or 4 (active).
+- The first TTS call with a new voice activates the slot and starts its billing.
+- Keep `disable_volume_normalization` off unless you want the loudness of the clip kept. Keeping it is meant to give a closer match.
+- Interrupting a run stops the node's wait. The training request has already been sent by then.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `speaker_id is empty` | Enter a voice slot ID (`S_...`) from the Seed Speech console, or your own postpaid custom voice ID. |
+| `is not a valid custom voice ID` | Fix the ID: 8 to 256 letters, digits, `-` or `_`, starting with a letter, without reserved prefixes such as `S_` or suffixes such as `_bigtts`. |
+| `This voice slot has no training attempts left` | The slot was trained 15 times. Use another speaker ID. |
+| `The reference audio does not match reference_text` | Empty `reference_text`, or type exactly what is said in the clip. |
+| `The reference audio is too noisy` | Record or choose a cleaner clip. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedVoiceClone" />

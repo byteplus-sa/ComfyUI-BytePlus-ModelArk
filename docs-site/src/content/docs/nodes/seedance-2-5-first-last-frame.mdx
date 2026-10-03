@@ -1,0 +1,69 @@
+---
+title: "Seedance 2.5 First-Last-Frame to Video"
+description: "Animate a first frame, and optionally a last frame, into a video with Seedance 2.5, 2.5 Premium or 2.0, with draft previews."
+node_id: BytePlusSeedance2FirstLastFrame
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedance2FirstLastFrame" />
+
+## What it does
+
+Creates a video with BytePlus Seedance that starts at a first frame image. Add a last frame and the video ends there. The prompt describes the motion in between. You need a first frame, either as an image or as an asset ID or link.
+
+The node bills for every video it generates and waits until the task finishes. It does not save anything itself: connect **Save Video** to keep the result.
+
+## On the canvas
+
+<Shot src="nodes/seedance-2-5-first-last-frame.png" alt="The Seedance 2.5 First-Last-Frame to Video node with first_frame and last_frame image inputs, model Seedance 2.5, a prompt about a lantern and the asset ID fields at the bottom" caption="Seedance 2.5 selected. On 2.5 there is no ratio setting: the video follows the first frame." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedance2FirstLastFrame" />
+
+### Notes on inputs
+
+- **Frames:** use either `first_frame` or `first_frame_asset_id`, never both. The same rule applies to the last frame. The first frame is required, the last is optional.
+- **Asset IDs and links:** the `*_asset_id` fields take an asset ID, `asset://<asset_id>` or an https link to an image. With IAM keys saved in **Settings → BytePlus**, the node checks that the asset is active and an image. Without them it sends the value as it is.
+- **Aspect ratio:** on Seedance 2.5 the video keeps the aspect of the first frame. On Seedance 2.0, 2.0 Fast and 2.0 Mini the `ratio` setting is back and defaults to `adaptive`. When both frames are connected images (no asset IDs), they are cropped from the center and resized to the exact output size of the chosen `resolution` and `ratio`.
+- **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/): 2.5 (480p to 1080p, up to 30 s), 2.5 Premium (4k only), the two Draft options (480p only) and 2.0, 2.0 Fast and 2.0 Mini (up to 15 s).
+- **Several videos:** raise `generation_count`. The tasks run in parallel and generation N uses `seed` + N.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedance2FirstLastFrame" />
+
+### Notes on outputs
+
+- The `last_frame` output is the last frame of each generated video. It is not the `last_frame` image you connected.
+- With `generation_count` above 1, `VIDEO` is a list: the next node runs once per video.
+- `draft_task_id` only has a value for the two Draft models. Send it to [Draft to Final Video](../seedance-2-5-draft-to-final/).
+
+## Limits and tips
+
+- Each frame needs at least 300 pixels on both sides and an aspect ratio between 0.4 and 2.5. Frames above 6000 pixels on a side are scaled down on Seedance 2.5.
+- Connected frames are sent inside the request, so nothing is uploaded and no Comfy.org login is needed.
+- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again.
+- A draft can be rendered into the final video for 7 days after it was created. Set `control after generate` under `seed` to `fixed` so the draft is not generated again.
+- With `non_blocking` on, the first run returns at once with the task IDs in `response`. Run the node again to collect the video.
+- With `generation_count` above 1, every video is billed. See [Billing and cost](../../concepts/billing-and-cost/).
+- For several images, audio or an existing clip, use [Reference to Video](../seedance-2-5-reference/).
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `Either first_frame or first_frame_asset_id is required.` | Connect a first frame image or fill in `first_frame_asset_id`. |
+| `Provide only one of first_frame or first_frame_asset_id, not both.` | Clear one of the two. The same message exists for the last frame. |
+| `Reference image ratio must be between 0.4 and 2.5` | Crop the frame so its width divided by height is inside that range. |
+| `Reference image width/height must be between 300px and 6000px` | Scale the frame so both sides are at least 300 pixels. |
+| `Enter a prompt.` | Type a prompt. An empty prompt is refused before anything is sent. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedance2FirstLastFrame" />

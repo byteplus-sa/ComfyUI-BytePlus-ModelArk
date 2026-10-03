@@ -1,0 +1,72 @@
+---
+// Model options per node with the model IDs sent to BytePlus.
+// Nodes that offer the same options share one table. Data: nodes.json (options) and models.json (IDs, region limits).
+import nodes from '../data/nodes.json';
+import models from '../data/models.json';
+import { base } from './lib';
+
+const { groups } = Astro.props as { groups?: string[] };
+
+const norm = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+// normalized name -> model ID, from every map in models.json
+const idByName = new Map<string, string>();
+const allIds = new Set<string>();
+for (const map of Object.values(models.maps) as Record<string, string>[]) {
+	for (const [name, id] of Object.entries(map)) {
+		idByName.set(norm(name), id);
+		idByName.set(norm(name.replace(/^(dola|dreamina)-/, '')), id);
+		idByName.set(norm(id), id);
+		allIds.add(id);
+	}
+}
+const regionLimits = models.region_exclusions as Record<string, string[]>;
+
+function resolve(option: string): { id: string; draft: boolean } {
+	const draft = / draft$/i.test(option);
+	const key = norm(option.replace(/ draft$/i, ''));
+	return { id: idByName.get(key) ?? '', draft };
+}
+
+// Nodes with a model choice, in nodes.json order, filtered by group when asked
+const sets = new Map<string, { options: string[]; nodes: typeof nodes }>();
+for (const node of nodes) {
+	if (groups && !groups.includes(node.group)) continue;
+	const input = node.inputs.find((i: any) => i.name === 'model' && Array.isArray(i.options));
+	if (!input) continue;
+	const key = JSON.stringify(input.options);
+	if (!sets.has(key)) sets.set(key, { options: input.options, nodes: [] as any });
+	sets.get(key)!.nodes.push(node);
+}
+---
+{[...sets.values()].map((set) => (
+	<>
+		<p>
+			<strong>
+				{set.nodes.map((n, index) => (
+					<>{index > 0 && ', '}<a href={`${base}/nodes/${n.slug}/`}>{n.display_name.replace(/^BytePlus /, '')}</a></>
+				))}
+			</strong>
+		</p>
+		<table class="ref-table">
+			<thead><tr><th>Option in the node</th><th>Model ID sent to BytePlus</th><th>Note</th></tr></thead>
+			<tbody>
+				{set.options.map((option: string) => {
+					const { id, draft } = resolve(option);
+					const shown = id || option;
+					const limits = regionLimits[shown];
+					const notes: string[] = [];
+					if (draft) notes.push('480p preview, rendered to the final with Draft to Final');
+					if (limits) notes.push(`Not available in ${limits.join(', ')}`);
+					return (
+						<tr>
+							<td><code>{option}</code></td>
+							<td>{id ? <code>{id}</code> : <span class="meta">same as the option</span>}</td>
+							<td>{notes.join('. ')}</td>
+						</tr>
+					);
+				})}
+			</tbody>
+		</table>
+	</>
+))}

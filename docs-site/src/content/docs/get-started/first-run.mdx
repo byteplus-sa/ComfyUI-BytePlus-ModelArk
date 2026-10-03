@@ -1,0 +1,56 @@
+---
+title: "Run your first template"
+description: "Open the Seedream template, run it with your ModelArk key and find the saved image."
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Templates are ready-made workflows. The quickest way to test your setup is the **Seedream** template: it needs only a ModelArk key and makes one image.
+
+## Before you start
+
+- The pack is installed ([Install](../install/)).
+- Your ModelArk key is saved in **Settings → BytePlus** ([API keys](../api-keys/)).
+- The Seedream model is activated in the ModelArk console for the region of your key.
+
+## Run the template
+
+<Steps>
+
+1. Open the **Templates** browser in ComfyUI.
+2. Choose the BytePlus templates and pick **Seedream**.
+3. Press **Run**.
+4. Wait for the Seedream node to finish. The picture appears in **Save Image**.
+
+</Steps>
+
+The steps and the settings worth changing are on the [Seedream template page](../../templates/seedream/).
+
+## Save Image and Save Video
+
+The BytePlus nodes save nothing themselves. They only run when another node uses their output. That is why templates end in **Save Image** or **Save Video**. If you build your own workflow, connect one of them, or a preview node. A BytePlus node with nothing connected to its output does not run and is not billed.
+
+## What a run costs
+
+A run sends your prompt to BytePlus and **bills your own BytePlus account**. No Comfy credits are used. The Seedream template bills for one image. Run it again without changing anything and ComfyUI reuses the cached result, so nothing new is sent or billed. More in [Billing and cost](../../concepts/billing-and-cost/).
+
+## Where results are saved
+
+**Save Image** and **Save Video** write to the `output` folder inside your ComfyUI folder, like any other ComfyUI output. Preview nodes show the result but do not keep it.
+
+## If the key is missing
+
+Without a key the node stops before it sends anything and the run fails with this message:
+
+> No BytePlus API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_API_KEY=... in the `.env` path shown in the message.
+
+Save the key, then run again. You do not need to restart ComfyUI. The Seed Speech and AI MediaKit nodes give the same kind of message for their own keys.
+
+<Aside type="tip">
+Other common first errors: *Invalid API Key (401)* means the key and region do not match. *has not activated the model* means you must activate the model in the ModelArk console for that region.
+</Aside>
+
+## Next steps
+
+- Turn the image into a video with the Seedance 2 template: [Seedance 2](../../templates/seedance-2/).
+- Read how keys and regions fit together: [Keys and regions](../../concepts/keys-and-regions/).

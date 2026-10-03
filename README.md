@@ -8,6 +8,8 @@ Calls go straight to BytePlus and are billed to your BytePlus account (contract 
 
 ## Contents
 
+Full documentation, with a page for every node and template: **https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/**
+
 - [Quick Start](#quick-start)
 - [What's Included](#whats-included)
 - [API Keys](#api-keys)
@@ -305,6 +307,8 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Consistent Character Shots | Seedream paints a character, Create Image Asset registers it, three Seedance 2.0 Reference shots use it as `asset_1`, Concatenate Video joins them (IAM AK/SK). |
 | Seedance Task Query | Video Query Tasks collects a Seedance task by ID (or lists the latest tasks) and shows its status and model. |
 | Video and Audio Assets | Create Video Asset and Create Audio Asset register media in your private library, Asset Library lists it, Seedance 2.5 Reference uses both as `asset_1` and `asset_2` (IAM AK/SK). |
+
+Templates show current models only. The Seedance 1.0 nodes and the Seedream 4.5 / 4.0 options are still in the pack, but no template uses them.
 
 ## Development
 

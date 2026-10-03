@@ -1,0 +1,50 @@
+---
+title: "Billing and cost"
+description: "What the nodes bill, when they run, why paid calls are never retried, and how to avoid paying twice."
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Your account, not Comfy credits
+
+The nodes call BytePlus directly with your own keys. Everything is billed to **your BytePlus account**, with your contract pricing and resource packages. No Comfy credits are used.
+
+## Nodes run only when their output is used
+
+The BytePlus nodes are not output nodes and they save nothing themselves. ComfyUI runs a node only when something downstream needs its result, for example **Save Image**, **Save Video** or a preview.
+
+A node with nothing connected to its output does not run and is not billed.
+
+## ComfyUI caches results
+
+ComfyUI remembers a node's result for its input values. Run an unchanged workflow again and the node is skipped, so nothing is sent and nothing is billed.
+
+- Change the prompt, a setting or the `seed` to get a new result and a new charge.
+- Changing a key does not count as a change. See [Keys and regions](../keys-and-regions/).
+- The Seedance nodes have a `non_blocking` option that submits the task and returns at once. Run the node again to collect the finished video.
+
+## Paid calls are never retried automatically
+
+The BytePlus SDK can retry a request after a timeout or a server error. For a call that starts paid work, that is dangerous: the first request may have gone through, and ModelArk has no way to recognize a repeat. A retry could create and bill the same video or image twice.
+
+So the pack never retries calls that start paid work (video task creation, image generation, LLM answers). The only exception is a rate limit (429), which means nothing started, so it waits and tries again. Looking up a task, polling and uploads can still be retried, because they cost nothing.
+
+The result for you: if a paid request fails with a timeout, the node reports the error and stops. Check your BytePlus console before you run it again, because the first request may have been billed.
+
+## `generation_count` multiplies the cost
+
+The Seedream and Seedance nodes have an advanced `generation_count`. Each generation is a separate paid request, run in parallel with `seed` + N. A count of 4 bills four times.
+
+The same holds for **Seed Audio**: each take is billed separately.
+
+## Long-running tasks
+
+Video tasks can take minutes. The node keeps checking the task and shows its status under the node. Waiting costs nothing, but the task is billed when it runs. If you press Interrupt, see [Interrupts and cancelling](../interrupts/) for what is cancelled and what is still billed.
+
+## Voice cloning
+
+With **Seed Voice Clone**, the first TTS call with a cloned voice starts the billing of its voice slot.
+
+<Aside type="tip">
+Test with the cheapest settings first: a short duration, the lowest resolution, or a draft ([Draft mode](../draft-mode/)), then raise the quality for the final run.
+</Aside>
