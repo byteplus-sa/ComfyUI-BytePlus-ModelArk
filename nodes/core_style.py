@@ -299,6 +299,52 @@ async def _probe_url_kind(url):
     return await wait_interruptible(probe())
 
 
+def audio_format_from_bytes(head):
+    """Audio container from the first bytes of a file, or None."""
+    head = bytes(head or b"")
+    if head[:4] == b"RIFF" and head[8:12] == b"WAVE":
+        return "wav"
+    if head[:3] == b"ID3" or (len(head) >= 2 and head[0] == 0xFF and head[1] & 0xE0 == 0xE0):
+        return "mp3"
+    if head[:4] == b"OggS":
+        return "ogg"
+    if head[4:8] == b"ftyp":
+        return "m4a"
+    if head[:6] == b"#!AMR\n":
+        return "amr"
+    return None
+
+
+async def sniff_audio_format(url):
+    """
+    wav / mp3 / ogg / m4a / amr from the first bytes of a link (a 16-byte ranged GET), for
+    links with no file extension such as the Seed Audio url. Same rules as the type probe:
+    only public https hosts, redirects included, and the wait is interruptible.
+    """
+    timeout = aiohttp.ClientTimeout(total=_URL_PROBE_TIMEOUT_SECONDS)
+
+    async def sniff():
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            target = url
+            for _hop in range(_MAX_PROBE_REDIRECTS + 1):
+                parsed = urlparse(target)
+                if parsed.scheme != "https" or not parsed.hostname or not await _host_is_public(parsed.hostname):
+                    return None
+                try:
+                    async with session.get(target, headers={"Range": "bytes=0-15"}, allow_redirects=False) as response:
+                        if response.status in _REDIRECT_STATUSES and response.headers.get("Location"):
+                            target = urljoin(target, response.headers["Location"])
+                            continue
+                        if response.status >= 400:
+                            return None
+                        return audio_format_from_bytes(await response.content.read(16))
+                except (aiohttp.ClientError, asyncio.TimeoutError):
+                    return None
+        return None
+
+    return await wait_interruptible(sniff())
+
+
 def _has_asset_credentials(client):
     from .nodes_assets import resolve_asset_credentials
 

@@ -1,0 +1,869 @@
+{
+  "id": "d162a64d-d2eb-4fca-947a-3f0c8ccf67b6",
+  "revision": 0,
+  "last_node_id": 15,
+  "last_link_id": 28,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        26,
+        592
+      ],
+      "size": [
+        340,
+        102
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            16,
+            22
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Product photo (change me)",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "product_photo.png",
+        "image"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "PrimitiveString",
+      "pos": [
+        26,
+        748
+      ],
+      "size": [
+        340,
+        80
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            15
+          ]
+        }
+      ],
+      "title": "Product brief (change me)",
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "A matte-black insulated water bottle with a bamboo lid"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "BytePlusSeed",
+      "pos": [
+        642,
+        108
+      ],
+      "size": [
+        340,
+        450
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 15
+        },
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 16
+        },
+        {
+          "name": "model.images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            17,
+            18
+          ]
+        },
+        {
+          "name": "raw_json",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Write the script and shot prompt",
+      "properties": {
+        "Node name for S&R": "BytePlusSeed",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "",
+        "Seed 2.0 Lite",
+        1,
+        3,
+        "randomize",
+        "You write short UGC (user-generated-content) video ads. Look at the product photo and the brief. Reply in exactly this format and nothing else:\nSCRIPT: <one spoken first-person line, 26 to 32 words, casual and enthusiastic, no hashtags, no emojis>\nSHOT: <one paragraph prompt for a vertical handheld selfie-style video: a friendly creator in a bright home setting holds up the product from Image 1, shows it to the camera and talks about it, natural gestures, slight handheld camera shake, warm daylight. Always call it 'the product from Image 1'.>",
+        "high",
+        1,
+        "disabled",
+        "medium",
+        1,
+        false,
+        604800
+      ]
+    },
+    {
+      "id": 4,
+      "type": "RegexExtract",
+      "pos": [
+        1008,
+        108
+      ],
+      "size": [
+        340,
+        262
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            19,
+            23
+          ]
+        }
+      ],
+      "title": "Voiceover script",
+      "properties": {
+        "Node name for S&R": "RegexExtract"
+      },
+      "widgets_values": [
+        "",
+        "SCRIPT:\\s*(.*?)\\s*SHOT:",
+        "First Group",
+        true,
+        false,
+        true,
+        1
+      ]
+    },
+    {
+      "id": 5,
+      "type": "RegexExtract",
+      "pos": [
+        1008,
+        424
+      ],
+      "size": [
+        340,
+        262
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            20,
+            21
+          ]
+        }
+      ],
+      "title": "Shot prompt",
+      "properties": {
+        "Node name for S&R": "RegexExtract"
+      },
+      "widgets_values": [
+        "",
+        "SHOT:\\s*(.*)",
+        "First Group",
+        true,
+        false,
+        true,
+        1
+      ]
+    },
+    {
+      "id": 6,
+      "type": "PreviewAny",
+      "pos": [
+        1008,
+        740
+      ],
+      "size": [
+        340,
+        122
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Script (read by the voiceover)",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 7,
+      "type": "PreviewAny",
+      "pos": [
+        1008,
+        916
+      ],
+      "size": [
+        340,
+        122
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Shot prompt (sent to Seedance)",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 8,
+      "type": "BytePlusSeedance2Reference",
+      "pos": [
+        1444,
+        108
+      ],
+      "size": [
+        340,
+        504
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": 21
+        },
+        {
+          "name": "model.reference_images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 22
+        },
+        {
+          "name": "model.reference_images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            24
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Creator video (product as reference)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedance2Reference",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "Seedance 2.5",
+        "",
+        "720p",
+        "9:16",
+        8,
+        false,
+        "auto",
+        "mp4",
+        true,
+        false,
+        8,
+        "randomize",
+        false,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 9,
+      "type": "BytePlusSeedTTS",
+      "pos": [
+        26,
+        1252
+      ],
+      "size": [
+        340,
+        704
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 23
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            27
+          ]
+        },
+        {
+          "name": "subtitles_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "srt",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Voiceover",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedTTS",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "seed-tts-2.0",
+        "",
+        "en_female_stokie_uranus_bigtts",
+        "",
+        "",
+        "",
+        4,
+        8,
+        0,
+        0,
+        "24000",
+        "auto",
+        0,
+        false,
+        false,
+        false,
+        "default",
+        false,
+        false,
+        false,
+        0.3,
+        false,
+        false,
+        9,
+        "randomize"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "GetVideoComponents",
+      "pos": [
+        462,
+        1252
+      ],
+      "size": [
+        340,
+        106
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            25
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": [
+            26
+          ]
+        },
+        {
+          "name": "bit_depth",
+          "type": "COMBO",
+          "links": null
+        },
+        {
+          "name": "color_space",
+          "type": "COMBO",
+          "links": null
+        }
+      ],
+      "title": "Split the clip into frames",
+      "properties": {
+        "Node name for S&R": "GetVideoComponents"
+      }
+    },
+    {
+      "id": 11,
+      "type": "CreateVideo",
+      "pos": [
+        462,
+        1412
+      ],
+      "size": [
+        340,
+        150
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 25
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 27
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            28
+          ]
+        }
+      ],
+      "title": "Add the voiceover",
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        30,
+        "auto",
+        "sRGB",
+        "none"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "SaveVideo",
+      "pos": [
+        462,
+        1616
+      ],
+      "size": [
+        340,
+        106
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "Save the UGC video",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Video/UGC",
+        "auto",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 15,
+      "type": "MarkdownNote",
+      "pos": [
+        26,
+        108
+      ],
+      "size": [
+        520,
+        430
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Image to UGC video\n\n1. Load your **product photo** and describe the product in **Product brief**.\n2. **BytePlus LLM** looks at the photo and writes a one-line script and a handheld, selfie-style shot prompt.\n3. **Seedance 2.5 Reference** shoots a 9:16 creator video with your product as the reference image.\n4. **Seed TTS** reads the script as a voiceover and the core video nodes put it on the clip.\n\nChange the voice in *Voiceover*, the length in *Creator video* (8 s default). Needs a ModelArk key and a Seed Speech key in Settings > BytePlus."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      15,
+      2,
+      0,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      16,
+      1,
+      0,
+      3,
+      1,
+      "IMAGE"
+    ],
+    [
+      17,
+      3,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      18,
+      3,
+      0,
+      5,
+      0,
+      "STRING"
+    ],
+    [
+      19,
+      4,
+      0,
+      6,
+      0,
+      "STRING"
+    ],
+    [
+      20,
+      5,
+      0,
+      7,
+      0,
+      "STRING"
+    ],
+    [
+      21,
+      5,
+      0,
+      8,
+      0,
+      "STRING"
+    ],
+    [
+      22,
+      1,
+      0,
+      8,
+      1,
+      "IMAGE"
+    ],
+    [
+      23,
+      4,
+      0,
+      9,
+      0,
+      "STRING"
+    ],
+    [
+      24,
+      8,
+      0,
+      10,
+      0,
+      "VIDEO"
+    ],
+    [
+      25,
+      10,
+      0,
+      11,
+      0,
+      "IMAGE"
+    ],
+    [
+      26,
+      10,
+      2,
+      11,
+      2,
+      "FLOAT"
+    ],
+    [
+      27,
+      9,
+      0,
+      11,
+      1,
+      "AUDIO"
+    ],
+    [
+      28,
+      11,
+      0,
+      12,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 11,
+      "title": "1 · Your product",
+      "bounding": [
+        0,
+        0,
+        572,
+        1074
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 12,
+      "title": "2 · Script and shot prompt (BytePlus LLM)",
+      "bounding": [
+        616,
+        0,
+        758,
+        1074
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 13,
+      "title": "3 · Creator video (Seedance 2.5 Reference)",
+      "bounding": [
+        1418,
+        0,
+        392,
+        1074
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 14,
+      "title": "4 · Voiceover (Seed TTS)",
+      "bounding": [
+        0,
+        1144,
+        392,
+        848
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 15,
+      "title": "5 · Mix and save",
+      "bounding": [
+        436,
+        1144,
+        392,
+        848
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5528612997090203,
+      "offset": [
+        667.0175438596493,
+        54.26315789473688
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

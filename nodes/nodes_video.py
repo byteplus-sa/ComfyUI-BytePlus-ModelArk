@@ -1059,6 +1059,17 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
                     0,
                 )
 
+            requested_ids = base_kwargs.get("task_ids") or []
+            if requested_ids:
+                found_ids = {item.get("id") for item in all_items}
+                missing_ids = [tid for tid in requested_ids if tid not in found_ids]
+                if missing_ids and not all_items:
+                    raise BytePlusException(
+                        get_text("err_query_tasks_not_found", ids=", ".join(missing_ids))
+                    )
+                if missing_ids:
+                    log_msg("query_tasks_some_not_found", ids=", ".join(missing_ids))
+
             all_items.sort(key=lambda x: x.get("created_at_ts", 0), reverse=True)
             for item in all_items:
                 if "created_at_ts" in item:
@@ -1070,6 +1081,8 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
             return comfy_io.NodeOutput(
                 json.dumps(all_items, indent=2, ensure_ascii=False), total_count
             )
+        except BytePlusException:
+            raise
         except Exception as e:
             return comfy_io.NodeOutput(
                 json.dumps({"error": format_api_error(e)}, ensure_ascii=False), 0

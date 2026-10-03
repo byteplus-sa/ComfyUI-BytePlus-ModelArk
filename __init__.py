@@ -37,9 +37,16 @@ def _byteplus_format_exception(*args, **kwargs):
     message only.
     """
     exc = None
-    if len(args) >= 2:
+    if args and isinstance(args[0], BaseException):
+        # Python 3.10+ form: format_exception(exc, limit=..., chain=...). ComfyUI reaches it
+        # through traceback.format_exc(), which uses this form on Python 3.13.
+        exc = args[0]
+    elif len(args) >= 2:
+        # Legacy form: format_exception(type, value, tb).
         exc = args[1]
-    
+    elif isinstance(kwargs.get("value"), BaseException):
+        exc = kwargs["value"]
+
     if exc and getattr(exc, "byteplus_suppress_traceback", False):
         return [f"{exc}\n"]
     

@@ -70,10 +70,11 @@ def get_text(key, **kwargs):
     msg = MESSAGES.get(key, key)
     if kwargs:
         try:
-            return msg.format(**kwargs)
+            msg = msg.format(**kwargs)
         except:
             pass
-    return msg
+    # An inserted error text often ends with a full stop already ("...{e}. Log in ...").
+    return re.sub(r"(?<!\.)\.\.(?=\s|$)", ".", msg)
 
 
 def log_msg(key, default_msg="", **kwargs):

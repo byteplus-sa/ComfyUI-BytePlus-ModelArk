@@ -87,7 +87,7 @@ from .nodes_shared import (
     sleep_interruptible,
     upload_bytes_to_comfy_storage,
 )
-from .core_style import core_search_aliases, seed_input
+from .core_style import core_search_aliases, seed_input, sniff_audio_format
 from .seed_speech_voices import DEFAULT_TTS_VOICE, TTS_2_VOICE_IDS, TTS_2_VOICES
 from .speech_api import (
     SeedSpeechClient,
@@ -674,6 +674,9 @@ async def _seed_audio_once(speech_client, body, audio_format, sample_rate):
     duration = result.get("duration")
     if not isinstance(duration, (int, float)):
         duration = audio_duration(audio)
+    if body.get("audio_config", {}).get("enable_subtitle") and not segments:
+        # The service sometimes answers a subtitle request without sentences (seen on one clip of a batch).
+        log_msg("seed_audio_no_subtitles", duration=f"{float(duration):.2f}")
     log_msg(
         "seed_audio_done",
         duration=f"{float(duration):.2f}",
@@ -1267,6 +1270,14 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
             options["context_image_url"] = await upload_to_comfy_storage(
                 cls, "image", context_image_jpeg(context_image), "context.jpg", "image/jpeg"
             )
+        url = (options.get("audio_url") or "").strip()
+        if mode != "fast" and url and audio is None and (options.get("audio_format") or "auto") == "auto":
+            extension = url.split("?", 1)[0].split("#", 1)[0].rsplit("/", 1)[-1].rpartition(".")[2].lower()
+            if extension not in SEED_ASR_EXTENSION_FORMATS:
+                # A link without a file extension (the Seed Audio url): read the format from the file.
+                sniffed = await sniff_audio_format(url)
+                if sniffed:
+                    options["audio_format"] = sniffed
         mode, headers, body = build_asr_request(model, audio, **options)
         if uploaded_audio:
             body["audio"].update({"codec": "raw", "rate": SEED_ASR_SAMPLE_RATE, "bits": 16})
