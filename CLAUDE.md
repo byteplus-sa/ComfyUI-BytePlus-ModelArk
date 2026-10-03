@@ -4,7 +4,9 @@ ComfyUI custom node pack that calls **BytePlus ModelArk** directly with the user
 
 `AGENTS.md` is a symlink to this file — edit `CLAUDE.md` only.
 
-The project release skill is `.agents/skills/comfyui-registry-release/SKILL.md`. Use it for end-to-end Comfy Registry releases, including packaging, publication, and version status checks.
+**Keep the Claude and agent files in sync with symlinks, in every PR.** `.claude/` is the source and `.agents/` only links to it: `AGENTS.md` → `CLAUDE.md`, `.agents/AGENTS.md` → `../CLAUDE.md`, `.agents/skills` → `../.claude/skills`. Add or edit skills only under `.claude/skills/`, never as real files under `.agents/`, and never copy a file between the two trees. `tests/test_agent_files.py` checks the links (CI runs it).
+
+The project release skill is `.claude/skills/comfyui-registry-release/SKILL.md`. Use it for end-to-end Comfy Registry releases, including packaging, publication, and version status checks.
 
 ## Project skills (`.claude/skills/`)
 
@@ -13,6 +15,7 @@ The project release skill is `.agents/skills/comfyui-registry-release/SKILL.md`.
 | `byteplus-node-maintenance` | Request lifecycle, adding models/parameters, conventions, comparison with ComfyUI core's ByteDance nodes |
 | `comfyui-v3-nodes` | ComfyUI V3 backend API: schema, inputs, DynamicCombo/Autogrow value shapes, hidden inputs, async/progress/interrupts |
 | `comfyui-frontend-extensions` | `web/js` work: hooks, widget visibility in Classic Canvas and Nodes 2.0, websocket events, deprecations |
+| `comfyui-registry-release` | End-to-end Comfy Registry release: version, package, publish workflow, scan status |
 | `comfyui-release-and-testing` | Running node tests, example-workflow sync (template checklist), and ComfyUI smoke tests |
 | `byteplus-model-update` | Adding, re-dating, retiring or region-limiting a model: every table to touch and the finish checklist |
 | `byteplus-core-parity-sync` | Catching up with changes to ComfyUI core's ByteDance nodes: diff, parity tests, follow vs. deviate |
@@ -55,7 +58,7 @@ The project release skill is `.agents/skills/comfyui-registry-release/SKILL.md`.
 
 ```bash
 # Template/workflow tests (no ComfyUI needed)
-python3 -m unittest tests.test_workflow_templates
+python3 -m unittest tests.test_workflow_templates tests.test_agent_files
 
 # Node behaviour tests (skipped unless COMFYUI_ROOT is set; the interpreter needs torch,
 # ComfyUI's requirements and this pack's requirements)
