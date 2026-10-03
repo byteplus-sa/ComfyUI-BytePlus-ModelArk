@@ -128,7 +128,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeedanceTextToVideo"
       },
       "widgets_values": [
@@ -367,7 +367,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeedanceImageToVideo"
       },
       "widgets_values": [
@@ -656,7 +656,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeedanceFirstLastFrame"
       },
       "widgets_values": [

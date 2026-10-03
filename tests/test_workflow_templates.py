@@ -234,7 +234,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 for node in workflow["nodes"]:
                     if node["type"].startswith("BytePlus"):
                         self.assertEqual(node["properties"]["cnr_id"], "ComfyUI-BytePlus-ModelArk")
-                        self.assertEqual(node["properties"]["ver"], "0.4.0")
+                        self.assertEqual(node["properties"]["ver"], "0.5.0")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
         combo_inputs = {
