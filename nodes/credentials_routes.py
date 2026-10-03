@@ -107,7 +107,7 @@ async def handle_save(request):
                 if credentials.setting_source(credentials.REGION_ENV) == "environment" and region != env_region:
                     # The key would be checked against one region and used against another.
                     return _error("cred_region_env_conflict", 409, region=env_region)
-                # Same check as the API Client node; blocking, so off the event loop.
+                # A 401 from the region endpoint; blocking, so off the event loop.
                 accepted = await asyncio.to_thread(check_api_key, value, REGION_BASE_URLS[region])
                 if accepted is False:
                     return _error("cred_key_rejected", 422)

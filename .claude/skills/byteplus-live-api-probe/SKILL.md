@@ -16,10 +16,10 @@ Tests never call the real API (CLAUDE.md → Commands). Probes are the separate,
 ## Writing the probe
 
 - Put scripts in the session scratchpad, never in the repo.
-- Read keys from the same places the nodes do, and never print them:
-  - ModelArk: `api_keys.json` (list of `{customName, apiKey, accessKey?, secretKey?}`) or ask the user which entry to use. AK/SK only for the asset library.
-  - Seed Speech: `speech_api_keys.json` or `BYTEPLUS_SEED_SPEECH_API_KEY`.
-  - MediaKit: `mediakit_api_keys.json` or `BYTEPLUS_VOD_MEDIAKIT_API_KEY`.
+- Read keys from the same place the nodes do, and never print them: the `BYTEPLUS_*` variables in the environment or ComfyUI's `user/.env` (saved from Settings > BytePlus), read through `nodes/credentials.py` (`get_setting`; `env_file_path()` locates the file) or by parsing that file. If none is set, ask the user to add the key in Settings > BytePlus rather than pasting it into chat.
+  - ModelArk: `BYTEPLUS_API_KEY` (+ `BYTEPLUS_REGION`). IAM `BYTEPLUS_ACCESS_KEY` / `BYTEPLUS_SECRET_KEY` only for the asset library.
+  - Seed Speech: `BYTEPLUS_SEED_SPEECH_API_KEY`.
+  - MediaKit: `BYTEPLUS_VOD_MEDIAKIT_API_KEY`.
   - Print `key[:4] + "…"` at most. Don't echo request headers or full SDK errors that include them.
 - Reuse the pack's own request builders where possible (`nodes_speech.build_*_request`, `nodes_mediakit.build_*_request`, `nodes_seed` payload code) so you test the request the node actually sends. Run with the interpreter from the `local-comfyui-test-env` memory (it has the Ark SDK, aiohttp, PyAV).
 - Cheapest settings: smallest/fastest model in the family, 480p, minimum duration, draft mode, one image, `max_output_tokens` low, a 1–2 s audio clip, a tiny test video.

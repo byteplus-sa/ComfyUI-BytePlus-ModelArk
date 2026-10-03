@@ -6,15 +6,12 @@ ByteDanceImageToVideoNode and ByteDanceFirstLastFrameNode
 (comfy_api_nodes/nodes_bytedance.py), with BytePlus's limits where they
 differ (duration 2-12 s). Seedance 1.5 Pro, core's third model, is deprecated
 by BytePlus (shut down on 2026-11-11), so it and its generate_audio input are left out. Every
-node also takes this pack's API Client as its first input and ends with this
-pack's extras (advanced). The request goes straight to BytePlus ModelArk:
-parameters as JSON body fields, frames as base64 data URIs (the Legacy
-Seedance 1.x request code).
+node ends with this pack's extras (advanced). The request goes straight to
+BytePlus ModelArk: parameters as JSON body fields, frames as base64 data URIs.
 """
 from comfy_api.latest import io as comfy_io
 
 from .constants import (
-    DEFAULT_FILENAME_PREFIX,
     IMAGE_MAX_EDGE,
     IMAGE_MAX_RATIO,
     IMAGE_MIN_EDGE,
@@ -44,9 +41,8 @@ from .models_config import (
     SEEDANCE_1_TEXT_RATIOS,
 )
 from .nodes_shared import (
-    build_default_client,
-    optional_client_input,
-    with_default_client,
+    get_client,
+    with_client,
     GLOBAL_CATEGORY,
     BytePlusException,
     get_text,
@@ -54,7 +50,7 @@ from .nodes_shared import (
 from .nodes_video import BytePlusVideoBase, build_seedance1_frame_content
 
 # Flags ModelArk would also read from the prompt text; here they are widgets
-# (core's list plus the Legacy nodes' "dur" and "frames").
+# (core's list plus "dur" and "frames").
 FORBIDDEN_PROMPT_FLAGS = [
     "resolution",
     "ratio",
@@ -204,7 +200,6 @@ def _schema(node_id, display_name, description, model_options, default_model, fr
         category=GLOBAL_CATEGORY,
         description=description,
         inputs=[
-            optional_client_input(),
             _model_input(model_options, default_model),
             _prompt_input(),
             *frame_inputs,
@@ -263,8 +258,6 @@ async def generate_seedance1_video(
         aspect_ratio,
         seed,
         generation_count,
-        DEFAULT_FILENAME_PREFIX,  # unused: core-style nodes save nothing themselves
-        False,
         non_blocking,
         cls.hidden.unique_id,
         model_name=model_id,
@@ -276,7 +269,6 @@ async def generate_seedance1_video(
         return_last_frame=True,
         node_class_type=cls.NODE_ID,
         workflow_prompt=cls.hidden.prompt,
-        as_list=True,
     )
 
 
@@ -298,7 +290,7 @@ class BytePlusSeedanceTextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -356,7 +348,7 @@ class BytePlusSeedanceImageToVideo(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -419,7 +411,7 @@ class BytePlusSeedanceFirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,

@@ -40,17 +40,17 @@ Core's IDs are Comfy.org proxy aliases. The native BytePlus IDs carry BytePlus p
 ## Patterns worth copying
 
 - Per-provider error-code translation into friendly messages (`_seedance2_poll_video_task`): `OutputAudioSensitiveContentDetected.PolicyViolation`, `InvalidParameter.TaskTypeConstraint`, `InvalidParameter.TaskTypeMismatch`.
-- HTTP retry policy (`comfy_api_nodes/util/client.py`): retry `408/500/502/503/504` with backoff (3 retries, ×2), 429 handled separately honouring `Retry-After` (cap 150 s). This pack has **no** API retries today.
+- HTTP retry policy (`comfy_api_nodes/util/client.py`): retry `408/500/502/503/504` with backoff (3 retries, ×2), 429 handled separately honouring `Retry-After` (cap 150 s). This pack retries only 429 on paid calls (`call_billed`); polling and other GETs keep the Ark SDK's retries.
 - Poll bounds: `max_poll_attempts=480` (queued polls not counted), per-poll timeout 120 s. This pack has no client-side poll limit (relies on task expiry + interrupt).
 - Interruptible sleeps in 1 s slices checking `processing_interrupted()`.
 - Status text under the node via `PromptServer.instance.send_progress_text(...)` ("Status: … / Time elapsed: …").
-- Deprecation instead of deletion: old node IDs kept as `is_deprecated=True` subclasses so saved workflows still load.
+- Deprecation instead of deletion: old node IDs kept as `is_deprecated=True` subclasses so saved workflows still load. (This pack has not shipped yet, so it has no deprecated nodes; use the pattern once users have saved workflows.)
 - Draft → final: separate output for `draft_task_id`, and a guard that a non-draft model can't run while that output is linked.
 
 ## Patterns not to copy
 
 - `is_api_node=True` / `price_badge` in Comfy credits — this pack is billed by BytePlus directly; the flag makes the frontend treat nodes as Comfy partner nodes and auto-adds Comfy auth inputs.
-- Importing `sync_op` / `poll_op` from `comfy_api_nodes.util` — they assume Comfy auth, write request bodies to `<temp>/api_logs/`, and their signatures changed repeatedly in 2025–2026. The only acceptable import is the lazy, wrapped `upload_video_to_comfyapi`.
+- Importing `sync_op` / `poll_op` from `comfy_api_nodes.util` — they assume Comfy auth, write request bodies to `<temp>/api_logs/`, and their signatures changed repeatedly in 2025–2026. The only acceptable imports are the lazy, wrapped `upload_video_to_comfyapi` / `upload_image_to_comfyapi` / `upload_file_to_comfyapi`.
 - Uploading references to Comfy.org and registering them as `asset://` via `/proxy/seedance/virtual-library/assets` — proxy-only; with a direct key use public URLs, Ark Files API, or user `asset://` IDs.
 
 ## Useful core helpers to mirror (not import)

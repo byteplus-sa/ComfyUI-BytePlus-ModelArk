@@ -27,17 +27,18 @@ class BytePlusThing(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_client("client", get_client)   # this pack: the client is no input, the decorator injects it
     async def execute(cls, client, prompt, **kwargs):   # async: runs concurrently with other ready nodes
         node_id = cls.hidden.unique_id
         ...
         return comfy_io.NodeOutput(video, last_frame, json_text)
 ```
 
-Then add the class to `_registered_nodes` in `__init__.py`.
+Then add the class to its module's `NODES` list (registered by `__init__.py`) and to `ALL_NODES` in `tests/test_credentials.py`.
 
 ## Rules that bite
 
-- **`execute` runs on a locked clone of the class.** Assigning `cls.something = ...` inside `execute` raises `AttributeError`. Keep per-node state in module-level dicts keyed by `cls.hidden.unique_id` (this repo's pattern: `NON_BLOCKING_TASK_CACHE`, draft-ID caches).
+- **`execute` runs on a locked clone of the class.** Assigning `cls.something = ...` inside `execute` raises `AttributeError`. Keep per-node state in module-level dicts keyed by `cls.hidden.unique_id` (this repo's pattern: `NON_BLOCKING_TASK_CACHE`, `SEED_LAST_RESPONSES`).
 - **Hidden values must be declared** in `Schema(hidden=[...])`; undeclared ones read as `None` (no error). `is_output_node=True` auto-adds `prompt` + `extra_pnginfo`; `is_api_node=True` auto-adds the Comfy.org auth fields.
 - **Only `NODE_CLASS_MAPPINGS` *or* `comfy_entrypoint` is used per module** — if a module defines both, `comfy_entrypoint` is silently ignored. This pack uses only `comfy_entrypoint`; never add `NODE_CLASS_MAPPINGS`.
 - **An exception in `comfy_entrypoint`/`define_schema` only logs a warning and skips the whole pack.** After schema edits, check the ComfyUI console for "Error while calling comfy_entrypoint".
@@ -49,13 +50,13 @@ Then add the class to `_registered_nodes` in `__init__.py`.
 
 | Input | Wire/prompt key | Value in `execute` |
 |---|---|---|
-| `io.DynamicCombo.Input("model_version", options=[io.DynamicCombo.Option("m1", [inputs...]), ...])` | `model_version`, `model_version.<child>` | one dict: `{"model_version": "m1", "<child>": value, ...}` — **only the selected option's children are present**, use `.get()` |
+| `io.DynamicCombo.Input("model", options=[io.DynamicCombo.Option("m1", [inputs...]), ...])` | `model`, `model.<child>` | one dict: `{"model": "m1", "<child>": value, ...}` — **only the selected option's children are present**, use `.get()` |
 | `io.Autogrow.Input("images", template=io.Autogrow.TemplateNames(io.Image.Input("image"), names=[...], min=0))` | `images.<name>` | `dict[name → value]` of **connected slots only**; `{}` when none |
 | `io.Autogrow.TemplatePrefix(input, prefix="img", min=1, max=10)` | `img0 … img{max-1}` | same; hard cap 100; slots below `min` are required |
 | `io.MultiType.Input("media", types=[io.Image, io.Video])` | `media` | whichever type is connected — branch on `isinstance` |
 | `io.DynamicSlot.Input(slot=..., inputs=[...])` | nested | nested dict; always optional |
 
-Autogrow can sit inside a DynamicCombo option: `model_version["ref_images"]` → `{"image_1": tensor, ...}`. In saved workflow JSON a DynamicCombo input serializes with type `COMFY_DYNAMICCOMBO_V3` and child inputs `model_version.<name>` (see `tests/test_workflow_templates.py`).
+Autogrow can sit inside a DynamicCombo option: `model["reference_images"]` → `{"image_1": tensor, ...}`. In saved workflow JSON a DynamicCombo input serializes with type `COMFY_DYNAMICCOMBO_V3` and child inputs `model.<name>` (see `tests/test_workflow_templates.py`).
 
 Minimum ComfyUI for working DynamicCombo/Autogrow: **0.8.0** (public API), safer **≥ 0.10.0** (Autogrow validation fix).
 
@@ -81,7 +82,7 @@ Minimum ComfyUI for working DynamicCombo/Autogrow: **0.8.0** (public API), safer
 
 ## Renaming or replacing a node without breaking workflows
 
-Keep the old class registered with `is_deprecated=True`, or register a replacement (Node Replacement API, ComfyUI PR #12014, Feb 2026) in the extension's `on_load`:
+Only matters once the pack has shipped (until then, rename freely). Keep the old class registered with `is_deprecated=True`, or register a replacement (Node Replacement API, ComfyUI PR #12014, Feb 2026) in the extension's `on_load`:
 
 ```python
 from comfy_api.latest import ComfyAPI, ComfyExtension, io

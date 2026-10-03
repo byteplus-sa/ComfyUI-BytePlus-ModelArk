@@ -5,12 +5,10 @@ groups) and verified real people (LivenessFace groups).
 Assets are managed with the signed ModelArk OpenAPI (service "ark", version
 2024-01-01) using IAM AK/SK, not the ModelArk API key. Active assets are used in
 Seedance as asset://<asset_id>: first_frame_asset_id / last_frame_asset_id and
-reference_assets on the core-style Seedance 2.5 nodes (bare IDs work there),
-ref_image_urls / ref_video_urls / ref_audio_urls on the legacy Seedance 2 / 2.5 node.
+reference_assets on the Seedance 2.5 nodes (bare IDs work there).
 
 Nodes: BytePlusCreateImageAsset / VideoAsset / AudioAsset (shaped like core's
-ByteDance Create Image / Video Asset), BytePlusAssetLibrary (ListAssets) and the
-legacy BytePlusVirtualPortraitAsset.
+ByteDance Create Image / Video Asset) and BytePlusAssetLibrary (ListAssets).
 """
 import ast
 import asyncio
@@ -38,11 +36,9 @@ from .constants import (
 from .core_style import core_search_aliases, reference_kind_from_url
 from . import credentials
 from .nodes_shared import (
-    build_default_client,
-    optional_client_input,
-    with_default_client,
+    get_client,
+    with_client,
     GLOBAL_CATEGORY,
-    BytePlusClientType,
     BytePlusException,
     get_text,
     log_msg,
@@ -54,7 +50,6 @@ from .nodes_shared import (
 
 GROUP_TYPES = ["AIGC", "LivenessFace"]
 ASSET_STATUSES = ["all", "Active", "Processing", "Failed"]
-ASSET_TYPES = ["Image", "Video", "Audio"]
 ASSET_MAX_STATUS_ERRORS = 5
 GROUP_LIST_PAGE_SIZE = 100
 AUTH_ERROR_CODES = {"InvalidAccessKey", "SignatureDoesNotMatch", "InvalidSecretKey", "InvalidAuthorization"}
@@ -67,14 +62,17 @@ ASSET_UPLOAD_CACHE = {}
 
 
 def resolve_asset_credentials(client):
-    """AK/SK from the selected api_keys.json entry, else the standard env vars."""
-    from_client = getattr(client, "asset_credentials", None)
-    if from_client:
-        return from_client
-    from_environment = credentials.get_asset_credentials()
-    if from_environment:
-        return from_environment
-    raise BytePlusException(get_text("err_asset_credentials_missing"))
+    """The IAM AK/SK saved in Settings > BytePlus (BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY)."""
+    found = getattr(client, "asset_credentials", None) or credentials.get_asset_credentials()
+    if not found:
+        raise BytePlusException(get_text("err_asset_credentials_missing"))
+    return found
+
+
+def asset_credentials_stamp(found):
+    """One-way stamp of the whole AK/SK set, to tell when it changed without keeping it."""
+    joined = "\0".join((found["access_key"], found["secret_key"], found.get("session_token") or ""))
+    return hashlib.sha256(joined.encode()).hexdigest()
 
 
 class AssetLibrary:
@@ -105,6 +103,8 @@ class AssetLibrary:
         self.region = region
         # Identifies the account in cache keys without keeping the key itself.
         self.account_fingerprint = hashlib.sha256(credentials["access_key"].encode()).hexdigest()[:16]
+        # Which AK/SK this library signs with (see core_style._asset_library).
+        self.credentials_stamp = asset_credentials_stamp(credentials)
 
     def call(self, action, body):
         """Blocking call; returns the Result object. Run it with asyncio.to_thread."""
@@ -343,138 +343,6 @@ def _asset_summary(asset, asset_id=None):
     }
 
 
-class BytePlusVirtualPortraitAsset(comfy_io.ComfyNode):
-    """
-    Register an authorized portrait (or other media) in the private asset
-    library and wait until it is Active; outputs its asset:// URI for Seedance.
-    """
-
-    @classmethod
-    def define_schema(cls) -> comfy_io.Schema:
-        return comfy_io.Schema(
-            node_id="BytePlusVirtualPortraitAsset",
-            display_name="BytePlus Virtual Portrait Asset (Legacy)",
-            category=GLOBAL_CATEGORY,
-            is_deprecated=True,
-            description=(
-                "Legacy node: use BytePlus Create Image / Video / Audio Asset instead. "
-                "Add an authorized portrait to your private asset library (Dreamina Seedance "
-                "Advanced Creation Rights) and output its asset:// URI for the Seedance 2 / 2.5 "
-                "ref_image_urls input. Needs IAM AK/SK (see README). A connected image is "
-                "uploaded to Comfy.org storage first to get the HTTPS URL CreateAsset needs."
-            ),
-            is_output_node=True,
-            inputs=[
-                BytePlusClientType.Input("client"),
-                comfy_io.Image.Input("image", optional=True),
-                comfy_io.String.Input(
-                    "image_url",
-                    default="",
-                    optional=True,
-                    tooltip="Public HTTPS URL of the media (used when no image is connected).",
-                ),
-                comfy_io.Combo.Input(
-                    "asset_type",
-                    options=ASSET_TYPES,
-                    default="Image",
-                    tooltip="Type of the media at image_url. A connected image is always Image.",
-                ),
-                comfy_io.String.Input(
-                    "group_name",
-                    default="ComfyUI Virtual Portraits",
-                    tooltip="Virtual portrait (AIGC) group to use, matched by exact name; created if missing. Use one group per person.",
-                ),
-                comfy_io.String.Input(
-                    "group_id",
-                    default="",
-                    tooltip="Existing group ID (AIGC, or a verified person's LivenessFace group). Overrides group_name.",
-                ),
-                comfy_io.String.Input("asset_name", default="ComfyUI portrait"),
-                comfy_io.String.Input("project_name", default="default"),
-                comfy_io.Boolean.Input(
-                    "wait_until_active",
-                    default=True,
-                    tooltip="Wait (up to 10 min) until the asset can be used in Seedance.",
-                ),
-            ],
-            hidden=[
-                comfy_io.Hidden.auth_token_comfy_org,
-                comfy_io.Hidden.api_key_comfy_org,
-                comfy_io.Hidden.unique_id,
-            ],
-            outputs=[
-                comfy_io.String.Output(display_name="asset_uri"),
-                comfy_io.String.Output(display_name="asset_id"),
-                comfy_io.String.Output(display_name="group_id"),
-                comfy_io.String.Output(display_name="info"),
-            ],
-        )
-
-    @classmethod
-    async def execute(
-        cls,
-        client,
-        asset_type="Image",
-        group_name="ComfyUI Virtual Portraits",
-        group_id="",
-        asset_name="ComfyUI portrait",
-        project_name="default",
-        wait_until_active=True,
-        image=None,
-        image_url="",
-    ) -> comfy_io.NodeOutput:
-        image_url = (image_url or "").strip()
-        if image is None and not image_url:
-            raise BytePlusException(get_text("err_asset_source_missing"))
-        if image is None and not image_url.lower().startswith("https://"):
-            raise BytePlusException(get_text("err_asset_url_invalid", url=image_url))
-
-        library = AssetLibrary(client)
-        project_name = (project_name or "").strip() or "default"
-        group_id = (group_id or "").strip()
-        if not group_id:
-            group_id = await find_or_create_group(
-                library, (group_name or "").strip() or "ComfyUI Virtual Portraits", project_name
-            )
-
-        cache_key = None
-        if image is not None:
-            png = await asyncio.to_thread(_tensor_to_png_bytes, image)
-            cache_key = _asset_cache_key(
-                hashlib.sha256(png).hexdigest(), library, project_name, group_id, asset_name
-            )
-            reused = await reuse_cached_asset(library, cache_key, project_name, wait_until_active)
-            if reused:
-                return cls._output(reused[0], reused[1], group_id)
-            source_url = await upload_image_to_comfy_storage(cls, image)
-            asset_type = "Image"
-        else:
-            source_url = image_url
-
-        asset, asset_id = await create_asset(
-            library,
-            group_id=group_id,
-            url=source_url,
-            asset_type=asset_type,
-            asset_name=asset_name,
-            project_name=project_name,
-            wait_until_active=wait_until_active,
-            cache_key=cache_key,
-        )
-        return cls._output(asset, asset_id, group_id)
-
-    @staticmethod
-    def _output(asset, asset_id, group_id):
-        summary = _asset_summary(asset, asset_id)
-        summary["group_id"] = summary["group_id"] or group_id
-        return comfy_io.NodeOutput(
-            summary["asset_uri"],
-            summary["asset_id"],
-            summary["group_id"],
-            json.dumps(summary, indent=2, ensure_ascii=False),
-        )
-
-
 class BytePlusAssetLibrary(comfy_io.ComfyNode):
     """List assets in the private asset library."""
 
@@ -486,12 +354,12 @@ class BytePlusAssetLibrary(comfy_io.ComfyNode):
             category=GLOBAL_CATEGORY,
             description=(
                 "List assets in your private asset library (virtual portraits or verified real "
-                "people). asset_uris (one per line) can go straight into the Seedance 2 / 2.5 "
-                "ref_image_urls, ref_video_urls or ref_audio_urls inputs."
+                "people). asset_uris has one asset:// URI per line: filter to one asset (name, "
+                "max_results 1) to connect it to an asset_N input of Seedance 2.5 Reference to "
+                "Video, or copy an ID into first_frame_asset_id / last_frame_asset_id."
             ),
             is_output_node=True,
             inputs=[
-                BytePlusClientType.Input("client"),
                 comfy_io.Combo.Input("group_type", options=GROUP_TYPES, default="AIGC"),
                 comfy_io.String.Input("group_id", default="", tooltip="Only assets in this group (optional)."),
                 comfy_io.Combo.Input("status", options=ASSET_STATUSES, default="Active"),
@@ -506,6 +374,7 @@ class BytePlusAssetLibrary(comfy_io.ComfyNode):
         )
 
     @classmethod
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -580,7 +449,6 @@ GROUP_ID_TOOLTIP = (
 def _core_asset_inputs(media_input, url_input, url_tooltip, asset_name_default):
     """client first, then core's inputs, then this pack's extras (advanced)."""
     return [
-        optional_client_input(),
         media_input,
         comfy_io.String.Input("group_id", default="", tooltip=GROUP_ID_TOOLTIP),
         comfy_io.String.Input(url_input, default="", tooltip=url_tooltip, advanced=True),
@@ -913,7 +781,7 @@ class BytePlusCreateImageAsset(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -981,7 +849,7 @@ class BytePlusCreateVideoAsset(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -1048,7 +916,7 @@ class BytePlusCreateAudioAsset(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,
@@ -1086,4 +954,4 @@ class BytePlusCreateAudioAsset(comfy_io.ComfyNode):
         )
 
 
-CORE_STYLE_NODES = [BytePlusCreateImageAsset, BytePlusCreateVideoAsset, BytePlusCreateAudioAsset]
+NODES = [BytePlusCreateImageAsset, BytePlusCreateVideoAsset, BytePlusCreateAudioAsset, BytePlusAssetLibrary]

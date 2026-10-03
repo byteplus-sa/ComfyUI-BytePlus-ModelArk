@@ -39,7 +39,7 @@ if COMFY_ROOT:
 
     models_config = importlib.import_module(f"{PACKAGE_NAME}.nodes.models_config")
     executor = importlib.import_module(f"{PACKAGE_NAME}.nodes.executor")
-    nodes_image = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_image")
+    seedream_utils = importlib.import_module(f"{PACKAGE_NAME}.nodes.seedream_utils")
     nodes_seedream = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedream")
 
 
@@ -123,18 +123,10 @@ def option_inputs(schema, key, combo_id="model"):
 
 
 class FakeClient:
-    """BytePlusClients stand-in: records quota calls, exposes a fake Ark client."""
+    """BytePlusClients stand-in with a fake Ark client."""
 
     def __init__(self, images):
         self.ark = SimpleNamespace(images=images)
-        self.quota = []
-        self.usage = []
-
-    def check_quota(self, model, cost):
-        self.quota.append((model, cost))
-
-    def update_usage(self, model, cost):
-        self.usage.append((model, cost))
 
 
 class FakeImages:
@@ -222,11 +214,10 @@ class SeedreamSchemaTests(unittest.TestCase):
         schema = nodes_seedream.BytePlusSeedream.define_schema()
         self.assertEqual(schema.node_id, "BytePlusSeedream")
         self.assertEqual(schema.display_name, "BytePlus Seedream 4.5 & 5.0")
-        self.assertEqual([item.id for item in schema.inputs], ["client", "prompt", "model"])
-        self.assertEqual(schema.inputs[0].io_type, "BYTEPLUS_CLIENT")
-        self.assertEqual(schema.inputs[2].io_type, "COMFY_DYNAMICCOMBO_V3")
+        self.assertEqual([item.id for item in schema.inputs], ["prompt", "model"])
+        self.assertEqual(schema.inputs[1].io_type, "COMFY_DYNAMICCOMBO_V3")
         self.assertEqual(
-            [option.key for option in schema.inputs[2].options], [PRO, FLASH, LITE, V45, V40]
+            [option.key for option in schema.inputs[1].options], [PRO, FLASH, LITE, V45, V40]
         )
         self.assertEqual(
             [(output.io_type, output.display_name) for output in schema.outputs],
@@ -339,7 +330,7 @@ class SeedreamSchemaTests(unittest.TestCase):
         schema = nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema()
         self.assertEqual(schema.node_id, "BytePlusSeedreamLayerSeparation")
         self.assertEqual(schema.display_name, "BytePlus Seedream 5.0 Layer Separation")
-        self.assertEqual([item.id for item in schema.inputs], ["client", "model"])
+        self.assertEqual([item.id for item in schema.inputs], ["model"])
         for model, expected in LAYER_OPTION_INPUTS.items():
             with self.subTest(model=model):
                 inputs, ids = option_inputs(schema, model)
@@ -365,31 +356,18 @@ class SeedreamSchemaTests(unittest.TestCase):
         )
         self.assertFalse(schema.is_output_node)
 
-    def test_legacy_nodes_are_deprecated(self):
-        for node, name in (
-            (nodes_image.BytePlusSeedream4, "BytePlus Seedream 4 (Legacy)"),
-            (nodes_image.BytePlusSeedream5, "BytePlus Seedream 5 (Legacy)"),
-            (nodes_image.BytePlusSeedreamLayers, "BytePlus Seedream Layer Decomposition (Legacy)"),
-        ):
-            schema = node.define_schema()
-            self.assertTrue(schema.is_deprecated)
-            self.assertEqual(schema.display_name, name)
-        self.assertEqual(
-            nodes_seedream.NODES,
-            [nodes_seedream.BytePlusSeedream, nodes_seedream.BytePlusSeedreamLayerSeparation],
-        )
 
     def test_documented_byteplus_limits(self):
         """Where BytePlus documents other limits than core uses, ours follow BytePlus."""
         schema = nodes_seedream.BytePlusSeedream.define_schema()
-        options = {o.key: o for o in schema.inputs[2].options}
+        options = {o.key: o for o in schema.inputs[1].options}
         for key, refs in ((LITE, 14), (V45, 14), (V40, 14), (PRO, 10), (FLASH, 10)):
             inputs = {i.id: i for i in options[key].inputs}
             self.assertEqual(len(inputs["images"].template.names), refs, key)
             if "max_images" in inputs:
                 self.assertEqual(inputs["max_images"].max, 15, key)
         layers = nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema()
-        for option in layers.inputs[1].options:
+        for option in layers.inputs[0].options:
             inputs = {i.id: i for i in option.inputs}
             self.assertIn("262,144 pixels", inputs["image"].tooltip)
             self.assertIn("0-999", inputs["prompt"].tooltip)
@@ -419,7 +397,7 @@ class SeedreamSchemaTests(unittest.TestCase):
             core_schema = core_node.define_schema()
             our_schema = our_node.define_schema()
             self.assertEqual(core_schema.description, our_schema.description)
-            our_top = our_schema.inputs[1:]  # client first
+            our_top = our_schema.inputs
             self.assertEqual([i.id for i in core_schema.inputs], [i.id for i in our_top])
             for core_input, our_input in zip(core_schema.inputs, our_top):
                 if core_input.io_type != "COMFY_DYNAMICCOMBO_V3":
@@ -460,8 +438,8 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         import torch
 
         self._old = (
-            nodes_image.download_url_to_image_tensor_async,
-            nodes_image.download_url_to_rgba_tensor_async,
+            seedream_utils.download_url_to_image_tensor_async,
+            seedream_utils.download_url_to_rgba_tensor_async,
             getattr(executor.PromptServer, "instance", None),
             getattr(nodes_seedream.BytePlusSeedream, "hidden", None),
         )
@@ -474,14 +452,14 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
             tensor[..., 3] = 0.25
             return tensor
 
-        nodes_image.download_url_to_image_tensor_async = fake_rgb
-        nodes_image.download_url_to_rgba_tensor_async = fake_rgba
+        seedream_utils.download_url_to_image_tensor_async = fake_rgb
+        seedream_utils.download_url_to_rgba_tensor_async = fake_rgba
         executor.PromptServer.instance = SimpleNamespace()
         nodes_seedream.BytePlusSeedream.hidden = SimpleNamespace(unique_id="test-node", prompt={})
 
     def tearDown(self):
-        nodes_image.download_url_to_image_tensor_async = self._old[0]
-        nodes_image.download_url_to_rgba_tensor_async = self._old[1]
+        seedream_utils.download_url_to_image_tensor_async = self._old[0]
+        seedream_utils.download_url_to_rgba_tensor_async = self._old[1]
         if self._old[2] is None:
             delattr(executor.PromptServer, "instance")
         else:
@@ -514,7 +492,6 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(request["optimize_prompt_options"].mode)
         for key in ("image", "sequential_image_generation", "sequential_image_generation_options", "extra_body", "stream"):
             self.assertNotIn(key, request)
-        self.assertEqual(client.quota, [("dola-seedream-5-0-pro-260628", 1)])
         image, response, mask = result
         self.assertEqual(tuple(image.shape), (1, 4, 4, 3))
         self.assertEqual(float(mask.sum()), 0.0)
@@ -575,8 +552,6 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request["sequential_image_generation"], "auto")
         self.assertEqual(request["sequential_image_generation_options"].max_images, 3)
         self.assertEqual(request["seed"], 5)
-        self.assertEqual(client.quota, [("seedream-5-0-260128", 3)])
-        self.assertEqual(client.usage, [("seedream-5-0-260128", 3)])
         image, response, mask = result
         self.assertEqual(tuple(image.shape), (3, 8, 8, 3))
         self.assertEqual(tuple(mask.shape), (3, 8, 8))
@@ -599,7 +574,7 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
             await nodes_seedream.BytePlusSeedream.execute(client, "a red apple", {"model": LITE})
         self.assertIn("seedream-5-0-260128 is not available in eu-west-1", str(ctx.exception))
         self.assertTrue(str(ctx.exception).startswith("[BytePlus]"))
-        self.assertEqual((fake.calls, client.quota), ([], []))
+        self.assertEqual(fake.calls, [])
 
         # Other models in eu-west-1, and Lite in ap-southeast-1, run.
         for model in (PRO, FLASH, V45, V40):
@@ -610,46 +585,6 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         await nodes_seedream.BytePlusSeedream.execute(client, "a red apple", {"model": LITE})
         self.assertEqual(fake.calls[-1]["model"], "seedream-5-0-260128")
 
-    async def test_legacy_seedream5_lite_is_not_offered_in_eu_west_1(self):
-        fake = FakeImages()
-        client = FakeClient(fake)
-        client.region = "eu-west-1"
-        legacy = nodes_image.BytePlusSeedream5
-        old_hidden = legacy.__dict__.get("hidden")
-        legacy.hidden = SimpleNamespace(unique_id="legacy-node", prompt={})
-        try:
-            with self.assertRaises(Exception) as ctx:
-                await legacy.execute(
-                    client,
-                    {"model_version": "seedream-5-0-lite", "prompt": "a red apple", "size": "2K (adaptive)"},
-                )
-        finally:
-            if old_hidden is None:
-                delattr(legacy, "hidden")
-            else:
-                legacy.hidden = old_hidden
-        self.assertIn("seedream-5-0-260128 is not available in eu-west-1", str(ctx.exception))
-        self.assertEqual((fake.calls, client.quota), ([], []))
-
-    async def test_legacy_seedream4_stream_response_is_json(self):
-        # The streamed completed event carries the SDK's Usage model; the legacy
-        # node json.dumps its response, which used to raise TypeError.
-        fake = FakeImages()
-        legacy = nodes_image.BytePlusSeedream4
-        old_hidden = getattr(legacy, "hidden", None)
-        legacy.hidden = SimpleNamespace(unique_id="legacy-node", prompt={})
-        try:
-            image, response = await legacy.execute(
-                FakeClient(fake), "seedream-4-5", "a red apple", False, 1,
-                "2K (adaptive)", 2048, 2048, 1, 1, False,
-            )
-        finally:
-            if old_hidden is None:
-                delattr(legacy, "hidden")
-            else:
-                legacy.hidden = old_hidden
-        self.assertTrue(fake.calls[0]["stream"])
-        self.assertEqual(json.loads(response)[0]["usage"]["generated_images"], 1)
 
     async def test_custom_sizes_follow_byteplus(self):
         resolve = nodes_seedream.resolve_seedream_size
@@ -707,7 +642,6 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
             PRO, seed=2147483647, generation_count=2
         )
         self.assertEqual(sorted(call["seed"] for call in fake.calls), [0, 2147483647])
-        self.assertEqual(client.quota, [("dola-seedream-5-0-pro-260628", 2)])
         self.assertEqual(result[0].shape[0], 2)
 
     async def test_transparent_background(self):
@@ -831,7 +765,6 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request["optimize_prompt_options"].mode, "standard")
         header, png = decode_data_uri(request["image"])
         self.assertEqual((header, png.size), ("data:image/png;base64", (600, 600)))
-        self.assertEqual(client.quota, [("dola-seedream-5-0-pro-260628", 1)])
 
         base_image, base_mask, layers, masks, bboxes, layer_stack, layers_json = result
         self.assertEqual(tuple(base_image.shape), (1, 8, 8, 3))
@@ -954,15 +887,15 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_save_layers_writes_files(self):
         leaf = self.layer_item((4, 4), (0, 255, 0, 128), 1, [2, 2, 6, 6])
-        old_output = nodes_image.folder_paths.get_output_directory
+        old_output = seedream_utils.folder_paths.get_output_directory
         with tempfile.TemporaryDirectory() as tmp:
-            nodes_image.folder_paths.get_output_directory = lambda: tmp
+            seedream_utils.folder_paths.get_output_directory = lambda: tmp
             try:
                 _calls, _client, result = await self.run_node(
                     [self.base_item(), leaf], save_layers=True, filename_prefix="BytePlus/Test/Layers"
                 )
             finally:
-                nodes_image.folder_paths.get_output_directory = old_output
+                seedream_utils.folder_paths.get_output_directory = old_output
             info = json.loads(result[6])["layers"]
             for item in info:
                 self.assertTrue(os.path.exists(os.path.join(tmp, item["file"])))

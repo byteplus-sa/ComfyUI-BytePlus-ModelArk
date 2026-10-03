@@ -5,102 +5,12 @@
   "last_link_id": 5,
   "nodes": [
     {
-      "id": 1,
-      "type": "BytePlusAPIClient",
-      "pos": [
-        20,
-        100
-      ],
-      "size": [
-        300,
-        190
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "new_api_key",
-          "type": "STRING",
-          "widget": {
-            "name": "new_api_key"
-          },
-          "link": null
-        },
-        {
-          "name": "new_key_name",
-          "type": "STRING",
-          "widget": {
-            "name": "new_key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "key_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "region",
-          "type": "COMBO",
-          "widget": {
-            "name": "region"
-          },
-          "link": null
-        },
-        {
-          "name": "new_access_key",
-          "type": "STRING",
-          "shape": 7,
-          "widget": {
-            "name": "new_access_key"
-          },
-          "link": null
-        },
-        {
-          "name": "new_secret_key",
-          "type": "STRING",
-          "shape": 7,
-          "widget": {
-            "name": "new_secret_key"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "links": [
-            1,
-            2
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
-        "Node name for S&R": "BytePlusAPIClient"
-      },
-      "widgets_values": [
-        "",
-        "",
-        "Custom",
-        "ap-southeast-1",
-        "",
-        ""
-      ]
-    },
-    {
       "id": 2,
       "type": "BytePlusSeed",
       "pos": [
-        390,
-        100
-      ],
+               20,
+               100
+             ],
       "size": [
         440,
         560
@@ -109,12 +19,6 @@
       "order": 1,
       "mode": 0,
       "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "shape": 7,
-          "link": 1
-        },
         {
           "name": "prompt",
           "type": "STRING",
@@ -241,7 +145,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeed"
       },
       "widgets_values": [
@@ -264,9 +168,9 @@
       "id": 3,
       "type": "PreviewAny",
       "pos": [
-        880,
-        100
-      ],
+               510,
+               100
+             ],
       "size": [
         420,
         260
@@ -294,9 +198,9 @@
       "id": 4,
       "type": "BytePlusSeedream",
       "pos": [
-        880,
-        420
-      ],
+               510,
+               420
+             ],
       "size": [
         450,
         450
@@ -305,12 +209,6 @@
       "order": 3,
       "mode": 0,
       "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "shape": 7,
-          "link": 2
-        },
         {
           "name": "prompt",
           "type": "STRING",
@@ -441,7 +339,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeedream"
       },
       "widgets_values": [
@@ -464,9 +362,9 @@
       "id": 5,
       "type": "SaveImage",
       "pos": [
-        1380,
-        420
-      ],
+               1010,
+               420
+             ],
       "size": [
         300,
         270
@@ -502,22 +400,6 @@
   ],
   "links": [
     [
-      1,
-      1,
-      0,
-      2,
-      0,
-      "BYTEPLUS_CLIENT"
-    ],
-    [
-      2,
-      1,
-      0,
-      4,
-      0,
-      "BYTEPLUS_CLIENT"
-    ],
-    [
       3,
       2,
       0,
@@ -530,7 +412,7 @@
       2,
       0,
       4,
-      1,
+      0,
       "STRING"
     ],
     [

@@ -40,11 +40,11 @@ if COMFY_ROOT:
         package.__path__ = [PLUGIN_ROOT]
         sys.modules[PACKAGE_NAME] = package
 
-    from comfy_api.latest import io as comfy_io  # noqa: E402
 
     credentials = importlib.import_module(f"{PACKAGE_NAME}.nodes.credentials")
     credentials_routes = importlib.import_module(f"{PACKAGE_NAME}.nodes.credentials_routes")
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
+    core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
     nodes_assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
@@ -52,10 +52,7 @@ if COMFY_ROOT:
     nodes_seedance1 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance1")
     nodes_seedance2 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance2")
     nodes_seed = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seed")
-    nodes_image = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_image")
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
-    nodes_visual = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_visual")
-    quota = importlib.import_module(f"{PACKAGE_NAME}.nodes.quota")
     BytePlusException = nodes_shared.BytePlusException
 
 
@@ -317,20 +314,16 @@ class EnvFileTests(IsolatedCredentials):
 
 
 @requires_comfyui
-class DefaultClientTests(IsolatedCredentials):
+class ClientTests(IsolatedCredentials):
     def setUp(self):
         super().setUp()
-        self.store = nodes_shared.ApiKeyStore(os.path.join(self.tmp.name, "api_keys.json"))
-        for patch in (
-            mock.patch.object(nodes_shared, "API_KEY_STORE", self.store),
-            mock.patch.object(nodes_shared, "_DEFAULT_CLIENT_CACHE", {}),
-        ):
-            patch.start()
-            self.addCleanup(patch.stop)
+        patch = mock.patch.object(nodes_shared, "_CLIENT_CACHE", {})
+        patch.start()
+        self.addCleanup(patch.stop)
 
     def test_key_from_the_environment_or_the_file(self):
         os.environ["BYTEPLUS_API_KEY"] = "env-key"
-        client = nodes_shared.build_default_client()
+        client = nodes_shared.get_client()
         self.assertEqual((client.api_key, client.region), ("env-key", "ap-southeast-1"))
         self.assertIsNotNone(client.ark)
         self.assertIsNot(client.ark, client.billed_ark)
@@ -338,7 +331,7 @@ class DefaultClientTests(IsolatedCredentials):
         self.write_env("BYTEPLUS_API_KEY=file-key\nBYTEPLUS_REGION=eu-west-1\n")
         built = []
         with mock.patch.object(nodes_shared, "Ark", lambda **kwargs: built.append(kwargs) or SimpleNamespace(**kwargs)):
-            client = nodes_shared.build_default_client()
+            client = nodes_shared.get_client()
         self.assertEqual((client.api_key, client.region), ("file-key", "eu-west-1"))
         # The regular client keeps the SDK's retries, the billed one has none.
         self.assertEqual(
@@ -348,148 +341,124 @@ class DefaultClientTests(IsolatedCredentials):
 
     def test_the_client_is_reused_until_the_key_or_region_changes(self):
         self.write_env("BYTEPLUS_API_KEY=key-one\n")
-        first = nodes_shared.build_default_client()
-        self.assertIs(nodes_shared.build_default_client(), first)
+        first = nodes_shared.get_client()
+        self.assertIs(nodes_shared.get_client(), first)
         self.write_env("BYTEPLUS_API_KEY=key-two\n")
-        second = nodes_shared.build_default_client()
+        second = nodes_shared.get_client()
         self.assertIsNot(second, first)
         self.assertEqual(second.api_key, "key-two")
-
-    def test_a_single_saved_key_is_the_fallback(self):
-        self.store.upsert("work", "saved-key", "AK", "SK")
-        client = nodes_shared.build_default_client()
-        self.assertEqual(client.api_key, "saved-key")
-        self.assertEqual(client.asset_credentials["access_key"], "AK")
-        self.assertEqual(client.region, "ap-southeast-1")
-
-    def test_a_single_saved_key_keeps_the_region_it_was_used_with(self):
-        self.store.upsert("work", "saved-key", region="eu-west-1")
-        self.assertEqual(nodes_shared.build_default_client().region, "eu-west-1")
-        # BYTEPLUS_REGION still wins.
-        self.write_env("BYTEPLUS_REGION=ap-southeast-1\n")
-        self.assertEqual(nodes_shared.build_default_client().region, "ap-southeast-1")
-
-    def test_the_api_client_records_the_region_of_a_saved_key(self):
-        self.store.upsert("work", "saved-key")
-        with mock.patch.object(nodes_shared, "Ark", lambda **kwargs: SimpleNamespace(**kwargs)):
-            nodes_shared.BytePlusAPIClient.execute("work", region="eu-west-1")
-        reloaded = nodes_shared.ApiKeyStore(self.store.config_file)
-        reloaded.load()
-        self.assertEqual(reloaded.find_region("work"), "eu-west-1")
-        self.assertEqual(nodes_shared.build_default_client().region, "eu-west-1")
-
-    def test_the_environment_beats_a_saved_key(self):
-        self.store.upsert("work", "saved-key")
-        self.write_env("BYTEPLUS_API_KEY=file-key\n")
-        self.assertEqual(nodes_shared.build_default_client().api_key, "file-key")
-
-    def test_several_saved_keys_are_never_guessed(self):
-        self.store.upsert("work", "key-a")
-        self.store.upsert("home", "key-b")
-        with self.assertRaisesRegex(BytePlusException, r"several keys \(work, home\)"):
-            nodes_shared.build_default_client()
+        self.write_env("BYTEPLUS_API_KEY=key-two\nBYTEPLUS_REGION=eu-west-1\n")
+        self.assertEqual(nodes_shared.get_client().region, "eu-west-1")
 
     def test_no_key_names_the_places_to_set_it(self):
         with self.assertRaises(BytePlusException) as caught:
-            nodes_shared.build_default_client()
+            nodes_shared.get_client()
         message = str(caught.exception)
-        for part in ("Settings > BytePlus", "BYTEPLUS_API_KEY", self.env_path, "API Client"):
+        for part in ("Settings > BytePlus", "BYTEPLUS_API_KEY", self.env_path):
             self.assertIn(part, message)
 
-    def test_asset_credentials_from_env_and_file_reach_the_asset_library(self):
+    def test_asset_credentials_reach_the_asset_library(self):
         self.write_env("BYTEPLUS_API_KEY=k\nBYTEPLUS_ACCESS_KEY=AK\nBYTEPLUS_SECRET_KEY=SK\n")
-        client = nodes_shared.build_default_client()
+        client = nodes_shared.get_client()
         self.assertEqual(client.asset_credentials["secret_key"], "SK")
         self.assertEqual(nodes_assets.resolve_asset_credentials(SimpleNamespace())["access_key"], "AK")
-        with self.assertRaises(BytePlusException):
-            os.remove(self.env_path)
+        os.remove(self.env_path)
+        with self.assertRaisesRegex(BytePlusException, "Settings > BytePlus"):
             nodes_assets.resolve_asset_credentials(SimpleNamespace())
 
-    def test_a_real_node_runs_with_the_default_client(self):
-        # The quota node hands its client on, so it shows which client execute received.
-        node = quota.BytePlusQuotaSettings
-        self.write_env("BYTEPLUS_API_KEY=quota-test-key\n")
-        self.assertEqual(
-            node.execute(image_model="None", image_limit=0, video_model="None", video_limit=0).args[1].api_key,
-            "quota-test-key",
-        )
-        mine = SimpleNamespace(api_key="connected-key")
-        self.assertIs(node.execute(mine, "None", 0, "None", 0).args[1], mine)
-        self.assertIs(node.execute(client=mine, image_model="None", image_limit=0,
-                                   video_model="None", video_limit=0).args[1], mine)
+    def test_new_asset_credentials_reach_the_cached_asset_library(self):
+        # The client is cached across runs; a new AK/SK pair in Settings must not keep
+        # signing asset lookups with the old one.
+        self.write_env("BYTEPLUS_API_KEY=k\nBYTEPLUS_ACCESS_KEY=AK_OLD\nBYTEPLUS_SECRET_KEY=SK_OLD\n")
+        client = nodes_shared.get_client()
+        first = core_style._asset_library(client)
+        self.assertIs(core_style._asset_library(client), first)  # reused within the same pair
+        self.assertEqual(first._api.api_client.configuration.ak, "AK_OLD")
+        self.write_env("BYTEPLUS_API_KEY=k\nBYTEPLUS_ACCESS_KEY=AK_NEW\nBYTEPLUS_SECRET_KEY=SK_NEW\n")
+        same_client = nodes_shared.get_client()
+        self.assertIs(same_client, client)
+        second = core_style._asset_library(same_client)
+        self.assertIsNot(second, first)
+        self.assertEqual(second._api.api_client.configuration.ak, "AK_NEW")
+        self.assertEqual(second._create_api.api_client.configuration.sk, "SK_NEW")
+        # A new secret key alone (same access key) also counts.
+        self.write_env("BYTEPLUS_API_KEY=k\nBYTEPLUS_ACCESS_KEY=AK_NEW\nBYTEPLUS_SECRET_KEY=SK_ROTATED\n")
+        third = core_style._asset_library(nodes_shared.get_client())
+        self.assertIsNot(third, second)
+        self.assertEqual(third._api.api_client.configuration.sk, "SK_ROTATED")
+
+    def test_speech_and_mediakit_keys(self):
+        with self.assertRaisesRegex(BytePlusException, "BYTEPLUS_SEED_SPEECH_API_KEY"):
+            nodes_speech.get_speech_client()
+        with self.assertRaisesRegex(BytePlusException, "BYTEPLUS_VOD_MEDIAKIT_API_KEY"):
+            nodes_mediakit.get_mediakit_client()
+        self.write_env("BYTEPLUS_SEED_SPEECH_API_KEY=speech-key\nBYTEPLUS_VOD_MEDIAKIT_API_KEY=mk-key\n")
+        self.assertEqual(nodes_speech.get_speech_client().api_key, "speech-key")
+        self.assertEqual(nodes_mediakit.get_mediakit_client().api_key, "mk-key")
+
+    def test_a_node_runs_with_the_saved_key(self):
+        # Asset Library sends one ListAssets call; the fake library records which client it got.
+        seen = []
+
+        class FakeLibrary:
+            def __init__(self, client):
+                seen.append(client)
+
+            def call(self, action, body):
+                return {"Items": []}
+
+        node = nodes_assets.BytePlusAssetLibrary
+        node.hidden = SimpleNamespace(unique_id="1", prompt={})
+        self.write_env("BYTEPLUS_API_KEY=saved-key\n")
+        with mock.patch.object(nodes_assets, "AssetLibrary", FakeLibrary):
+            asyncio.run(node.execute(group_type="AIGC", status="all", project_name="default"))
+            self.assertEqual(seen[-1].api_key, "saved-key")
+            mine = SimpleNamespace(api_key="test-key", region="ap-southeast-1")
+            asyncio.run(node.execute(mine, group_type="AIGC", status="all", project_name="default"))
+            self.assertIs(seen[-1], mine)
         os.remove(self.env_path)
         with self.assertRaisesRegex(BytePlusException, "No BytePlus API key"):
-            node.execute(image_model="None", image_limit=0, video_model="None", video_limit=0)
-
-    def test_speech_and_mediakit_defaults(self):
-        speech_store = nodes_shared.ApiKeyStore(os.path.join(self.tmp.name, "speech.json"))
-        mediakit_store = nodes_shared.ApiKeyStore(os.path.join(self.tmp.name, "mediakit.json"))
-        with mock.patch.object(nodes_speech, "SPEECH_API_KEY_STORE", speech_store), \
-                mock.patch.object(nodes_mediakit, "MEDIAKIT_API_KEY_STORE", mediakit_store):
-            with self.assertRaisesRegex(BytePlusException, "BYTEPLUS_SEED_SPEECH_API_KEY"):
-                nodes_speech.build_default_speech_client()
-            with self.assertRaisesRegex(BytePlusException, "BYTEPLUS_VOD_MEDIAKIT_API_KEY"):
-                nodes_mediakit.build_default_mediakit_client()
-            self.write_env("BYTEPLUS_SEED_SPEECH_API_KEY=speech-key\nBYTEPLUS_VOD_MEDIAKIT_API_KEY=mk-key\n")
-            self.assertEqual(nodes_speech.build_default_speech_client().api_key, "speech-key")
-            self.assertEqual(nodes_mediakit.build_default_mediakit_client().api_key, "mk-key")
-            os.remove(self.env_path)
-            speech_store.upsert("only", "saved-speech")
-            self.assertEqual(nodes_speech.build_default_speech_client().api_key, "saved-speech")
-            speech_store.upsert("second", "other")
-            with self.assertRaisesRegex(BytePlusException, r"several keys \(only, second\)"):
-                nodes_speech.build_default_speech_client()
-            mediakit_store.upsert("a", "mk-a")
-            mediakit_store.upsert("b", "mk-b")
-            with self.assertRaisesRegex(BytePlusException, r"several keys \(a, b\)"):
-                nodes_mediakit.build_default_mediakit_client()
-
-    def test_client_nodes_read_the_env_option_from_the_file_too(self):
-        self.write_env("BYTEPLUS_SEED_SPEECH_API_KEY=speech-key\nBYTEPLUS_VOD_MEDIAKIT_API_KEY=mk-key\n")
-        speech = nodes_speech.BytePlusSpeechClient.execute(nodes_speech.ENV_KEY_OPTION).args[0]
-        mediakit = nodes_mediakit.BytePlusMediaKitClient.execute(nodes_mediakit.ENV_KEY_OPTION).args[0]
-        self.assertEqual((speech.api_key, mediakit.api_key), ("speech-key", "mk-key"))
+            asyncio.run(node.execute(group_type="AIGC", status="all", project_name="default"))
 
 
 @requires_comfyui
-class WithDefaultClientTests(unittest.TestCase):
-    def test_injects_only_when_no_client_was_given(self):
+class WithClientTests(unittest.TestCase):
+    def test_injects_the_client_unless_a_test_passes_one(self):
         calls = []
 
         def factory():
-            calls.append("default")
-            return "default-client"
+            calls.append("built")
+            return "saved-client"
 
         class Node:
             @classmethod
-            @nodes_shared.with_default_client("client", factory)
+            @nodes_shared.with_client("client", factory)
             async def run(cls, client, prompt="p"):
                 return client, prompt
 
             @classmethod
-            @nodes_shared.with_default_client("client", factory)
+            @nodes_shared.with_client("client", factory)
             def sync(cls, client, prompt="p"):
                 return client, prompt
 
         self.assertTrue(inspect.iscoroutinefunction(Node.run))
         self.assertFalse(inspect.iscoroutinefunction(Node.sync))
-        self.assertEqual(asyncio.run(Node.run(prompt="x")), ("default-client", "x"))
-        self.assertEqual(asyncio.run(Node.run(client=None)), ("default-client", "p"))
-        self.assertEqual(Node.sync(prompt="y"), ("default-client", "y"))
-        self.assertEqual(calls, ["default"] * 3)
-        # A connected client is used as is, by keyword or position, and the default is not built.
+        self.assertEqual(asyncio.run(Node.run(prompt="x")), ("saved-client", "x"))
+        self.assertEqual(Node.sync(prompt="y"), ("saved-client", "y"))
+        self.assertEqual(calls, ["built"] * 2)
+        # A client passed by keyword or position is used as is, and nothing is built.
         self.assertEqual(asyncio.run(Node.run(client="mine")), ("mine", "p"))
         self.assertEqual(asyncio.run(Node.run("mine", "z")), ("mine", "z"))
         self.assertEqual(Node.sync("mine"), ("mine", "p"))
-        self.assertEqual(calls, ["default"] * 3)
+        self.assertEqual(calls, ["built"] * 2)
 
-    def test_a_missing_default_is_the_nodes_error(self):
+    def test_a_missing_key_is_the_nodes_error(self):
         def factory():
             raise BytePlusException("no key")
 
         class Node:
             @classmethod
-            @nodes_shared.with_default_client("client", factory)
+            @nodes_shared.with_client("client", factory)
             async def run(cls, client):
                 return client
 
@@ -497,56 +466,24 @@ class WithDefaultClientTests(unittest.TestCase):
             asyncio.run(Node.run())
 
 
-CORE_STYLE_NODES = [
+ALL_NODES = [
     *nodes_seedream.NODES, *nodes_seedance1.NODES, *nodes_seedance2.NODES, *nodes_seed.NODES,
-    *nodes_assets.CORE_STYLE_NODES, quota.BytePlusQuotaSettings,
+    *nodes_assets.NODES, *nodes_speech.NODES, *nodes_mediakit.NODES, nodes_video.BytePlusVideoQueryTasks,
 ] if COMFY_ROOT else []
-SPEECH_NODES = [
-    nodes_speech.BytePlusSeedAudio, nodes_speech.BytePlusSeedTTS, nodes_speech.BytePlusSeedASR,
-    nodes_speech.BytePlusSeedVoiceClone,
-] if COMFY_ROOT else []
-MEDIAKIT_NODES = nodes_mediakit.NODES if COMFY_ROOT else []
-LEGACY_NODES = [
-    nodes_image.BytePlusSeedream4, nodes_image.BytePlusSeedream5, nodes_image.BytePlusSeedreamLayers,
-    nodes_video.BytePlusSeedance1, nodes_video.BytePlusSeedance1_5, nodes_video.BytePlusSeedance2,
-    nodes_video.BytePlusVideoQueryTasks, nodes_visual.BytePlusVisualUnderstanding,
-    nodes_assets.BytePlusVirtualPortraitAsset, nodes_assets.BytePlusAssetLibrary,
-] if COMFY_ROOT else []
-
-
-def client_input(node_cls):
-    for item in node_cls.define_schema().inputs:
-        if item.id in ("client", "speech_client", "mediakit_client"):
-            return item
-    return None
 
 
 @requires_comfyui
-class OptionalClientInputTests(unittest.TestCase):
-    def test_new_nodes_take_the_client_optionally(self):
-        for node_cls in CORE_STYLE_NODES + SPEECH_NODES + [n for n in MEDIAKIT_NODES if client_input(n)]:
+class NoClientInputTests(unittest.TestCase):
+    def test_nodes_take_no_client_input_and_get_one_injected(self):
+        for node_cls in ALL_NODES:
             with self.subTest(node=node_cls.__name__):
-                item = client_input(node_cls)
-                self.assertIsNotNone(item)
-                self.assertTrue(item.optional)
-                self.assertIn("Settings > BytePlus", item.tooltip)
-                # execute is wrapped, so an unconnected client is replaced by the default one.
+                info = node_cls.GET_NODE_INFO_V1()
+                inputs = {**info["input"]["required"], **info["input"].get("optional", {})}
+                self.assertFalse({"client", "speech_client", "mediakit_client"} & set(inputs))
+                self.assertFalse(any("CLIENT" in str(spec[0]) for spec in inputs.values()))
                 self.assertTrue(hasattr(node_cls.execute.__func__, "__wrapped__"))
-
-    def test_the_client_nodes_themselves_are_unchanged(self):
-        for node_cls in (nodes_shared.BytePlusAPIClient, nodes_speech.BytePlusSpeechClient,
-                         nodes_mediakit.BytePlusMediaKitClient):
-            with self.subTest(node=node_cls.__name__):
-                self.assertFalse(hasattr(node_cls.execute.__func__, "__wrapped__"))
-                self.assertIsNone(client_input(node_cls))
-
-    def test_legacy_nodes_keep_their_required_client(self):
-        for node_cls in LEGACY_NODES:
-            with self.subTest(node=node_cls.__name__):
-                item = client_input(node_cls)
-                self.assertIsNotNone(item)
-                self.assertFalse(item.optional)
-                self.assertFalse(hasattr(node_cls.execute.__func__, "__wrapped__"))
+                params = list(inspect.signature(node_cls.execute.__func__.__wrapped__).parameters)
+                self.assertIn(params[1], ("client", "speech_client", "mediakit_client"))
 
 
 @requires_comfyui

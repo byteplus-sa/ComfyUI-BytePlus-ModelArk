@@ -52,7 +52,6 @@ if COMFY_ROOT:
     models_config = importlib.import_module(f"{PACKAGE_NAME}.nodes.models_config")
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
     nodes_seed = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seed")
-    nodes_visual = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_visual")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
     speech_api = importlib.import_module(f"{PACKAGE_NAME}.nodes.speech_api")
     audio_utils = importlib.import_module(f"{PACKAGE_NAME}.nodes.audio_utils")
@@ -71,18 +70,9 @@ def setUpModule():
         unittest.addModuleCleanup(isolate_credentials())
 
 
-CLIENT_INPUT_IDS = ("client", "speech_client", "mediakit_client")
-
-
 def ordered(inputs):
-    """
-    Order of a node's inputs in its workflow JSON: the optional client socket
-    first (the frontend lists sockets first), then required inputs, then the
-    other optional ones, each in schema order.
-    """
-    clients = [i for i in inputs if i.id in CLIENT_INPUT_IDS]
-    rest = [i for i in inputs if i.id not in CLIENT_INPUT_IDS]
-    return clients + [i for i in rest if not i.optional] + [i for i in rest if i.optional]
+    """Frontend order: required inputs first, then optional ones, each in schema order."""
+    return [i for i in inputs if not i.optional] + [i for i in inputs if i.optional]
 
 
 def workflow_input_names(inputs, selections, prefix=""):
@@ -165,13 +155,10 @@ class SeedSchemaTests(unittest.TestCase):
             self.skipTest(f"core ByteDance LLM node unavailable: {e}")
         theirs = core.ByteDanceSeedNode.GET_NODE_INFO_V1()
         ours = nodes_seed.BytePlusSeed.GET_NODE_INFO_V1()
-        # Core's inputs in core's order (the optional client socket comes first among the optional
-        # ones); this pack's extras after them.
+        # Core's inputs in core's order; this pack's extras after them.
         self.assertEqual(ours["input_order"]["required"], theirs["input_order"]["required"])
         core_optional = theirs["input_order"].get("optional", [])
-        self.assertEqual(ours["input_order"]["optional"][0], "client")
-        self.assertTrue(ours["input"]["optional"]["client"][1]["tooltip"])
-        self.assertEqual(ours["input_order"]["optional"][1 : 1 + len(core_optional)], core_optional)
+        self.assertEqual(ours["input_order"]["optional"][: len(core_optional)], core_optional)
         our_inputs = {**ours["input"]["required"], **ours["input"].get("optional", {})}
         for section in ("required", "optional"):
             for name, spec in (theirs["input"].get(section) or {}).items():
@@ -212,9 +199,9 @@ class SeedSchemaTests(unittest.TestCase):
         self.assertIn("BytePlus Seed", self.schema.search_aliases)
         self.assertFalse(self.schema.is_api_node)
 
-    def test_input_order_client_first_core_then_extras(self):
+    def test_input_order_core_then_extras(self):
         self.assertEqual([i.id for i in ordered(self.schema.inputs)], [
-            "client", "prompt", "model", "seed", "system_prompt",
+            "prompt", "model", "seed", "system_prompt",
             "detail", "fps", "reasoning_mode", "reasoning_effort", "turns", "stream", "file_expire_seconds",
         ])
         for name in ("detail", "fps", "reasoning_mode", "reasoning_effort", "turns", "stream",
@@ -302,12 +289,6 @@ class SeedSchemaTests(unittest.TestCase):
         self.assertEqual([o.io_type for o in outputs], ["STRING", "STRING"])
         self.assertIsNone(outputs[0].display_name)  # core's unnamed STRING output
         self.assertEqual(outputs[1].display_name, "raw_json")
-
-    def test_legacy_visual_node(self):
-        schema = nodes_visual.BytePlusVisualUnderstanding.define_schema()
-        self.assertTrue(schema.is_deprecated)
-        self.assertEqual(schema.display_name, "BytePlus Visual Understanding (Legacy)")
-        self.assertEqual(schema.node_id, "BytePlusVisualUnderstanding")
 
 
 class FakeResponses:
@@ -670,9 +651,9 @@ class SeedAudioSchemaTests(unittest.TestCase):
         self.assertEqual(self.schema.node_id, "BytePlusSeedAudio")
         self.assertEqual(self.schema.display_name, "BytePlus Seed Audio 1.0")
 
-    def test_input_order_client_first_core_then_extras(self):
+    def test_input_order_core_then_extras(self):
         self.assertEqual([i.id for i in ordered(self.schema.inputs)], [
-            "speech_client", "text_prompt", "reference_mode", "sample_rate", "speech_rate",
+            "text_prompt", "reference_mode", "sample_rate", "speech_rate",
             "loudness_rate", "pitch_rate", "seed", "model",
             "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
             "content_producer", "produce_id", "content_propagator", "propagate_id", "generation_count",
@@ -972,11 +953,14 @@ class TemplateTests(unittest.TestCase):
     def test_messages_exist_and_are_english(self):
         import re
 
-        for name in ("nodes_seed.py", "nodes_speech.py", "nodes_visual.py"):
+        # Every message a module asks for exists (a missing key would show the key itself).
+        for name in sorted(os.listdir(os.path.join(PLUGIN_ROOT, "nodes"))):
+            if not name.endswith(".py"):
+                continue
             with open(os.path.join(PLUGIN_ROOT, "nodes", name), encoding="utf-8") as f:
                 source = f.read()
-            self.assertTrue(source.isascii(), name)
-            for key in set(re.findall(r'(?:get_text|log_msg)\(\s*"([a-z0-9_]+)"', source)):
+            self.assertFalse(any("\u4e00" <= char <= "\u9fff" for char in source), name)  # English only
+            for key in set(re.findall(r'(?:get_text|log_msg|plain_text)\(\s*"([a-z0-9_]+)"', source)):
                 self.assertIn(key, constants.MESSAGES, f"{name}: missing message {key}")
 
 

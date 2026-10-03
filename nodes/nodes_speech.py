@@ -1,14 +1,11 @@
-import asyncio
 import base64
 import hashlib
 import io
 import json
 import math
-import os
 import re
 import uuid
 
-import comfy.model_management
 from comfy_api.latest import io as comfy_io
 
 from .audio_utils import (
@@ -68,7 +65,6 @@ from .constants import (
     SPEECH_ASR_PENDING_CODES,
     SPEECH_ASR_POLL_SECONDS,
     SPEECH_ASR_SILENT_AUDIO_CODE,
-    SPEECH_REGION_BASE_URLS,
     SPEECH_UPLOAD_CACHE_MAX_ENTRIES,
     SPEECH_UPLOAD_CACHE_TTL_SECONDS,
 )
@@ -81,11 +77,9 @@ from .models_config import (
 )
 from . import credentials
 from .nodes_shared import (
-    single_saved_key_name,
-    with_default_client,
+    with_client,
     GLOBAL_CATEGORY,
     BytePlusException,
-    _notify_api_key_saved,
     _tensor2images,
     gather_cancelling,
     get_text,
@@ -96,36 +90,24 @@ from .nodes_shared import (
 from .core_style import core_search_aliases, seed_input
 from .seed_speech_voices import DEFAULT_TTS_VOICE, TTS_2_VOICE_IDS, TTS_2_VOICES
 from .speech_api import (
-    SPEECH_API_KEY_STORE,
-    BytePlusSpeechClientType,
     SeedSpeechClient,
     b64decode_audio,
     check_code,
     download_bytes,
     iter_json_objects,
-    require_speech_client,
     speech_error,
     speech_poll,
     speech_post,
 )
 
 SPEECH_CATEGORY = f"{GLOBAL_CATEGORY}/Speech"
-ENV_KEY_OPTION = f"Environment ({SPEECH_API_KEY_ENV})"
-SPEECH_CLIENT_TOOLTIP = (
-    'Optional. Without it the node uses the Seed Speech key from Settings > BytePlus (BYTEPLUS_SEED_SPEECH_API_KEY or user/.env). Connect a BytePlus Speech Client node to use another key.'
-)
 
 
-def build_default_speech_client():
-    """SeedSpeechClient for the default Seed Speech key; raises when none is set."""
+def get_speech_client():
+    """SeedSpeechClient for the saved Seed Speech key; raises when none is set."""
     api_key = credentials.get_setting(SPEECH_API_KEY_ENV)
     if not api_key:
-        # speech_api_keys.json is only used when it leaves no doubt which key is meant.
-        name = single_saved_key_name(SPEECH_API_KEY_STORE, "err_default_speech_key_ambiguous")
-        if name:
-            api_key = SPEECH_API_KEY_STORE.find_api_key(name)
-    if not api_key:
-        raise BytePlusException(get_text("err_no_default_speech_key", path=credentials.env_file_path()))
+        raise BytePlusException(get_text("err_no_speech_key", path=credentials.env_file_path()))
     return SeedSpeechClient(api_key, DEFAULT_SPEECH_REGION)
 
 
@@ -224,71 +206,6 @@ def context_image_jpeg(image, max_bytes=500 * 1024):
             return data
         scale *= 0.8
     return data
-
-
-class BytePlusSpeechClient(comfy_io.ComfyNode):
-    """
-    Seed Speech API client: picks the Seed Speech API key (not a ModelArk key)
-    for the Seed Audio, TTS and ASR nodes.
-    """
-    @classmethod
-    def define_schema(cls) -> comfy_io.Schema:
-        SPEECH_API_KEY_STORE.load()
-        key_names = SPEECH_API_KEY_STORE.get_key_names() + [ENV_KEY_OPTION, "Custom"]
-        return comfy_io.Schema(
-            node_id="BytePlusSpeechClient",
-            display_name="BytePlus Speech Client",
-            category=SPEECH_CATEGORY,
-            description=(
-                "Seed Speech API key for Seed Audio, TTS and ASR. Create it in the Seed "
-                "Speech console (Settings > API Keys); ModelArk keys do not work here."
-            ),
-            inputs=[
-                comfy_io.String.Input("new_api_key", default=""),
-                comfy_io.String.Input("new_key_name", default=""),
-                comfy_io.Combo.Input(
-                    "key_name",
-                    options=key_names,
-                    tooltip=(
-                        "Saved Seed Speech key, the BYTEPLUS_SEED_SPEECH_API_KEY environment "
-                        "variable, or Custom to paste a key (saved under new_key_name)."
-                    ),
-                ),
-                comfy_io.Combo.Input(
-                    "region",
-                    options=list(SPEECH_REGION_BASE_URLS.keys()),
-                    default=DEFAULT_SPEECH_REGION,
-                    tooltip="Seed Speech region. Singapore is the only Seed Speech endpoint.",
-                ),
-            ],
-            outputs=[BytePlusSpeechClientType.Output(display_name="speech_client")],
-            hidden=[comfy_io.Hidden.unique_id],
-        )
-
-    @classmethod
-    def execute(cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_SPEECH_REGION) -> comfy_io.NodeOutput:
-        if key_name == "Custom":
-            api_key = (new_api_key or "").strip()
-            if not api_key:
-                raise BytePlusException(get_text("speech_key_empty"))
-            name = (new_key_name or "").strip()
-            if name:
-                if SPEECH_API_KEY_STORE.upsert(name, api_key):
-                    log_msg("speech_key_saved", name=name)
-                    _notify_api_key_saved(cls.hidden.unique_id, name, api_key, store="speech")
-                else:
-                    # Keep the pasted key in the node so it is not lost.
-                    log_msg("speech_key_save_failed", name=name)
-        elif key_name == ENV_KEY_OPTION:
-            api_key = credentials.get_setting(SPEECH_API_KEY_ENV)
-            if not api_key:
-                raise BytePlusException(get_text("speech_env_key_missing", env=SPEECH_API_KEY_ENV))
-        else:
-            SPEECH_API_KEY_STORE.load()
-            api_key = SPEECH_API_KEY_STORE.find_api_key(key_name)
-            if not api_key:
-                raise BytePlusException(get_text("speech_key_not_found", key_name=key_name))
-        return comfy_io.NodeOutput(SeedSpeechClient(api_key, region))
 
 
 # Seed Audio 1.0, shaped like ComfyUI core's ByteDanceSeedAudioNode (nodes_bytedance.py).
@@ -553,7 +470,6 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
                 "Supports 20 languages and timestamp-based timing control."
             ),
             inputs=[
-                BytePlusSpeechClientType.Input("speech_client", optional=True, tooltip=SPEECH_CLIENT_TOOLTIP),
                 comfy_io.String.Input(
                     "text_prompt",
                     multiline=True,
@@ -679,13 +595,12 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("speech_client", build_default_speech_client)
+    @with_client("speech_client", get_speech_client)
     async def execute(cls, speech_client, text_prompt, reference_mode, sample_rate=SEED_AUDIO_DEFAULT_SAMPLE_RATE,
                       speech_rate=0, loudness_rate=0, pitch_rate=0, seed=42, model=SEED_AUDIO_MODELS[0],
                       audio_format="wav", enable_subtitle=False, aigc_watermark=False, aigc_metadata=False,
                       content_producer="", produce_id="", content_propagator="",
                       propagate_id="", generation_count=1) -> comfy_io.NodeOutput:
-        require_speech_client(speech_client)
         reference_mode = reference_mode or {}
         mode = reference_mode.get("reference_mode")
         audio_slots = seed_audio_slots(reference_mode) if mode == SEED_AUDIO_MODE_AUDIO else {}
@@ -883,7 +798,6 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
             category=SPEECH_CATEGORY,
             description="Text to speech with Seed Speech TTS 2.0 voices, TTS 1.0 or cloned voices.",
             inputs=[
-                BytePlusSpeechClientType.Input("speech_client", optional=True, tooltip=SPEECH_CLIENT_TOOLTIP),
                 comfy_io.Combo.Input(
                     "model",
                     options=SEED_TTS_MODELS,
@@ -991,7 +905,7 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("speech_client", build_default_speech_client)
+    @with_client("speech_client", get_speech_client)
     async def execute(cls, speech_client, model, text, voice, custom_speaker_id="", context_text="",
                       emotion="", emotion_scale=4, speech_rate=0, loudness_rate=0, pitch=0,
                       sample_rate="24000", explicit_language="auto", silence_duration=0,
@@ -999,7 +913,6 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
                       context_language="default", read_emoji=False, read_latex=False,
                       read_parentheses=False, unsupported_char_ratio=SEED_TTS_DEFAULT_UNSUPPORTED_CHAR_RATIO,
                       use_cache=False, tone_fidelity=False, seed=0) -> comfy_io.NodeOutput:
-        require_speech_client(speech_client)
         headers, body = build_tts_request(
             model, text, voice, custom_speaker_id, context_text, emotion, emotion_scale,
             speech_rate, loudness_rate, pitch, sample_rate, explicit_language, silence_duration,
@@ -1232,7 +1145,6 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
             category=SPEECH_CATEGORY,
             description="Speech to text with Seed Speech ASR: transcript, utterance timings and SRT subtitles.",
             inputs=[
-                BytePlusSpeechClientType.Input("speech_client", optional=True, tooltip=SPEECH_CLIENT_TOOLTIP),
                 comfy_io.Combo.Input(
                     "model",
                     options=SEED_ASR_UI_OPTIONS,
@@ -1334,9 +1246,8 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("speech_client", build_default_speech_client)
+    @with_client("speech_client", get_speech_client)
     async def execute(cls, speech_client, model, audio=None, context_image=None, **options) -> comfy_io.NodeOutput:
-        require_speech_client(speech_client)
         mode = SEED_ASR_MODELS[model][0]
         uploaded_audio = False
         if audio is not None and mode != "fast":
@@ -1467,7 +1378,6 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
                 "Seed Speech TTS (model seed-icl-2.0) or Seed Audio references."
             ),
             inputs=[
-                BytePlusSpeechClientType.Input("speech_client", optional=True, tooltip=SPEECH_CLIENT_TOOLTIP),
                 comfy_io.String.Input(
                     "speaker_id",
                     default="",
@@ -1512,10 +1422,9 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("speech_client", build_default_speech_client)
+    @with_client("speech_client", get_speech_client)
     async def execute(cls, speech_client, speaker_id, audio, language="en", reference_text="", demo_text="",
                       disable_volume_normalization=False) -> comfy_io.NodeOutput:
-        require_speech_client(speech_client)
         speaker, body, ids = build_voice_clone_request(
             speaker_id, audio, language, reference_text, demo_text, disable_volume_normalization
         )
@@ -1554,3 +1463,6 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
             demo = _silence()
         status_json = {k: v for k, v in result.items() if k != "demo_audio"}
         return comfy_io.NodeOutput(speaker, demo, json.dumps(status_json, ensure_ascii=False))
+
+
+NODES = [BytePlusSeedAudio, BytePlusSeedTTS, BytePlusSeedASR, BytePlusSeedVoiceClone]

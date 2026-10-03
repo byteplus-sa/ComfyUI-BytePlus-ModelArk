@@ -223,37 +223,30 @@ class SchemaTests(unittest.TestCase):
             self.assertEqual((schema.node_id, schema.display_name), (node_id, display_name))
             self.assertFalse(schema.is_api_node)
         self.assertEqual(list(nodes_seedance2.NODES), list(expected)[:4])
-        self.assertEqual(list(nodes_assets.CORE_STYLE_NODES), list(expected)[4:])
+        self.assertEqual(list(nodes_assets.NODES)[:3], list(expected)[4:])
 
-    def test_legacy_nodes_are_deprecated_and_asset_library_is_not(self):
-        legacy = nodes_video.BytePlusSeedance2.define_schema()
-        self.assertTrue(legacy.is_deprecated)
-        self.assertEqual(legacy.display_name, "BytePlus Seedance 2 / 2.5 (Legacy)")
-        portrait = nodes_assets.BytePlusVirtualPortraitAsset.define_schema()
-        self.assertTrue(portrait.is_deprecated)
-        self.assertEqual(portrait.display_name, "BytePlus Virtual Portrait Asset (Legacy)")
+    def test_asset_library_node(self):
         library = nodes_assets.BytePlusAssetLibrary.define_schema()
         self.assertFalse(library.is_deprecated)
         self.assertEqual(library.display_name, "BytePlus Asset Library")
 
     def test_top_level_input_order(self):
-        # The optional client first among the optional inputs, core's inputs, then our extras
+        # Core's inputs, then our extras
         # (the FLF extras are optional so they follow core's optional frame inputs in the UI too).
         cases = {
-            nodes_seedance2.BytePlusSeedance2TextToVideo: (["model", "seed", "watermark", *EXTRAS], ["client"]),
+            nodes_seedance2.BytePlusSeedance2TextToVideo: (["model", "seed", "watermark", *EXTRAS], []),
             nodes_seedance2.BytePlusSeedance2FirstLastFrame: (
                 ["model", "seed", "watermark"],
-                ["client", "first_frame", "last_frame", "first_frame_asset_id", "last_frame_asset_id", *EXTRAS],
+                ["first_frame", "last_frame", "first_frame_asset_id", "last_frame_asset_id", *EXTRAS],
             ),
-            nodes_seedance2.BytePlusSeedance2Reference: (["model", "seed", "watermark", *EXTRAS], ["client"]),
-            nodes_seedance2.BytePlusSeedanceDraftToFinal: (["draft_task_id", "watermark", *EXTRAS], ["client"]),
+            nodes_seedance2.BytePlusSeedance2Reference: (["model", "seed", "watermark", *EXTRAS], []),
+            nodes_seedance2.BytePlusSeedanceDraftToFinal: (["draft_task_id", "watermark", *EXTRAS], []),
         }
         for node_cls, (required, optional) in cases.items():
             with self.subTest(node=node_cls.NODE_ID):
                 _info, req, opt = v1_inputs(node_cls)
                 self.assertEqual(list(req), required)
                 self.assertEqual(list(opt), optional)
-                self.assertTrue(opt["client"][1]["tooltip"])
                 for name in EXTRAS:
                     spec = (req.get(name) or opt.get(name))[1]
                     self.assertTrue(spec.get("advanced"), name)
@@ -347,7 +340,7 @@ class SchemaTests(unittest.TestCase):
         info = nodes_seedance2.BytePlusSeedanceDraftToFinal.GET_NODE_INFO_V1()
         self.assertEqual(info["output_name"], ["VIDEO", "last_frame", "response"])
         self.assertEqual(info["output_is_list"], [True, False, False])
-        for node_cls in nodes_assets.CORE_STYLE_NODES:
+        for node_cls in nodes_assets.NODES[:3]:
             info = node_cls.GET_NODE_INFO_V1()
             self.assertEqual(info["output_name"], ["asset_id", "group_id", "asset_uri", "info"])
 
@@ -363,12 +356,12 @@ class SchemaTests(unittest.TestCase):
                     list(req),
                     ["group_id", url_input, "group_name", "asset_name", "project_name", "wait_until_active"],
                 )
-                self.assertEqual(list(opt), ["client", media])
+                self.assertEqual(list(opt), [media])
                 self.assertFalse(req["group_id"][1].get("advanced", False))
                 for name in (url_input, "group_name", "asset_name", "project_name", "wait_until_active"):
                     self.assertTrue(req[name][1]["advanced"], name)
                 schema = node_cls.define_schema()
-                self.assertEqual([i.id for i in schema.inputs][:3], ["client", media, "group_id"])
+                self.assertEqual([i.id for i in schema.inputs][:2], [media, "group_id"])
 
     def test_core_display_names_are_search_aliases(self):
         """Every mirrored node is findable by core's name, and those names are still core's."""
@@ -389,7 +382,7 @@ class SchemaTests(unittest.TestCase):
         for module_name in ("nodes_seedream", "nodes_seedance1", "nodes_seedance2", "nodes_assets",
                             "nodes_seed", "nodes_speech", "nodes_mediakit"):
             module = importlib.import_module(f"{PACKAGE_NAME}.nodes.{module_name}")
-            for node in getattr(module, "NODES", []) + getattr(module, "CORE_STYLE_NODES", []):
+            for node in getattr(module, "NODES", []):
                 ours[node.define_schema().node_id] = node.define_schema()
         speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
         ours["BytePlusSeedAudio"] = speech.BytePlusSeedAudio.define_schema()
@@ -443,8 +436,8 @@ class SchemaTests(unittest.TestCase):
             theirs_req = core_info["input"]["required"]
             theirs_opt = core_info["input"].get("optional") or {}
             theirs = {**theirs_req, **theirs_opt}
-            self.assertEqual([n for n in req if n not in ["client", *EXTRAS]], list(theirs_req))
-            self.assertEqual([n for n in opt if n not in ["client", *EXTRAS]], list(theirs_opt))
+            self.assertEqual([n for n in req if n not in EXTRAS], list(theirs_req))
+            self.assertEqual([n for n in opt if n not in EXTRAS], list(theirs_opt))
             for name, spec in theirs.items():
                 if name == "model":
                     ours_options = {o["key"]: o["inputs"] for o in ours[name][1]["options"]}
@@ -476,16 +469,16 @@ class SchemaTests(unittest.TestCase):
             self.assertEqual(info["output_node"], core_info["output_node"], ours_cls.NODE_ID)
             core_inputs = [i.id for i in core_cls.define_schema().inputs]
             our_inputs = [i.id for i in ours_cls.define_schema().inputs]
-            self.assertEqual(our_inputs[1 : 1 + len(core_inputs)], core_inputs)
+            self.assertEqual(our_inputs[: len(core_inputs)], core_inputs)
 
 
 @requires_comfyui
 class TemplateSchemaTests(unittest.TestCase):
-    SOCKET_TYPES = {"BYTEPLUS_CLIENT", "IMAGE", "VIDEO", "AUDIO"}
+    SOCKET_TYPES = {"IMAGE", "VIDEO", "AUDIO"}
 
     @staticmethod
     def frontend_order(node_cls, label):
-        """Input names as the workflow JSON lists them: client, required, then optional; DynamicCombo children after it."""
+        """Input names as the workflow JSON lists them: required, then optional; DynamicCombo children after it."""
         info = node_cls.GET_NODE_INFO_V1()
         names = []
         for section in ("required", "optional"):
@@ -497,8 +490,7 @@ class TemplateSchemaTests(unittest.TestCase):
                         for child, child_spec in (option["inputs"].get(sub) or {}).items():
                             if child_spec[0] != "COMFY_AUTOGROW_V3":
                                 names.append((f"{name}.{child}", child_spec[0]))
-        # The optional client socket is listed first, as in a freshly created node.
-        return [item for item in names if item[0] == "client"] + [item for item in names if item[0] != "client"]
+        return names
 
     def test_seedance2_template_matches_the_schema(self):
         with open(os.path.join(PLUGIN_ROOT, "example_workflows", "Seedance 2.json"), encoding="utf-8") as file:
@@ -556,8 +548,6 @@ class _ExecutorHarness(unittest.IsolatedAsyncioTestCase):
 
         self.client = SimpleNamespace(
             ark=SimpleNamespace(content_generation=SimpleNamespace(tasks=Tasks())),
-            check_quota=lambda *_a: None,
-            update_usage=lambda *_a: None,
             region="ap-southeast-1",
             asset_credentials=None,
         )
@@ -1092,7 +1082,7 @@ class ReferenceTests(_ExecutorHarness):
     async def test_asset_ids_need_credentials_links_do_not(self):
         with self.assertRaises(Exception) as ctx:
             await self.run_node(self.REF, model=self.model(reference_assets={"asset_1": "asset-img"}), seed=1)
-        self.assertIn("accessKey", str(ctx.exception))
+        self.assertIn("Settings > BytePlus", str(ctx.exception))
         await self.run_node(
             self.REF, model=self.model(reference_assets={"asset_1": "https://cdn.example/clip.mp4"}), seed=1
         )
@@ -1643,11 +1633,11 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.actions()[:2], ["ListAssetGroups", "CreateAssetGroup"])
         self.assertEqual((self.created()["AssetType"], self.created()["URL"]), ("Audio", "https://cdn.example/voice.MP3"))
 
-    async def test_missing_credentials_keep_the_legacy_hint(self):
+    async def test_missing_credentials_point_to_settings(self):
         self.client.asset_credentials = None
         with self.assertRaises(Exception) as ctx:
             await self.create(nodes_assets.BytePlusCreateImageAsset, image_url="https://cdn.example/a.png", group_id="g1")
-        self.assertIn("accessKey", str(ctx.exception))
+        self.assertIn("Settings > BytePlus", str(ctx.exception))
         self.assertIn("BYTEPLUS_ACCESS_KEY", str(ctx.exception))
 
     async def test_upload_helpers_map_errors(self):

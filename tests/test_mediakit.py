@@ -1,5 +1,5 @@
 """
-BytePlus VOD AI MediaKit: the MediaKit Client, vCube Video Enhance (the UI
+BytePlus VOD AI MediaKit: vCube Video Enhance (the UI
 shape of ComfyUI core's ByteDanceVideoEnhanceNode, this pack's requests to
 MediaKit, task polling, and the before/after comparison) and Video Smoothness
 Enhance (requests, limits, pass-through without a repair, side-by-side video)
@@ -119,11 +119,11 @@ class SchemaTests(unittest.TestCase):
         self.assertEqual(ours["description"], theirs["description"])
         our_inputs = {**ours["input"]["required"], **ours["input"].get("optional", {})}
         core_inputs = {**theirs["input"]["required"], **theirs["input"].get("optional", {})}
-        # Core's inputs in core's order, after our client; this pack's extras last.
+        # Core's inputs in core's order; this pack's extras last.
         schema = nodes_mediakit.BytePlusVideoEnhance.define_schema()
         self.assertEqual(
             [i.id for i in schema.inputs],
-            ["mediakit_client", *core_inputs, *EXTRAS],
+            [*core_inputs, *EXTRAS],
         )
         for name, spec in core_inputs.items():
             with self.subTest(input=name):
@@ -143,13 +143,6 @@ class SchemaTests(unittest.TestCase):
         self.assertEqual(ours["output_node"], theirs["output_node"])
         self.assertFalse(ours["output_node"])
         self.assertEqual(ours["output_name"], ["VIDEO", "comparison", "source_frame", "enhanced_frame", "response"])
-
-    def test_client_node(self):
-        info = nodes_mediakit.BytePlusMediaKitClient.GET_NODE_INFO_V1()
-        self.assertEqual(list(info["input"]["required"]), ["new_api_key", "new_key_name", "key_name", "region"])
-        options = info["input"]["required"]["key_name"][1]["options"]
-        self.assertEqual(options[-2:], [nodes_mediakit.ENV_KEY_OPTION, "Custom"])
-        self.assertEqual(info["output"], ["BYTEPLUS_MEDIAKIT_CLIENT"])
 
 
 @requires_comfyui
@@ -546,7 +539,7 @@ class SmoothnessRequestTests(unittest.TestCase):
         schema = nodes_mediakit.BytePlusVideoSmoothness.define_schema()
         self.assertEqual(
             [i.id for i in schema.inputs],
-            ["mediakit_client", "video", "periodic_stutter", "duplicate_frames", "video_url", "comparison"],
+            ["video", "periodic_stutter", "duplicate_frames", "video_url", "comparison"],
         )
         optional = info["input"]["optional"]
         for name in ("video_url", "comparison"):
@@ -760,7 +753,7 @@ class ImageEnhanceRequestTests(unittest.TestCase):
         self.assertEqual(info["display_name"], "BytePlus Image Quality Enhance")
         schema = nodes_mediakit.BytePlusImageEnhance.define_schema()
         self.assertEqual([i.id for i in schema.inputs],
-                         ["mediakit_client", "image", "tool_version", "output_size", "image_url"])
+                         ["image", "tool_version", "output_size", "image_url"])
         self.assertTrue(info["input"]["optional"]["image_url"][1]["advanced"])
         versions = info["input"]["required"]["tool_version"][1]["options"]
         self.assertEqual([o["key"] for o in versions], ["standard", "professional", "max"])
@@ -983,37 +976,6 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
                 await waiter
         finally:
             comfy.model_management.interrupt_current_processing(False)
-
-
-@requires_comfyui
-class ClientNodeTests(unittest.TestCase):
-    def test_key_sources(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            # No .env in the tester's real user folder may leak into the "is not set" case.
-            credentials = sys.modules[nodes_mediakit.__package__ + ".credentials"]
-            self.enterContext(mock.patch.object(credentials, "env_file_path", lambda: os.path.join(tmp, ".env")))
-            store = nodes_mediakit.ApiKeyStore(os.path.join(tmp, "mediakit_api_keys.json"))
-            notified = []
-            with mock.patch.object(nodes_mediakit, "MEDIAKIT_API_KEY_STORE", store), \
-                    mock.patch.object(nodes_mediakit, "_notify_api_key_saved",
-                                      lambda *a, **k: notified.append((a, k))):
-                node = nodes_mediakit.BytePlusMediaKitClient
-                node.hidden = SimpleNamespace(unique_id="1")
-                client = node.execute("Custom", new_api_key=" mk-key ", new_key_name="work").args[0]
-                self.assertEqual((client.api_key, client.base_url),
-                                 ("mk-key", "https://mediakit.ap-southeast-1.bytepluses.com/api/v1"))
-                self.assertEqual(notified[0][1], {"store": "mediakit"})
-                self.assertEqual(node.execute("work").args[0].api_key, "mk-key")
-                self.assertNotIn("mk-key", repr(client))
-                with self.assertRaisesRegex(Exception, "not found"):
-                    node.execute("missing")
-                with self.assertRaisesRegex(Exception, "new_api_key is empty"):
-                    node.execute("Custom")
-                with mock.patch.dict(os.environ, {"BYTEPLUS_VOD_MEDIAKIT_API_KEY": "env-key"}):
-                    self.assertEqual(node.execute(nodes_mediakit.ENV_KEY_OPTION).args[0].api_key, "env-key")
-                with mock.patch.dict(os.environ, {"BYTEPLUS_VOD_MEDIAKIT_API_KEY": ""}):
-                    with self.assertRaisesRegex(Exception, "is not set"):
-                        node.execute(nodes_mediakit.ENV_KEY_OPTION)
 
 
 if __name__ == "__main__":

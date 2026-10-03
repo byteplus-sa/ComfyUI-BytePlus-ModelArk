@@ -144,21 +144,14 @@ def check_dependencies():
 _dependencies_ready = check_dependencies()
 
 if _dependencies_ready:
-    from .nodes.nodes_shared import BytePlusAPIClient
-    from .nodes.nodes_image import BytePlusSeedream4, BytePlusSeedream5, BytePlusSeedreamLayers
-    from .nodes.nodes_video import BytePlusSeedance1, BytePlusSeedance1_5, BytePlusSeedance2, BytePlusVideoQueryTasks, BytePlusProgressTest
-    from .nodes.nodes_visual import BytePlusVisualUnderstanding
-    from .nodes.quota import BytePlusQuotaSettings
-    from .nodes.nodes_assets import BytePlusVirtualPortraitAsset, BytePlusAssetLibrary
-    from .nodes.nodes_speech import BytePlusSpeechClient, BytePlusSeedAudio, BytePlusSeedTTS, BytePlusSeedASR, BytePlusSeedVoiceClone
-    # Nodes shaped like ComfyUI core's ByteDance nodes (the older nodes above stay as Legacy).
     from .nodes.nodes_seedream import NODES as SEEDREAM_NODES
     from .nodes.nodes_seedance1 import NODES as SEEDANCE1_NODES
     from .nodes.nodes_seedance2 import NODES as SEEDANCE2_NODES
     from .nodes.nodes_seed import NODES as SEED_LLM_NODES
-    from .nodes.nodes_assets import CORE_STYLE_NODES as ASSET_NODES
+    from .nodes.nodes_assets import NODES as ASSET_NODES
+    from .nodes.nodes_speech import NODES as SPEECH_NODES
     from .nodes.nodes_mediakit import NODES as MEDIAKIT_NODES
-
+    from .nodes.nodes_video import BytePlusVideoQueryTasks, BytePlusProgressTest
     from .nodes import credentials_routes
 
     # Settings > BytePlus talks to these routes. Without ComfyUI's server,
@@ -166,30 +159,15 @@ if _dependencies_ready:
     credentials_routes.register()
 
     _registered_nodes = [
-        BytePlusAPIClient,
         *SEEDREAM_NODES,
         *SEEDANCE1_NODES,
         *SEEDANCE2_NODES,
         *ASSET_NODES,
         *SEED_LLM_NODES,
+        *SPEECH_NODES,
         *MEDIAKIT_NODES,
-        BytePlusSeedream4,
-        BytePlusSeedream5,
-        BytePlusSeedreamLayers,
-        BytePlusSeedance1,
-        BytePlusSeedance1_5,
-        BytePlusSeedance2,
         BytePlusVideoQueryTasks,
         BytePlusProgressTest,
-        BytePlusVisualUnderstanding,
-        BytePlusQuotaSettings,
-        BytePlusVirtualPortraitAsset,
-        BytePlusAssetLibrary,
-        BytePlusSpeechClient,
-        BytePlusSeedAudio,
-        BytePlusSeedTTS,
-        BytePlusSeedASR,
-        BytePlusSeedVoiceClone,
     ]
 else:
     _registered_nodes = []

@@ -5,80 +5,6 @@
   "last_link_id": 13,
   "nodes": [
     {
-      "id": 1,
-      "type": "BytePlusAPIClient",
-      "pos": [20, 80],
-      "size": [300, 190],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "new_api_key",
-          "type": "STRING",
-          "widget": {
-            "name": "new_api_key"
-          },
-          "link": null
-        },
-        {
-          "name": "new_key_name",
-          "type": "STRING",
-          "widget": {
-            "name": "new_key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "key_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "key_name"
-          },
-          "link": null
-        },
-        {
-          "name": "region",
-          "type": "COMBO",
-          "widget": {
-            "name": "region"
-          },
-          "link": null
-        },
-        {
-          "name": "new_access_key",
-          "type": "STRING",
-          "shape": 7,
-          "widget": {
-            "name": "new_access_key"
-          },
-          "link": null
-        },
-        {
-          "name": "new_secret_key",
-          "type": "STRING",
-          "shape": 7,
-          "widget": {
-            "name": "new_secret_key"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "links": [1, 2, 3, 4]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
-        "Node name for S&R": "BytePlusAPIClient"
-      },
-      "widgets_values": ["", "", "Custom", "ap-southeast-1", "", ""]
-    },
-    {
       "id": 2,
       "type": "BytePlusSeedance2TextToVideo",
       "pos": [380, 80],
@@ -87,12 +13,6 @@
       "order": 5,
       "mode": 0,
       "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "shape": 7,
-          "link": 1
-        },
         {
           "name": "model",
           "type": "COMFY_DYNAMICCOMBO_V3",
@@ -207,7 +127,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeedance2TextToVideo"
       },
       "widgets_values": [
@@ -282,12 +202,6 @@
       "mode": 4,
       "inputs": [
         {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "shape": 7,
-          "link": 2
-        },
-        {
           "name": "draft_task_id",
           "type": "STRING",
           "widget": {
@@ -340,7 +254,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeedanceDraftToFinal"
       },
       "widgets_values": ["", false, 1, false]
@@ -446,12 +360,6 @@
       "order": 9,
       "mode": 4,
       "inputs": [
-        {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "shape": 7,
-          "link": 3
-        },
         {
           "name": "model",
           "type": "COMFY_DYNAMICCOMBO_V3",
@@ -590,7 +498,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeedance2FirstLastFrame"
       },
       "widgets_values": [
@@ -799,12 +707,6 @@
       "mode": 4,
       "inputs": [
         {
-          "name": "client",
-          "type": "BYTEPLUS_CLIENT",
-          "shape": 7,
-          "link": 4
-        },
-        {
           "name": "model",
           "type": "COMFY_DYNAMICCOMBO_V3",
           "widget": {
@@ -986,7 +888,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.4.0",
+        "ver": "0.5.0",
         "Node name for S&R": "BytePlusSeedance2Reference"
       },
       "widgets_values": [
@@ -1056,18 +958,14 @@
     }
   ],
   "links": [
-    [1, 1, 0, 2, 0, "BYTEPLUS_CLIENT"],
-    [2, 1, 0, 4, 0, "BYTEPLUS_CLIENT"],
-    [3, 1, 0, 7, 0, "BYTEPLUS_CLIENT"],
-    [4, 1, 0, 12, 0, "BYTEPLUS_CLIENT"],
     [5, 2, 0, 3, 0, "VIDEO"],
-    [6, 2, 1, 4, 1, "STRING"],
+    [6, 2, 1, 4, 0, "STRING"],
     [7, 4, 0, 5, 0, "VIDEO"],
-    [8, 6, 0, 7, 9, "IMAGE"],
+    [8, 6, 0, 7, 8, "IMAGE"],
     [9, 7, 0, 8, 0, "VIDEO"],
-    [10, 9, 0, 12, 9, "IMAGE"],
-    [11, 10, 0, 12, 11, "VIDEO"],
-    [12, 11, 0, 12, 13, "AUDIO"],
+    [10, 9, 0, 12, 8, "IMAGE"],
+    [11, 10, 0, 12, 10, "VIDEO"],
+    [12, 11, 0, 12, 12, "AUDIO"],
     [13, 12, 0, 13, 0, "VIDEO"]
   ],
   "groups": [

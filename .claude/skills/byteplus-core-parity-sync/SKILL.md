@@ -1,11 +1,11 @@
 ---
 name: byteplus-core-parity-sync
-description: Bring this pack's core-style nodes back in line with ComfyUI core's ByteDance partner nodes (comfy_api_nodes/nodes_bytedance.py, nodes_bytedance_llm.py) after core changes — new inputs, renamed tooltips, new models, new nodes, changed defaults or validations. Use when ComfyUI releases a new version, a core-parity test (test_matches_core_*) fails, the user asks "what changed in core's ByteDance nodes", or before raising the minimum ComfyUI version.
+description: Bring this pack's nodes back in line with ComfyUI core's ByteDance partner nodes (comfy_api_nodes/nodes_bytedance.py, nodes_bytedance_llm.py) after core changes — new inputs, renamed tooltips, new models, new nodes, changed defaults or validations. Use when ComfyUI releases a new version, a core-parity test (test_matches_core_*) fails, the user asks "what changed in core's ByteDance nodes", or before raising the minimum ComfyUI version.
 ---
 
 # Core parity sync
 
-The core-style nodes copy core's ByteDance nodes input for input (rule in CLAUDE.md → "Core-style nodes"). This skill is the procedure for catching up after core moves. Payload shapes, ID differences and patterns not to copy: `byteplus-node-maintenance/core-partner-nodes.md`.
+The pack's nodes copy core's ByteDance nodes input for input (rule in CLAUDE.md → "Nodes copy core's"). This skill is the procedure for catching up after core moves. Payload shapes, ID differences and patterns not to copy: `byteplus-node-maintenance/core-partner-nodes.md`.
 
 ## 1. See what changed in core
 
@@ -27,7 +27,8 @@ Point `COMFYUI_ROOT` at a checkout of the new ComfyUI (`git -C <root> checkout <
 
 ```bash
 COMFYUI_ROOT=<root> <python> -m unittest tests.test_core_style_seedream tests.test_core_style_seedance1 \
-  tests.test_core_style_seedance2 tests.test_core_style_seed tests.test_mediakit tests.test_credentials -v
+  tests.test_core_style_seedance2 tests.test_core_style_seed tests.test_mediakit tests.test_credentials \
+  tests.test_model_updates tests.test_workflow_templates -v
 ```
 
 How each file compares:
@@ -46,14 +47,14 @@ A skip ("core ByteDance nodes unavailable") is not a pass — fix the env. CI (`
 
 For each failing assertion or diff hunk, decide one of:
 
-1. **Follow core** — input added/renamed/reordered, tooltip or description text, default, `advanced` flag, DynamicCombo option, output order, validation message. Apply it on the core-style node (never on a Legacy node).
+1. **Follow core** — input added/renamed/reordered, tooltip or description text, default, `advanced` flag, DynamicCombo option, output order, validation message. Apply it on the matching node.
 2. **BytePlus deviation** — the BytePlus docs say otherwise (limits, reference counts, model availability, durations). Keep ours, add the input to the test's deviation set with a one-line comment citing the BytePlus rule.
 3. **Not applicable** — proxy-only behaviour (`is_api_node`, `price_badge`, Comfy credits, `/proxy/...` virtual-library assets, `sync_op`/`poll_op`). Ignore; mention it in the summary.
-4. **New core node** — mirror it as a new `BytePlus…` node with the same split: `client` socket first, core's inputs, this pack's extras last with `advanced=True` **and** `optional=True`, extra outputs after core's. Register in the module's `NODES` (picked up by `__init__.py`), add a parity test.
+4. **New core node** — mirror it as a new `BytePlus…` node with the same split: core's inputs (no client input; `@with_client` on `execute` supplies the client), this pack's extras last with `advanced=True` **and** `optional=True`, extra outputs after core's. Register in the module's `NODES` (picked up by `__init__.py`), add it to `ALL_NODES` in `tests/test_credentials.py`, add a parity test.
 5. **New core model** — confirm the BytePlus ID and follow `byteplus-model-update`. Core's ID is a proxy alias.
 
 Keep these invariants while editing:
-- Node IDs never change; display names may (add the old name to `search_aliases`).
+- Node IDs stay stable (saved workflows reference them once the pack ships); display names may change (add the old name to `search_aliases`).
 - Inputs a frontend rule keys on: `git grep -n "<input name>" web/js`; renaming one silently breaks visibility rules.
 - An input order change shifts `widgets_values` in every example workflow that uses the node → `comfyui-release-and-testing` §2.
 
@@ -63,7 +64,7 @@ Only when a parity change needs a newer core API (a new `comfy_io` type, a new S
 
 ## 5. Finish
 
-- Full test run (CLAUDE.md commands), Legacy-node tests included.
+- Full test run (CLAUDE.md commands).
 - Smoke-load changed templates in Classic Canvas and Nodes 2.0.
 - Update the "Read on" date and anything stale in `core-partner-nodes.md` (ID table, payload notes).
 - Summarise for the user: followed / deviations kept / ignored / new nodes, with core commit SHAs.

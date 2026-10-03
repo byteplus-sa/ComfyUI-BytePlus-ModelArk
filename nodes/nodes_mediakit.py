@@ -1,6 +1,5 @@
 """
-BytePlus VOD AI MediaKit nodes: the MediaKit Client (its own API key),
-vCube Video Enhance, shaped like ComfyUI core's ByteDanceVideoEnhanceNode
+BytePlus VOD AI MediaKit nodes (their own API key): vCube Video Enhance, shaped like ComfyUI core's ByteDanceVideoEnhanceNode
 (comfy_api_nodes/nodes_bytedance.py), and Video Smoothness Enhance and Image
 Quality Enhance (not in core).
 
@@ -49,13 +48,10 @@ from .constants import (
 from .core_style import core_search_aliases
 from . import credentials
 from .nodes_shared import (
-    single_saved_key_name,
-    with_default_client,
+    with_client,
     GLOBAL_CATEGORY,
     LOG_PREFIX,
-    ApiKeyStore,
     BytePlusException,
-    _notify_api_key_saved,
     gather_cancelling,
     get_text,
     log_msg,
@@ -67,33 +63,15 @@ from .nodes_shared import (
 )
 
 MEDIAKIT_CATEGORY = f"{GLOBAL_CATEGORY}/MediaKit"
-ENV_KEY_OPTION = f"Environment ({MEDIAKIT_API_KEY_ENV})"
-MEDIAKIT_CLIENT_TOOLTIP = (
-    'Optional. Without it the node uses the AI MediaKit key from Settings > BytePlus (BYTEPLUS_VOD_MEDIAKIT_API_KEY or user/.env). Connect a BytePlus MediaKit Client node to use another key.'
-)
 
 
-def build_default_mediakit_client():
-    """MediaKitClient for the default AI MediaKit key; raises when none is set."""
+def get_mediakit_client():
+    """MediaKitClient for the saved AI MediaKit key; raises when none is set."""
     api_key = credentials.get_setting(MEDIAKIT_API_KEY_ENV)
     if not api_key:
-        # mediakit_api_keys.json is only used when it leaves no doubt which key is meant.
-        name = single_saved_key_name(MEDIAKIT_API_KEY_STORE, "err_default_mediakit_key_ambiguous")
-        if name:
-            api_key = MEDIAKIT_API_KEY_STORE.find_api_key(name)
-    if not api_key:
-        raise BytePlusException(get_text("err_no_default_mediakit_key", path=credentials.env_file_path()))
+        raise BytePlusException(get_text("err_no_mediakit_key", path=credentials.env_file_path()))
     return MediaKitClient(api_key, DEFAULT_MEDIAKIT_REGION)
 
-
-# MediaKit keys are their own product key, so they get their own file
-# (git-ignored runtime file in the repo root) and socket type.
-MEDIAKIT_API_KEYS_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mediakit_api_keys.json"
-)
-MEDIAKIT_API_KEY_STORE = ApiKeyStore(MEDIAKIT_API_KEYS_FILE)
-
-BytePlusMediaKitClientType = comfy_io.Custom("BYTEPLUS_MEDIAKIT_CLIENT")
 
 # Core's vCube limits and options.
 VCUBE_MAX_DURATION_SECONDS = 600
@@ -125,8 +103,8 @@ SIDE_BY_SIDE_MAX_WIDTH = 3840
 
 class MediaKitClient:
     """
-    MediaKit API key and endpoint for the region. Passed between nodes on the
-    BYTEPLUS_MEDIAKIT_CLIENT socket; never serialized into outputs.
+    MediaKit API key and endpoint for the region. Never serialized into
+    outputs.
     """
 
     def __init__(self, api_key, region=DEFAULT_MEDIAKIT_REGION):
@@ -255,77 +233,6 @@ def task_result(task):
     """The result object of a completed task (the docs show it as result, sometimes output)."""
     result = task.get("result") or task.get("output") or {}
     return result if isinstance(result, dict) else {}
-
-
-# --------------------------------------------------------------------------
-# MediaKit Client
-# --------------------------------------------------------------------------
-
-class BytePlusMediaKitClient(comfy_io.ComfyNode):
-    """
-    BytePlus VOD AI MediaKit client: picks the MediaKit API key (not a
-    ModelArk or Seed Speech key) for the MediaKit nodes.
-    """
-
-    @classmethod
-    def define_schema(cls) -> comfy_io.Schema:
-        MEDIAKIT_API_KEY_STORE.load()
-        key_names = MEDIAKIT_API_KEY_STORE.get_key_names() + [ENV_KEY_OPTION, "Custom"]
-        return comfy_io.Schema(
-            node_id="BytePlusMediaKitClient",
-            display_name="BytePlus MediaKit Client",
-            category=MEDIAKIT_CATEGORY,
-            description=(
-                "BytePlus VOD AI MediaKit API key for vCube Video Enhance, Video Smoothness Enhance and "
-                "Image Quality Enhance. Create it on the AI MediaKit Settings page of the VOD console; "
-                "ModelArk and Seed Speech keys do not work here."
-            ),
-            inputs=[
-                comfy_io.String.Input("new_api_key", default=""),
-                comfy_io.String.Input("new_key_name", default=""),
-                comfy_io.Combo.Input(
-                    "key_name",
-                    options=key_names,
-                    tooltip=(
-                        f"Saved MediaKit key, the {MEDIAKIT_API_KEY_ENV} environment variable, or Custom "
-                        "to paste a key (saved under new_key_name)."
-                    ),
-                ),
-                comfy_io.Combo.Input(
-                    "region",
-                    options=list(MEDIAKIT_REGION_BASE_URLS.keys()),
-                    default=DEFAULT_MEDIAKIT_REGION,
-                    tooltip="AI MediaKit region.",
-                ),
-            ],
-            outputs=[BytePlusMediaKitClientType.Output(display_name="mediakit_client")],
-            hidden=[comfy_io.Hidden.unique_id],
-        )
-
-    @classmethod
-    def execute(cls, key_name, new_api_key="", new_key_name="", region=DEFAULT_MEDIAKIT_REGION) -> comfy_io.NodeOutput:
-        if key_name == "Custom":
-            api_key = (new_api_key or "").strip()
-            if not api_key:
-                raise BytePlusException(get_text("mediakit_key_empty"))
-            name = (new_key_name or "").strip()
-            if name:
-                if MEDIAKIT_API_KEY_STORE.upsert(name, api_key):
-                    log_msg("mediakit_key_saved", name=name)
-                    _notify_api_key_saved(cls.hidden.unique_id, name, api_key, store="mediakit")
-                else:
-                    # Keep the pasted key in the node so it is not lost.
-                    log_msg("mediakit_key_save_failed", name=name)
-        elif key_name == ENV_KEY_OPTION:
-            api_key = credentials.get_setting(MEDIAKIT_API_KEY_ENV)
-            if not api_key:
-                raise BytePlusException(get_text("mediakit_env_key_missing", env=MEDIAKIT_API_KEY_ENV))
-        else:
-            MEDIAKIT_API_KEY_STORE.load()
-            api_key = MEDIAKIT_API_KEY_STORE.find_api_key(key_name)
-            if not api_key:
-                raise BytePlusException(get_text("mediakit_key_not_found", key_name=key_name))
-        return comfy_io.NodeOutput(MediaKitClient(api_key, region))
 
 
 # --------------------------------------------------------------------------
@@ -845,7 +752,6 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
             "compression artifact and noise removal, colour and sharpness enhancement, "
             "optional frame interpolation.",
             inputs=[
-                BytePlusMediaKitClientType.Input("mediakit_client", optional=True, tooltip=MEDIAKIT_CLIENT_TOOLTIP),
                 comfy_io.Video.Input(
                     "video",
                     tooltip="Video to enhance. The source resolution must be at most 2560x1440 (2K); "
@@ -930,7 +836,7 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("mediakit_client", build_default_mediakit_client)
+    @with_client("mediakit_client", get_mediakit_client)
     async def execute(
         cls,
         mediakit_client,
@@ -1103,7 +1009,6 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
             "motion rhythm jumps (periodic stutter) and removes repeated frames. Made for Seedance videos with "
             "occasional stutter; also low-frame-rate or re-encoded video, screen and game recordings.",
             inputs=[
-                BytePlusMediaKitClientType.Input("mediakit_client", optional=True, tooltip=MEDIAKIT_CLIENT_TOOLTIP),
                 comfy_io.Video.Input(
                     "video",
                     tooltip="Video to repair: up to 4K, and up to 35 s while a repair is on (detect only has no "
@@ -1160,7 +1065,7 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("mediakit_client", build_default_mediakit_client)
+    @with_client("mediakit_client", get_mediakit_client)
     async def execute(
         cls,
         mediakit_client,
@@ -1207,7 +1112,6 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
 # Image Quality Enhance (synchronous)
 # --------------------------------------------------------------------------
 
-IMAGE_VERSIONS = ["standard", "professional", "max"]
 IMAGE_GENERATIVE_MODES = ["generative_first", "fidelity_first"]
 IMAGE_SIZE_MULTIPLE = "multiple"
 IMAGE_SIZE_TARGET = "target size"
@@ -1486,7 +1390,6 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
             "sharpening, portrait, text and colour enhancement, picked per image. For AIGC post-processing, "
             "old photos, OCR input and product images.",
             inputs=[
-                BytePlusMediaKitClientType.Input("mediakit_client", optional=True, tooltip=MEDIAKIT_CLIENT_TOOLTIP),
                 comfy_io.Image.Input(
                     "image",
                     tooltip="Image(s) to enhance; each image in a batch is enhanced separately. Uploaded to "
@@ -1522,7 +1425,7 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("mediakit_client", build_default_mediakit_client)
+    @with_client("mediakit_client", get_mediakit_client)
     async def execute(cls, mediakit_client, tool_version, output_size, image=None, image_url="") -> comfy_io.NodeOutput:
         link = check_source(
             image,
@@ -1591,4 +1494,4 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
 
 
 # Registered in __init__.py.
-NODES = [BytePlusMediaKitClient, BytePlusVideoEnhance, BytePlusVideoSmoothness, BytePlusImageEnhance]
+NODES = [BytePlusVideoEnhance, BytePlusVideoSmoothness, BytePlusImageEnhance]

@@ -2,8 +2,8 @@
 Seed LLM node shaped like ComfyUI core's ByteDanceSeedNode (nodes_bytedance_llm.py).
 
 Same inputs as core (prompt, model with images / videos / temperature, seed,
-system_prompt), with the API Client socket first and this pack's extras after
-core's inputs as advanced widgets. Calls the ModelArk Responses API directly
+system_prompt), with this pack's extras after core's inputs as advanced
+widgets. Calls the ModelArk Responses API directly
 with the user's key; images, videos and audio go through the Ark Files API.
 Seed 2.0 Lite and Mini also take audio clips (the other models do not hear audio).
 """
@@ -30,9 +30,9 @@ from .models_config import (
     SEED_LLM_UI_OPTIONS,
 )
 from .nodes_shared import (
-    build_default_client,
-    optional_client_input,
-    with_default_client,
+    api_key_fingerprint,
+    get_client,
+    with_client,
     GLOBAL_CATEGORY,
     BytePlusException,
     _tensor2images,
@@ -41,7 +41,6 @@ from .nodes_shared import (
     log_msg,
     upload_file_to_ark,
 )
-from .nodes_visual import _conversation_owner
 
 FILE_EXPIRE_MIN_SECONDS = 86400
 FILE_EXPIRE_MAX_SECONDS = 2592000
@@ -51,6 +50,12 @@ FILE_EXPIRE_DEFAULT_SECONDS = 604800
 # node id; the owner (key fingerprint, region) must match to continue.
 SEED_LAST_RESPONSES = {}
 SEED_LAST_RESPONSES_MAX = 256
+
+
+def _conversation_owner(client):
+    """A response ID only exists in the account and region that made it (the key as a fingerprint)."""
+    api_key = getattr(client, "api_key", None) or ""
+    return (api_key_fingerprint(api_key) if api_key else "", getattr(client, "region", None))
 
 
 def _seed_model_inputs(max_images=SEED_LLM_MAX_IMAGES, max_videos=SEED_LLM_MAX_VIDEOS, max_audios=0):
@@ -332,7 +337,6 @@ class BytePlusSeed(comfy_io.ComfyNode):
                 "accept audio clips."
             ),
             inputs=[
-                optional_client_input(),
                 comfy_io.String.Input(
                     "prompt",
                     multiline=True,
@@ -363,7 +367,7 @@ class BytePlusSeed(comfy_io.ComfyNode):
         )
 
     @classmethod
-    @with_default_client("client", build_default_client)
+    @with_client("client", get_client)
     async def execute(
         cls,
         client,

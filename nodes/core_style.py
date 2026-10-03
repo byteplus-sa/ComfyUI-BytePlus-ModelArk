@@ -13,7 +13,7 @@ import aiohttp
 from comfy_api.latest import io as comfy_io
 
 from .constants import ASSET_URI_PREFIX
-from .models_config import MODEL_REGION_EXCLUSIONS, RETIRED_MODELS
+from .models_config import MODEL_REGION_EXCLUSIONS
 from .nodes_shared import BytePlusException, gather_cancelling, get_text, wait_interruptible
 
 SEED_MAX = 2147483647
@@ -167,14 +167,6 @@ def last_frame_batch_output():
     )
 
 
-def raise_if_model_retired(model):
-    """Legacy nodes keep retired models in their lists so saved workflows load."""
-    retired = RETIRED_MODELS.get(str(model or ""))
-    if retired:
-        model_id, replacement = retired
-        raise BytePlusException(get_text("err_model_retired", model=model_id, replacement=replacement))
-
-
 def raise_if_model_unavailable_in_region(client, model_id):
     """Some models are not offered in every region (see MODEL_REGION_EXCLUSIONS)."""
     region = str(getattr(client, "region", "") or "")
@@ -318,11 +310,20 @@ def _has_asset_credentials(client):
 
 
 def _asset_library(client):
-    """One AssetLibrary (two signed SDK clients) per API Client, reused by every lookup of a run."""
-    from .nodes_assets import AssetLibrary
+    """
+    One AssetLibrary (two signed SDK clients) per client, reused by every lookup.
+    The client outlives a run (get_client caches it), so the library is rebuilt
+    when the AK/SK in Settings > BytePlus change.
+    """
+    from .nodes_assets import AssetLibrary, asset_credentials_stamp, resolve_asset_credentials
 
+    stamp = asset_credentials_stamp(resolve_asset_credentials(client))
     cached = getattr(client, "_asset_library", None)
-    if cached is not None and type(cached) is AssetLibrary:
+    if (
+        cached is not None
+        and type(cached) is AssetLibrary
+        and getattr(cached, "credentials_stamp", None) == stamp
+    ):
         return cached
     library = AssetLibrary(client)
     try:
@@ -355,8 +356,8 @@ async def resolve_reference_values(client, values, project_name="default"):
     {"kind": image|video|audio, "uri": str, "source": original value}, in input
     order (empty values are skipped).
 
-    Asset types come from GetAsset, which needs IAM AK/SK on the API Client
-    entry (or BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY). Link types come from
+    Asset types come from GetAsset, which needs IAM AK/SK (Settings > BytePlus,
+    BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY). Link types come from
     the file extension, else the link's Content-Type. Lookups run in parallel
     through one asset-library client.
     """

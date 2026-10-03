@@ -4,7 +4,7 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.4.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.5.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
 ## Contents
 
@@ -120,7 +120,7 @@ Change the prompt or seed between test runs: ComfyUI reuses the cached result of
 |---|---|
 | No BytePlus page in Settings | Update the pack (ComfyUI-Manager → Update), restart ComfyUI and reload the page. |
 | *Invalid API Key (401)* | The key and region don't match. Pick the key's region in Settings (or set `BYTEPLUS_REGION`). |
-| *No BytePlus API key found…* | No key is set. Save one in Settings or `.env`. |
+| *No BytePlus API key is set…* | No key is set. Save one in Settings or `.env`. |
 | *Invalid X-Api-Key* on speech nodes | You used a ModelArk key. Seed Speech needs its own key. |
 | Save says *Requests from another origin are not accepted* | ComfyUI is behind a proxy that hides the address you opened. Edit `.env` by hand. |
 
@@ -229,10 +229,6 @@ Connected videos and images are uploaded to Comfy.org storage first (**Comfy.org
 - `output_size`: a `multiple` (default 2x) or a `target size`. Size limits are checked before upload. Each image in a batch is enhanced separately.
 - Also outputs `original` (the input resized to the result's size) for the `Compare Images` slider.
 
-### Other
-
-**Quota Settings** caps image count and video tokens per model to avoid overspending. Connect its output to the generation nodes it should limit.
-
 ## Guides
 
 ### Reference Videos
@@ -296,7 +292,8 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Seedance Video Extension | Three Seedance clips, each starting from the previous clip's `last_frame`, joined into one video (needs ComfyUI 0.36+ for `Concatenate Video`). |
 | Seed Prompt Writer | The LLM turns a short idea into a detailed Seedream prompt. |
 | Generate and Enhance | Seedream → Image Quality Enhance; Seedance → vCube Video Enhance (ModelArk + MediaKit keys). |
-| Private Asset Library | Uses a private asset as an `asset_N` reference in Seedance 2.5 (IAM AK/SK + Advanced Creation Rights). |
+| Virtual Portrait - Existing Asset | Uses an asset already in your library as an `asset_N` reference in Seedance 2.5: paste its ID, or look it up by name with Asset Library (IAM AK/SK + Advanced Creation Rights). |
+| Virtual Portrait - New Asset | Uploads an image as a new virtual portrait asset and uses it in Seedance 2.5 in the same run. |
 
 ## Development
 

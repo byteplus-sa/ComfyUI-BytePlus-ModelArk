@@ -36,13 +36,15 @@ Update these together:
 
 For an icon, use `[tool.comfy].Icon` with a stable HTTPS URL to a square SVG, PNG, JPG, or GIF no larger than 400 × 400 pixels. Prefer a repository-hosted copy when the original is on a third-party CDN. Use a fixed image format if the source URL can negotiate WebP or AVIF. Ensure the asset is Git tracked before packing; `comfy node pack` includes tracked files and applies `.comfyignore`. The raw GitHub URL becomes reachable only after the asset is pushed.
 
-Never put Registry tokens, ModelArk keys, `api_keys.json`, or upload caches into Git, workflow templates, the package, commands, or logs. The publish action reads `REGISTRY_ACCESS_TOKEN` from GitHub Actions secrets.
+Never put Registry tokens, BytePlus keys (ModelArk, Seed Speech, MediaKit, IAM AK/SK), a `.env` file, or upload caches into Git, workflow templates, the package, commands, or logs. The publish action reads `REGISTRY_ACCESS_TOKEN` from GitHub Actions secrets.
 
 ## 3. Validate the release candidate
 
 ```bash
 python3 -m unittest tests.test_workflow_templates -v
-COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_model_updates -v
+COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit \
+  tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 \
+  tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed -v
 comfy --skip-prompt node validate
 comfy --skip-prompt node pack
 unzip -Z -1 node.zip
