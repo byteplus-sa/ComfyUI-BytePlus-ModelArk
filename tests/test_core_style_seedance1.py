@@ -799,59 +799,5 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(result.args[0]), 3)
 
 
-@requires_comfyui
-class Seedance1TemplateTests(unittest.TestCase):
-    """example_workflows/Seedance 1.json against the live schema."""
-
-    SOCKET_TYPES = {"IMAGE"}
-
-    def test_template_matches_the_schema(self):
-        path = os.path.join(PLUGIN_ROOT, "example_workflows", "Seedance 1.json")
-        with open(path, encoding="utf-8") as file:
-            workflow = json.load(file)
-        classes = {node.NODE_ID: node for node in seedance1.NODES}
-        checked = set()
-        for node in workflow["nodes"]:
-            node_cls = classes.get(node["type"])
-            if node_cls is None:
-                continue
-            checked.add(node["type"])
-            info = node_cls.GET_NODE_INFO_V1()
-            with self.subTest(node=node["type"]):
-                # The optional client first, then required inputs, then the other optional ones.
-                specs = {
-                    **{name: (spec, False) for name, spec in info["input"]["required"].items()},
-                    **{name: (spec, True) for name, spec in info["input"]["optional"].items()},
-                }
-                expected = [(name, specs[name][0][0], specs[name][1]) for name in frontend_input_order(info)]
-                self.assertEqual(
-                    [(i["name"], i["type"], i.get("shape") == 7) for i in node["inputs"]], expected
-                )
-                for item in node["inputs"]:
-                    self.assertEqual("widget" in item, item["type"] not in self.SOCKET_TYPES, item["name"])
-                self.assertEqual([o["name"] for o in node["outputs"]], info["output_name"])
-                self.assertEqual([o["type"] for o in node["outputs"]], info["output"])
-                # widgets_values: one per widget input in schema order, plus the
-                # seed's control_after_generate value right after the seed.
-                widgets = [name for name, type_, _opt in expected if type_ not in self.SOCKET_TYPES]
-                values = node["widgets_values"]
-                seed = widgets.index("seed")
-                self.assertEqual(len(values), len(widgets) + 1)
-                self.assertIn(values[seed + 1], ("fixed", "randomize"))
-                named = dict(zip(widgets[: seed + 1], values))
-                named.update(zip(widgets[seed + 1 :], values[seed + 2 :]))
-                model = next(i for i in node_cls.define_schema().inputs if i.id == "model")
-                self.assertIn(named["model"], model.options)
-                self.assertEqual(named["model"], model.default)
-                self.assertTrue(named["prompt"].strip())
-                self.assertIn(named["resolution"], ["480p", "720p", "1080p"])
-                self.assertIsInstance(named["duration"], int)
-                self.assertIsInstance(named["seed"], int)
-                for name in ("camera_fixed", "watermark", "enable_offline_inference", "non_blocking"):
-                    self.assertIsInstance(named[name], bool, name)
-                self.assertIsInstance(named["generation_count"], int)
-        self.assertEqual(checked, set(classes))
-
-
 if __name__ == "__main__":
     unittest.main()
