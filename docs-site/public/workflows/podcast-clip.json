@@ -1,0 +1,1006 @@
+{
+  "id": "25604da9-9d64-49da-9e50-e7af8e80a345",
+  "revision": 0,
+  "last_node_id": 18,
+  "last_link_id": 30,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        26,
+        502
+      ],
+      "size": [
+        340,
+        88
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "title": "Topic",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Why do cats purr? A friendly two-person explainer"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "BytePlusSeed",
+      "pos": [
+        622,
+        108
+      ],
+      "size": [
+        340,
+        410
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 16
+        },
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            17,
+            18,
+            19
+          ]
+        },
+        {
+          "name": "raw_json",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Write the dialogue (BytePlus LLM)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeed",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "",
+        "Seed 2.1 Turbo",
+        1,
+        4,
+        "randomize",
+        "You write a very short podcast clip for two speakers, a HOST and a GUEST who is an expert. Reply in exactly this format and nothing else:\nHOST: <three or four spoken sentences: asks the question and sets the scene>\nGUEST: <three or four spoken sentences: the surprising answer>\nCOVER: <a text-to-image prompt for the episode cover art: bold flat illustration, one clear subject, no text>\nEach part is one single line without line breaks. Plain spoken English, no stage directions.",
+        "high",
+        1,
+        "disabled",
+        "medium",
+        1,
+        false,
+        604800
+      ]
+    },
+    {
+      "id": 3,
+      "type": "RegexExtract",
+      "pos": [
+        988,
+        108
+      ],
+      "size": [
+        340,
+        262
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            20,
+            29
+          ]
+        }
+      ],
+      "title": "Host lines",
+      "properties": {
+        "Node name for S&R": "RegexExtract"
+      },
+      "widgets_values": [
+        "",
+        "HOST:\\s*(.*)",
+        "First Group",
+        true,
+        false,
+        false,
+        1
+      ]
+    },
+    {
+      "id": 4,
+      "type": "RegexExtract",
+      "pos": [
+        988,
+        424
+      ],
+      "size": [
+        340,
+        262
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            21,
+            30
+          ]
+        }
+      ],
+      "title": "Guest lines",
+      "properties": {
+        "Node name for S&R": "RegexExtract"
+      },
+      "widgets_values": [
+        "",
+        "GUEST:\\s*(.*)",
+        "First Group",
+        true,
+        false,
+        false,
+        1
+      ]
+    },
+    {
+      "id": 5,
+      "type": "RegexExtract",
+      "pos": [
+        988,
+        740
+      ],
+      "size": [
+        340,
+        262
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            27
+          ]
+        }
+      ],
+      "title": "Cover prompt",
+      "properties": {
+        "Node name for S&R": "RegexExtract"
+      },
+      "widgets_values": [
+        "",
+        "COVER:\\s*(.*)",
+        "First Group",
+        true,
+        false,
+        false,
+        1
+      ]
+    },
+    {
+      "id": 6,
+      "type": "BytePlusSeedTTS",
+      "pos": [
+        1424,
+        108
+      ],
+      "size": [
+        340,
+        704
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            22
+          ]
+        },
+        {
+          "name": "subtitles_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "srt",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Host voice",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedTTS",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "seed-tts-2.0",
+        "",
+        "en_female_stokie_uranus_bigtts",
+        "",
+        "",
+        "",
+        4,
+        0,
+        0,
+        0,
+        "24000",
+        "auto",
+        0,
+        false,
+        false,
+        false,
+        "default",
+        false,
+        false,
+        false,
+        0.3,
+        false,
+        false,
+        6,
+        "randomize"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "BytePlusSeedTTS",
+      "pos": [
+        1424,
+        866
+      ],
+      "size": [
+        340,
+        704
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            23
+          ]
+        },
+        {
+          "name": "subtitles_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "srt",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Guest voice",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedTTS",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "seed-tts-2.0",
+        "",
+        "en_male_tim_uranus_bigtts",
+        "",
+        "",
+        "",
+        4,
+        0,
+        0,
+        0,
+        "24000",
+        "auto",
+        0,
+        false,
+        false,
+        false,
+        "default",
+        false,
+        false,
+        false,
+        0.3,
+        false,
+        false,
+        7,
+        "randomize"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "AudioConcat",
+      "pos": [
+        1424,
+        1624
+      ],
+      "size": [
+        340,
+        80
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio1",
+          "type": "AUDIO",
+          "link": 22
+        },
+        {
+          "name": "audio2",
+          "type": "AUDIO",
+          "link": 23
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            24,
+            25
+          ]
+        }
+      ],
+      "title": "Join the two voices",
+      "properties": {
+        "Node name for S&R": "AudioConcat"
+      },
+      "widgets_values": [
+        "after"
+      ]
+    },
+    {
+      "id": 9,
+      "type": "SaveAudioAdvanced",
+      "pos": [
+        1424,
+        1758
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "title": "Save the episode",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Audio/podcast",
+        "mp3",
+        "V0"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "BytePlusSeedASR",
+      "pos": [
+        1860,
+        108
+      ],
+      "size": [
+        340,
+        658
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 25
+        },
+        {
+          "name": "context_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "utterances_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "srt",
+          "type": "STRING",
+          "links": [
+            26
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "FLOAT",
+          "links": null
+        }
+      ],
+      "title": "Subtitles (Seed ASR)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedASR",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "seed-asr-fast",
+        "",
+        "auto",
+        true,
+        true,
+        false,
+        false,
+        "",
+        "",
+        "",
+        false,
+        false,
+        false,
+        false,
+        0,
+        "none",
+        false,
+        "",
+        "",
+        false,
+        "auto"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "PreviewAny",
+      "pos": [
+        1860,
+        820
+      ],
+      "size": [
+        340,
+        122
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "SRT subtitles",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 12,
+      "type": "BytePlusSeedream",
+      "pos": [
+        2296,
+        108
+      ],
+      "size": [
+        340,
+        416
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 27
+        },
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            28
+          ]
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Cover art (Seedream)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "",
+        "seedream 5.0 flash",
+        "(1K) 1024x1024 (1:1)",
+        2048,
+        2048,
+        12,
+        "randomize",
+        false,
+        1,
+        "jpeg",
+        "opaque",
+        "randomize",
+        "randomize"
+      ]
+    },
+    {
+      "id": 13,
+      "type": "SaveImage",
+      "pos": [
+        2296,
+        578
+      ],
+      "size": [
+        340,
+        80
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Save the cover",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Image/podcast_cover"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "PreviewAny",
+      "pos": [
+        988,
+        1056
+      ],
+      "size": [
+        340,
+        122
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Host lines",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 15,
+      "type": "PreviewAny",
+      "pos": [
+        988,
+        1232
+      ],
+      "size": [
+        340,
+        122
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 30
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Guest lines",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 18,
+      "type": "MarkdownNote",
+      "pos": [
+        26,
+        108
+      ],
+      "size": [
+        500,
+        340
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Podcast clip\n\nWrite a topic. The LLM writes a short HOST and GUEST dialogue, **Seed TTS** voices both speakers, **Seed ASR** turns the result into SRT subtitles and **Seedream** paints the cover art.\n\nChange the voices in *Host voice* and *Guest voice*. Needs ModelArk and Seed Speech keys in Settings > BytePlus."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      16,
+      1,
+      0,
+      2,
+      0,
+      "STRING"
+    ],
+    [
+      17,
+      2,
+      0,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      18,
+      2,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      19,
+      2,
+      0,
+      5,
+      0,
+      "STRING"
+    ],
+    [
+      20,
+      3,
+      0,
+      6,
+      0,
+      "STRING"
+    ],
+    [
+      21,
+      4,
+      0,
+      7,
+      0,
+      "STRING"
+    ],
+    [
+      22,
+      6,
+      0,
+      8,
+      0,
+      "AUDIO"
+    ],
+    [
+      23,
+      7,
+      0,
+      8,
+      1,
+      "AUDIO"
+    ],
+    [
+      24,
+      8,
+      0,
+      9,
+      0,
+      "AUDIO"
+    ],
+    [
+      25,
+      8,
+      0,
+      10,
+      0,
+      "AUDIO"
+    ],
+    [
+      26,
+      10,
+      2,
+      11,
+      0,
+      "STRING"
+    ],
+    [
+      27,
+      5,
+      0,
+      12,
+      0,
+      "STRING"
+    ],
+    [
+      28,
+      12,
+      0,
+      13,
+      0,
+      "IMAGE"
+    ],
+    [
+      29,
+      3,
+      0,
+      14,
+      0,
+      "STRING"
+    ],
+    [
+      30,
+      4,
+      0,
+      15,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 11,
+      "title": "1 · Topic",
+      "bounding": [
+        0,
+        0,
+        552,
+        1954
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 12,
+      "title": "2 · Write the dialogue (BytePlus LLM)",
+      "bounding": [
+        596,
+        0,
+        758,
+        1954
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 13,
+      "title": "3 · Voices (Seed TTS)",
+      "bounding": [
+        1398,
+        0,
+        392,
+        1954
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 14,
+      "title": "4 · Subtitles (Seed ASR)",
+      "bounding": [
+        1834,
+        0,
+        392,
+        1954
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 15,
+      "title": "5 · Cover art (Seedream)",
+      "bounding": [
+        2270,
+        0,
+        392,
+        1954
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.472636815920398,
+      "offset": [
+        1168.2465203536183,
+        63.473684210526244
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

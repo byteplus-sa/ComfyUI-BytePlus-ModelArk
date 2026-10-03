@@ -1,0 +1,13 @@
+---
+import { Image } from 'astro:assets';
+// <Shot src="nodes/seedream.png" alt="..." caption="..." />  (file under src/assets/)
+const { src, alt, caption } = Astro.props;
+const files = import.meta.glob<{ default: ImageMetadata }>('/src/assets/**/*.{png,jpg,jpeg,webp}');
+const loader = files[`/src/assets/${src}`];
+if (!loader) throw new Error(`Shot: /src/assets/${src} does not exist`);
+const image = (await loader()).default;
+---
+<figure class="shot">
+	<Image src={image} alt={alt} widths={[640, 960, 1280, 1920]} sizes="(min-width: 50rem) 50rem, 100vw" />
+	{caption && <figcaption>{caption}</figcaption>}
+</figure>

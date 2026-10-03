@@ -1,0 +1,585 @@
+{
+  "id": "5eed0a1d-0002-4c3a-9a57-5eedad10a002",
+  "revision": 0,
+  "last_node_id": 6,
+  "last_link_id": 6,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "BytePlusSeedTTS",
+      "pos": [20, 80],
+      "size": [440, 704],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "COMBO",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": null
+        },
+        {
+          "name": "voice",
+          "type": "COMBO",
+          "widget": {
+            "name": "voice"
+          },
+          "link": null
+        },
+        {
+          "name": "custom_speaker_id",
+          "type": "STRING",
+          "widget": {
+            "name": "custom_speaker_id"
+          },
+          "link": null
+        },
+        {
+          "name": "context_text",
+          "type": "STRING",
+          "widget": {
+            "name": "context_text"
+          },
+          "link": null
+        },
+        {
+          "name": "emotion",
+          "type": "STRING",
+          "widget": {
+            "name": "emotion"
+          },
+          "link": null
+        },
+        {
+          "name": "emotion_scale",
+          "type": "INT",
+          "widget": {
+            "name": "emotion_scale"
+          },
+          "link": null
+        },
+        {
+          "name": "speech_rate",
+          "type": "INT",
+          "widget": {
+            "name": "speech_rate"
+          },
+          "link": null
+        },
+        {
+          "name": "loudness_rate",
+          "type": "INT",
+          "widget": {
+            "name": "loudness_rate"
+          },
+          "link": null
+        },
+        {
+          "name": "pitch",
+          "type": "INT",
+          "widget": {
+            "name": "pitch"
+          },
+          "link": null
+        },
+        {
+          "name": "sample_rate",
+          "type": "COMBO",
+          "widget": {
+            "name": "sample_rate"
+          },
+          "link": null
+        },
+        {
+          "name": "explicit_language",
+          "type": "COMBO",
+          "widget": {
+            "name": "explicit_language"
+          },
+          "link": null
+        },
+        {
+          "name": "silence_duration",
+          "type": "INT",
+          "widget": {
+            "name": "silence_duration"
+          },
+          "link": null
+        },
+        {
+          "name": "filter_markdown",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "filter_markdown"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_subtitle",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_subtitle"
+          },
+          "link": null
+        },
+        {
+          "name": "detect_language",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "detect_language"
+          },
+          "link": null
+        },
+        {
+          "name": "context_language",
+          "type": "COMBO",
+          "widget": {
+            "name": "context_language"
+          },
+          "link": null
+        },
+        {
+          "name": "read_emoji",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "read_emoji"
+          },
+          "link": null
+        },
+        {
+          "name": "read_latex",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "read_latex"
+          },
+          "link": null
+        },
+        {
+          "name": "read_parentheses",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "read_parentheses"
+          },
+          "link": null
+        },
+        {
+          "name": "unsupported_char_ratio",
+          "type": "FLOAT",
+          "widget": {
+            "name": "unsupported_char_ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "use_cache",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "use_cache"
+          },
+          "link": null
+        },
+        {
+          "name": "tone_fidelity",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "tone_fidelity"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [2, 4]
+        },
+        {
+          "name": "subtitles_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "srt",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1",
+        "Node name for S&R": "BytePlusSeedTTS"
+      },
+      "widgets_values": [
+        "seed-tts-2.0",
+        "Welcome to BytePlus Seed Speech. This sentence was synthesized, then transcribed again by the ASR node.",
+        "en_female_stokie_uranus_bigtts",
+        "",
+        "Speak in a bright, friendly tone.",
+        "",
+        4,
+        0,
+        0,
+        0,
+        "24000",
+        "auto",
+        0,
+        false,
+        false,
+        false,
+        "default",
+        false,
+        false,
+        false,
+        0.3,
+        false,
+        false,
+        0,
+        "randomize"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "PreviewAudio",
+      "pos": [520, 80],
+      "size": [320, 110],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 2
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 4,
+      "type": "BytePlusSeedASR",
+      "pos": [520, 240],
+      "size": [400, 658],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "COMBO",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "audio_url",
+          "type": "STRING",
+          "widget": {
+            "name": "audio_url"
+          },
+          "link": null
+        },
+        {
+          "name": "language",
+          "type": "COMBO",
+          "widget": {
+            "name": "language"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_punc",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_punc"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_itn",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_itn"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_ddc",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_ddc"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_speaker_info",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_speaker_info"
+          },
+          "link": null
+        },
+        {
+          "name": "hotwords",
+          "type": "STRING",
+          "widget": {
+            "name": "hotwords"
+          },
+          "link": null
+        },
+        {
+          "name": "context_text",
+          "type": "STRING",
+          "widget": {
+            "name": "context_text"
+          },
+          "link": null
+        },
+        {
+          "name": "context_image_url",
+          "type": "STRING",
+          "widget": {
+            "name": "context_image_url"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_auto_lang",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_auto_lang"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_lid",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_lid"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_channel_split",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_channel_split"
+          },
+          "link": null
+        },
+        {
+          "name": "vad_segment",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "vad_segment"
+          },
+          "link": null
+        },
+        {
+          "name": "end_window_size",
+          "type": "INT",
+          "widget": {
+            "name": "end_window_size"
+          },
+          "link": null
+        },
+        {
+          "name": "output_zh_variant",
+          "type": "COMBO",
+          "widget": {
+            "name": "output_zh_variant"
+          },
+          "link": null
+        },
+        {
+          "name": "filter_system_sensitive_words",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "filter_system_sensitive_words"
+          },
+          "link": null
+        },
+        {
+          "name": "remove_words",
+          "type": "STRING",
+          "widget": {
+            "name": "remove_words"
+          },
+          "link": null
+        },
+        {
+          "name": "mask_words",
+          "type": "STRING",
+          "widget": {
+            "name": "mask_words"
+          },
+          "link": null
+        },
+        {
+          "name": "wrap_sensitive_words",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "wrap_sensitive_words"
+          },
+          "link": null
+        },
+        {
+          "name": "audio_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "audio_format"
+          },
+          "link": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "shape": 7,
+          "link": 4
+        },
+        {
+          "name": "context_image",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [5]
+        },
+        {
+          "name": "utterances_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "srt",
+          "type": "STRING",
+          "links": [6]
+        },
+        {
+          "name": "duration",
+          "type": "FLOAT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1",
+        "Node name for S&R": "BytePlusSeedASR"
+      },
+      "widgets_values": [
+        "seed-asr-fast",
+        "",
+        "auto",
+        true,
+        true,
+        false,
+        false,
+        "BytePlus\nSeed Speech",
+        "",
+        "",
+        false,
+        false,
+        false,
+        false,
+        0,
+        "none",
+        false,
+        "",
+        "",
+        false,
+        "auto"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "PreviewAny",
+      "pos": [960, 240],
+      "size": [380, 260],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 6,
+      "type": "PreviewAny",
+      "pos": [960, 540],
+      "size": [380, 260],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [2, 2, 0, 3, 0, "AUDIO"],
+    [4, 2, 0, 4, 21, "AUDIO"],
+    [5, 4, 0, 5, 0, "STRING"],
+    [6, 4, 2, 6, 0, "STRING"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.9,
+      "offset": [40, 40]
+    }
+  },
+  "version": 0.4
+}
