@@ -1,10 +1,10 @@
-# ComfyUI BytePlus ModelArk
+# ComfyUI BytePlus ModelArk & AI MediaKit
 
 Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Seed / DeepSeek / GLM language models, Seed Speech audio, and AI MediaKit video and image enhancement.
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.5.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.5.1.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
 ## Contents
 
@@ -18,7 +18,7 @@ Calls go straight to BytePlus and are billed to your BytePlus account (contract 
 
 ## Quick Start
 
-**1. Install.** In ComfyUI-Manager, search for *BytePlus ModelArk*. Or by hand:
+**1. Install.** In ComfyUI-Manager, search for *BytePlus ModelArk* (listed as *ComfyUI BytePlus ModelArk & AI MediaKit*). Or by hand:
 
 ```bash
 cd ComfyUI/custom_nodes
@@ -154,6 +154,7 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 | **Seedance Text to Video**, **Image to Video**, **First-Last-Frame to Video** | `seedance-1-0-pro`, `seedance-1-0-pro-fast` (First-Last-Frame: Pro only) | 480p–1080p, 2–12 s, `camera_fixed`, `watermark` |
 | **Seedance 2.5 Text to Video**, **First-Last-Frame to Video**, **Reference to Video** | 2.5 (1080p, 30 s), 2.5 Premium (4K, whitelist only), 2.0 (4K), 2.0 Fast, 2.0 Mini | Draft options for 2.5 and 2.5 Premium; `output_format` mp4 / mov on 2.5 |
 | **Seedance 2.5 Draft to Final Video** | Reads the model from the draft | See [Draft Mode](#draft-mode) |
+| **Video Query Tasks** | All Seedance models, including retired ones | Lists your recent video tasks (by status, model or task ID) as JSON, to find a task ID again |
 
 - **Reference to Video** takes up to 50 references on 2.5 (30 images, 10 videos, 10 audio clips) and 15 on 2.0 (9 + 3 + 3), connected or as `asset_N` [links or assets](#reference-links-and-assets). `task_type`: auto / reference / edit / extend. Reference videos can be down- or upscaled.
 - **Batches:** with `generation_count` above 1, every video reaches the `VIDEO` output (each with its own seed; the next node runs once per video), and `last_frame` holds their last frames as one batch.

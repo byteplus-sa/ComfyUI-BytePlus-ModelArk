@@ -29,6 +29,7 @@ git merge-base --is-ancestor <feature-commit> HEAD
 Update these together:
 
 - `[project].version` in `pyproject.toml`.
+- `[tool.comfy].DisplayName` and `[project].description` when a service or model family was added or removed. They are the Registry listing's name and description, so keep them consistent with the README title and tagline.
 - The README status line and a short release note describing what customers receive.
 - `properties.ver` for every `BytePlus` node in every `example_workflows/*.json`. Leave `comfy-core` node versions alone.
 - The expected version in `tests/test_workflow_templates.py` if the test still uses a literal.

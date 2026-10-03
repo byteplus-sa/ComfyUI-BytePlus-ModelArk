@@ -145,7 +145,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.0",
+        "ver": "0.5.1",
         "Node name for S&R": "BytePlusSeed"
       },
       "widgets_values": [
@@ -339,7 +339,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.0",
+        "ver": "0.5.1",
         "Node name for S&R": "BytePlusSeedream"
       },
       "widgets_values": [
