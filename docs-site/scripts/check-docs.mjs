@@ -29,7 +29,11 @@ function parse(path) {
 	const front = {};
 	for (const line of match[1].split('\n')) {
 		const m = line.match(/^([a-z_]+):\s*(.*)$/);
-		if (m) front[m[1]] = m[2].replace(/^["']|["']$/g, '');
+		if (m) {
+			front[m[1]] = m[2].replace(/^["']|["']$/g, '');
+			// unquoted YAML breaks on ": " and a leading quote or bracket
+			if (['title', 'description'].includes(m[1]) && !/^["']/.test(m[2]) && /(: |^[\[{&*!|>%@`])/.test(m[2])) front._yaml = m[1];
+		}
 	}
 	return { front, body: match[2] };
 }
@@ -81,7 +85,9 @@ function imageSize(path) {
 
 function checkCommon(file, page, kind, expectedTitle, expectedKey, keyName, h2) {
 	const { front, body } = page;
-	if (front.title !== expectedTitle) fail(file, `title must be "${expectedTitle}", found "${front.title}"`);
+	const titles = Array.isArray(expectedTitle) ? expectedTitle : [expectedTitle];
+	if (!titles.includes(front.title)) fail(file, `title must be ${titles.map((t) => `"${t}"`).join(' or ')}, found "${front.title}"`);
+	if (front._yaml) fail(file, `${front._yaml} must be in double quotes (it contains YAML special characters)`);
 	const description = front.description ?? '';
 	if (description.length < 40 || description.length > 160) fail(file, `description must be 40 to 160 characters (is ${description.length})`);
 	if (front[keyName] !== expectedKey) fail(file, `${keyName} must be "${expectedKey}", found "${front[keyName]}"`);
@@ -124,7 +130,7 @@ for (const n of nodes) {
 	if (!existsSync(path)) { fail(file, 'page is missing'); continue; }
 	const page = parse(path);
 	if (!page) { fail(file, 'no frontmatter'); continue; }
-	const { body } = checkCommon(file, page, 'node', n.display_name.replace(/^BytePlus /, ''), n.id, 'node_id', NODE_H2);
+	const { body } = checkCommon(file, page, 'node', [n.display_name.replace(/^BytePlus /, ''), n.display_name], n.id, 'node_id', NODE_H2);
 	for (const tag of ['NodeFacts', 'NodeInputs', 'NodeOutputs', 'UsedIn']) {
 		if (!new RegExp(`<${tag} id="${n.id}" ?/>`).test(body)) fail(file, `needs <${tag} id="${n.id}" />`);
 	}

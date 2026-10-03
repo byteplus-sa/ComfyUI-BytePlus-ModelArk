@@ -1,0 +1,53 @@
+---
+title: "Seed Speech TTS and ASR"
+description: "Speak a sentence with Seed Speech TTS 2.0, then transcribe the audio back to text and SRT subtitles with Seed Speech ASR."
+template_file: Seed Speech TTS and ASR.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Seed Speech TTS and ASR.json" />
+
+## What it makes
+
+One spoken sentence, its transcript and its subtitles. The template reads "Welcome to BytePlus Seed Speech. This sentence was synthesized, then transcribed again by the ASR node." in the TTS 2.0 voice Stokie, then sends that audio straight into the ASR node. The transcript that comes back is the original sentence, which shows both nodes working together.
+
+## The workflow
+
+<Shot src="templates/seed-speech-tts-and-asr-workflow.webp" alt="The Seed Speech template: TTS output going to Preview Audio and into the ASR node, whose text and srt outputs go to two Preview as Text nodes" caption="Five nodes: Seed Speech TTS, Preview Audio, Seed Speech ASR and two Preview as Text." />
+
+1. **[Seed Speech TTS](../../nodes/seed-tts/)** uses model `seed-tts-2.0` and the voice `en_female_stokie_uranus_bigtts` to speak the text. `context_text` is "Speak in a bright, friendly tone."
+2. **Preview Audio** plays the speech.
+3. **[Seed Speech ASR](../../nodes/seed-asr/)** takes the same audio, uses the fast model `seed-asr-fast` with `language` on auto, and returns the transcript, the utterance timings and an SRT.
+4. **Preview as Text** (two nodes) show the `text` output and the `srt` output.
+
+## Run it
+
+1. Add your Seed Speech API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Open the template browser and choose **Seed Speech TTS and ASR** under BytePlus.
+3. Press **Run**. The audio, the transcript and the subtitles appear in the preview nodes.
+
+## Settings worth changing
+
+- **`text` (TTS):** write your own sentence. Pick a voice that supports its language.
+- **`voice`:** choose another TTS 2.0 voice. To use a cloned voice instead, switch `model` to `seed-icl-2.0` and fill `custom_speaker_id` (see [Seed Voice Clone](../seed-voice-clone/)).
+- **`context_text` and `emotion`:** steer the delivery with a style instruction or an emotion such as happy or sad. `context_text` is not billed.
+- **`hotwords` (ASR):** list names or terms to favour, one per line. The template has "BytePlus" and "Seed Speech". Hotwords work only with the Chinese-English model, `language` auto or zh-CN.
+- **`model` (ASR):** `seed-asr-2.0` and `seed-asr-1.0` cover more languages and run as submit and poll. They upload connected audio to Comfy.org storage first, so log in to Comfy.org.
+
+## Example result
+
+<Shot src="templates/seed-speech-tts-and-asr-result.webp" alt="The graph after the run with a 6.4 second waveform, the transcript and two subtitle entries" caption="Result of the live test run: the transcript matches the spoken sentence." />
+
+<Media kind="audio" file="seed-speech-tts-and-asr-0.mp3" caption="The speech made by the live test run." />
+
+## Time and cost
+
+The live test took about 2 seconds for 6.4 seconds of speech. Each node sends one request to Seed Speech. The TTS `seed` is not sent to the API, but changing it makes ComfyUI synthesize again, and the default randomize does that after every run. Running again with an unchanged workflow reuses ComfyUI's cached result and does not bill.
+
+## Related
+
+- Nodes: [Seed Speech TTS](../../nodes/seed-tts/), [Seed Speech ASR](../../nodes/seed-asr/)
+- Next step: [Podcast Clip](../podcast-clip/) voices a two-person dialogue and turns it into subtitles.

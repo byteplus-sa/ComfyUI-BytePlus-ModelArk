@@ -1,0 +1,52 @@
+---
+title: "Draft mode"
+description: "Render a cheap 480p Seedance 2.5 draft first, then render the full-quality final from it."
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Draft mode lets you check a Seedance 2.5 idea with a quick, low-resolution video before you spend on the full-quality one.
+
+## How it works
+
+1. A **draft** run renders a 480p preview.
+2. You review it.
+3. A **final** run takes the draft and renders the high-quality video. The final keeps the draft's scene and motion.
+
+The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting. It renders at 1080p for Seedance 2.5 and at 4K for Seedance 2.5 Premium.
+
+## Run a draft and a final
+
+<Steps>
+
+1. Add a Seedance 2.5 node: [Text to Video](../../nodes/seedance-2-5-text-to-video/), [First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/) or [Reference to Video](../../nodes/seedance-2-5-reference/).
+2. Set `model` to **Seedance 2.5 Draft** (or **Seedance 2.5 Premium Draft**).
+3. Set the node's seed control to **fixed**.
+4. Run. Watch the 480p video.
+5. Connect the `draft_task_id` output to [Seedance 2.5 Draft to Final Video](../../nodes/seedance-2-5-draft-to-final/), connect **Save Video**, and run again.
+
+</Steps>
+
+<Aside type="caution">
+Keep the seed control on **fixed**. With a changing seed, the draft node runs again and makes a new draft, so the final would not match the one you reviewed. While the inputs stay the same, ComfyUI does not re-run the draft node.
+</Aside>
+
+## Draft to Final reads the model from the draft
+
+The final node has no `model` input. It looks up the draft task at BytePlus and reads the model from it, so a Seedance 2.5 draft gets a 1080p final and a Seedance 2.5 Premium draft gets a 4K final. Drafts from different models cannot go into the same node. Use one Draft to Final node for each model.
+
+## The `draft_task_id` output
+
+- Only the two Draft models produce a `draft_task_id`. If you connect that output while another model is selected, the node tells you to pick a Draft model or disconnect it.
+- With `generation_count` above 1, you get one ID per line.
+- You can also paste draft task IDs into the Draft to Final node, one per line, to render a draft from an earlier session.
+- A draft can be rendered for **7 days** after it was created. Older drafts are refused.
+- The draft must have succeeded first. A failed or unfinished draft cannot be rendered.
+
+## Cost
+
+A draft is a billed task, and the final is a second billed task. The draft shows whether the idea works before you pay for the full-quality render. See [Billing and cost](../billing-and-cost/).
+
+## Try it
+
+The [Seedance 2 template](../../templates/seedance-2/) has a group that renders the draft first. Review it, then enable the Draft to Final group.

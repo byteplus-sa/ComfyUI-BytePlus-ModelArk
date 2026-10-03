@@ -1,0 +1,68 @@
+---
+title: "Seedance 2.5 Draft to Final Video"
+description: "Render the final 1080p or 4k video from a Seedance 2.5 or 2.5 Premium draft, keeping the scene and motion you reviewed."
+node_id: BytePlusSeedanceDraftToFinal
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedanceDraftToFinal" />
+
+## What it does
+
+Turns a finished 480p draft into the full-quality video. The final keeps the draft's scene and motion and reuses its prompt, references, duration, aspect ratio and audio setting. It renders at 1080p for a Seedance 2.5 Draft and at 4k for a Seedance 2.5 Premium Draft; the model is read from the draft task, so you do not pick one.
+
+The node bills for every final video it renders and waits until the task finishes. It does not save anything itself: connect **Save Video** to keep the result.
+
+## On the canvas
+
+<Shot src="nodes/seedance-2-5-draft-to-final.png" alt="The Seedance 2.5 Draft to Final Video node with an empty draft_task_id field, watermark, generation_count and non_blocking" caption="The node has no model or prompt. Connect or paste a draft task ID." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedanceDraftToFinal" />
+
+### Notes on inputs
+
+- **Getting a draft:** on [Text to Video](../seedance-2-5-text-to-video/), [First-Last-Frame to Video](../seedance-2-5-first-last-frame/) or [Reference to Video](../seedance-2-5-reference/), select Seedance 2.5 Draft or Seedance 2.5 Premium Draft. Each outputs `draft_task_id`.
+- **Fixed seed:** set `control after generate` under `seed` on the draft node to `fixed`. Otherwise the next run generates a new draft instead of reusing the one you reviewed.
+- **Pasting IDs:** `draft_task_id` also takes IDs typed or pasted in, one per line or separated by commas. With several IDs, the node renders one final per draft and ignores `generation_count`.
+- **Same model:** all drafts in one run must come from the same model. Render Seedance 2.5 drafts and Premium drafts in separate nodes.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedanceDraftToFinal" />
+
+### Notes on outputs
+
+- With several finals, `VIDEO` is a list: the next node runs once per video, and `last_frame` holds their last frames as one batch in the same order.
+- There is no `draft_task_id` output here. The task IDs of the finals are in `response`.
+- With `non_blocking` on, the first run returns at once with the task IDs in `response`. Run the node again to collect the videos.
+
+## Limits and tips
+
+- A draft can be rendered for 7 days after it was created. After that, generate a new draft.
+- The draft task must have succeeded. A task that is still queued or running, or that failed, is refused with its status.
+- Only drafts are accepted: a task that is already a final video, or a task that is not 480p, is refused.
+- The final keeps the draft's `output_format`. The draft's seed is reused as well.
+- With one draft ID, `generation_count` above 1 renders several finals from that draft and every one is billed. See [Billing and cost](../../concepts/billing-and-cost/).
+- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again.
+- `watermark` applies to the final video only.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `Enter a draft task ID` | Connect the `draft_task_id` output of a Draft run, or paste an ID. |
+| `is not a draft` | Use the `draft_task_id` of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. |
+| `is more than 7 days old` | The draft is too old to render. Generate a new draft. |
+| `Render the final video after the draft has succeeded` | The draft is still queued or running. Wait for it to finish, then run again. |
+| `The draft task IDs come from different models` | Put each model's drafts in its own Draft to Final node. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedanceDraftToFinal" />

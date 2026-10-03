@@ -1230,7 +1230,7 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
                     options=SEED_ASR_AUDIO_FORMATS,
                     default="auto",
                     advanced=True,
-                    tooltip="Container of audio_url. auto reads the file extension; set it for URLs without one.",
+                    tooltip="Container of audio_url. auto reads the file extension; the standard models read the file itself when the link has none. Set it if detection fails.",
                 ),
                 comfy_io.Audio.Input("audio", optional=True, tooltip="Audio to transcribe, e.g. from Load Audio."),
                 comfy_io.Image.Input(

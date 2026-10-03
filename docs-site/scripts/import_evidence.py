@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copy the screenshots and sample media of a live end-to-end run into the docs, and write
+Copy the result images and sample media of a live end-to-end run into the docs, and write
 src/data/evidence.json (which case ran each template, how long it took).
 
   ~/ComfyUI-Installs/ComfyUI/ComfyUI/.venv/bin/python scripts/import_evidence.py /path/to/e2e-report/2026-10-03
@@ -56,9 +56,10 @@ def main(report):
         result = json.load(open(os.path.join(folder, "result.json")))
         entry = {"case": case, "status": result["status"], "seconds": round(result.get("seconds") or 0),
                  "tested": TEST_DATE, "media": []}
-        to_webp(os.path.join(folder, "workflow.png"), os.path.join(assets, t["slug"] + "-workflow.webp"), 2400)
+        # The workflow screenshots (<slug>-workflow.webp) are taken from the template files, not from the run:
+        # see scripts/capture/README.md. The result image is the run's outputs panel.
         if result["status"] == "success":
-            to_webp(os.path.join(folder, "result.png"), os.path.join(assets, t["slug"] + "-result.webp"), 1800)
+            to_webp(os.path.join(folder, "panel.png"), os.path.join(assets, t["slug"] + "-result.webp"), 1800)
             outputs = os.path.join(folder, "outputs")
             names = sorted(os.listdir(outputs)) if os.path.isdir(outputs) else []
             videos = [n for n in names if n.endswith(".mp4")]

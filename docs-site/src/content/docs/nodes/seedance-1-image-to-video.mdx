@@ -1,0 +1,69 @@
+---
+title: "Seedance Image to Video"
+description: "Animate a first-frame image with a text prompt using Seedance 1.0 Pro or Pro Fast, from 480p to 1080p and 2 to 12 seconds long."
+node_id: BytePlusSeedanceImageToVideo
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedanceImageToVideo" />
+
+## What it does
+
+Turns one image into a video with Seedance 1.0 on BytePlus ModelArk. The image becomes the first frame, and the prompt describes how the scene moves.
+
+The node bills for every video it generates. It does not save anything itself: connect **Save Video** to keep the result. Seedance 1.0 is the older family. For clips up to 30 seconds, use the newer [Seedance 2.5 Text to Video](../seedance-2-5-text-to-video/) or [Seedance 2.5 First-Last-Frame](../seedance-2-5-first-last-frame/).
+
+## On the canvas
+
+<Shot src="nodes/seedance-1-image-to-video.png" alt="The Seedance Image to Video node with an image input, a prompt, resolution, aspect ratio and duration" caption="The image input is the first frame. The advanced inputs sit at the bottom." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedanceImageToVideo" />
+
+### Notes on inputs
+
+- **Model:** `seedance-1-0-pro-fast-251015` (Pro Fast) is the default. `seedance-1-0-pro-250528` (Pro) is the other option.
+- **Aspect ratio:** `adaptive` leaves the choice of ratio to the model. Pick a fixed ratio to force one.
+- **Settings go in the widgets:** do not write flags such as `--resolution`, `--ratio`, `--dur`, `--frames`, `--seed`, `--camerafixed` or `--watermark` in the prompt. The node refuses a prompt that contains them.
+- **Camera:** `camera_fixed` adds an instruction to keep the camera still. BytePlus does not guarantee the effect.
+- **Lower price:** `enable_offline_inference` uses the flex tier. It costs less, but the result can take up to 48 hours.
+- **Several videos in one run:** raise `generation_count`. The runs go in parallel and generation N uses `seed` + N, so the videos differ.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedanceImageToVideo" />
+
+### Notes on outputs
+
+- `VIDEO` is a list output. With `generation_count` above 1, the next node runs once per video.
+- `last_frame` holds the final frame of every video as one image batch, in the same order. Feed it into the next Image to Video node to chain clips.
+- With `non_blocking` on, `response` lists the pending task IDs. `VIDEO` and `last_frame` stay empty, so nodes connected to them are skipped until the video is ready.
+
+## Limits and tips
+
+- The image must be 300 to 6000 pixels on each side, with a width to height ratio from 0.4 to 2.5. The node checks this before it sends anything.
+- The image is sent inline as base64. A single image cannot exceed 30 MB in that form.
+- Duration is 2 to 12 seconds. Resolution is 480p, 720p or 1080p.
+- Activate each Seedance model in the ModelArk console for the region you use.
+- If you interrupt the run, the node cancels the tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed, and the message lists its ID so you can find it with [Video Query Tasks](../video-query-tasks/).
+- A failed request that may have billed is never sent twice automatically.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No BytePlus API key is set` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `image: width and height must be between 300 and 6000 pixels` | Resize the image so both sides are within the range. |
+| `image: aspect ratio (width / height) must be between 0.4 and 2.5` | Crop or pad the image to a less extreme shape. |
+| `has not activated the model` | Open the ModelArk console and activate the model for the same region as your key. |
+| `Input image contains sensitive content` | Use another image. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedanceImageToVideo" />

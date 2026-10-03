@@ -1,0 +1,43 @@
+---
+title: "Interrupts and cancelling"
+description: "What happens to Seedance tasks when you press Interrupt, and how to find a task that kept running."
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Video tasks take a while, so you may want to stop one. This page explains what Interrupt can and cannot do.
+
+## What Interrupt does
+
+When you press **Interrupt** while a BytePlus video node is waiting, the node asks BytePlus to cancel its tasks. The result depends on the task state:
+
+| Task state | What happens |
+|---|---|
+| **Queued** | The task is cancelled. |
+| **Already running** | BytePlus refuses to cancel it (error 409, "cannot be cancelled"). It keeps running, **finishes and is billed**. |
+
+## The node tells you
+
+For a running task, the node writes a line under itself and in the console:
+
+> 1 task(s) were already running and cannot be cancelled: they will finish and be billed. Look them up with Video Query Tasks: (task IDs)
+
+With `generation_count` above 1, the console also shows a summary of how many tasks were cancelled and how many were not.
+
+## Find a task that kept running
+
+Add [Video Query Tasks](../../nodes/video-query-tasks/) and filter by status, model or task ID. It lists your recent video tasks as JSON, including retired Seedance models. ModelArk keeps tasks for 7 days. Use it to find the task ID again and see whether the task has succeeded.
+
+## Long waits
+
+Waiting does not cost anything by itself, but Seedance tasks can queue or run for a long time, and the node has no time limit. **Seedance 2.5 Premium** 4K tasks in particular can wait or run for tens of minutes. After 20 minutes the node adds a hint with the time already waited and a reminder of what Interrupt does.
+
+The node shows queued and running status text while it waits. If polling fails repeatedly, or BytePlus says the key is wrong or the task is unknown or expired, the wait ends with the task ID in the message instead of waiting forever.
+
+<Aside type="tip">
+Not sure whether you want the result? Use the `non_blocking` option: it submits the task and returns at once, and you run the node again to collect the video.
+</Aside>
+
+## Content filter rejections
+
+BytePlus checks inputs and results. A video or image can be rejected with a message like "Generated video contains sensitive content". This filter **sometimes rejects harmless content**. Run again with another `seed`, or rephrase the prompt.

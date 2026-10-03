@@ -1,0 +1,78 @@
+---
+title: "Contributing"
+description: "How the pack and these docs are laid out, how to run the tests, how the docs are generated and checked, and how a release is made."
+---
+
+This page is for people who change the pack or the docs. If you only use the nodes, you do not need it. The code and the full contributor notes are on [GitHub](https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk).
+
+## Repository layout
+
+| Path | What is in it |
+|---|---|
+| `nodes/` | The nodes, one module per service, plus the model list (`models_config.py`), all user-facing text (`constants.py`) and key handling (`credentials.py`). |
+| `web/js/` | The frontend: widget visibility rules, the Settings → BytePlus rows and the progress bar. |
+| `example_workflows/` | The templates shown in ComfyUI's template browser, each with a thumbnail. |
+| `tests/` | The unit tests. |
+| `docs-site/` | This documentation site. |
+
+`CLAUDE.md` in the repository root holds the conventions: BytePlus naming, English only, keys only from Settings, and the checklists for adding a node, an input or a model. Read it before you change a node.
+
+## Run the tests
+
+Template and agent-file tests need no ComfyUI:
+
+```bash
+python3 -m unittest tests.test_workflow_templates tests.test_agent_files
+```
+
+Node tests need a ComfyUI checkout and a Python with torch, ComfyUI's requirements and this pack's requirements. They are skipped without `COMFYUI_ROOT`, and CI treats a skip as a failure:
+
+```bash
+COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed
+```
+
+The tests never call the real BytePlus API.
+
+## How the docs are built
+
+The site is Astro Starlight in `docs-site/`. Tables of inputs, outputs and models, and the facts boxes, are generated from the code, so a page only holds the hand-written text around them. Never copy an input table into a page by hand.
+
+```bash
+cd docs-site
+npm install
+python3 scripts/generate_data.py --object-info http://127.0.0.1:8188/object_info
+node scripts/check-docs.mjs
+npm run dev
+npm run build
+```
+
+- `generate_data.py` reads `/object_info` of a running ComfyUI that has the pack loaded, the example workflows and `nodes/models_config.py`. It writes `src/data/nodes.json`, `templates.json` and `models.json`, the template thumbnails and the workflow downloads. A key is not needed.
+- `check-docs.mjs` checks the format of node and template pages: front matter, the fixed headings and their order, and the links. Run it before every commit.
+- `npm run dev` serves the site at `http://localhost:4321/ComfyUI-BytePlus-ModelArk/`. `npm run build` also checks every link.
+- `import_evidence.py` copies the screenshots and sample media of a live end-to-end run into the docs and writes `src/data/evidence.json` (which run covered each template, and how long it took). Pages show these measured times.
+
+Writing rules: plain English, short sentences, "you", relative links that end in `/`, no keys or signed links, no em dashes, and only facts you checked in the code, the README or the evidence data. The full rules and the page formats are in `docs-site/CONTRIBUTING-DOCS.md`.
+
+## Add a node page
+
+1. Add the node to the pack and make sure it loads in ComfyUI.
+2. Add its class to the `NODES` list in `docs-site/scripts/generate_data.py` with a slug and a group. The order of the list is the sidebar order.
+3. Run `generate_data.py`. It stops with a message if a node is missing from the list.
+4. Copy `src/content/docs/nodes/seedream.mdx` to `nodes/<slug>.mdx` and write the text. The headings and their order are fixed.
+5. Add a canvas screenshot at `src/assets/nodes/<slug>.png`.
+6. Add the node to the table on the [Nodes](../nodes/) page.
+7. Run `node scripts/check-docs.mjs`, then `npm run build`.
+
+## Add a template page
+
+1. Add the workflow to `example_workflows/` with its `.jpg` thumbnail, and add it to the pack's template tests.
+2. Add its title to a group in `TEMPLATE_GROUPS` in `generate_data.py`. A template that is not listed fails the run.
+3. Run `generate_data.py`, then copy `src/content/docs/templates/seedream.mdx` to `templates/<slug>.mdx`.
+4. After a live run, use `import_evidence.py` for the screenshots and sample media.
+5. Run the checker and the build.
+
+If you add or retire a model, follow the checklists in `CLAUDE.md`. The [Models](../models/) page updates when you run `generate_data.py`.
+
+## Releases
+
+Releases are manual. The `publish_action.yml` workflow runs from the Actions tab on `main`, tags the version and publishes the pack to the Comfy Registry. The steps, including the version bump, are in the project's release skill at `.claude/skills/comfyui-registry-release/SKILL.md`.

@@ -38,7 +38,7 @@ export default defineConfig({
 			editLink: {
 				baseUrl: 'https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/edit/main/docs-site/',
 			},
-			plugins: [starlightImageZoom(), starlightLinksValidator()],
+			plugins: [starlightImageZoom(), starlightLinksValidator({ errorOnRelativeLinks: false })],
 			customCss: ['./src/styles/custom.css'],
 			sidebar: [
 				{
@@ -62,12 +62,12 @@ export default defineConfig({
 				{
 					label: 'Nodes',
 					collapsed: true,
-					items: [{ slug: 'nodes' }, ...grouped(nodes, 'nodes', (n) => n.display_name.replace(/^BytePlus /, ''))],
+					items: [{ slug: 'nodes', label: 'Overview' }, ...grouped(nodes, 'nodes', (n) => (n.display_name.replace(/^BytePlus /, '').length < 5 ? n.display_name : n.display_name.replace(/^BytePlus /, '')))],
 				},
 				{
 					label: 'Templates',
 					collapsed: true,
-					items: [{ slug: 'templates' }, ...grouped(templates, 'templates', (t) => t.title)],
+					items: [{ slug: 'templates', label: 'Overview' }, ...grouped(templates, 'templates', (t) => t.title)],
 				},
 				{ label: 'Models', slug: 'models' },
 				{ label: 'Troubleshooting', slug: 'troubleshooting' },

@@ -45,3 +45,9 @@ export function rangeText(input: any): string {
 	const hi = input.max ?? '';
 	return `${lo}–${hi}`;
 }
+
+/** Display name without the "BytePlus " prefix; "BytePlus LLM" keeps it because "LLM" alone is unclear. */
+export function shortName(node: { display_name: string }): string {
+	const short = node.display_name.replace(/^BytePlus /, '');
+	return short.length < 5 ? node.display_name : short;
+}

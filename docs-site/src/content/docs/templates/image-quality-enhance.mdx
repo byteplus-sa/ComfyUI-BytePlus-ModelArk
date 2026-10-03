@@ -1,0 +1,50 @@
+---
+title: "Image Quality Enhance"
+description: "Upscale and restore an image 2x with AI MediaKit Image Quality Enhance, and compare the result with the original in a slider."
+template_file: Image Quality Enhance.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Image Quality Enhance.json" />
+
+## What it makes
+
+A sharper, larger copy of a picture. The template loads an image (the 1024x1024 ComfyUI logo) and enhances it to twice the width and height, 2048x2048. It saves the result and also sets up a before-and-after comparison.
+
+## The workflow
+
+<Shot src="templates/image-quality-enhance-workflow.webp" alt="Load Image feeding Image Quality Enhance, whose outputs go to Save Enhanced Image and to both inputs of Compare Images" caption="Four nodes: Load Image, Image Quality Enhance, Save Enhanced Image and Compare Images." />
+
+1. **Load Image** supplies the picture to improve.
+2. **[Image Quality Enhance](../../nodes/image-quality-enhance/)** runs with `tool_version` set to `standard`, `output_size` set to `multiple` and `multiple` at 2.00. The `image_url` input is empty because the image comes from the socket.
+3. **Save Enhanced Image** writes the enhanced picture to `BytePlus/Image/enhanced`.
+4. **Compare Images** receives the enhanced image as `image_a` and the `original` output as `image_b`. The `original` output is the input resized to the enhanced size, so the slider lines up. Compare Images shows its slider in Nodes 2.0 only; Classic Canvas shows a note instead.
+
+## Run it
+
+1. Add your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). It is a different key from the ModelArk key.
+2. Log in to your Comfy.org account in ComfyUI. A connected image is uploaded to Comfy.org storage first, because AI MediaKit only takes links.
+3. Open the template browser and choose **Image Quality Enhance** under BytePlus.
+4. Press **Run**. The enhanced picture appears in **Save Enhanced Image**.
+
+## Settings worth changing
+
+- **Image:** pick your own picture in **Load Image**. To skip the Comfy.org upload, leave the socket empty and paste a public link into `image_url`.
+- **`tool_version`:** `standard` is fast clean-up for thumbnails, UGC and OCR input. `professional` and `max` add richer texture and have a `generative_enhance_mode` choice. Prices differ per version.
+- **`multiple`:** the scale factor, 1 to 8 with `standard`, up to 30 with `professional` and `max`.
+- **`output_size`:** switch to `target size` to set a width and height in pixels instead of a factor.
+
+## Example result
+
+<Shot src="templates/image-quality-enhance-result.webp" alt="The enhanced 2048 by 2048 ComfyUI logo in Save Enhanced Image" caption="Result of the live test run." />
+
+## Time and cost
+
+The live test took about 11 seconds. AI MediaKit bills each enhanced image, and the price depends on `tool_version`. Running again with an unchanged workflow reuses ComfyUI's cached result and does not bill.
+
+## Related
+
+- Node: [Image Quality Enhance](../../nodes/image-quality-enhance/)
+- Next step: [Generate and Enhance](../generate-and-enhance/) makes an image with Seedream and enhances it right away.

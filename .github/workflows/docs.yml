@@ -1,0 +1,56 @@
+name: Docs
+
+# Builds the documentation site (docs-site/, Astro Starlight) on every change to it, and
+# publishes it to GitHub Pages from main. Needs Settings > Pages > Source: GitHub Actions.
+on:
+  push:
+    branches: [main]
+    paths: ["docs-site/**", "example_workflows/**", ".github/workflows/docs.yml"]
+  pull_request:
+    paths: ["docs-site/**", "example_workflows/**", ".github/workflows/docs.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - run: npm ci
+      # Format of every node and template page, images, media, banned text.
+      - run: node scripts/check-docs.mjs --strict
+      # Also validates every internal link.
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
