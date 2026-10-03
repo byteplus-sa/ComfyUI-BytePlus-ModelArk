@@ -44,7 +44,9 @@ def load_models_config():
 class WorkflowTemplateTests(unittest.TestCase):
 
     # Models that no template shows (their nodes stay; see test_templates_show_current_models_only).
-    LEGACY_MODEL_PREFIXES = ("seedance-1-", "seedream-4-")
+    LEGACY_MODEL_PREFIXES = (
+        "seedance-1-", "seedream-4-", "seed-tts-1.0", "seed-icl-1.0", "seed-asr-1.0",
+    )
 
     # BytePlusSeedream / BytePlusSeedreamLayerSeparation (core-style): inputs per
     # selected model; widgets_values index of the model value.
@@ -367,8 +369,9 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertEqual(nodes["BytePlusSeed"]["widgets_values"][1], "Seed 2.1 Turbo")
 
     def test_templates_show_current_models_only(self):
-        # Seedance 1.x and Seedream 4.x keep their nodes / dropdown options, but
-        # no template shows them (Seedance 1.5 is retired and not offered at all).
+        # Seedance 1.x, Seedream 4.x and the Seed Speech 1.0 models (TTS, ICL, ASR) keep
+        # their nodes / dropdown options, but no template shows them (Seedance 1.5 is
+        # retired and not offered at all).
         for name in sorted(EXPECTED_WORKFLOWS):
             text = json.dumps(load_workflow(name))
             for prefix in self.LEGACY_MODEL_PREFIXES:

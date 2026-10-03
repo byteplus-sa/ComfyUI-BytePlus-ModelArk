@@ -51,7 +51,7 @@ The project release skill is `.claude/skills/comfyui-registry-release/SKILL.md`.
 | `web/js/byteplus_credentials.js` | Settings > BytePlus: custom (function-type) settings rows that talk to `/byteplus/credentials`; the keys never go through ComfyUI's settings store, the fields are cleared after saving, each editor is built once (ComfyUI re-runs the render function). |
 | `web/js/byteplus_progress.js` | Canvas progress bar driven by the `progress` websocket event. |
 | `docs/images/` | Screenshots for the README's Settings > BytePlus guide (taken on a throwaway ComfyUI with a fake key; retake them when the Settings rows change). |
-| `example_workflows/*.json` | Templates shipped to the ComfyUI template browser; guarded by tests. They contain no client nodes. Each has a `<name>.jpg` thumbnail (a screenshot of the graph); retake it when the template changes. Templates show current models only: no Seedance 1.x or Seedream 4.x (`LEGACY_MODEL_PREFIXES`, tested). Those nodes and options stay in the pack without a template. |
+| `example_workflows/*.json` | Templates shipped to the ComfyUI template browser; guarded by tests. They contain no client nodes. Each has a `<name>.jpg` thumbnail (a screenshot of the graph); retake it when the template changes. Templates show current models only: no Seedance 1.x, Seedream 4.x or Seed Speech 1.0 (`seed-tts-1.0`, `seed-icl-1.0`, `seed-asr-1.0`) (`LEGACY_MODEL_PREFIXES`, tested). Those nodes and options stay in the pack without a template. |
 | `.comfyignore` | Dev files excluded from the registry package. |
 
 ## Commands
