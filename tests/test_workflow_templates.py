@@ -23,7 +23,8 @@ EXPECTED_WORKFLOWS = {
     "Seedance Video Extension.json",
     "Seed Prompt Writer.json",
     "Generate and Enhance.json",
-    "Private Asset Library.json",
+    "Virtual Portrait - Existing Asset.json",
+    "Virtual Portrait - New Asset.json",
 }
 
 
@@ -173,6 +174,10 @@ class WorkflowTemplateTests(unittest.TestCase):
             "speaker_id", "language", "reference_text", "demo_text",
             "disable_volume_normalization", "audio",
         ],
+        "BytePlusCreateImageAsset": [
+            "image", "group_id", "image_url", "group_name", "asset_name", "project_name", "wait_until_active",
+        ],
+        "BytePlusAssetLibrary": ["group_type", "group_id", "status", "name", "max_results", "project_name"],
         "BytePlusSeedanceDraftToFinal": [
             "draft_task_id", "watermark", "generation_count", "non_blocking",
         ],
@@ -505,14 +510,44 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertEqual(modes["BytePlusSeedance2TextToVideo"], {4})
         self.assertEqual(modes["BytePlusVideoEnhance"], {4})
 
-    def test_private_asset_library_template(self):
-        workflow = load_workflow("Private Asset Library.json")
-        # An existing asset ID (Text node) is a reference of the Seedance node; its type is looked
-        # up with the IAM AK/SK from Settings > BytePlus.
+    ASSET_SLOT = "model.reference_assets.asset_1"
+
+    def test_virtual_portrait_existing_asset_template(self):
+        workflow = load_workflow("Virtual Portrait - Existing Asset.json")
+        # Option A: a pasted asset ID; option B: Asset Library looks it up by name (one result).
         self.assertEqual(self.edges(workflow), {
-            ("PrimitiveString", 0, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"),
+            ("PrimitiveString", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
+            ("BytePlusAssetLibrary", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
+            ("BytePlusAssetLibrary", 1, "PreviewAny", "source"),
             ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
         })
+        nodes = {node["type"]: node for node in workflow["nodes"]}
+        library = nodes["BytePlusAssetLibrary"]
+        # group_type, group_id, status, name, max_results: an asset_N slot takes one asset.
+        self.assertEqual(library["widgets_values"][:5], ["AIGC", "", "Active", "My portrait", 1])
+        # Option B is bypassed until the user enables its group (it would render a second, paid video).
+        option_b = [node for node in workflow["nodes"] if node["pos"][1] >= 740]
+        self.assertEqual(len(option_b), 4)
+        self.assertEqual({node["mode"] for node in option_b}, {4})
+        self.assertEqual(
+            {node["mode"] for node in workflow["nodes"] if node["pos"][1] < 740}, {0}
+        )
+        for node in workflow["nodes"]:
+            if node["type"] == "BytePlusSeedance2Reference":
+                self.assertIn("asset1", node["widgets_values"][1])
+
+    def test_virtual_portrait_new_asset_template(self):
+        workflow = load_workflow("Virtual Portrait - New Asset.json")
+        # The image becomes a virtual portrait asset, and its ID is the Seedance reference.
+        self.assertEqual(self.edges(workflow), {
+            ("LoadImage", 0, "BytePlusCreateImageAsset", "image"),
+            ("BytePlusCreateImageAsset", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
+            ("BytePlusCreateImageAsset", 3, "PreviewAny", "source"),
+            ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
+        })
+        asset = next(n for n in workflow["nodes"] if n["type"] == "BytePlusCreateImageAsset")
+        # group_id empty -> the "ComfyUI Virtual Portraits" group is found or created; wait until Active.
+        self.assertEqual(asset["widgets_values"], ["", "", "ComfyUI Virtual Portraits", "My portrait", "default", True])
         reference = next(n for n in workflow["nodes"] if n["type"] == "BytePlusSeedance2Reference")
         self.assertIn("asset1", reference["widgets_values"][1])
 
@@ -559,6 +594,19 @@ class WorkflowTemplateTests(unittest.TestCase):
                         grew = True
             with self.subTest(workflow=name):
                 self.assertEqual(sorted(types[node_id] for node_id in set(types) - runs), [])
+
+    def test_templates_do_not_embed_keys(self):
+        # Workflows travel (and are embedded in output metadata): no key-like values in them.
+        import re
+
+        # A known key prefix, or a long run of letters and digits with no spaces or slashes.
+        key_like = re.compile(r"^(ark-|AKLT|AKID)|^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9_-]{32,}$")
+        for name in sorted(EXPECTED_WORKFLOWS):
+            for node in load_workflow(name)["nodes"]:
+                for value in node.get("widgets_values") or []:
+                    if isinstance(value, str):
+                        with self.subTest(workflow=name, node=node["type"]):
+                            self.assertIsNone(key_like.search(value.strip()), value[:12])
 
     def test_templates_have_no_client_inputs(self):
         # Nodes take the keys from Settings > BytePlus: no client sockets, no keys in workflows.

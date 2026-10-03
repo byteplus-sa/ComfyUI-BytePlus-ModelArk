@@ -921,13 +921,17 @@ class ComfyStorageUploadTests(unittest.IsolatedAsyncioTestCase):
         sys.modules["comfy_api_nodes.util"] = None
         try:
             with self.assertRaises(Exception) as ctx:
-                await nodes_video.upload_video_to_comfy_storage(object, object())
+                await nodes_video.upload_video_to_comfy_storage(
+                    object, object(),
+                    unavailable_key="err_comfy_upload_unavailable_reference",
+                    failed_key="err_comfy_upload_failed_reference",
+                )
         finally:
             if old_module is ...:
                 sys.modules.pop("comfy_api_nodes.util", None)
             else:
                 sys.modules["comfy_api_nodes.util"] = old_module
-        self.assertIn("ref_video_urls", str(ctx.exception))
+        self.assertIn("asset_N", str(ctx.exception))
         self.assertIn("--disable-api-nodes", str(ctx.exception))
 
     async def test_upload_failure_mentions_comfy_login(self):
@@ -940,7 +944,11 @@ class ComfyStorageUploadTests(unittest.IsolatedAsyncioTestCase):
         )
         try:
             with self.assertRaises(Exception) as ctx:
-                await nodes_video.upload_video_to_comfy_storage(object, object())
+                await nodes_video.upload_video_to_comfy_storage(
+                    object, object(),
+                    unavailable_key="err_comfy_upload_unavailable_reference",
+                    failed_key="err_comfy_upload_failed_reference",
+                )
         finally:
             if old_module is ...:
                 sys.modules.pop("comfy_api_nodes.util", None)
@@ -949,7 +957,7 @@ class ComfyStorageUploadTests(unittest.IsolatedAsyncioTestCase):
         message = str(ctx.exception)
         self.assertIn("401 Unauthorized", message)
         self.assertIn("Comfy.org", message)
-        self.assertIn("ref_video_urls", message)
+        self.assertIn("asset_N", message)
 
 
 @requires_comfyui

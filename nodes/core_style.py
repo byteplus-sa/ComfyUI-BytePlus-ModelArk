@@ -310,11 +310,20 @@ def _has_asset_credentials(client):
 
 
 def _asset_library(client):
-    """One AssetLibrary (two signed SDK clients) per client, reused by every lookup of a run."""
-    from .nodes_assets import AssetLibrary
+    """
+    One AssetLibrary (two signed SDK clients) per client, reused by every lookup.
+    The client outlives a run (get_client caches it), so the library is rebuilt
+    when the AK/SK in Settings > BytePlus change.
+    """
+    from .nodes_assets import AssetLibrary, asset_credentials_stamp, resolve_asset_credentials
 
+    stamp = asset_credentials_stamp(resolve_asset_credentials(client))
     cached = getattr(client, "_asset_library", None)
-    if cached is not None and type(cached) is AssetLibrary:
+    if (
+        cached is not None
+        and type(cached) is AssetLibrary
+        and getattr(cached, "credentials_stamp", None) == stamp
+    ):
         return cached
     library = AssetLibrary(client)
     try:

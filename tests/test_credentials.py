@@ -44,6 +44,7 @@ if COMFY_ROOT:
     credentials = importlib.import_module(f"{PACKAGE_NAME}.nodes.credentials")
     credentials_routes = importlib.import_module(f"{PACKAGE_NAME}.nodes.credentials_routes")
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
+    core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
     nodes_assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
@@ -364,6 +365,27 @@ class ClientTests(IsolatedCredentials):
         os.remove(self.env_path)
         with self.assertRaisesRegex(BytePlusException, "Settings > BytePlus"):
             nodes_assets.resolve_asset_credentials(SimpleNamespace())
+
+    def test_new_asset_credentials_reach_the_cached_asset_library(self):
+        # The client is cached across runs; a new AK/SK pair in Settings must not keep
+        # signing asset lookups with the old one.
+        self.write_env("BYTEPLUS_API_KEY=k\nBYTEPLUS_ACCESS_KEY=AK_OLD\nBYTEPLUS_SECRET_KEY=SK_OLD\n")
+        client = nodes_shared.get_client()
+        first = core_style._asset_library(client)
+        self.assertIs(core_style._asset_library(client), first)  # reused within the same pair
+        self.assertEqual(first._api.api_client.configuration.ak, "AK_OLD")
+        self.write_env("BYTEPLUS_API_KEY=k\nBYTEPLUS_ACCESS_KEY=AK_NEW\nBYTEPLUS_SECRET_KEY=SK_NEW\n")
+        same_client = nodes_shared.get_client()
+        self.assertIs(same_client, client)
+        second = core_style._asset_library(same_client)
+        self.assertIsNot(second, first)
+        self.assertEqual(second._api.api_client.configuration.ak, "AK_NEW")
+        self.assertEqual(second._create_api.api_client.configuration.sk, "SK_NEW")
+        # A new secret key alone (same access key) also counts.
+        self.write_env("BYTEPLUS_API_KEY=k\nBYTEPLUS_ACCESS_KEY=AK_NEW\nBYTEPLUS_SECRET_KEY=SK_ROTATED\n")
+        third = core_style._asset_library(nodes_shared.get_client())
+        self.assertIsNot(third, second)
+        self.assertEqual(third._api.api_client.configuration.sk, "SK_ROTATED")
 
     def test_speech_and_mediakit_keys(self):
         with self.assertRaisesRegex(BytePlusException, "BYTEPLUS_SEED_SPEECH_API_KEY"):

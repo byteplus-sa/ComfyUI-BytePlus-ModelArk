@@ -69,6 +69,12 @@ def resolve_asset_credentials(client):
     return found
 
 
+def asset_credentials_stamp(found):
+    """One-way stamp of the whole AK/SK set, to tell when it changed without keeping it."""
+    joined = "\0".join((found["access_key"], found["secret_key"], found.get("session_token") or ""))
+    return hashlib.sha256(joined.encode()).hexdigest()
+
+
 class AssetLibrary:
     """Signed calls to the asset library OpenAPI through the SDK's UniversalApi."""
 
@@ -97,6 +103,8 @@ class AssetLibrary:
         self.region = region
         # Identifies the account in cache keys without keeping the key itself.
         self.account_fingerprint = hashlib.sha256(credentials["access_key"].encode()).hexdigest()[:16]
+        # Which AK/SK this library signs with (see core_style._asset_library).
+        self.credentials_stamp = asset_credentials_stamp(credentials)
 
     def call(self, action, body):
         """Blocking call; returns the Result object. Run it with asyncio.to_thread."""
@@ -346,8 +354,9 @@ class BytePlusAssetLibrary(comfy_io.ComfyNode):
             category=GLOBAL_CATEGORY,
             description=(
                 "List assets in your private asset library (virtual portraits or verified real "
-                "people). asset_uris (one per line) can go straight into the Seedance 2 / 2.5 "
-                "ref_image_urls, ref_video_urls or ref_audio_urls inputs."
+                "people). asset_uris has one asset:// URI per line: filter to one asset (name, "
+                "max_results 1) to connect it to an asset_N input of Seedance 2.5 Reference to "
+                "Video, or copy an ID into first_frame_asset_id / last_frame_asset_id."
             ),
             is_output_node=True,
             inputs=[

@@ -120,7 +120,7 @@ Change the prompt or seed between test runs: ComfyUI reuses the cached result of
 |---|---|
 | No BytePlus page in Settings | Update the pack (ComfyUI-Manager → Update), restart ComfyUI and reload the page. |
 | *Invalid API Key (401)* | The key and region don't match. Pick the key's region in Settings (or set `BYTEPLUS_REGION`). |
-| *No BytePlus API key found…* | No key is set. Save one in Settings or `.env`. |
+| *No BytePlus API key is set…* | No key is set. Save one in Settings or `.env`. |
 | *Invalid X-Api-Key* on speech nodes | You used a ModelArk key. Seed Speech needs its own key. |
 | Save says *Requests from another origin are not accepted* | ComfyUI is behind a proxy that hides the address you opened. Edit `.env` by hand. |
 
@@ -292,7 +292,8 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Seedance Video Extension | Three Seedance clips, each starting from the previous clip's `last_frame`, joined into one video (needs ComfyUI 0.36+ for `Concatenate Video`). |
 | Seed Prompt Writer | The LLM turns a short idea into a detailed Seedream prompt. |
 | Generate and Enhance | Seedream → Image Quality Enhance; Seedance → vCube Video Enhance (ModelArk + MediaKit keys). |
-| Private Asset Library | Uses a private asset as an `asset_N` reference in Seedance 2.5 (IAM AK/SK + Advanced Creation Rights). |
+| Virtual Portrait - Existing Asset | Uses an asset already in your library as an `asset_N` reference in Seedance 2.5: paste its ID, or look it up by name with Asset Library (IAM AK/SK + Advanced Creation Rights). |
+| Virtual Portrait - New Asset | Uploads an image as a new virtual portrait asset and uses it in Seedance 2.5 in the same run. |
 
 ## Development
 

@@ -128,8 +128,9 @@ COMFY_VIDEO_UPLOAD_CACHE_MAX_ENTRIES = 256
 async def upload_video_to_comfy_storage(
     node_cls,
     video,
-    unavailable_key="err_comfy_upload_unavailable",
-    failed_key="err_comfy_upload_failed",
+    *,
+    unavailable_key,
+    failed_key,
 ) -> str:
     """
     Upload a reference video to Comfy.org storage and return its public URL.
@@ -151,7 +152,7 @@ async def upload_video_to_comfy_storage(
         raise BytePlusException(get_text(failed_key, e=e))
 
 
-async def upload_videos_to_comfy_storage_cached(node_cls, videos, helper=None, **message_keys):
+async def upload_videos_to_comfy_storage_cached(node_cls, videos, helper=None, *, unavailable_key, failed_key):
     """
     Upload local videos to Comfy.org storage, reusing links cached for the
     same file or buffer (COMFY_VIDEO_UPLOAD_CACHE). Returns URLs in order.
@@ -168,7 +169,9 @@ async def upload_videos_to_comfy_storage_cached(node_cls, videos, helper=None, *
         done_before = len(uploaded_video_urls)
         pending_before = max(0, len(videos) - done_before)
         log_msg("upload_ref_video_start", done=done_before, pending=pending_before)
-        uploaded_video_url = await upload_video_to_comfy_storage(node_cls, v, **message_keys)
+        uploaded_video_url = await upload_video_to_comfy_storage(
+            node_cls, v, unavailable_key=unavailable_key, failed_key=failed_key
+        )
         helper._save_cached_comfy_video_url(cache_key, uploaded_video_url)
         uploaded_video_urls.append(uploaded_video_url)
         log_msg("upload_ref_video_done")
@@ -185,10 +188,6 @@ def build_draft_final_content(draft_ids, generation_count):
     if len(drafts) == 1:
         return drafts[0], generation_count
     return drafts, len(drafts)
-
-
-    # With auto the model decides the task type; any conflict is reported by
-    # the API (InvalidParameter.TaskTypeConstraint).
 
 
 def _raise_if_text_params(prompt: str, text_params: list[str]) -> None:
@@ -817,6 +816,11 @@ class BytePlusProgressTest(comfy_io.ComfyNode):
                     "test_model",
                     options=test_model_options,
                     default="None",
+                    tooltip=(
+                        "None simulates progress locally. Pick a model to read your succeeded tasks "
+                        "of it (a free ModelArk call with the saved key) and show the time estimate "
+                        "instead."
+                    ),
                 ),
                 comfy_io.Combo.Input(
                     "test_resolution",
