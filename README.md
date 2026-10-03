@@ -295,6 +295,16 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Generate and Enhance | Seedream → Image Quality Enhance; Seedance → vCube Video Enhance (ModelArk + MediaKit keys). |
 | Virtual Portrait - Existing Asset | Uses an asset already in your library as an `asset_N` reference in Seedance 2.5: paste its ID, or look it up by name with Asset Library (IAM AK/SK + Advanced Creation Rights). |
 | Virtual Portrait - New Asset | Uploads an image as a new virtual portrait asset and uses it in Seedance 2.5 in the same run. |
+| Image to UGC Video | A product photo and a one-line brief become a 9:16 creator video: the LLM writes the script and the shot prompt, Seedance 2.5 Reference shoots it with the product as reference, Seed TTS adds the voiceover (ModelArk + Seed Speech keys). |
+| Product Ad in One Click | A one-line brief: the LLM writes an image and a motion prompt, Seedream 5.0 Pro makes the hero shot, Seedance 2.0 animates it, vCube enhances it to 1080p (ModelArk + MediaKit keys). |
+| Old Photo to Living Memory | Image Quality Enhance restores and upscales a photo, Seedance image to video adds subtle motion, Video Smoothness Enhance finishes the clip (a stand-in photo is generated so it runs as it is). |
+| Podcast Clip | The LLM writes a HOST and GUEST dialogue, two Seed TTS voices speak it, Seed ASR makes SRT subtitles, Seedream paints the cover art. |
+| Multilingual Dubbing | Seed ASR transcribes a speech clip, the LLM translates it, Seed TTS speaks the translation in another language. |
+| Product Lookbook | One product photo and one prompt give four coherent lifestyle images with Seedream sequential generation. |
+| Sound Design | The LLM turns a scene description into a sound-design prompt and Seed Audio renders two takes. |
+| Consistent Character Shots | Seedream paints a character, Create Image Asset registers it, three Seedance 2.0 Reference shots use it as `asset_1`, Concatenate Video joins them (IAM AK/SK). |
+| Seedance Task Query | Video Query Tasks collects a Seedance task by ID (or lists the latest tasks) and shows its status and model. |
+| Video and Audio Assets | Create Video Asset and Create Audio Asset register media in your private library, Asset Library lists it, Seedance 2.5 Reference uses both as `asset_1` and `asset_2` (IAM AK/SK). |
 
 ## Development
 
