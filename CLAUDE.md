@@ -91,6 +91,8 @@ Tests use stdlib `unittest` (pytest is not a dependency). `test_model_updates` f
 
 **Bump version** → `pyproject.toml` `version` **and** `properties.ver` on every BytePlus node in every `example_workflows/*.json` (tested) **and** README status line.
 
+**Registry name and description** → `[tool.comfy] DisplayName` and `[project] description` in `pyproject.toml` (the node ID `name` never changes). Keep them, the README title and tagline, and the opening paragraph of this file in step when a service is added; the Registry shows the new text only after a new version is published.
+
 **Publish** → `.github/workflows/publish_action.yml` is manual (`workflow_dispatch`) and only runs on `main`: it tags `v{version}` and publishes to the Comfy Registry.
 
 ## Gotchas

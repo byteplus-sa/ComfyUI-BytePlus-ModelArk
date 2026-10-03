@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI-BytePlus-ModelArk"
-description = "ComfyUI nodes for BytePlus ModelArk (Seedance video, Seedream image, Seed multimodal understanding) and Seed Speech (Seed Audio, TTS, ASR), billed to your own BytePlus account."
-version = "0.5.0"
+description = "ComfyUI nodes for BytePlus ModelArk (Seedream, Seedance, Seed/DeepSeek/GLM LLMs), Seed Speech (Seed Audio, TTS, ASR) and AI MediaKit (video and image enhancement), billed to your own BytePlus account."
+version = "0.5.1"
 license = {file = "LICENSE"}
 requires-python = ">=3.10"
 classifiers = ["Operating System :: OS Independent"]
@@ -13,6 +13,6 @@ Issues = "https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/issues"
 
 [tool.comfy]
 PublisherId = "byteplus-sa"
-DisplayName = "ComfyUI BytePlus ModelArk"
+DisplayName = "ComfyUI BytePlus ModelArk & AI MediaKit"
 Icon = "https://raw.githubusercontent.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/main/assets/registry-icon.jpg"
 requires-comfyui = ">=0.31.0"
