@@ -142,7 +142,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeed",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.1"
+        "ver": "0.5.2"
       },
       "widgets_values": [
         "",
@@ -407,7 +407,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.1"
+        "ver": "0.5.2"
       },
       "widgets_values": [
         "Seedance 2.5",
@@ -474,7 +474,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedTTS",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.1"
+        "ver": "0.5.2"
       },
       "widgets_values": [
         "seed-tts-2.0",
