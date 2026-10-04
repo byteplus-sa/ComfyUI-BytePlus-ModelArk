@@ -306,6 +306,9 @@ async def _get_api_estimated_time_async(
     except Exception:
         return (fallback_time, "est_fallback")
 
+# After this long the node status adds a hint (4K Premium tasks and the Flex tier can take an hour or more).
+LONG_WAIT_HINT_SECONDS = 20 * 60
+
 class BytePlusGenerationExecutor:
     """
     Runs generation requests.
@@ -845,6 +848,12 @@ class BytePlusGenerationExecutor:
                     left = int(current_max - accumulated_running_time)
                     if left > 0:
                         remaining = get_text("node_poll_remaining", seconds=left)
+                waited_seconds = int(time.time() - poll_started)
+                long_wait = (
+                    get_text("node_poll_long_wait", minutes=waited_seconds // 60)
+                    if waited_seconds >= LONG_WAIT_HINT_SECONDS
+                    else ""
+                )
                 send_node_text(
                     node_id,
                     get_text(
@@ -853,9 +862,9 @@ class BytePlusGenerationExecutor:
                         queued=current_queued_count,
                         done=len(successful_tasks) + len(failed_tasks_info),
                         total=total_tasks_count,
-                        elapsed=int(time.time() - poll_started),
+                        elapsed=waited_seconds,
                         remaining=remaining,
-                    ),
+                    ) + long_wait,
                     ps_instance,
                 )
 
@@ -881,6 +890,11 @@ class BytePlusGenerationExecutor:
             cancel_coroutines = [_cancel_task_safe(tid) for tid in tasks_to_poll_ids]
             results = await asyncio.gather(*cancel_coroutines)
 
+            running_ids = [
+                tid
+                for tid, (ok, msg) in zip(tasks_to_poll_ids, results)
+                if not ok and "cannot be cancelled" in (msg or "")
+            ]
             for success, msg in results:
                 if success:
                     cancel_stats["success"] += 1
@@ -909,6 +923,11 @@ class BytePlusGenerationExecutor:
                 if failed_total > 0:
                     for msg, count in cancel_stats["failed_counts"].items():
                         log_msg("cancel_batch_reason", msg=msg, count=count)
+
+            if running_ids:
+                note = get_text("cancel_running_billed", count=len(running_ids), ids=", ".join(running_ids))
+                log_msg("cancel_running_billed", count=len(running_ids), ids=", ".join(running_ids))
+                send_node_text(node_id, note, ps_instance)
 
             raise e
 

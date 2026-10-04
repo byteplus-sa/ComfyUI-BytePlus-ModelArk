@@ -1,0 +1,826 @@
+{
+  "id": "7602441f-81fb-43b6-b486-b020055ae68c",
+  "revision": 0,
+  "last_node_id": 13,
+  "last_link_id": 22,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        26,
+        582
+      ],
+      "size": [
+        340,
+        88
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "title": "Character description (change me)",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "A friendly young woman with short curly hair, a mustard cardigan and round glasses"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "BytePlusSeedream",
+      "pos": [
+        642,
+        108
+      ],
+      "size": [
+        340,
+        464
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 12
+        },
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": [
+            13
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Character portrait (Seedream 5.0 Pro)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "",
+        "seedream 5.0 pro",
+        "(1K) 864x1152 (3:4)",
+        2048,
+        2048,
+        "standard",
+        2,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque",
+        "randomize",
+        "randomize"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "RegexExtract",
+      "pos": [
+        642,
+        626
+      ],
+      "size": [
+        340,
+        262
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "title": "Link to the portrait",
+      "properties": {
+        "Node name for S&R": "RegexExtract"
+      },
+      "widgets_values": [
+        "",
+        "https://[^\"\\s]+",
+        "First Match",
+        true,
+        false,
+        false,
+        1
+      ]
+    },
+    {
+      "id": 4,
+      "type": "BytePlusCreateImageAsset",
+      "pos": [
+        642,
+        942
+      ],
+      "size": [
+        340,
+        238
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_url",
+          "type": "STRING",
+          "widget": {
+            "name": "image_url"
+          },
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "asset_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "group_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "asset_uri",
+          "type": "STRING",
+          "links": [
+            15,
+            16,
+            17,
+            22
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Register the character (Create Image Asset)",
+      "properties": {
+        "Node name for S&R": "BytePlusCreateImageAsset",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "",
+        "",
+        "ComfyUI characters",
+        "ComfyUI character",
+        "default",
+        true
+      ]
+    },
+    {
+      "id": 5,
+      "type": "BytePlusSeedance2Reference",
+      "pos": [
+        26,
+        1570
+      ],
+      "size": [
+        340,
+        456
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.reference_images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 15
+        },
+        {
+          "name": "model.reference_assets.asset_2",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            18
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Shot 1 (asset_1 = the character)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedance2Reference",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "Seedance 2.0",
+        "asset1 walks into a sunlit cafe, looks around and sits down by the window, soft natural light, gentle camera follow.",
+        "720p",
+        "16:9",
+        5,
+        true,
+        true,
+        false,
+        11,
+        "randomize",
+        false,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 6,
+      "type": "BytePlusSeedance2Reference",
+      "pos": [
+        392,
+        1570
+      ],
+      "size": [
+        340,
+        456
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.reference_images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 16
+        },
+        {
+          "name": "model.reference_assets.asset_2",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            19
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Shot 2 (asset_1 = the character)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedance2Reference",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "Seedance 2.0",
+        "asset1 sips a coffee and reads a handwritten letter, then smiles quietly, warm indoor light, close-up with shallow depth of field.",
+        "720p",
+        "16:9",
+        5,
+        true,
+        true,
+        false,
+        12,
+        "randomize",
+        false,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 7,
+      "type": "BytePlusSeedance2Reference",
+      "pos": [
+        758,
+        1570
+      ],
+      "size": [
+        340,
+        456
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.reference_images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 17
+        },
+        {
+          "name": "model.reference_assets.asset_2",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            20
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Shot 3 (asset_1 = the character)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedance2Reference",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "Seedance 2.0",
+        "asset1 steps out onto a lively street and waves goodbye to the camera, golden hour light, handheld tracking shot.",
+        "720p",
+        "16:9",
+        5,
+        true,
+        true,
+        false,
+        13,
+        "randomize",
+        false,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 8,
+      "type": "ConcatenateVideo",
+      "pos": [
+        1194,
+        1570
+      ],
+      "size": [
+        340,
+        138
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "videos.video0",
+          "type": "VIDEO",
+          "link": 18
+        },
+        {
+          "name": "videos.video1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 19
+        },
+        {
+          "name": "videos.video2",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 20
+        },
+        {
+          "name": "videos.video3",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "complete_audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            21
+          ]
+        }
+      ],
+      "title": "Join the three shots",
+      "properties": {
+        "Node name for S&R": "ConcatenateVideo"
+      },
+      "widgets_values": [
+        "auto"
+      ]
+    },
+    {
+      "id": 9,
+      "type": "SaveVideo",
+      "pos": [
+        1194,
+        1762
+      ],
+      "size": [
+        340,
+        106
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "Save the sequence",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Video/character_shots",
+        "auto",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "PreviewAny",
+      "pos": [
+        642,
+        1234
+      ],
+      "size": [
+        340,
+        122
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Character asset URI",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 13,
+      "type": "MarkdownNote",
+      "pos": [
+        26,
+        108
+      ],
+      "size": [
+        520,
+        420
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Consistent character across shots\n\nDescribe a character. **Seedream** paints the portrait, **Create Image Asset** registers it in your private asset library, and three **Seedance 2.0 Reference** shots use the asset as *asset_1*: write `asset1` in each prompt and the same person appears in every shot. **Concatenate Video** joins them.\n\nThe asset can be reused in later runs: use *Asset Library* to find it, or paste its ID into *asset_1*. Needs a ModelArk key and IAM AK/SK with asset-library permission in Settings > BytePlus."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      12,
+      1,
+      0,
+      2,
+      0,
+      "STRING"
+    ],
+    [
+      13,
+      2,
+      1,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      14,
+      3,
+      0,
+      4,
+      1,
+      "STRING"
+    ],
+    [
+      15,
+      4,
+      2,
+      5,
+      3,
+      "STRING"
+    ],
+    [
+      16,
+      4,
+      2,
+      6,
+      3,
+      "STRING"
+    ],
+    [
+      17,
+      4,
+      2,
+      7,
+      3,
+      "STRING"
+    ],
+    [
+      18,
+      5,
+      0,
+      8,
+      0,
+      "VIDEO"
+    ],
+    [
+      19,
+      6,
+      0,
+      8,
+      1,
+      "VIDEO"
+    ],
+    [
+      20,
+      7,
+      0,
+      8,
+      2,
+      "VIDEO"
+    ],
+    [
+      21,
+      8,
+      0,
+      9,
+      0,
+      "VIDEO"
+    ],
+    [
+      22,
+      4,
+      2,
+      10,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 9,
+      "title": "1 · Character",
+      "bounding": [
+        0,
+        0,
+        572,
+        1392
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 10,
+      "title": "2 · Portrait and asset",
+      "bounding": [
+        616,
+        0,
+        392,
+        1392
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 11,
+      "title": "3 · Three shots (Seedance 2.0 Reference)",
+      "bounding": [
+        0,
+        1462,
+        1124,
+        600
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 12,
+      "title": "4 · Join and save",
+      "bounding": [
+        1168,
+        1462,
+        392,
+        600
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5688622754491018,
+      "offset": [
+        719.3157894736842,
+        52.73684210526312
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

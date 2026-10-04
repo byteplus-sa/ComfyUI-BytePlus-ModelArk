@@ -37,3 +37,6 @@ files_upload_cache.json
 ARCHITECTURE.md
 .artifacts/
 .claude/launch.json
+
+# e2e test reports (shared via Artifact, not committed)
+e2e-report/

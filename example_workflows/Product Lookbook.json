@@ -1,0 +1,230 @@
+{
+  "id": "bc7d6b5e-7148-4fff-8ae9-8db06f2614a0",
+  "revision": 0,
+  "last_node_id": 6,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        26,
+        462
+      ],
+      "size": [
+        340,
+        326
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Product photo (change me)",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "product_photo.png",
+        "image"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "BytePlusSeedream",
+      "pos": [
+        622,
+        108
+      ],
+      "size": [
+        340,
+        440
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 3
+        },
+        {
+          "name": "model.images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Sequential lookbook (Seedream 5.0 Lite)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "A four-image lifestyle lookbook of the matte-black insulated water bottle with a bamboo lid shown in the reference image (keep the same bottle, a tall cylinder with a round bamboo cap): 1) on a desk in a bright home office, 2) in a backpack side pocket on a hiking trail, 3) on a cafe table at golden hour, 4) on a gym bench. Same product in every image, editorial photography, consistent colour grading.",
+        "seedream 5.0 lite",
+        "(2K) 2304x1728 (4:3)",
+        2048,
+        2048,
+        4,
+        false,
+        22,
+        "randomize",
+        false,
+        true,
+        1,
+        "randomize",
+        "randomize"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SaveImage",
+      "pos": [
+        622,
+        602
+      ],
+      "size": [
+        340,
+        80
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Save the lookbook",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Image/lookbook"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "MarkdownNote",
+      "pos": [
+        26,
+        108
+      ],
+      "size": [
+        500,
+        300
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Lookbook from sequential images\n\nOne prompt, one reference photo, **four coherent images**: set *max_images* in the Seedream node (up to 15 with the reference images counted) and describe each scene in the prompt.\n\nNeeds a ModelArk key in Settings > BytePlus."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      3,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      2,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 5,
+      "title": "1 · Product",
+      "bounding": [
+        0,
+        0,
+        552,
+        824
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 6,
+      "title": "2 · Generate four scenes (Seedream)",
+      "bounding": [
+        596,
+        0,
+        392,
+        824
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        40,
+        40
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}
