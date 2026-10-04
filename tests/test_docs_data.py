@@ -48,6 +48,25 @@ class DocsDataTests(unittest.TestCase):
         for template in load("templates.json"):
             self.assertTrue(os.path.exists(os.path.join(PAGES, "templates", template["slug"] + ".mdx")), template["file"])
 
+    def test_a_removed_template_leaves_nothing_behind(self):
+        slugs = {t["slug"] for t in load("templates.json")}
+        site = os.path.join(ROOT, "docs-site")
+        pages = {f[:-4] for f in os.listdir(os.path.join(PAGES, "templates")) if f.endswith(".mdx") and f != "index.mdx"}
+        downloads = {f[:-5] for f in os.listdir(os.path.join(site, "public", "workflows"))}
+        images = {
+            f.rsplit("-workflow.", 1)[0].rsplit("-result.", 1)[0].rsplit(".jpg", 1)[0]
+            for f in os.listdir(os.path.join(site, "src", "assets", "templates"))
+        }
+        self.assertEqual(pages, slugs)
+        self.assertEqual(downloads, slugs)
+        self.assertEqual(images, slugs)
+        for name in os.listdir(os.path.join(site, "public", "media")):
+            stem = name.rsplit(".", 1)[0]
+            self.assertTrue(
+                stem in slugs or stem.rsplit("-", 1)[0] in slugs, f"orphan sample media: {name}"
+            )
+        self.assertEqual(set(json.load(open(os.path.join(DATA, "evidence.json")))), slugs)
+
     def test_the_site_is_left_out_of_the_registry_package(self):
         with open(os.path.join(ROOT, ".comfyignore"), encoding="utf-8") as file:
             self.assertIn("docs-site/", file.read())
