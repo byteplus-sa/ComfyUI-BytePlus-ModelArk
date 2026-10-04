@@ -1,0 +1,19 @@
+---
+import { Image } from 'astro:assets';
+import templates from '../data/templates.json';
+import { templateUrl } from './lib';
+const { group } = Astro.props;
+const files = import.meta.glob<{ default: ImageMetadata }>('/src/assets/templates/*.jpg', { eager: true });
+const list = group ? templates.filter((t) => t.group === group) : templates;
+---
+<div class="card-grid-links">
+	{list.map((t) => {
+		const image = (files[`/src/assets/templates/${t.slug}.jpg`] as any)?.default;
+		return (
+			<a href={templateUrl(t)}>
+				{image && <Image src={image} alt={`Thumbnail of the ${t.title} workflow`} widths={[320, 640]} sizes="16rem" />}
+				<span>{t.title}</span>
+			</a>
+		);
+	})}
+</div>

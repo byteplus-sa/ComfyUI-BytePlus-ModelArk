@@ -1,0 +1,76 @@
+---
+title: "Nodes"
+description: "All 22 BytePlus nodes by group, with what each one does and which API key it needs."
+---
+
+A node is one block on the ComfyUI canvas. Each node here calls a BytePlus service directly, billed to your own BytePlus account, with a key you save once in **Settings → BytePlus** (see [API keys](../get-started/api-keys/)). Generation nodes only run when something uses their output, such as **Save Image** or **Save Video**, and one with nothing connected is not run and not billed. The exceptions are the two lookup nodes, Video Query Tasks and Asset Library, which run on their own.
+
+All 22 nodes are listed below. Open a node's page for its inputs, outputs, limits and common errors.
+
+## Images
+
+| Node | What it does | Key |
+|---|---|---|
+| [Seedream 4.5 & 5.0](./seedream/) | Creates or edits images from a text prompt and optional reference images, up to 4K. | ModelArk |
+| [Seedream 5.0 Layer Separation](./seedream-layer-separation/) | Splits one image into a base image and up to 16 transparent layers, each with a name and position. | ModelArk |
+
+## Video: Seedance 2.5
+
+The first three nodes offer Seedance 2.5, 2.5 Premium and the 2.0 models in one `model` choice. Draft to Final has no `model` choice: it reads the model from the draft.
+
+| Node | What it does | Key |
+|---|---|---|
+| [Seedance 2.5 Text to Video](./seedance-2-5-text-to-video/) | Makes a video from a text prompt. | ModelArk |
+| [Seedance 2.5 First-Last-Frame to Video](./seedance-2-5-first-last-frame/) | Makes a video from a first frame image and an optional last frame image. | ModelArk |
+| [Seedance 2.5 Reference to Video](./seedance-2-5-reference/) | Generates, edits or extends a video from reference images, videos and audio. | ModelArk |
+| [Seedance 2.5 Draft to Final Video](./seedance-2-5-draft-to-final/) | Renders the full-quality video of a draft you made earlier, keeping its scene and motion. | ModelArk |
+
+## Video: Seedance 1.0
+
+These nodes stay in the pack, but no template uses them.
+
+| Node | What it does | Key |
+|---|---|---|
+| [Seedance Text to Video](./seedance-1-text-to-video/) | Makes a video from a text prompt with Seedance 1.0 Pro or Pro Fast. | ModelArk |
+| [Seedance Image to Video](./seedance-1-image-to-video/) | Animates an image with a prompt using Seedance 1.0. | ModelArk |
+| [Seedance First-Last-Frame to Video](./seedance-1-first-last-frame/) | Makes a video between a first and a last frame with Seedance 1.0 Pro. | ModelArk |
+
+## Video tools
+
+| Node | What it does | Key |
+|---|---|---|
+| [Video Query Tasks](./video-query-tasks/) | Lists your recent Seedance tasks, or looks up task IDs, as JSON so you can find a task again. | ModelArk |
+
+## Language
+
+| Node | What it does | Key |
+|---|---|---|
+| [BytePlus LLM](./byteplus-llm/) | Answers in text with Seed 2.0, Seed 2.1 Turbo, DeepSeek V4.1 Flash or GLM 5.3 Flash. It can read images and videos, and audio on Seed 2.0 Lite and Mini. | ModelArk |
+
+## Speech
+
+| Node | What it does | Key |
+|---|---|---|
+| [Seed Audio 1.0](./seed-audio/) | Makes speech, music, sound effects and multi-speaker dialogue from one prompt, up to 2 minutes. | Seed Speech |
+| [Seed Speech TTS](./seed-tts/) | Turns text into speech with TTS 2.0 voices, TTS 1.0 speakers or cloned voices. | Seed Speech |
+| [Seed Speech ASR](./seed-asr/) | Turns speech into text with timings and SRT subtitles. | Seed Speech |
+| [Seed Voice Clone](./seed-voice-clone/) | Clones a voice from a reference clip and outputs its speaker ID for TTS or Seed Audio. | Seed Speech |
+
+## MediaKit
+
+| Node | What it does | Key |
+|---|---|---|
+| [vCube Video Enhance](./vcube-video-enhance/) | Upscales and restores a video, up to 8K, with an optional before and after comparison. | AI MediaKit |
+| [Video Smoothness Enhance](./video-smoothness-enhance/) | Repairs stutter and repeated frames without changing the resolution. | AI MediaKit |
+| [Image Quality Enhance](./image-quality-enhance/) | Upscales and restores images: sharpening, denoising and portrait, text and colour enhancement. | AI MediaKit |
+
+## Assets
+
+The asset nodes need Advanced Creation Rights on your BytePlus account.
+
+| Node | What it does | Key |
+|---|---|---|
+| [Create Image Asset](./create-image-asset/) | Adds an image to your private asset library and outputs its asset ID. | ModelArk, IAM access key and secret key |
+| [Create Video Asset](./create-video-asset/) | Adds a video to your private asset library and outputs its asset ID. | ModelArk, IAM access key and secret key |
+| [Create Audio Asset](./create-audio-asset/) | Adds an audio clip (WAV or MP3, 2 to 30 seconds) to your private asset library. | ModelArk, IAM access key and secret key |
+| [Asset Library](./asset-library/) | Lists the assets in your private library as `asset://` links for Seedance references. | ModelArk, IAM access key and secret key |

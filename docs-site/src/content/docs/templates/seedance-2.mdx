@@ -1,0 +1,55 @@
+---
+title: "Seedance 2"
+description: "Make short videos with Seedance 2.5 and 2.0 from a prompt, first and last frames or reference media, with a draft-then-final workflow."
+template_file: Seedance 2.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Seedance 2.json" />
+
+## What it makes
+
+Short videos with sound, in four ways, in one workflow. The text group renders a quick 480p draft of a red fox in snow so you can check the shot before you commit. Draft to Final then renders the 1080p video from that draft. The other two groups animate an image from its first frame and make a video from an image, a video and an audio clip as references.
+
+## The workflow
+
+<Shot src="templates/seedance-2-workflow.webp" alt="The Seedance 2 template with three groups: text to video with Draft to Final, first-last-frame and reference to video" caption="Three groups. When you open the template only the draft nodes at the top run; everything purple is bypassed." />
+
+1. **[Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/)** (first group, active) uses the model `Seedance 2.5 Draft` at 480p, 16:9, 5 seconds, with audio and the prompt "A red fox trots through fresh snow at golden hour...". Its seed control is set to `fixed`, so the draft can be reused. **Save Video** stores the draft.
+2. **[Seedance 2.5 Draft to Final Video](../../nodes/seedance-2-5-draft-to-final/)** (also in the first group, bypassed) receives the `draft_task_id` output of step 1 and renders the final video. A second **Save Video**, also bypassed, keeps it.
+3. **[Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/)** (second group, bypassed) takes the picture from **Load Image** (the ComfyUI logo) as `first_frame` and animates it with the model Seedance 2.0 at 720p, ratio `adaptive`, 5 seconds. Its prompt has the subject turn toward the camera and smile.
+4. **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** (third group, bypassed) gets an image, a video and an audio clip from **Load Image**, **Load Video** and **Load Audio** as `image_1`, `video_1` and `audio_1`. The model is Seedance 2.5 and `task_type` is `reference`. The prompt refers to them as Image 1, Video 1 and Audio 1.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Open the template browser and choose **Seedance 2** under BytePlus.
+3. Press **Run**. Only the first group runs. The draft appears in the first **Save Video**.
+4. If you like the draft, un-bypass **Seedance 2.5 Draft to Final Video** and the second **Save Video** in the first group (select both and press Ctrl+B) and run again. Because the draft's seed is fixed and its inputs did not change, the final video renders from the draft you reviewed.
+5. To try another group, set that group to **Always**. For the reference group, pick a file in **Load Video** and **Load Audio** first; they are empty in the template. Also log in to your Comfy.org account in ComfyUI: a connected reference video is uploaded to Comfy.org storage first.
+
+## Settings worth changing
+
+- **Prompt:** describe the subject, the camera and the sound. The fox prompt ends with a sound cue, "Soft wind and the crunch of snow", and `generate_audio` is on.
+- **`model`:** the draft group uses `Seedance 2.5 Draft`. Switch the text node to Seedance 2.5, 2.5 Premium or 2.0 to skip the draft step and get a video directly.
+- **`seed`:** keep the control on `fixed` in the draft node. With `randomize` the next run makes a new draft instead of reusing the one you reviewed.
+- **`ratio`:** the first-last-frame group uses `adaptive`, which picks the supported ratio closest to the shape of your picture. The text and reference groups use 16:9.
+- **`task_type`:** in the reference group, `reference` uses your media as references. The node also offers `edit` and `extend`; see its page.
+
+## Example result
+
+<Shot src="templates/seedance-2-result.webp" alt="Two frames of the 480p red fox draft in Save Video: a fox trotting through snow with its breath visible" caption="Result of the live test run: the 480p draft of the fox." />
+
+<Media kind="video" file="seedance-2.mp4" caption="The Seedance 2.5 draft: a red fox trotting through snow." />
+
+## Time and cost
+
+The live test ran the template as shipped, which makes only the draft, and took 2.8 minutes. The other parts passed separate live runs on the same day: the draft with Draft to Final took 2.5 minutes, the first-last-frame group 2.3 minutes and the reference group 2.7 minutes. ModelArk bills each video task that runs, so the draft and the final render are separate tasks; nodes and groups that are bypassed do not run and do not bill. The draft node's seed is `fixed`, so running again with an unchanged workflow reuses ComfyUI's cached draft and does not bill. The first-last-frame and reference nodes use `randomize`, so each run of those groups asks again and bills again.
+
+## Related
+
+- Nodes: [Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/), [Seedance 2.5 Draft to Final Video](../../nodes/seedance-2-5-draft-to-final/), [Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/), [Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)
+- Next step: [Seedance Video Extension](../seedance-video-extension/) continues a clip into a longer video.

@@ -1,0 +1,41 @@
+---
+title: "BytePlus ModelArk for ComfyUI"
+description: "Use Seedream, Seedance, Seed, DeepSeek and GLM language models, Seed Speech and AI MediaKit in ComfyUI with your own BytePlus API keys."
+template: splash
+hero:
+  tagline: Seedream images, Seedance video, Seed, DeepSeek and GLM language models, Seed Speech audio and AI MediaKit enhancement as ComfyUI nodes, billed to your own BytePlus account.
+  actions:
+    - text: Get started
+      link: get-started/install/
+      icon: right-arrow
+    - text: Browse templates
+      link: templates/
+      variant: minimal
+    - text: Node reference
+      link: nodes/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import TemplateGrid from '../../components/TemplateGrid.astro';
+
+<CardGrid>
+	<Card title="22 nodes" icon="puzzle">
+		Images, video, language, speech, AI MediaKit and the private asset library. Each node has its own page with inputs, outputs and tips.
+	</Card>
+	<Card title="27 templates" icon="rocket">
+		Ready-made workflows in the ComfyUI template browser, from a single image to a dubbed product ad.
+	</Card>
+	<Card title="Your own keys" icon="seti:lock">
+		Keys are saved once in Settings → BytePlus. Workflows contain no keys and no client nodes.
+	</Card>
+	<Card title="Tested live" icon="approve-check">
+		Every template except Seed Voice Clone ran end to end against the real BytePlus services on 2026-10-03, and each page shows the measured time.
+	</Card>
+</CardGrid>
+
+## What you can build
+
+Eight ready-made recipes that chain several services. Open one in the template browser and press Run.
+
+<TemplateGrid group="Showcase" />

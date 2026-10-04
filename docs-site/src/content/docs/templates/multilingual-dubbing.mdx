@@ -1,0 +1,56 @@
+---
+title: "Multilingual Dubbing"
+description: "Transcribe a speech clip, translate it with an LLM and speak it again in another language with a matching Seed Speech voice."
+template_file: Multilingual Dubbing.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Multilingual Dubbing.json" />
+
+## What it makes
+
+A new audio file in which your speech clip is spoken in another language, Japanese by default. It is for creators who want to localise a short voice-over or announcement. The idea is a three-step chain: speech recognition gets the words, a language model translates them, text-to-speech says them again.
+
+## The workflow
+
+<Shot src="templates/multilingual-dubbing-workflow.webp" alt="The Multilingual Dubbing template in four groups: source speech, transcribe, translate, dub" caption="Four groups, one per step of the chain." />
+
+1. **Load Audio** (titled "Speech to dub (change me)") supplies the source clip. It points to a placeholder file, `speech_8s.wav`, so pick your own clip.
+2. **[Seed Speech ASR](../../nodes/seed-asr/)** (`seed-asr-fast`, `language` auto) transcribes it. The `text` output goes to a **Preview as Text** node called Transcript.
+3. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo) translates the text. The target language is written in its system prompt ("Target language: Japanese."), and the answer is shown in a **Preview as Text** node called Translation.
+4. **[Seed Speech TTS](../../nodes/seed-tts/)** (`seed-tts-2.0`, a Japanese female voice) speaks the translation.
+5. **Save Audio (Advanced)** (titled "Save the dub") writes an MP3 to `BytePlus/Audio/dub`.
+
+## Run it
+
+1. Add your Seed Speech API key and your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The template needs both.
+2. Open the template browser and choose **Multilingual Dubbing** under BytePlus.
+3. In **Speech to dub (change me)**, choose your own audio file.
+4. To dub into another language, change the last words of the LLM system prompt and pick a voice for that language in the TTS node.
+5. Press **Run**. The transcript and translation appear, then the dub.
+
+## Settings worth changing
+
+- **Target language in the LLM system prompt:** the only place the language is set. Write it as a plain language name.
+- **`voice` in the TTS node:** voice names start with a language code. Choose one that matches the language you translate into.
+- **`speech_rate` in the TTS node:** a dub is not timed to the original. Raise or lower it when the result runs longer or shorter than the source.
+- **`language` in Seed Speech ASR:** leave `auto` for English or Chinese. Pick the language for other sources.
+- **`model` in Seed Speech ASR:** the fast model takes the clip inline. The 2.0 and 1.0 models upload it to Comfy.org storage first, which needs a login.
+
+## Example result
+
+<Shot src="templates/multilingual-dubbing-result.webp" alt="The saved dub as a waveform, with the English transcript and the Japanese translation below it" caption="Result of the live test run: an English sample sentence dubbed into Japanese." />
+
+<Media kind="audio" file="multilingual-dubbing-0.mp3" caption="The saved Japanese dub from the live test (11 seconds)." />
+
+## Time and cost
+
+The live test took 5 seconds. Seed Speech ASR and Seed Speech TTS bill on your Seed Speech account, and the LLM bills on your ModelArk account. The LLM and TTS `seed` controls are set to `randomize`, so every run translates and speaks again and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
+
+## Related
+
+- Nodes: [Seed Speech ASR](../../nodes/seed-asr/), [BytePlus LLM](../../nodes/byteplus-llm/), [Seed Speech TTS](../../nodes/seed-tts/)
+- Next step: [Podcast Clip](../podcast-clip/) writes its own dialogue and voices two speakers.

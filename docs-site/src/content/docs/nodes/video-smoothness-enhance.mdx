@@ -1,0 +1,65 @@
+---
+title: "Video Smoothness Enhance"
+description: "Repair stutter and duplicate frames in a video with AI MediaKit, without changing its resolution, and compare it with the source."
+node_id: BytePlusVideoSmoothness
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusVideoSmoothness" />
+
+## What it does
+
+Finds places where the motion rhythm jumps (periodic stutter), generates in-between frames there, and removes consecutive identical frames. The picture size stays the same, which suits Seedance videos with occasional stutter, low frame rate clips and screen recordings. Connect a local `video` or set a public `video_url`; it needs the separate AI MediaKit API key (Singapore region only, see [API keys](../../get-started/api-keys/)). Every run bills (a run that returns no repaired video is billed as detection only), and the node saves nothing: connect **Save Video** to keep the result.
+
+## On the canvas
+
+<Shot src="nodes/video-smoothness-enhance.png" alt="The Video Smoothness Enhance node with periodic_stutter set to repair and duplicate_frames set to remove" caption="Default values: both repairs are on and the comparison video is on." />
+
+## Inputs
+
+<NodeInputs id="BytePlusVideoSmoothness" />
+
+### Notes on inputs
+
+- **Source:** use `video` or `video_url`, not both. A connected video is uploaded to Comfy.org storage first (Comfy.org login needed). A public http(s) link (mp4, avi or mov) is sent as it is.
+- **Stutter repair:** with `periodic_stutter` on `repair`, `align_source_fps` and `insert_frame_indices` appear. `insert_frame_indices` takes distinct zero-based frame numbers, comma-separated, for stutter points the detector misses.
+- **Detect only:** set a repair to `detect only` to count problems without changing the video. The duplicate step runs after the stutter repair, on its result.
+- **Checks before upload:** a connected video must be at most 4096x2160. While any repair is on it must also be at most 35 seconds long. With both set to `detect only` there is no length limit. A `video_url` source is not checked here, so MediaKit decides.
+
+## Outputs
+
+<NodeOutputs id="BytePlusVideoSmoothness" />
+
+### Notes on outputs
+
+- If MediaKit returns no repaired video, `VIDEO` is your source passed through. That happens with both steps on `detect only`, when nothing needed fixing, or when MediaKit's quality check skipped the repair. The node's log message then says the task is billed as detection only.
+- In that case there is no comparison, and nodes using `comparison` are skipped.
+- `inserted_frame_count` is what the detector found. The repair may still have been skipped, so do not read it as frames added.
+
+## Limits and tips
+
+- The comparison puts the source on the left and the repaired video on the right, in sync on the repaired clip's timeline. Each half has a short side of at most 1080 px.
+- If building the comparison fails, the repaired video is still returned and the failure is logged.
+- `align_source_fps` keeps the source frame rate, frame count and duration by removing a low-motion frame for each inserted one. Off gives the best repair, but the frame rate may rise.
+- `insert_frame_indices` frames are always inserted, even when MediaKit's quality check skips the automatic repair.
+- Every execution sends a new task. Interrupting a run stops the node's wait. The node sends no cancel request, so a submitted task may still finish and be billed.
+- MediaKit result links expire after 24 hours, so the node downloads the result right away. Only the Singapore region (`ap-southeast-1`) is available.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `[BytePlus] No AI MediaKit API key is set. Add it in Settings > BytePlus …` | Add the AI MediaKit key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `[BytePlus] The video is …s long; Video Smoothness repairs videos up to 35s. …` | Trim the clip, or set both repairs to `detect only` to analyse a longer video. |
+| `[BytePlus] Video resolution must be at most 4096x2160 (4K), got …` | Scale the video down before repairing it. |
+| `[BytePlus] insert_frame_indices takes distinct zero-based frame numbers separated by commas …` | Write numbers such as `80, 120`, with no repeats and none below 0. |
+| `[BytePlus] Uploading the video to Comfy.org storage failed: …` | Log in to Comfy.org in ComfyUI, or set `video_url` to a public link. |
+
+## Used in templates
+
+<UsedIn id="BytePlusVideoSmoothness" />

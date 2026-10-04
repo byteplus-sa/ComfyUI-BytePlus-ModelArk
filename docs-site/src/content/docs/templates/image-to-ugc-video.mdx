@@ -1,0 +1,56 @@
+---
+title: "Image to UGC Video"
+description: "Turn a product photo into a vertical creator-style video ad with a script, a handheld shot and a spoken voiceover."
+template_file: Image to UGC Video.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Image to UGC Video.json" />
+
+## What it makes
+
+One 9:16 video of about 8 seconds, in the style of a creator showing a product to their phone camera, with a spoken voiceover on top. It is for small shops and marketers who need a quick user-generated-content style ad from a single product photo. The idea: a language model looks at the photo, writes both the spoken line and the shot description, then two different services turn them into picture and sound, and ComfyUI's own video nodes join the two.
+
+## The workflow
+
+<Shot src="templates/image-to-ugc-video-workflow.webp" alt="The Image to UGC Video template in five groups: product, script and shot prompt, creator video, voiceover, mix and save" caption="Five groups, from the product photo on the left to the saved video at the bottom." />
+
+1. **Load Image** (titled "Product photo (change me)") and a text node with a one-line **Product brief** are the inputs. The brief is a matte-black insulated water bottle with a bamboo lid. The photo slot names a file, `product_photo.png`, that you must replace with your own image.
+2. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.0 Lite) gets the photo as `image_1` and the brief as its prompt. Its system prompt asks for a `SCRIPT:` line of 26 to 32 words and a `SHOT:` paragraph.
+3. Two **Extract Text** nodes split the reply into the voiceover script and the shot prompt. Two **Preview as Text** nodes show you both.
+4. **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** (model Seedance 2.5) shoots the clip with the photo as `image_1` and the shot prompt as its prompt: 9:16, 720p, 8 seconds, no generated audio.
+5. **[Seed Speech TTS](../../nodes/seed-tts/)** (`seed-tts-2.0`, an English female voice) reads the script.
+6. **Get Video Components** and **Create Video** put the voiceover on the clip, and **Save Video** writes it to `BytePlus/Video/UGC`.
+
+## Run it
+
+1. Add your ModelArk API key and your Seed Speech API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The template needs both.
+2. Open the template browser and choose **Image to UGC Video** under BytePlus.
+3. In **Product photo (change me)** pick your own image (the template has no photo in it), and rewrite **Product brief (change me)** in one sentence.
+4. Press **Run**. Check the two previews first, then wait for **Save the UGC video**.
+
+## Settings worth changing
+
+- **Product brief:** the only text you must change. Name the material, colour and one selling point.
+- **`voice` in Voiceover:** pick another English voice, or change `speech_rate` (the template uses 8, a little faster than normal).
+- **`duration` in Creator video:** the template sets 8 seconds. Keep the script length in step: the system prompt asks for 26 to 32 words.
+- **System prompt of the LLM:** change the setting (a bright home by default) or the tone of the script.
+- **`generate_audio` in Creator video:** off here because the voiceover replaces the sound. Turn it on only if you remove the voiceover branch.
+
+## Example result
+
+<Shot src="templates/image-to-ugc-video-result.webp" alt="The written script, the shot prompt and three frames of a woman holding a black water bottle in a bright home" caption="Result of the live test run: 720x1280, 8 seconds." />
+
+<Media kind="video" file="image-to-ugc-video.mp4" caption="The saved UGC video from the live test." />
+
+## Time and cost
+
+The live test took 4.7 minutes. The LLM and Seedance nodes bill on your ModelArk account and the Seed Speech TTS node bills on your Seed Speech account, once per run each. The seed controls are set to `randomize`, so every run makes a new script, clip and voiceover and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. Nothing needs a Comfy.org login here: the photo goes to the services as part of the request.
+
+## Related
+
+- Nodes: [BytePlus LLM](../../nodes/byteplus-llm/), [Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/), [Seed Speech TTS](../../nodes/seed-tts/)
+- Next step: [Product Ad in One Click](../product-ad-in-one-click/) starts from a one-line brief instead of a photo.

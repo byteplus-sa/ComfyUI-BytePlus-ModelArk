@@ -1,0 +1,51 @@
+---
+title: "Models"
+description: "Every model the nodes offer, the model ID sent to BytePlus, and the notes on regions, activation and retired models."
+---
+
+import ModelTable from '../../components/ModelTable.astro';
+
+Most nodes show a short model name, and the node sends the dated model ID next to it to BytePlus. When BytePlus releases a new version of a model, the pack usually changes only the ID, so the name in your workflow keeps working. A few options (Seedream 4.5 and 4.0, Seedance 1.0 and the Seed Speech models) are shown as the ID itself. The tables below are generated from the pack's model list.
+
+## Models by node
+
+<ModelTable />
+
+## Activate models first
+
+Create your key, then activate each model you want in the ModelArk console, for the same region as the key. Without activation the node stops with a message that your account has not activated the model, and tells you to activate it in the ModelArk console (**Model activation**). See [Troubleshooting](../troubleshooting/) for the exact text.
+
+Seed Speech and AI MediaKit use their own keys, which you create in their own consoles. For Seed Speech, activate its services there first. See [API keys](../get-started/api-keys/).
+
+## Regions
+
+ModelArk API keys belong to a region, `ap-southeast-1` (the default) or `eu-west-1`. The key and the region in **Settings → BytePlus** must match. See [Keys and regions](../concepts/keys-and-regions/).
+
+- **Seedream 5.0 Lite is not available in `eu-west-1`.** BytePlus deactivated it there on 2026-09-10. The node refuses to send the request in that region.
+- Seed Speech and AI MediaKit run in `ap-southeast-1` only.
+
+## Resolutions and durations for Seedance 2
+
+| Model | Resolutions | Longest video |
+|---|---|---|
+| Seedance 2.5 | 480p, 720p, 1080p | 30 s |
+| Seedance 2.5 Premium | 4k | 30 s |
+| Seedance 2.0 | 480p, 720p, 1080p, 4k | 15 s |
+| Seedance 2.0 Fast | 480p, 720p | 15 s |
+| Seedance 2.0 Mini | 480p, 720p | 15 s |
+
+A draft is always 480p. The final rendered from a draft is 1080p for Seedance 2.5 and 4k for Seedance 2.5 Premium. Other resolutions are rejected. See [Draft mode](../concepts/draft-mode/).
+
+## Models with extra requirements
+
+- **Seedance 2.5 Premium (4K)** is whitelist only, so your account may need access from BytePlus before it accepts requests. In our live test on 2026-10-03, Premium (4K) tasks stayed queued or running for over 50 minutes without finishing. Ask BytePlus about access if a request is refused.
+- **Seed Speech ASR:** the table above repeats the option name in the ID column, but the node sends these BytePlus resource IDs: `seed-asr-fast` uses `volc.seedasr.auc_turbo` (one request, audio up to 2 hours), `seed-asr-2.0` uses `volc.seedasr.auc` and `seed-asr-1.0` uses `volc.bigasr.auc` (both submit a task, audio up to 5 hours).
+- **Seedance 1.0 First-Last-Frame to Video** offers Seedance 1.0 Pro only. Pro Fast has no last-frame support.
+- **BytePlus LLM audio input** works only on Seed 2.0 Lite and Mini. Seed 2.0 Pro and Seed 2.1 Turbo reject audio. DeepSeek V4.1 Flash and GLM 5.3 Flash accept it but cannot hear it, so the node offers the audio input only for Lite and Mini.
+- **Asset library nodes** need Advanced Creation Rights on your account. See [Reference media](../concepts/reference-media/).
+
+## Retired models
+
+Seedance 1.5 Pro (`seedance-1-5-pro-251215`) was deprecated by BytePlus on 2026-09-15 and shuts down on 2026-11-11. No node offers it. Use `dreamina-seedance-2-0-mini-260615` (Seedance 2.0 Mini) instead.
+
+**Video Query Tasks** still lists Seedance 1.5 Pro in its `model_version` choice so you can find old tasks.

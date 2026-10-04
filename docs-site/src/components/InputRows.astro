@@ -1,0 +1,33 @@
+---
+import { defaultText, rangeText } from './lib';
+const { inputs } = Astro.props;
+const MAX_CHOICES = 12;
+---
+<table class="ref-table">
+	<thead><tr><th>Input</th><th>Type</th><th>Default</th><th>What it does</th></tr></thead>
+	<tbody>
+		{inputs.map((input: any) => (
+			<tr>
+				<td>
+					<code>{input.name}</code>
+					{!input.required && <span class="tag">optional</span>}
+				</td>
+				<td>{input.type}{input.type === 'group of inputs' ? ` of ${input.item_type}` : ''}</td>
+				<td>{defaultText(input) && <code>{defaultText(input)}</code>}</td>
+				<td>
+					{input.tooltip}
+					{input.options && input.type === 'choice' && (
+						<span class="meta">
+							Choices: {input.options.slice(0, MAX_CHOICES).join(', ')}
+							{input.options.length > MAX_CHOICES && ` … (${input.options.length} in total)`}
+						</span>
+					)}
+					{rangeText(input) && <span class="meta">Range: {rangeText(input)}</span>}
+					{input.slots && input.slots.length > 0 && (
+						<span class="meta">Slots: {input.slots[0]} to {input.slots[input.slots.length - 1]} ({input.slots.length})</span>
+					)}
+				</td>
+			</tr>
+		))}
+	</tbody>
+</table>

@@ -1,0 +1,47 @@
+---
+title: "Interrupts and cancelling"
+description: "What happens to Seedance tasks when you press Interrupt, and how to find a task that kept running."
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Video tasks take a while, so you may want to stop one. This page explains what Interrupt can and cannot do for Seedance video nodes. Other nodes are covered at the end.
+
+## What Interrupt does
+
+When you press **Interrupt** while a BytePlus video node is waiting, the node asks BytePlus to cancel its tasks. The result depends on the task state:
+
+| Task state | What happens |
+|---|---|
+| **Queued** | The task is cancelled. |
+| **Already running** | BytePlus refuses to cancel it (error 409, "cannot be cancelled"). It keeps running, **finishes and is billed**. |
+
+## The node tells you
+
+For a running task, the node writes a line under itself and in the console:
+
+> 1 task(s) were already running and cannot be cancelled: they will finish and be billed. Look them up with Video Query Tasks: (task IDs)
+
+With `generation_count` above 1, the console also shows a summary of how many tasks were cancelled and how many were not.
+
+## Find a task that kept running
+
+Add [Video Query Tasks](../../nodes/video-query-tasks/) and filter by status, model or task ID. It lists your recent video tasks as JSON, including tasks of retired Seedance models. ModelArk keeps tasks for 7 days. Use it to find the task ID again and see whether the task has succeeded.
+
+## Long waits
+
+Waiting does not cost anything by itself, but Seedance tasks can queue or run for a long time, and the node has no time limit. **Seedance 2.5 Premium** 4K tasks in particular did not finish within 50 minutes in our live test on 2026-10-03. After 20 minutes of waiting the node adds a hint with the time already waited and a reminder of what Interrupt does: queued tasks are cancelled, running ones finish and are billed.
+
+The node shows queued and running status text while it waits. If polling fails repeatedly, or BytePlus says the key is wrong or the task is unknown or expired, the wait ends with the task ID in the message instead of waiting forever.
+
+<Aside type="tip">
+Do not want ComfyUI to wait? Use the `non_blocking` option: it submits the tasks and returns at once, and you run the node again to collect the videos. The tasks keep running and are billed.
+</Aside>
+
+## Other nodes
+
+The Seedream, BytePlus LLM, Seed Speech and AI MediaKit nodes work differently. Interrupt stops the node's wait, but the pack sends no cancel request to BytePlus. A request or task that BytePlus already accepted may still finish and be billed.
+
+## Rejected inputs and results
+
+BytePlus can reject a task because of its content filter, for example with "Generated video contains sensitive content". That filter sometimes rejects harmless content. See [Content filter](../../troubleshooting/#content-filter) in Troubleshooting.

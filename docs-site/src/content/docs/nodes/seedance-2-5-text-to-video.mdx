@@ -1,0 +1,70 @@
+---
+title: "Seedance 2.5 Text to Video"
+description: "Generate a video from a text prompt with Seedance 2.5, 2.5 Premium or 2.0, or render a quick 480p draft first."
+node_id: BytePlusSeedance2TextToVideo
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedance2TextToVideo" />
+
+## What it does
+
+Creates a video with BytePlus Seedance from a text prompt, with generated audio if you leave `generate_audio` on. Pick a model first: each option shows its own resolutions and maximum duration. Nothing needs to be connected, only a prompt.
+
+The node bills for every video it generates and waits until the task finishes. It does not save anything itself: connect **Save Video** to keep the result.
+
+## On the canvas
+
+<Shot src="nodes/seedance-2-5-text-to-video.png" alt="The Seedance 2.5 Text to Video node with model Seedance 2.5, a prompt about a paper boat, resolution 720p, ratio 16:9 and duration 5" caption="Seedance 2.5 selected. The settings below the model change with the model." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedance2TextToVideo" />
+
+### Notes on inputs
+
+- **Seedance 2.5:** 480p, 720p or 1080p, 4 to 30 seconds, output as `mp4` or `mov`.
+- **Seedance 2.5 Premium:** 4k only, 4 to 30 seconds. The pack's README lists it as whitelist only, so your account may need access from BytePlus.
+- **Seedance 2.0, 2.0 Fast and 2.0 Mini:** 4 to 15 seconds and no `output_format`. 2.0 offers 480p to 4k, Fast and Mini offer 480p and 720p. Fast is tuned for speed, Mini for the fastest and lowest-cost generation.
+- **Draft options:** Seedance 2.5 Draft and Seedance 2.5 Premium Draft only offer 480p. Use them for a quick preview, then render the final with [Seedance 2.5 Draft to Final Video](../seedance-2-5-draft-to-final/).
+- **Prompt:** on Seedance 2.5, put spoken lines in double quotes to steer the dialogue. Do not write `--ratio`, `--seed` or similar flags in the prompt: use the widgets.
+- **Several videos:** raise `generation_count`. The tasks run in parallel and generation N uses `seed` + N. The seed control does not make results repeatable, it only decides whether the node runs again.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedance2TextToVideo" />
+
+### Notes on outputs
+
+- With `generation_count` above 1, `VIDEO` is a list: the next node runs once per video, and `last_frame` holds their last frames as one batch in the same order.
+- `draft_task_id` is for the two Draft models: it holds the draft's task ID, one per line with several drafts. Linking it while another model is selected stops the run.
+- With `non_blocking` on, the first run returns at once with the task IDs in `response` and no video, so nodes connected to `VIDEO` or `last_frame` are skipped. Run the node again to collect the finished video.
+
+## Limits and tips
+
+- For a draft, pick a Draft model, set `control after generate` under `seed` to `fixed` and run. Send `draft_task_id` to **Draft to Final Video**. A fixed seed keeps the node from generating a new draft instead of reusing the one you reviewed. See [Draft mode](../../concepts/draft-mode/).
+- A draft can be rendered for 7 days after it was created. The final is 1080p for Seedance 2.5 and 4k for Premium.
+- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again. See [Interrupts and cancelling](../../concepts/interrupts/).
+- The node keeps waiting until the task ends and shows its queued or running status under the node. It has no time limit of its own.
+- With `generation_count` above 1, every video is billed. See [Billing and cost](../../concepts/billing-and-cost/).
+- Activate each Seedance model in the ModelArk console for the region you use.
+- Start from an image instead? Use [First-Last-Frame to Video](../seedance-2-5-first-last-frame/), or [Reference to Video](../seedance-2-5-reference/) for several references.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No BytePlus API key is set` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `Enter a prompt.` | Type a prompt. An empty or blank prompt is refused before anything is sent. |
+| `Only the Seedance 2.5 Draft and Seedance 2.5 Premium Draft models produce a draft_task_id` | Select a Draft model, or disconnect the `draft_task_id` output. |
+| `has not activated the model` | Open the ModelArk console and activate the model for the same region as your key. |
+| `is not allowed in the prompt` | Remove flags such as `--ratio` or `--seed` from the prompt and use the node's widgets. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedance2TextToVideo" />

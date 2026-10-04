@@ -1,0 +1,44 @@
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { getNode } from './lib';
+import InputRows from './InputRows.astro';
+
+const { id } = Astro.props;
+const node = getNode(id);
+const plain = node.inputs.filter((i: any) => i.type !== 'choice with options');
+const dynamic = node.inputs.filter((i: any) => i.type === 'choice with options');
+const basic = plain.filter((i: any) => !i.advanced);
+const advanced = plain.filter((i: any) => i.advanced);
+---
+{basic.length > 0 && <InputRows inputs={basic} />}
+{dynamic.map((input: any) => (
+	<>
+		<p>
+			<code>{input.name}</code> is {input.required ? 'required' : 'optional'} and decides which of the inputs below
+			appear. {input.tooltip}
+		</p>
+		<Tabs syncKey={`${node.id}-${input.name}`}>
+			{input.variants.map((variant: any) => (
+				<TabItem label={variant.key}>
+					{variant.inputs.filter((i: any) => !i.advanced).length > 0 ? (
+						<InputRows inputs={variant.inputs.filter((i: any) => !i.advanced)} />
+					) : (
+						<p>No extra inputs for this option.</p>
+					)}
+					{variant.inputs.some((i: any) => i.advanced) && (
+						<details class="ref-details">
+							<summary>Advanced inputs for {variant.key}</summary>
+							<InputRows inputs={variant.inputs.filter((i: any) => i.advanced)} />
+						</details>
+					)}
+				</TabItem>
+			))}
+		</Tabs>
+	</>
+))}
+{advanced.length > 0 && (
+	<details class="ref-details">
+		<summary>Advanced inputs ({advanced.length})</summary>
+		<InputRows inputs={advanced} />
+	</details>
+)}

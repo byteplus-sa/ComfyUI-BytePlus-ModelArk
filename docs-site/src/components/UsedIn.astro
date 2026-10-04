@@ -1,0 +1,20 @@
+---
+import { templatesUsing, templateUrl, getNode, base } from './lib';
+const { id } = Astro.props;
+const list = templatesUsing(id);
+const legacy = getNode(id).group === 'Video: Seedance 1.0';
+---
+{list.length === 0 ? (
+	legacy ? (
+		<p>
+			No template uses this node: templates show current models only. For a ready-made video workflow,
+			start from the <a href={`${base}/templates/seedance-2/`}>Seedance 2</a> template.
+		</p>
+	) : (
+		<p>No template uses this node yet.</p>
+	)
+) : (
+	<ul>
+		{list.map((t) => <li><a href={templateUrl(t)}>{t.title}</a></li>)}
+	</ul>
+)}

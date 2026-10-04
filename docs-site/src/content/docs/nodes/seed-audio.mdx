@@ -1,0 +1,71 @@
+---
+title: "Seed Audio 1.0"
+description: "Generate speech, music, sound effects and dialogue from one text prompt with Seed Audio 1.0, in 20 languages and up to 2 minutes per clip."
+node_id: BytePlusSeedAudio
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedAudio" />
+
+## What it does
+
+Creates audio from a single prompt: you describe the voice, the mood, the background music and the sound effects, and you write the lines to speak. The voice can come from the prompt alone, from up to three reference clips, from a character image or from a built-in preset voice.
+
+The node needs your separate Seed Speech API key (Singapore region only), and every request it sends is billed. It does not save anything itself: connect **Save Audio** or **Preview Audio** to keep or hear the result.
+
+## On the canvas
+
+<Shot src="nodes/seed-audio.png" alt="The Seed Audio 1.0 node with reference_mode set to text only, a prompt for a warm narrator and the five list outputs" caption="Default settings with a sample prompt. The other modes add their reference inputs below reference_mode." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedAudio" />
+
+### Notes on inputs
+
+- **Reference mode:** `text only` uses the prompt alone. `audio reference` clones up to three voices, which you call `@Audio1`, `@Audio2` and `@Audio3` in the prompt. `image reference` derives a voice from one character image (`reference_image`, or an http(s) link in `ref_image_url`). `preset voice` reads the whole prompt in the voice you pick in `preset_voice`. Only `audio reference` uses `@AudioN` tags: the node rejects them in `text only` and `image reference`.
+- **Audio references:** each slot takes either a connected clip (up to 30 seconds) or a text source in `ref_audio_N_source`: a TTS 2.0 or cloned speaker ID, or an audio URL. Use one or the other per slot, and fill the slots in order without gaps. A cloned voice from [Seed Voice Clone](../seed-voice-clone/) fits here.
+- **Timing:** start a quoted line with a time range, such as `[5.5s:8.0s] Wait for me!`, to control when and how long it is spoken.
+- **Subtitles:** turn on `enable_subtitle` to fill `subtitles_json` (the timing data the service returns, plus a normalized `segments` list) and `srt` (one entry per sentence).
+- **Several takes:** raise `generation_count` (1 to 16). The API has no seed, so every take is a fresh result of the same prompt. `seed` only makes ComfyUI run the node again.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedAudio" />
+
+### Notes on outputs
+
+- All five outputs are lists with the same order, one entry per clip. A node connected to them runs once per clip.
+- `duration` is the length the service reports, in seconds. If the service gives none, the node measures the decoded audio.
+- `url` is the link Seed Speech returns for the clip. In the live test it had no file extension. [Seed Speech ASR](../seed-asr/) can still read it: with `audio_format` on `auto`, the standard models detect the format from the file.
+- `audio_format` only changes what is requested from the API. The `AUDIO` output is always decoded audio.
+- Without `enable_subtitle` no subtitles are requested, so `srt` stays empty and `subtitles_json` has no segments.
+
+## Limits and tips
+
+- The prompt holds at most 3000 characters. Write it in the same language as the lines to speak.
+- One clip is up to 2 minutes long. Seed Audio 1.0 supports 20 languages, listed in the tooltip of `model`.
+- Reference clips are limited to 30 seconds and 10 MB each. Of a reference image batch only the first image is used. It is scaled to between 160,000 and 4,194,304 pixels (2048 x 2048) and sent as JPEG, which must also stay within 10 MB.
+- Each take in a `generation_count` run is billed on its own and runs in parallel. A failed take is logged and skipped, and the node only fails when every take fails.
+- With `enable_subtitle` on, a clip can occasionally come back without subtitles. The node writes a message to the console and leaves that clip's `srt` empty. Run it again to get them.
+- The advanced watermark inputs add an audible AI marker (`aigc_watermark`) or metadata in the audio header (`aigc_metadata`, with the optional provider and ID fields).
+- Interrupting a run stops the node's wait and drops the takes still in progress. The node sends no cancel request, so a take that was already sent may still be billed.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `[BytePlus] No Seed Speech API key is set. Add it in Settings > BytePlus …` | Add the Seed Speech key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `… Invalid Seed Speech API key. Create one in the Seed Speech console …` | You probably used a ModelArk key. Seed Speech needs its own key from the Seed Speech console, with the service activated. |
+| `… but reference mode is 'text only'. Switch to 'audio reference' …` | The prompt contains `@Audio1` or similar. Switch `reference_mode` to `audio reference` and connect the clips, or remove the tags. |
+| `[BytePlus] Connect reference audio in order without gaps: …` | Fill reference slot 1 first, then 2, then 3. Slot N is `@AudioN` in the prompt. |
+| `… Seed Speech concurrency limit reached. Wait for running requests to finish …` | Wait for running requests to finish, or lower `generation_count`. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedAudio" />

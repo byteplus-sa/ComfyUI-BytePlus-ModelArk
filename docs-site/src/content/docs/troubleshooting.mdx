@@ -1,0 +1,90 @@
+---
+title: "Troubleshooting"
+description: "What the common BytePlus error messages mean and how to fix them, grouped by keys, content filter, limits, video tasks, speech, assets and ComfyUI."
+---
+
+Errors from the nodes appear with a `[BytePlus]` prefix. The tables quote the text after it, shortened with “…” where a message has placeholders or a long ending. Node pages list errors that belong to one node. Messages from the Settings page are in their own table below.
+
+## Keys and setup
+
+| What you see | Why | What to do |
+|---|---|---|
+| `No BytePlus API key is set. Add it in Settings > BytePlus` | No ModelArk API key is saved. | Save it in **Settings → BytePlus**. See [API keys](../get-started/api-keys/). |
+| `No Seed Speech API key is set.` or `No AI MediaKit API key is set.` | These nodes use their own keys. | Save that key in **Settings → BytePlus**. |
+| `Invalid API Key (401). Check the key in Settings > BytePlus, and that the region there matches the region the key was created in.` | Wrong key, or the region does not match it. | Pick the key's region and save again. See [Keys and regions](../concepts/keys-and-regions/). |
+| `Invalid Seed Speech API key. Create one in the Seed Speech console … ModelArk API keys do not work with Seed Speech.` | The Seed Speech API key is wrong, or a ModelArk API key was used for speech. | Create a Seed Speech API key, activate the service in its console and save the key in **Settings → BytePlus**. |
+| `MediaKit request failed: … Check the MediaKit API key …` | The AI MediaKit API key is wrong, or a ModelArk or Seed Speech key was used. | Create an AI MediaKit API key in the AI MediaKit console and save it in **Settings → BytePlus**. |
+| `Your account … has not activated the model …` | The model is not activated for this region. | Activate it in the ModelArk console (**Model activation**). |
+| `{model} is not available in {region}.` | For example Seedream 5.0 Lite in `eu-west-1`. | Pick another model or region. See [Models](../models/). |
+| `Account Overdue (403)` | Your BytePlus account has an overdue balance. | Top up your BytePlus account in the console billing center. |
+| `Access Denied (403). No permission or IP whitelist issue.` | The key lacks permission, or an IP restriction blocks the request. | Check the key's permissions and any IP whitelist in the BytePlus console. |
+
+## Content filter
+
+| What you see | Why | What to do |
+|---|---|---|
+| `Generated image contains sensitive content (400). This filter sometimes rejects harmless content: run again with another seed, or rephrase the prompt.` | The output filter sometimes rejects harmless results, also for video and audio. | Run again with another `seed`, or rephrase. |
+| `Input image contains sensitive content (400).` | The filter rejected media you connected. | Use other media. Text, video and audio work the same way. |
+| `Request failed: input image or video may contain a real person.` | BytePlus refuses reference media that may show a real person. | Use another image, or an asset from a verified real-person group ([Reference media](../concepts/reference-media/)). |
+| `Generated video may be restricted due to copyright policy (400).` | BytePlus restricted the result under its copyright policy. | Change the prompt. |
+
+## Rate limits and quota
+
+| What you see | Why | What to do |
+|---|---|---|
+| `Rate Limit Exceeded (429). Please try again later.` | Too many requests at once. | Wait, or lower `generation_count`. |
+| `Endpoint RPM limit exceeded (429)` or `Endpoint TPM limit exceeded (429)` | Requests or tokens per minute are used up. | Wait a minute. |
+| `Account … has exhausted the free trial quota for model …` | The free quota is used up. | Activate the model service in the ModelArk console. |
+| `Account … has reached the set inference limit for model …` | A limit on your account is reached. | Adjust the limit, or disable Safe Experience Mode on the Model activation page. |
+| `Seed Speech concurrency limit reached.` | Too many speech requests at once. | Wait for running requests to finish. |
+
+Paid requests are not repeated after a failure (only a rate limit is retried), because a repeat could bill twice. See [Billing and cost](../concepts/billing-and-cost/).
+
+## Video tasks
+
+| What you see | Why | What to do |
+|---|---|---|
+| `Task is currently running and cannot be cancelled (409). It keeps running and will be billed; only queued tasks can be cancelled.` | You interrupted a running task. | Find it later with **Video Query Tasks**. |
+| `Waiting for … min already.` | The node adds this hint after 20 minutes of waiting. In our live test on 2026-10-03, Seedance 2.5 Premium (4K) tasks stayed queued or running for over 50 minutes without finishing. | Keep waiting. A running task is billed even if you interrupt. |
+| `No task found for …` | The ID is unknown. ModelArk keeps tasks for 7 days. | Copy the Task ID from the console, or the `draft_task_id` of a draft run. |
+| `… With a reference video connected, set task_type to reference, edit or extend instead of auto.` | `auto` with a reference video can be rejected. | Set `task_type` to `reference`, `edit` or `extend`. |
+| `Task … is not a draft.` | The ID is not from a Draft model. | Use the `draft_task_id` of a Seedance 2.5 Draft run. |
+
+## Speech
+
+| What you see | Why | What to do |
+|---|---|---|
+| `The voice is not available for this key or model.` | The speaker does not fit the model. | TTS 2.0 voices need `seed-tts-2.0`, cloned voices `seed-icl-*`. |
+| The Seed Audio `url` output has no file extension | The link Seed Speech returns had none in the live test. | Nothing to fix. When you pass this link to a standard ASR model, the node reads the format from the file. |
+| `… takes audio as a URL: connected audio is uploaded to Comfy.org storage first.` | Standard ASR models only take URLs. | Log in to Comfy.org, use `seed-asr-fast`, or pass a public URL. |
+
+## Assets and Comfy.org login
+
+Local videos go through Comfy.org storage, because BytePlus only takes links for them. Log in to Comfy.org in ComfyUI and do not start it with `--disable-api-nodes`.
+
+| What you see | Why | What to do |
+|---|---|---|
+| `Uploading the reference video to Comfy.org storage failed … Log in to your Comfy.org account in ComfyUI` | You are not logged in. | Log in, or use a public mp4 or mov link or an asset ID in an `asset_N` input. |
+| `The asset library needs IAM AK/SK with asset-library permission` | The IAM keys are not saved. | Save them in **Settings → BytePlus**. |
+| `CreateAsset is rate-limited by your Advanced Creation Rights tier` | Too many asset requests per minute. | Wait and run again. |
+
+## Settings → BytePlus
+
+These messages appear in the Settings page, next to the key row.
+
+| What you see | Why | What to do |
+|---|---|---|
+| No **BytePlus** page in Settings | An old version of the pack is installed, or ComfyUI was not restarted and the page not reloaded after the install. | Update the pack (ComfyUI-Manager → Update), restart ComfyUI and reload the page. See [Install](../get-started/install/). |
+| `BytePlus rejected this API key for the selected region, so it was not saved.` | The key is wrong, or you picked another region than the key's. | Pick the key's region and save again. |
+| `Saved, but BytePlus could not be reached to check the key; …` | The check could not run, so the key was saved unchecked. | If the nodes report 401, check the key and the region. |
+| `The BYTEPLUS_REGION environment variable is set to … and it overrides the region picked here. …` | An environment variable fixes the region. | Pick the region it names, or change or remove the variable and restart ComfyUI. |
+| `The IAM access key and secret key go together: fill in both.` | Only one of the two fields was filled in. | Fill in both fields. |
+| `Requests from another origin are not accepted.` | ComfyUI is behind a proxy that hides the address you opened. | Edit `user/.env` by hand ([API keys](../get-started/api-keys/)). |
+| `Could not write …` | ComfyUI could not write the `.env` file at the path shown. | Check that the path can be written (permissions, disk), or edit the file with a text editor. |
+
+## ComfyUI quirks
+
+- **Changing a key does not rerun the workflow.** ComfyUI caches results by input values, so an unchanged workflow reuses its earlier result. Change a prompt or seed.
+- **A second run billed again.** The `seed` control `randomize`, which some templates use, changes the seed after every run, so the node sends a new request. Set the control to `fixed` to reuse the cached result.
+- **A node did not run.** Nodes run only when something uses their output. Connect **Save Image** or **Save Video**.
+- **A saved key is ignored.** An environment variable with the same name wins over `user/.env`. Settings tells you when that happens.

@@ -1,0 +1,56 @@
+---
+title: "Product Ad in One Click"
+description: "Type a one-line brief and get a 1080p product ad: an LLM writes the prompts, Seedream shoots the hero image and Seedance animates it."
+template_file: Product Ad in One Click.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Product Ad in One Click.json" />
+
+## What it makes
+
+A short 16:9 product ad in 1080p, made from nothing but a sentence. It is for makers who have a product idea but no photo yet. The idea: let a language model act as the creative director, write one image prompt and one motion prompt, and hand them to three specialists in turn: Seedream paints the hero shot, Seedance brings it to life and vCube upscales and cleans the final clip.
+
+## The workflow
+
+<Shot src="templates/product-ad-in-one-click-workflow.webp" alt="The Product Ad in One Click template in five groups: brief, creative director, hero shot, animate, enhance and save" caption="Five groups from the brief to the saved 1080p ad." />
+
+1. A **Product brief (one line)** text node holds the idea. The template uses a new cold-brew coffee in a matte-black can for busy students.
+2. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo, titled "Creative director") answers in the format `IMAGE:` and `MOTION:`. Two **Extract Text** nodes split the reply, and two **Preview as Text** nodes show both prompts.
+3. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (Seedream 5.0 Pro, 16:9 at 2048x1152) paints the hero shot from the image prompt.
+4. **[Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/)** with the model set to Seedance 2.0 animates the image as its first frame: 720p, 5 seconds, audio on.
+5. An **Extract Text** node pulls the video link out of the Seedance `response`.
+6. **[vCube Video Enhance](../../nodes/vcube-video-enhance/)** takes that link as `video_url` and upscales to 1080p. **Save Video** keeps the result in `BytePlus/Video/ProductAd`.
+
+## Run it
+
+1. Add your ModelArk API key and your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The template needs both.
+2. Open the template browser and choose **Product Ad in One Click** under BytePlus.
+3. Replace the text in **Product brief (one line)** with your own product and audience.
+4. Press **Run**. The two prompts appear first, then the ad is saved.
+
+## Settings worth changing
+
+- **Product brief:** mention the product, the container or look, and who it is for.
+- **`model` in the hero shot:** switch to another Seedream model, for example `seedream 5.0 flash`, while you tune the brief.
+- **`duration` and `generate_audio` in Animate:** the template makes 5 seconds with audio on.
+- **`resolution` in vCube:** 1080p here, with `tool_version` standard, `scene` aigc and `enhance_style` hd.
+- **System prompt of the LLM:** edit it to change the camera move or the look, for example a handheld style instead of a slow push-in.
+
+## Example result
+
+<Shot src="templates/product-ad-in-one-click-result.webp" alt="Three frames of the saved ad, a matte-black can with condensation against a coffee-bean bokeh background, and the two prompts the LLM wrote" caption="Result of the live test run: 1920x1080, about 5 seconds." />
+
+<Media kind="video" file="product-ad-in-one-click.mp4" caption="The saved ad from the live test." />
+
+## Time and cost
+
+The live test took 4.5 minutes. The LLM, Seedream and Seedance nodes bill on your ModelArk account, and vCube bills on your AI MediaKit account. The seed controls are set to `randomize`, so every run makes new prompts, a new image and a new clip and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. vCube reads the Seedance clip from its link, so no Comfy.org login is needed.
+
+## Related
+
+- Nodes: [BytePlus LLM](../../nodes/byteplus-llm/), [Seedream 4.5 & 5.0](../../nodes/seedream/), [Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/), [vCube Video Enhance](../../nodes/vcube-video-enhance/)
+- Next step: [Image to UGC Video](../image-to-ugc-video/) starts from a real product photo and adds a voiceover.

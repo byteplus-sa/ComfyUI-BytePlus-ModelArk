@@ -1,0 +1,67 @@
+---
+title: "Install"
+description: "Install the BytePlus ModelArk node pack with ComfyUI-Manager or by hand, and fix the missing SDK message."
+---
+
+import { Steps, Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+This pack adds BytePlus nodes to ComfyUI. It needs ComfyUI **0.31.0 or later** and works in both **Classic Canvas** and **Nodes 2.0** (Vue nodes).
+
+## Install with ComfyUI-Manager
+
+<Steps>
+
+1. Open **ComfyUI-Manager** and choose **Custom Nodes Manager**.
+2. Search for *BytePlus ModelArk*. The pack is listed as *ComfyUI BytePlus ModelArk & AI MediaKit*.
+3. Press **Install**. The Manager normally installs the pack's Python requirements as well.
+4. Restart ComfyUI and reload the browser page.
+
+</Steps>
+
+## Install by hand
+
+<Steps>
+
+1. Open a terminal in your ComfyUI folder and clone the pack into `custom_nodes`:
+
+   ```bash
+   cd ComfyUI/custom_nodes
+   git clone https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk
+   ```
+
+2. Install the requirements with **the same Python that runs ComfyUI**:
+
+   ```bash
+   pip install -r ComfyUI-BytePlus-ModelArk/requirements.txt
+   ```
+
+3. Restart ComfyUI and reload the browser page.
+
+</Steps>
+
+<Aside type="caution">
+If you use a virtual environment or the portable build of ComfyUI, run `pip` from that environment. A `pip` from another Python installs the packages where ComfyUI cannot see them.
+</Aside>
+
+## If the BytePlus SDK is missing
+
+The pack never installs packages on its own. If the BytePlus SDK (`byteplus-python-sdk-v2`) is missing or too old, the BytePlus nodes do not load. ComfyUI prints a message in its console instead. For a missing SDK it reads:
+
+> BytePlus SDK is not installed; the BytePlus nodes are disabled. Install the requirements, then restart ComfyUI:
+
+For an old SDK the message starts with *BytePlus SDK … is older than the required …* and ends with *Update it, then restart ComfyUI:*. Both end with the exact `pip install` command for your Python. Run it, then restart ComfyUI.
+
+## Check that it worked
+
+1. Double-click the canvas to open node search and type `Seedream`. The BytePlus nodes appear under the **BytePlus ModelArk** category.
+2. Open **Settings** (the gear icon, or Ctrl+, / Cmd+,) and search for **BytePlus**. You should see a **BytePlus** page with a **Default credentials** section and one row per key: ModelArk API key, Seed Speech API key, AI MediaKit API key and Asset library IAM AK/SK.
+
+If the Settings page is missing, update the pack (**ComfyUI-Manager → Update**), restart ComfyUI and reload the page.
+
+## Classic Canvas and Nodes 2.0
+
+Both renderers show the same nodes and the same Settings page. Nothing needs to be turned on.
+
+## Next step
+
+[Add your API keys](../api-keys/).

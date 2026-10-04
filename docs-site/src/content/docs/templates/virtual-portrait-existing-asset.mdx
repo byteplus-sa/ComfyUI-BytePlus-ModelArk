@@ -1,0 +1,54 @@
+---
+title: "Virtual Portrait - Existing Asset"
+description: "Use a portrait already in your private asset library as the reference for a Seedance 2.5 video, by asset ID or by looking it up by name."
+template_file: Virtual Portrait - Existing Asset.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Virtual Portrait - Existing Asset.json" />
+
+## What it makes
+
+One 5 second video of your virtual portrait, made by Seedance 2.5 Reference to Video. The prompt is "asset1 walks along a beach at sunset, turns toward the camera and smiles. Waves, soft wind, cinematic lighting." and `asset1` is the portrait from your library. The template has two ways to point at the asset, so you can paste its ID or let a library lookup find it by name.
+
+## The workflow
+
+<Shot src="templates/virtual-portrait-existing-asset-workflow.webp" alt="Two groups: Option A with an Asset ID text node into Seedance 2.5 Reference and Save Video, and Option B with Asset Library into a second Seedance 2.5 Reference" caption="Option A (active) and Option B (bypassed until you switch the group to Always)." />
+
+1. **Asset ID (from your library)** is a text node. It holds a placeholder that you replace with the ID of your asset, and it feeds `asset_1`.
+2. **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** uses model Seedance 2.5 at 720p and 16:9 for 5 seconds with `generate_audio` on and `task_type` reference.
+3. **Save Video** keeps the clip under `BytePlus/Video/Seedance_asset`.
+4. **[Asset Library](../../nodes/asset-library/)** (Option B) lists assets with `group_type` AIGC and `status` Active, filtered by the name "My portrait" with `max_results` 1. Its `asset_uris` output goes to `asset_1` of a second Seedance 2.5 Reference node, and `assets_json` goes to a **Matching assets** preview.
+
+## Run it
+
+1. Add your ModelArk API key and the IAM access key and secret key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The IAM keys need asset-library permission, and your account also needs Dreamina Seedance Advanced Creation Rights. The pack looks up the asset's type with the IAM keys.
+2. Open the template browser and choose **Virtual Portrait - Existing Asset** under BytePlus.
+3. Option A: replace the placeholder in **Asset ID (from your library)** with your asset ID, then press **Run**.
+4. Option B: set the Option B group to **Always**, mute or bypass Option A (it would run with the placeholder ID), set `name` in Asset Library to your asset's name, and press **Run**.
+
+## Settings worth changing
+
+- **Prompt:** refer to the portrait as `asset1`, as in the template. The node rewrites it for the model.
+- **`name` and `group_id` (Asset Library):** narrow the lookup to one asset. Keep `max_results` at 1 so exactly one URI reaches `asset_1`.
+- **`resolution`, `ratio` and `duration`:** change the size and length of the clip.
+- **`model`:** the node lists other Seedance models too, such as Seedance 2.0. Its page shows the options.
+- **`asset_2` and further inputs:** add more assets, images, videos or audio as references.
+
+## Example result
+
+<Shot src="templates/virtual-portrait-existing-asset-result.webp" alt="Three frames of the saved video: a person with curly hair and a yellow cardigan walking on a beach at sunset and turning toward the camera" caption="Result of the live test run: frames from the start, middle and end of the saved video." />
+
+<Media kind="video" file="virtual-portrait-existing-asset.mp4" caption="The video made by the live test run (Option A)." />
+
+## Time and cost
+
+The live test of Option A took 3.6 minutes for one 5 second clip at 720p. A separate live run of Option B took 3.7 minutes. Each run billed one Seedance 2.5 generation. Looking up an asset in the library does not generate anything. The Seedance `seed` control is set to `randomize`, so every run makes a new clip and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing. Only use media you are authorized to use.
+
+## Related
+
+- Nodes: [Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/), [Asset Library](../../nodes/asset-library/)
+- Next step: [Virtual Portrait - New Asset](../virtual-portrait-new-asset/) registers an image as a new asset and uses it in the same run.

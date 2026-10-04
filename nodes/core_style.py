@@ -64,18 +64,21 @@ def watermark_input(tooltip="Whether to add a watermark to the video.", optional
     )
 
 
-def generation_count_input():
+def generation_count_input(seeded=True):
+    """seeded=False for a node that sends no seed (Draft to Final): generation N then has no seed + N."""
+    tooltip = "Number of separate generations to run in parallel."
+    if seeded:
+        tooltip += " With several, generation N uses seed + N so the results differ."
     return comfy_io.Int.Input(
         "generation_count",
         default=1,
         min=1,
-        tooltip="Number of separate generations to run in parallel. With several, generation N uses "
-        "seed + N so the results differ.",
+        tooltip=tooltip,
         advanced=True,
     )
 
 
-def video_extra_inputs(include_offline=False):
+def video_extra_inputs(include_offline=False, seeded=True):
     """
     This pack's video extras, placed after core's inputs. Like core's nodes,
     the core-style nodes save nothing themselves: every video reaches the
@@ -93,7 +96,7 @@ def video_extra_inputs(include_offline=False):
         )
     inputs.extend(
         [
-            generation_count_input(),
+            generation_count_input(seeded),
             comfy_io.Boolean.Input(
                 "non_blocking",
                 default=False,

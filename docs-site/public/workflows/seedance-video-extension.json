@@ -1,0 +1,508 @@
+{
+  "id": "551a5b78-28c7-4281-8436-89130dfc5dac",
+  "revision": 0,
+  "last_node_id": 8,
+  "last_link_id": 12,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "BytePlusSeedance2TextToVideo",
+      "pos": [
+        662,
+        108
+      ],
+      "size": [
+        340,
+        412
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            7,
+            9
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Clip 1 (Seedance 2.5 Text to Video)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedance2TextToVideo",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "Seedance 2.5",
+        "A small paper boat drifts down a rain-soaked city street at dusk, neon signs reflecting in the puddles. The camera tracks low behind the boat.",
+        "720p",
+        "16:9",
+        5,
+        true,
+        "mp4",
+        1,
+        "randomize",
+        false,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 2,
+      "type": "BytePlusSeedance2Reference",
+      "pos": [
+        1098,
+        108
+      ],
+      "size": [
+        340,
+        504
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.reference_images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 7
+        },
+        {
+          "name": "model.reference_videos.video_2",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            8,
+            10
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Extension 1 (task_type = extend)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedance2Reference",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "Seedance 2.5",
+        "Extend the video forward: the boat is swept toward a storm drain and spins in a small whirlpool. The camera circles to the side, rain streaking past.",
+        "720p",
+        "16:9",
+        5,
+        true,
+        "extend",
+        "mp4",
+        true,
+        false,
+        2,
+        "randomize",
+        false,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 3,
+      "type": "BytePlusSeedance2Reference",
+      "pos": [
+        1534,
+        108
+      ],
+      "size": [
+        340,
+        504
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.reference_images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 8
+        },
+        {
+          "name": "model.reference_videos.video_2",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            11
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Extension 2 (task_type = extend)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedance2Reference",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "Seedance 2.5",
+        "Extend the video forward: the boat escapes into a calm canal glowing with neon reflections. The camera rises slowly above it and the rain fades.",
+        "720p",
+        "16:9",
+        5,
+        true,
+        "extend",
+        "mp4",
+        true,
+        false,
+        3,
+        "randomize",
+        false,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 4,
+      "type": "ConcatenateVideo",
+      "pos": [
+        1970,
+        108
+      ],
+      "size": [
+        340,
+        138
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "videos.video0",
+          "type": "VIDEO",
+          "link": 9
+        },
+        {
+          "name": "videos.video1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 10
+        },
+        {
+          "name": "videos.video2",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 11
+        },
+        {
+          "name": "videos.video3",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "complete_audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "title": "Join clip 1 and the two extensions",
+      "properties": {
+        "Node name for S&R": "ConcatenateVideo"
+      },
+      "widgets_values": [
+        "auto"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "SaveVideo",
+      "pos": [
+        1970,
+        300
+      ],
+      "size": [
+        340,
+        106
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "Save the long video",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Video/Seedance_extended",
+        "auto",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "MarkdownNote",
+      "pos": [
+        26,
+        108
+      ],
+      "size": [
+        540,
+        560
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Seedance video extension\n\nClip 1 is a normal text-to-video. Each **Extension** node is *Seedance 2.5 Reference to Video* with **task_type = extend**: it receives the previous clip as its reference video and continues it forward, picking up the motion, the scene and the sound where that clip stopped. The extension contains only the new seconds, so **Concatenate Video** joins clip 1 and both extensions into one 15 s video.\n\nWrite what should happen next in each extension prompt (start with 'Extend the video forward'). To add a third extension, copy an Extension node and feed it the previous one. A connected reference video is uploaded through Comfy.org storage, so log in to your Comfy.org account in ComfyUI. Needs a ModelArk key in Settings > BytePlus."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      7,
+      1,
+      0,
+      2,
+      1,
+      "VIDEO"
+    ],
+    [
+      8,
+      2,
+      0,
+      3,
+      1,
+      "VIDEO"
+    ],
+    [
+      9,
+      1,
+      0,
+      4,
+      0,
+      "VIDEO"
+    ],
+    [
+      10,
+      2,
+      0,
+      4,
+      1,
+      "VIDEO"
+    ],
+    [
+      11,
+      3,
+      0,
+      4,
+      2,
+      "VIDEO"
+    ],
+    [
+      12,
+      4,
+      0,
+      5,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 11,
+      "title": "1 · How it works",
+      "bounding": [
+        0,
+        0,
+        592,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 12,
+      "title": "2 · Clip 1",
+      "bounding": [
+        636,
+        0,
+        392,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 13,
+      "title": "3 · Extension 1",
+      "bounding": [
+        1072,
+        0,
+        392,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 14,
+      "title": "4 · Extension 2",
+      "bounding": [
+        1508,
+        0,
+        392,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 15,
+      "title": "5 · Join and save",
+      "bounding": [
+        1944,
+        0,
+        392,
+        704
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        40,
+        30
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

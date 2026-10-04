@@ -1,0 +1,52 @@
+---
+title: "2.5 Model Updates"
+description: "Try the newest models side by side: a Seedream 5.0 Pro poster, a Seedance 2.5 video and a Seed 2.1 Turbo storyboard in one run."
+template_file: 2.5 Model Updates.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="2.5 Model Updates.json" />
+
+## What it makes
+
+Three separate results from one click: a 2K poster image, a 30 second video with sound, and a text storyboard. Each branch uses one of the newest models, so the template also shows whether your key can use all of them. The three branches do not depend on each other, so you can delete the ones you do not need.
+
+## The workflow
+
+<Shot src="templates/2-5-model-updates-workflow.webp" alt="The 2.5 Model Updates template: three rows, each with a BytePlus node feeding a Save or Preview node" caption="Three independent rows inside one group titled 2.5 Model Updates." />
+
+1. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** is set to `seedream 5.0 pro` at `(2K) 2048x2048 (1:1)`. The prompt asks for a minimalist poster for a spring tea festival with the title "Spring Tea Festival". No reference image is connected. **Save Image** keeps the result.
+2. **[Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/)** is set to the `Seedance 2.5` model at `720p`, `16:9`, `duration` 30 and `generate_audio` on. The prompt describes a lighthouse keeper climbing the stairs at dusk, lighting the lamp and looking out over a stormy sea. **Save Video** keeps the clip.
+3. **[BytePlus LLM](../../nodes/byteplus-llm/)** runs `Seed 2.1 Turbo` and is asked for a three-shot storyboard of a 15 second smart watch video, with the camera move, the action and one line of voice-over per shot. **Preview as Text** shows the answer.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). One key covers all three nodes.
+2. Open the template browser and choose **2.5 Model Updates** under BytePlus.
+3. Press **Run**. The three results appear in **Save Image**, **Save Video** and **Preview as Text** as each node finishes.
+
+## Settings worth changing
+
+- **Poster prompt:** replace the tea festival text with your own. Put the exact title you want in quotes.
+- **`duration` on the video node:** the template asks for 30 seconds. Lower it for a shorter first try.
+- **`resolution` on the video node:** `720p` is the default here; the Seedance 2.5 model also offers `480p` and `1080p`.
+- **Storyboard prompt:** change the product or the number of shots. The model is `Seed 2.1 Turbo`; the same node lists other Seed, DeepSeek and GLM models.
+- **Unused branches:** delete the **Save** or **Preview** node at the end of a row to skip that row. A BytePlus node whose output nothing uses does not run, so it does not bill.
+
+## Example result
+
+<Shot src="templates/2-5-model-updates-result.webp" alt="The tea festival poster, three frames of the lighthouse video and the smart watch storyboard text" caption="Result of the live test run: the poster, the video and the storyboard." />
+
+<Media kind="video" file="2-5-model-updates.mp4" caption="The Seedance 2.5 lighthouse video from the live test." />
+
+## Time and cost
+
+The live test took 6.0 minutes for the whole run. Each node bills once per run: one image from Seedream, one video from Seedance and one request from the LLM node. The seed controls are set to `randomize`, so every run makes new results and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
+
+## Related
+
+- Nodes: [Seedream 4.5 & 5.0](../../nodes/seedream/), [Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/), [BytePlus LLM](../../nodes/byteplus-llm/)
+- Next step: [Seedance Video Extension](../seedance-video-extension/) continues a Seedance 2.5 clip to make a longer video.

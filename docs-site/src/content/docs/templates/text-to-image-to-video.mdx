@@ -1,0 +1,53 @@
+---
+title: "Text to Image to Video"
+description: "Create a first frame with Seedream 5.0 Pro, then animate it into a five-second clip with Seedance 2.0 in one workflow."
+template_file: Text to Image to Video.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Text to Image to Video.json" />
+
+## What it makes
+
+A still image and a short video from one idea. Seedream paints an astronaut on a red desert dune with a huge ringed planet in the sky. Seedance then uses that picture as the first frame and animates it, so the clip starts exactly where the image is. Writing the image first gives you control over the look before you pay for the video.
+
+## The workflow
+
+<Shot src="templates/text-to-image-to-video-workflow.webp" alt="Seedream connected to Save First Frame and to the first_frame input of Seedance First-Last-Frame to Video, which feeds Save Video" caption="Four nodes: Seedream, Save First Frame, Seedance and Save Video." />
+
+1. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** makes the image from the prompt "A lone astronaut standing on a red desert dune at sunrise, a huge ringed planet filling the sky, cinematic wide shot...". The model is `seedream 5.0 pro` and the size is 2048x1152 (16:9). No reference image is connected.
+2. **Save First Frame** keeps the image in the output folder.
+3. **[Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/)** gets the image as `first_frame` and animates it with the model Seedance 2.0 at 720p, ratio `adaptive`, 5 seconds, with audio. Its prompt says the astronaut turns toward the camera while dust drifts and the camera pushes in. `last_frame` stays empty.
+4. **Save Video** keeps the clip.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Open the template browser and choose **Text to Image to Video** under BytePlus.
+3. Press **Run**. The image appears first in **Save First Frame**, then the video in **Save Video** when Seedance finishes.
+
+## Settings worth changing
+
+- **Seedream prompt:** describe the scene you want as the first frame. Write the Seedance prompt about the motion, not about the scene again.
+- **Seedream `size_preset`:** the video ratio is `adaptive`, so the clip follows the shape of the image. Pick another preset for a vertical or square clip.
+- **Seedance `model`:** Seedance 2.0 is set. The list also has Seedance 2.5 and the Draft, Premium, Fast and Mini variants. Seedance 2.5 models have no `ratio` input.
+- **Seedance `resolution` and `duration`:** 720p and 5 seconds are set. Raise them when you are happy with the motion.
+- **`last_frame`:** connect a second image to make the clip end on a given picture.
+
+## Example result
+
+<Shot src="templates/text-to-image-to-video-result.webp" alt="The first frame of the astronaut on the dune, and three frames of the video below it" caption="Result of the live test run: the first frame and the video." />
+
+<Media kind="video" file="text-to-image-to-video.mp4" caption="The astronaut clip made from the Seedream image." />
+
+## Time and cost
+
+The live test took 2.9 minutes for the image and the video together. ModelArk bills the image once and the video task once. The seed controls are set to `randomize`, so every run makes new results and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
+
+## Related
+
+- Nodes: [Seedream 4.5 & 5.0](../../nodes/seedream/), [Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/)
+- Next step: [Seedance 2](../seedance-2/) shows the other Seedance modes, including draft then final.

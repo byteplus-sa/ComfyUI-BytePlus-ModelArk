@@ -1,0 +1,55 @@
+---
+title: "Virtual Portrait - New Asset"
+description: "Register an image as a virtual portrait in your private asset library, then use that asset in a Seedance 2.5 video in the same run."
+template_file: Virtual Portrait - New Asset.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Virtual Portrait - New Asset.json" />
+
+## What it makes
+
+One 5 second video, plus a new asset in your library. The template uploads a picture as a virtual portrait named "My portrait" and passes it to Seedance 2.5 Reference to Video as `asset1`, with the prompt "asset1 walks along a beach at sunset, turns toward the camera and smiles. Waves, soft wind, cinematic lighting." The shipped picture is the ComfyUI logo, so replace it with your own portrait image.
+
+## The workflow
+
+<Shot src="templates/virtual-portrait-new-asset-workflow.webp" alt="The Virtual Portrait New Asset template: Load Image into Create Image Asset, then Seedance 2.5 Reference and Save Video" caption="Load Image, Create Image Asset, Seedance 2.5 Reference to Video, Save Video and an Asset details preview." />
+
+1. **Portrait image** (Load Image) supplies the picture.
+2. **[Create Image Asset](../../nodes/create-image-asset/)** uploads it to Comfy.org storage, finds or creates the virtual portrait group "ComfyUI Virtual Portraits", creates the asset "My portrait" and waits until it is Active (`wait_until_active` is on). Its `asset_id` goes to `asset_1` and its `info` goes to an **Asset details** preview.
+3. **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** uses model Seedance 2.5 at 720p and 16:9 for 5 seconds with `generate_audio` on and `task_type` reference.
+4. **Save Video** keeps the clip under `BytePlus/Video/Seedance_new_asset`.
+
+## Run it
+
+1. Add your ModelArk API key and the IAM access key and secret key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The IAM keys need asset-library permission, and your account also needs Dreamina Seedance Advanced Creation Rights.
+2. Log in to your Comfy.org account in ComfyUI. A connected image is uploaded to Comfy.org storage first, because creating an asset takes a link.
+3. Open the template browser and choose **Virtual Portrait - New Asset** under BytePlus.
+4. In **Portrait image**, pick your own portrait.
+5. Press **Run**. The asset details appear first and the video follows when Seedance finishes.
+
+## Settings worth changing
+
+- **`asset_name` and `group_name`:** name the asset and its group. Use one group per person. An existing `group_id` adds the asset to a group you already have.
+- **`image_url`:** an advanced input. A public HTTPS link replaces the image and skips the Comfy.org upload.
+- **Prompt:** keep `asset1` where the person should appear and describe the action around it.
+- **`resolution`, `ratio` and `duration`:** change the size and length of the clip.
+- **`wait_until_active`:** keep it on so Seedance only starts once the asset is usable.
+
+## Example result
+
+<Shot src="templates/virtual-portrait-new-asset-result.webp" alt="The result panel of the live test run: OK in 180 seconds, the saved video file name, three frames of the video and the asset details as JSON with the asset and group IDs hidden" caption="Result of the live test run, made with the ComfyUI logo as the picture. The test run named its asset differently from the template." />
+
+<Media kind="video" file="virtual-portrait-new-asset.mp4" caption="The video made by the live test run." />
+
+## Time and cost
+
+The live test took 3.0 minutes from upload to saved video. It billed one Seedance 2.5 generation. Registering the asset is cached per image content, so running again with the same picture reuses the asset. The Seedance `seed` control is set to `randomize`, so every run makes a new clip and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing. Only use media you are authorized to use.
+
+## Related
+
+- Nodes: [Create Image Asset](../../nodes/create-image-asset/), [Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)
+- Next step: [Virtual Portrait - Existing Asset](../virtual-portrait-existing-asset/) reuses a stored asset by ID or by name.

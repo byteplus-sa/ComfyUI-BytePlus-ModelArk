@@ -1,0 +1,69 @@
+---
+title: "Seed Speech TTS"
+description: "Turn text into speech with a Seed Speech TTS 2.0 voice, a TTS 1.0 speaker ID or a cloned voice, with optional emotion, style and subtitles."
+node_id: BytePlusSeedTTS
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedTTS" />
+
+## What it does
+
+Reads your text aloud with a Seed Speech voice and returns it as ComfyUI audio. Pick a voice from the `voice` list with `seed-tts-2.0`, or type a speaker ID in `custom_speaker_id` to use a TTS 1.0 speaker or a voice you cloned.
+
+The node needs your separate Seed Speech API key (Singapore region only), and every run sends one billed request. It does not save anything itself: connect **Save Audio** or **Preview Audio** to keep or hear the result.
+
+## On the canvas
+
+<Shot src="nodes/seed-tts.png" alt="The Seed Speech TTS node with model seed-tts-2.0, a short English sentence and the voice en_female_stokie_uranus_bigtts" caption="Default settings with the TTS 2.0 voice list." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedTTS" />
+
+### Notes on inputs
+
+- **Models:** `seed-tts-2.0` uses the `voice` list. `seed-tts-1.0`, `seed-icl-2.0` and `seed-icl-1.0` have no entry in that list: they need a speaker ID in `custom_speaker_id`. Use `seed-icl-2.0` with the `speaker_id` from [Seed Voice Clone](../seed-voice-clone/).
+- **`custom_speaker_id` wins:** when it is filled, `voice` is ignored. The `voice` list always has a value, so you can leave it as it is.
+- **Style:** `context_text` (TTS 2.0 only) takes an instruction such as "Speak slowly, sounding heartbroken." `emotion` and `emotion_scale` work for voices that support emotions. An empty `emotion` means neutral.
+- **Subtitles:** turn on `enable_subtitle` to fill `subtitles_json` and `srt`. The 2.0 models (`seed-tts-2.0`, `seed-icl-2.0`) return subtitles, the 1.0 models word timestamps.
+- **Language:** `explicit_language` limits reading to one language. `auto` copes with mixed Chinese and English.
+- **`seed`:** it is not sent to the API. Change it to synthesize the same text again.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedTTS" />
+
+### Notes on outputs
+
+- `audio` is decoded from the raw PCM the API streams back, at the `sample_rate` you chose.
+- `srt` stays empty and `subtitles_json` has no segments unless `enable_subtitle` is on and the service returns timestamps.
+
+## Limits and tips
+
+- `seed-tts-2.0` accepts only the sample rates 24000, 16000 and 8000. The node stops with an error for the others.
+- `context_text` works only with `seed-tts-2.0`, and `tone_fidelity` only with `seed-icl-2.0` (same language as the training audio).
+- Timestamps are available for Chinese and English. Cached audio (`use_cache`, identical text within the last hour) comes without timestamps.
+- A voice supports specific languages. If the service says the voice is not available, check that the model matches the voice: TTS 2.0 voices need `seed-tts-2.0`, cloned voices need `seed-icl-*`.
+- `filter_markdown` and the advanced `read_emoji`, `read_latex` and `read_parentheses` control how Markdown, emoji, LaTeX and text in parentheses are read. `unsupported_char_ratio` makes the request fail when too much of the text is in a language the voice cannot read.
+- Interrupting a run stops the node's wait. The node sends no cancel request, so a request that was already sent may still be billed.
+- The live test run only used `seed-tts-2.0`. `seed-tts-1.0` and the `seed-icl-*` models need a speaker ID that was not available then, so what this page says about them comes from the code and the tooltips.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `[BytePlus] No Seed Speech API key is set. Add it in Settings > BytePlus …` | Add the Seed Speech key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `[BytePlus] … needs custom_speaker_id: the voice list only holds TTS 2.0 voices.` | You picked `seed-tts-1.0` or a `seed-icl-*` model. Fill `custom_speaker_id`, or switch to `seed-tts-2.0`. |
+| `… The voice is not available for this key or model. Check the speaker ID …` | Check the speaker ID and that the model fits it. TTS 2.0 voices need `seed-tts-2.0`, cloned voices `seed-icl-*`. |
+| `[BytePlus] seed-tts-2.0 supports the sample rates 24000, 16000 and 8000 Hz.` | Set `sample_rate` to 24000, 16000 or 8000. |
+| `… The text is longer than the model accepts.` | Split the text into shorter parts and run the node once per part. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedTTS" />

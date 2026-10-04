@@ -1,0 +1,52 @@
+---
+title: "Seed Audio"
+description: "Turn one text prompt into a spoken clip with Seed Audio 1.0 and get matching SRT subtitles, with no other nodes needed."
+template_file: Seed Audio.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Seed Audio.json" />
+
+## What it makes
+
+One audio clip of about 16 seconds and its subtitles. The prompt describes a late-night radio host who welcomes listeners over soft rain and a distant jazz piano, and quotes the two lines to speak. Seed Audio 1.0 reads the lines in the preset voice Stokie (Female, American English) and, because subtitles are on, also returns an SRT text with a time range for each sentence.
+
+## The workflow
+
+<Shot src="templates/seed-audio-workflow.webp" alt="The Seed Audio template: one Seed Audio 1.0 node feeding Preview Audio and Preview as Text" caption="Three nodes: Seed Audio 1.0, Preview Audio and Preview as Text." />
+
+1. **[Seed Audio 1.0](../../nodes/seed-audio/)** receives the prompt, uses `reference_mode` = preset voice with the voice Stokie, and creates the audio. `enable_subtitle` is on in this template.
+2. **Preview Audio** plays the `AUDIO` output.
+3. **Preview as Text** shows the `srt` output.
+
+## Run it
+
+1. Add your Seed Speech API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This is a separate key from the ModelArk key.
+2. Open the template browser and choose **Seed Audio** under BytePlus.
+3. Press **Run**. The clip appears in **Preview Audio** and the subtitles in **Preview as Text**.
+
+## Settings worth changing
+
+- **`text_prompt`:** describe the voice, the mood, the sounds around it and the lines to speak. Put the spoken lines in quotes.
+- **`reference_mode`:** switch from preset voice to text only, audio reference (clone up to three voices from clips, tagged `@Audio1` to `@Audio3` in the prompt) or image reference.
+- **`preset_voice`:** pick another built-in voice while `reference_mode` is preset voice.
+- **`speech_rate`, `loudness_rate` and `pitch_rate`:** 0 is normal. For speed and loudness, 100 means twice as fast or loud and -50 means half. Pitch moves by semitones from -12 to 12.
+- **`generation_count`:** an advanced input. It runs several takes in parallel, each billed as its own request, and every output becomes a list.
+
+## Example result
+
+<Shot src="templates/seed-audio-result.webp" alt="The Seed Audio graph after the run with the audio waveform and two subtitle entries below" caption="Result of the live test run: a 16.1 second clip and two subtitle entries." />
+
+<Media kind="audio" file="seed-audio-0.mp3" caption="The clip made by the live test run." />
+
+## Time and cost
+
+The live test took 30 seconds for one clip of 16.1 seconds. The node sends one request per generation and bills it. The `seed` is not sent to the API and does not make results repeatable; it only decides whether ComfyUI runs the node again. Its control is set to `randomize`, so every run makes a new take and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
+
+## Related
+
+- Node: [Seed Audio 1.0](../../nodes/seed-audio/)
+- Next step: [Sound Design](../sound-design/) lets the BytePlus LLM write the sound prompt and renders two takes.

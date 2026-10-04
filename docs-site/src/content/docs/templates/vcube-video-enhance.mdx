@@ -1,0 +1,56 @@
+---
+title: "vCube Video Enhance"
+description: "Upscale and clean up a video to 1080p with vCube on BytePlus AI MediaKit, with a before and after comparison video and slider."
+template_file: vCube Video Enhance.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="vCube Video Enhance.json" />
+
+## What it makes
+
+Two videos and a comparison slider. The template sends a video you pick to vCube, which restores and upscales it to 1080p. You get the enhanced video, a second video in which a divider sweeps across the frame to show before and after, and a pair of still frames for a side-by-side slider.
+
+## The workflow
+
+<Shot src="templates/vcube-video-enhance-workflow.webp" alt="The vCube Video Enhance template: Load Video into the vCube node, which feeds two Save Video nodes and a Compare Images node" caption="Load Video feeds the vCube node; its outputs go to two Save Video nodes and Compare Images." />
+
+1. **Load Video** supplies the source video. The template ships with no file chosen, so pick one with **choose file to upload**.
+2. **[vCube Video Enhance](../../nodes/vcube-video-enhance/)** uses `tool_version` `standard` with `scene` `aigc` and `enhance_style` `hd`, `resolution` `1080p`, `fps` `source` and `bitrate_level` `medium`. `comparison` is on, so it also builds the comparison outputs.
+3. **Save Enhanced Video** keeps the enhanced video.
+4. **Save Comparison Video** keeps the video with the sweeping divider.
+5. **Compare Images** receives `source_frame` and `enhanced_frame`. It is the slider view and works in Nodes 2.0 only.
+
+## Run it
+
+1. Add your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This is a separate key from the ModelArk key.
+2. Log in to your Comfy.org account in ComfyUI. A connected video is uploaded to Comfy.org storage first, because AI MediaKit only takes links. To skip that, remove **Load Video** and set `video_url` on the vCube node to a public link instead.
+3. Open the template browser and choose **vCube Video Enhance** under BytePlus.
+4. In **Load Video**, pick a video of your own.
+5. Press **Run**. The two videos appear in the Save Video nodes and the frames in **Compare Images** when the task finishes.
+
+## Settings worth changing
+
+- **`scene`:** match the footage. `aigc` is for AI-generated video, `common` for general video, `ugc` for compressed phone clips, `short_series` for drama with faces and `old_film` for scratched or flickering archive footage.
+- **`enhance_style`:** `hd` sharpens more; `natural` is softer.
+- **`resolution`:** choose 720p, 2k, 4k, 8k, `source` or `custom`. The source video must be at most 2560x1440.
+- **`fps`:** a higher rate than the source adds interpolated frames. The node tooltip says rates above 30 fps cost 2x and above 60 fps 4x.
+- **`tool_version`:** `professional` restores more thoroughly. The tooltip says it takes about 3x longer and costs 10x more than `standard`.
+
+## Example result
+
+<Shot src="templates/vcube-video-enhance-result.webp" alt="The result panel of the live test run: OK in 71 seconds, with the input clip_720p_5s.mp4 and the saved enhanced and comparison videos listed, and three frames of the enhanced clip" caption="Result of the live test run, using a 5 second 720p colour bar test clip." />
+
+<Media kind="video" file="vcube-video-enhance.mp4" caption="The enhanced video from the live test." />
+
+## Time and cost
+
+The live test took 71 seconds for a 5 second 720p clip enhanced to 1080p. The task bills on AI MediaKit once per run, and the price depends on the settings above. Running again with an unchanged workflow and the same video reuses ComfyUI's cached result and does not bill. The comparison is built on your computer after the download, so it adds no MediaKit charge.
+
+## Related
+
+- Node: [vCube Video Enhance](../../nodes/vcube-video-enhance/)
+- Next step: [Video Smoothness Enhance](../video-smoothness-enhance/) repairs stutter without changing the resolution.

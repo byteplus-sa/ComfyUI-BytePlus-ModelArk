@@ -1,0 +1,51 @@
+---
+title: "Seed Prompt Writer"
+description: "Turn a short idea into a detailed image prompt with Seed 2.1 Turbo, then feed it straight into Seedream 5.0 Pro to make the picture."
+template_file: Seed Prompt Writer.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Seed Prompt Writer.json" />
+
+## What it makes
+
+One image, and the prompt that produced it. You type a few words, here "a cozy bookshop on a rainy evening". The BytePlus LLM node expands them into one long prompt covering subject, setting, composition, lighting, color palette, lens and mood. That prompt is shown as text and also sent to Seedream, which draws the image.
+
+## The workflow
+
+<Shot src="templates/seed-prompt-writer-workflow.webp" alt="The Seed Prompt Writer template: the BytePlus LLM node feeds a text preview and the prompt input of Seedream, which feeds Save Image" caption="The LLM's text output goes to two places: a preview and the Seedream prompt." />
+
+1. **[BytePlus LLM](../../nodes/byteplus-llm/)** runs `Seed 2.1 Turbo`. Its `prompt` is the short idea. Its `system_prompt` tells it to write prompts for an image generator and to reply with the prompt only, in one paragraph, with no preamble.
+2. **Prompt written by Seed** (Preview as Text) shows what the LLM wrote.
+3. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** receives the same text as its `prompt` and makes the picture with `seedream 5.0 pro` at `(1.5K) 1536x1536 (1:1)`.
+4. **Save Image** keeps the result.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). One key covers both nodes.
+2. Open the template browser and choose **Seed Prompt Writer** under BytePlus.
+3. Change the idea in the LLM node's `prompt` box, or keep the bookshop.
+4. Press **Run**. The written prompt appears first in the preview and the picture follows in **Save Image**.
+
+## Settings worth changing
+
+- **`prompt` (LLM):** your short idea. A few words are enough.
+- **`system_prompt`:** change the style of the writing, for example ask for a shorter prompt or a particular art style.
+- **`size_preset` (Seedream):** pick another ratio or resolution.
+- **`model` (LLM):** the node also lists the other Seed models, DeepSeek V4.1 Flash and GLM 5.3 Flash.
+- **`reasoning_effort` (LLM):** the template uses `medium`. `max` thinks longest and costs the most, according to the tooltip.
+
+## Example result
+
+<Shot src="templates/seed-prompt-writer-result.webp" alt="The long bookshop prompt written by Seed and the finished picture of a cozy bookshop with an armchair, shelves and rain outside" caption="Result of the live test run: the written prompt and the image it produced." />
+
+## Time and cost
+
+The live test took 64 seconds for the prompt and one image. Each node bills once per run: one LLM request and one Seedream image. The seed controls are set to `randomize`, so every run writes a new prompt, draws a new picture and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
+
+## Related
+
+- Nodes: [BytePlus LLM](../../nodes/byteplus-llm/), [Seedream 4.5 & 5.0](../../nodes/seedream/)
+- Next step: [Text to Image to Video](../text-to-image-to-video/) turns a Seedream image into a clip.

@@ -1,0 +1,600 @@
+{
+  "id": "0cd0537f-9bcd-4a9d-a69e-f834c08fe236",
+  "revision": 0,
+  "last_node_id": 11,
+  "last_link_id": 14,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "BytePlusSeedream",
+      "pos": [
+        26,
+        722
+      ],
+      "size": [
+        340,
+        416
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": [
+            8
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Demo input: a stand-in old photo",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "A faded, slightly damaged black-and-white studio portrait photograph of a smiling elderly couple in 1950s clothes, soft grain, scratches and creases, vintage",
+        "seedream 5.0 flash",
+        "(1K) 864x1152 (3:4)",
+        2048,
+        2048,
+        31,
+        "randomize",
+        false,
+        1,
+        "jpeg",
+        "opaque",
+        "randomize",
+        "randomize"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "RegexExtract",
+      "pos": [
+        26,
+        1192
+      ],
+      "size": [
+        340,
+        262
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "title": "Link to the old photo",
+      "properties": {
+        "Node name for S&R": "RegexExtract"
+      },
+      "widgets_values": [
+        "",
+        "https://[^\"\\s]+",
+        "First Match",
+        true,
+        false,
+        false,
+        1
+      ]
+    },
+    {
+      "id": 3,
+      "type": "BytePlusImageEnhance",
+      "pos": [
+        682,
+        108
+      ],
+      "size": [
+        340.7701171875,
+        170
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "image_url"
+          },
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            10,
+            14
+          ]
+        },
+        {
+          "name": "original",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Restore and upscale (Image Quality Enhance)",
+      "properties": {
+        "Node name for S&R": "BytePlusImageEnhance",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "standard",
+        "multiple",
+        2,
+        ""
+      ]
+    },
+    {
+      "id": 4,
+      "type": "BytePlusSeedance2FirstLastFrame",
+      "pos": [
+        26,
+        1668
+      ],
+      "size": [
+        340,
+        436
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "first_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 10
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": null
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": [
+            11
+          ]
+        }
+      ],
+      "title": "Bring it to life (Seedance 2.0 image to video)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedance2FirstLastFrame",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "Seedance 2.0",
+        "The couple smiles warmly and blinks softly, a gentle breeze moves their hair, very subtle natural motion, the camera stays almost still.",
+        "720p",
+        "adaptive",
+        5,
+        false,
+        34,
+        "randomize",
+        false,
+        "",
+        "",
+        1,
+        false
+      ]
+    },
+    {
+      "id": 5,
+      "type": "RegexExtract",
+      "pos": [
+        26,
+        2158
+      ],
+      "size": [
+        340,
+        262
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "title": "Link to the video",
+      "properties": {
+        "Node name for S&R": "RegexExtract"
+      },
+      "widgets_values": [
+        "",
+        "https://[^\"\\s]+",
+        "First Match",
+        true,
+        false,
+        false,
+        1
+      ]
+    },
+    {
+      "id": 6,
+      "type": "BytePlusVideoSmoothness",
+      "pos": [
+        462,
+        1668
+      ],
+      "size": [
+        364.3951171875,
+        258
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "name": "video_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "video_url"
+          },
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            13
+          ]
+        },
+        {
+          "name": "comparison",
+          "type": "VIDEO",
+          "links": null
+        },
+        {
+          "name": "inserted_frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "duplicate_frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Smooth the motion (Video Smoothness Enhance)",
+      "properties": {
+        "Node name for S&R": "BytePlusVideoSmoothness",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.1"
+      },
+      "widgets_values": [
+        "repair",
+        false,
+        "",
+        "remove",
+        "",
+        false
+      ]
+    },
+    {
+      "id": 7,
+      "type": "SaveVideo",
+      "pos": [
+        462,
+        1980
+      ],
+      "size": [
+        340,
+        106
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "Save the living memory",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Video/LivingMemory",
+        "auto",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "SaveImage",
+      "pos": [
+        682,
+        332
+      ],
+      "size": [
+        340,
+        80
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Save the restored photo",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Image/restored"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "MarkdownNote",
+      "pos": [
+        26,
+        108
+      ],
+      "size": [
+        560,
+        560
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Old photo to living memory\n\n1. **Image Quality Enhance** restores and upscales the photo.\n2. **Seedance 2.0** animates the restored photo (first frame only) with subtle, natural motion.\n3. **Video Smoothness Enhance** finishes the clip.\n\nThe first group creates a stand-in old photo so the template runs as it is. To use your own photo, delete that group and paste a public https link into *image_url* of the restore node (or connect a Load Image; local images need a Comfy.org login). Needs ModelArk and MediaKit keys in Settings > BytePlus."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      8,
+      1,
+      1,
+      2,
+      0,
+      "STRING"
+    ],
+    [
+      9,
+      2,
+      0,
+      3,
+      1,
+      "STRING"
+    ],
+    [
+      10,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      11,
+      4,
+      3,
+      5,
+      0,
+      "STRING"
+    ],
+    [
+      12,
+      5,
+      0,
+      6,
+      1,
+      "STRING"
+    ],
+    [
+      13,
+      6,
+      0,
+      7,
+      0,
+      "VIDEO"
+    ],
+    [
+      14,
+      3,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 9,
+      "title": "1 · Input photo",
+      "bounding": [
+        0,
+        0,
+        612,
+        1490
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 10,
+      "title": "2 · Restore and upscale",
+      "bounding": [
+        656,
+        0,
+        392.7701171875001,
+        1490
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 11,
+      "title": "3 · Add motion (Seedance)",
+      "bounding": [
+        0,
+        1560,
+        392,
+        896
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 12,
+      "title": "4 · Smooth and save",
+      "bounding": [
+        436,
+        1560,
+        416.3951171875,
+        896
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        40,
+        30
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

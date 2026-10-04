@@ -1,0 +1,58 @@
+---
+title: "Video Smoothness Enhance"
+description: "Repair stutter and repeated frames in a video with BytePlus AI MediaKit, keeping the resolution and getting a side-by-side comparison."
+template_file: Video Smoothness Enhance.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Video Smoothness Enhance.json" />
+
+## What it makes
+
+A smoother copy of a video you pick. The template asks MediaKit to find places where the motion jumps (periodic stutter) and to fill them with generated in-between frames, and to remove repeated frames. The resolution stays the same. It is made for Seedance clips with occasional stutter, and also suits low frame rate or re-encoded video and screen or game recordings.
+
+## The workflow
+
+<Shot src="templates/video-smoothness-enhance-workflow.webp" alt="The Video Smoothness Enhance template: Load Video into the smoothness node, which feeds two Save Video nodes and a text preview" caption="Load Video feeds the smoothness node; its outputs go to two Save Video nodes and a Preview as Text node." />
+
+1. **Load Video** supplies the source video. The template ships with no file chosen, so pick one with **choose file to upload**.
+2. **[Video Smoothness Enhance](../../nodes/video-smoothness-enhance/)** has `periodic_stutter` on `repair`, `duplicate_frames` on `remove` and `comparison` on.
+3. **Save Smoothed Video** keeps the repaired video.
+4. **Save Comparison Video** keeps a video with the source on the left and the repaired clip on the right.
+5. **Preview as Text** shows the `response`, the MediaKit task as JSON, which includes how many frames were inserted and how many duplicates were found.
+
+## Run it
+
+1. Add your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This is a separate key from the ModelArk key.
+2. Log in to your Comfy.org account in ComfyUI. A connected video is uploaded to Comfy.org storage first, because AI MediaKit only takes links. To skip that, remove **Load Video** and set `video_url` on the node to a public link instead.
+3. Open the template browser and choose **Video Smoothness Enhance** under BytePlus.
+4. In **Load Video**, pick a video of your own.
+5. Press **Run**. The result appears in the Save Video nodes and the text preview when the task finishes.
+
+## Settings worth changing
+
+- **`periodic_stutter`:** `repair` generates in-between frames. `detect only` counts the stutter points without changing the video.
+- **`align_source_fps`:** appears with `repair`. Turn it on to keep the source frame rate, frame count and duration. The repair is best with it off.
+- **`insert_frame_indices`:** appears with `repair`. Add stutter points the detector missed as zero-based frame numbers, for example `80, 120`.
+- **`duplicate_frames`:** `remove` drops consecutive identical frames; `detect only` just counts them.
+- **Length:** the video must be at most 4K, and at most 35 seconds while a repair is on.
+
+## Example result
+
+<Shot src="templates/video-smoothness-enhance-result.webp" alt="The result panel of the live test run: OK in 103 seconds, with the input clip_720p_5s.mp4, the saved smoothed video and the task response as JSON, and three frames of the saved clip" caption="Result of the live test run, using a 5 second 720p colour bar test clip." />
+
+<Media kind="video" file="video-smoothness-enhance.mp4" caption="The saved video from the live test." />
+
+The test clip had no stutter, so the response reports 0 inserted frames and 0 duplicate frames. When nothing needs repair, MediaKit returns no new video and the node passes your source video through, and the comparison output is skipped.
+
+## Time and cost
+
+The live test took 103 seconds for a 5 second 720p clip. The task bills on AI MediaKit once per run. Running again with an unchanged workflow and the same video reuses ComfyUI's cached result and does not bill.
+
+## Related
+
+- Node: [Video Smoothness Enhance](../../nodes/video-smoothness-enhance/)
+- Next step: [vCube Video Enhance](../vcube-video-enhance/) raises the resolution and cleans up the picture.

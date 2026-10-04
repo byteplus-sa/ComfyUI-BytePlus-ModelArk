@@ -1,0 +1,66 @@
+---
+title: "Create Image Asset"
+description: "Add an image to your private BytePlus asset library, such as a virtual portrait, and get an asset ID to use in Seedance 2 and 2.5."
+node_id: BytePlusCreateImageAsset
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusCreateImageAsset" />
+
+## What it does
+
+Registers an image in your private asset library and outputs its `asset_id`, `group_id` and an `asset://` URI, so Seedance 2 and 2.5 can use it as a reference without sending the image again. It needs Dreamina Seedance Advanced Creation Rights, the ModelArk API key, and the IAM access key and secret key saved in **Settings → BytePlus** (see [API keys](../../get-started/api-keys/)). It generates nothing, and you should only use images you are authorized to use.
+
+## On the canvas
+
+<Shot src="nodes/create-image-asset.png" alt="The Create Image Asset node with an image socket, empty group_id and the default group name and asset name" caption="Default values. Leave group_id empty to use the group named in group_name." />
+
+## Inputs
+
+<NodeInputs id="BytePlusCreateImageAsset" />
+
+### Notes on inputs
+
+- **Image source:** connect `image`, or set `image_url` to a public HTTPS link, not both. A connected image is uploaded to Comfy.org storage first (Comfy.org login needed), because the asset library only takes links. A link goes straight to the library.
+- **Group:** with a `group_id`, the asset is added to that group. This can be a virtual portrait (AIGC) group or a verified real person's group. With an empty `group_id`, the node finds the AIGC group whose name is exactly `group_name`, or creates it. Use one group per person.
+- **Real people:** verification is a QR-code flow in the ModelArk console and the node cannot start it. Verify the person there, then paste the group ID into `group_id`.
+- **Waiting:** with `wait_until_active` on, the node waits until the asset is Active. Turn it off to get the IDs at once; the asset is then still Processing.
+
+## Outputs
+
+<NodeOutputs id="BytePlusCreateImageAsset" />
+
+### Notes on outputs
+
+- Connect `asset_id` to an `asset_N` slot of [Seedance 2.5 Reference to Video](../seedance-2-5-reference/), or to `first_frame_asset_id` / `last_frame_asset_id` on [Seedance 2.5 First-Last-Frame to Video](../seedance-2-5-first-last-frame/).
+- `asset_uri` is `asset://` plus the ID, for inputs that take URIs. `info` is the asset as JSON, with its status and type.
+- The node also shows `asset_id` and `group_id` as text under the node. Save them to reuse the asset later.
+
+## Limits and tips
+
+- A connected image must be 300 to 6000 px on each side, with a width to height ratio above 0.4 and below 2.5. These are checked before any upload; an `image_url` is not checked here. Of a connected batch only the first image is registered.
+- The node is not an output node. Connect at least one of its outputs to another node, or it does not run.
+- Running the same connected image again reuses the asset created for it, as long as the group, project, account and `asset_name` are the same and the asset still exists. This memory is cleared when ComfyUI restarts. A link in `image_url` is never deduplicated.
+- The node waits up to 10 minutes for Active. After that it stops with an error, but the asset may still become Active: list it with [Asset Library](../asset-library/) before you create it again.
+- Creating assets is rate limited by your rights tier: 3 requests per minute for Entry, 120 for Advanced and 300 for Premium.
+- Creation requests are not retried automatically, so a timeout cannot create a second asset.
+- Interrupting a run stops the node's wait. An asset that was already created stays in your library.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `[BytePlus] The asset library needs IAM AK/SK with asset-library permission …` | Add the IAM access key and secret key in **Settings → BytePlus**. The account also needs Advanced Creation Rights. |
+| `[BytePlus] Asset image width and height must be between 300 and 6000 px. Current: …` | Resize the image to 300 to 6000 px on each side, with a ratio between 0.4 and 2.5. |
+| `[BytePlus] Asset … failed processing or review (status …). Check the material and try another image.` | The material was rejected. Check it and try another image. |
+| `[BytePlus] … asset groups are named '…'. Set group_id to choose one.` | More than one group has that name. Set `group_id` to choose one. |
+| `… CreateAsset is rate-limited by your Advanced Creation Rights tier …` | Wait a minute and run again. The limit depends on your Advanced Creation Rights tier. |
+
+## Used in templates
+
+<UsedIn id="BytePlusCreateImageAsset" />

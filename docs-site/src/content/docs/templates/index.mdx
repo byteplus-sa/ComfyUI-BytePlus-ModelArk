@@ -1,0 +1,56 @@
+---
+title: "Templates"
+description: "Ready-made workflows for the BytePlus nodes, from one image to a dubbed product ad, grouped by what they make."
+---
+
+import TemplateGrid from '../../../components/TemplateGrid.astro';
+
+The templates install with the pack. To open one, use ComfyUI's template browser, pick a BytePlus workflow and press **Run**. Most templates end in a Save node that keeps the result in your `output` folder. The others only show it in a preview node, so add a Save node if you want to keep it.
+
+Each template needs the keys of the services it uses. The facts box at the top of every template page lists them, and [API keys](../get-started/api-keys/) shows where to create each one. Workflows contain no keys: they come from **Settings → BytePlus**.
+
+We ran every template live against the real BytePlus services on 2026-10-03, and each page shows the measured time. The one exception is Seed Voice Clone, which has not been run end to end yet. Running a template bills your BytePlus account, so check [Billing and cost](../concepts/billing-and-cost/) first.
+
+Templates show current models only. The Seedance 1.0 nodes, the older Seedream 4.5 and 4.0 options and the Seed Speech 1.0 models (`seed-tts-1.0`, `seed-icl-1.0`, `seed-asr-1.0`) stay in the pack, but no template uses them.
+
+## Start here
+
+One template each for images (Seedream), video (Seedance 2) and language (Seed), and one that chains an image into a video. Run these first to check that your key works.
+
+<TemplateGrid group="Start here" />
+
+## Images
+
+Layer separation, image enhancement, and a generate-then-enhance flow for an image or a video.
+
+<TemplateGrid group="Images" />
+
+## Video
+
+Seedance 2.5 features, video extension, looking up tasks, and video enhancement with AI MediaKit.
+
+<TemplateGrid group="Video" />
+
+## Language
+
+The language model as a helper inside a larger workflow.
+
+<TemplateGrid group="Language" />
+
+## Speech
+
+Speech, music and sound effects with Seed Audio, plus Seed Speech TTS, ASR and voice cloning.
+
+<TemplateGrid group="Speech" />
+
+## Assets
+
+Use a private asset library in Seedance. These templates need IAM keys and Advanced Creation Rights.
+
+<TemplateGrid group="Assets" />
+
+## Showcase
+
+Longer pipelines that chain several services into one result, such as an ad, a podcast clip or a dubbed speech.
+
+<TemplateGrid group="Showcase" />
