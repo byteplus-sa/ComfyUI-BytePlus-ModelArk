@@ -7,7 +7,9 @@ and collapse empty video areas. Run after scripts/import_evidence.py (which over
 
 Each rule: image slug, box (x0, y0, x1, y1) of the line to replace, text to draw instead.
 """
+import io
 import os
+import subprocess
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -33,6 +35,9 @@ RULES = {
     "consistent-character-shots": [((24, 405, 380, 429), "asset://asset-<id>")],
     "video-smoothness-enhance": [((252, 710, 724, 736), '"amk-tool-enhance-video-smoothness-<id>"')],
 }
+
+
+COLLAPSE = {"vcube-video-enhance", "video-smoothness-enhance", "virtual-portrait-new-asset", "seedance-video-extension"}
 
 
 def collapse_empty(im, min_run=90, keep=14):
@@ -61,14 +66,46 @@ def collapse_empty(im, min_run=90, keep=14):
     return out
 
 
-for slug in sorted(set(RULES) | {"vcube-video-enhance", "video-smoothness-enhance", "virtual-portrait-new-asset"}):
+def add_frames(im, slug, count=3, width=440):
+    """Append frames of the sample clip (public/media/<slug>.mp4) where the run's panel had none to show."""
+    clip = os.path.join(os.path.dirname(ASSETS), "..", "..", "public", "media", f"{slug}.mp4")
+    clip = os.path.normpath(clip)
+    if not os.path.exists(clip):
+        return im
+    duration = float(subprocess.run(["/opt/homebrew/bin/ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", clip],
+                                    capture_output=True, text=True).stdout.strip() or 0)
+    frames = []
+    for i in range(count):
+        t = duration * (0.08 + 0.84 * i / (count - 1))
+        raw = subprocess.run(["/opt/homebrew/bin/ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", clip, "-frames:v", "1", "-vf", f"scale={width}:-2",
+                              "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True).stdout
+        if raw:
+            frames.append(Image.open(io.BytesIO(raw)).convert("RGB"))
+    if not frames:
+        return im
+    bg = im.getpixel((im.width - 3, im.height - 3))
+    height = max(f.height for f in frames)
+    out = Image.new("RGB", (im.width, im.height + height + 24), bg)
+    out.paste(im, (0, 0))
+    x = 24
+    for f in frames:
+        out.paste(f, (x, im.height + 8))
+        x += f.width + 12
+    return out
+
+
+FRAMES = {"vcube-video-enhance", "video-smoothness-enhance", "virtual-portrait-new-asset", "seedance-video-extension"}
+
+for slug in sorted(set(RULES) | COLLAPSE):
     path = os.path.join(ASSETS, f"{slug}-result.webp")
     im = Image.open(path).convert("RGB")
     draw = ImageDraw.Draw(im)
     for (x0, y0, x1, y1), text in RULES.get(slug, []):
         draw.rectangle((x0, y0, x1, y1), fill=im.getpixel((x1 + 4, y0 + 2)))
         draw.text((x0, y0 + 1), text, font=FONT, fill=(255, 255, 255))
-    if slug in ("vcube-video-enhance", "video-smoothness-enhance", "virtual-portrait-new-asset"):
+    if slug in COLLAPSE:
         im = collapse_empty(im)
+    if slug in FRAMES:
+        im = add_frames(im, slug)
     im.save(path, "WEBP", quality=86, method=6)
     print(slug, im.size)

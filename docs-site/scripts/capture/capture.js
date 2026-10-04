@@ -109,6 +109,13 @@
     return `${rel} ${out.width}x${out.height}`;
   };
 
+  // The graph currently on the canvas (build it by hand first), saved to src/assets/<rel>.
+  DOCS.shotCurrent = async (rel, scale = 1) => {
+    const out = await drawGraph(scale, 40);
+    await save(rel, await toBlob(out));
+    return `${rel} ${out.width}x${out.height}`;
+  };
+
   // A template from public/workflows/<slug>.json as the user sees it.
   DOCS.shotWorkflow = async (slug) => {
     const wf = await (await fetch(`${BASE}/workflows/${slug}.json`)).json();

@@ -16,11 +16,11 @@ import Shot from '../../../components/Shot.astro';
 
 Turns spoken audio into text. You connect an audio clip, for example from **Load Audio**, or paste a public audio link, and you get the transcript, the timing of each utterance and ready-made SRT subtitles.
 
-The node needs your separate Seed Speech API key (Singapore region only). `seed-asr-fast` answers in one request, while `seed-asr-2.0` and `seed-asr-1.0` submit a task and wait for it. A node whose outputs nothing uses does not run, so connect at least one output.
+The node needs your separate Seed Speech API key (Singapore region only), bills every run and runs only when another node uses one of its outputs. `seed-asr-fast` answers in one request, while `seed-asr-2.0` and `seed-asr-1.0` submit a task and wait for it.
 
 ## On the canvas
 
-<Shot src="nodes/seed-asr.png" alt="The Seed Speech ASR node with optional audio and context_image sockets, model seed-asr-fast, an empty audio_url and four text outputs" caption="Default settings. Connect audio, or fill audio_url." />
+<Shot src="nodes/seed-asr.png" alt="The Seed Speech ASR node with optional audio and context_image sockets, model seed-asr-fast, an empty audio_url and the outputs text, utterances_json, srt and duration" caption="Default settings. Connect audio, or fill audio_url." />
 
 ## Inputs
 
@@ -31,7 +31,7 @@ The node needs your separate Seed Speech API key (Singapore region only). `seed-
 - **Audio source:** connect `audio` or fill `audio_url`, never both. `audio_url` must be a public http(s) link.
 - **Fast or standard:** with `seed-asr-fast`, a connected clip is sent inside the request. The standard models take audio only as a link, so the node first uploads a connected clip to Comfy.org storage. That needs a Comfy.org login in ComfyUI.
 - **Language:** `auto` recognizes Chinese, English and Chinese dialects. Choose a language for anything else. The last 16 languages in the list work only with `seed-asr-2.0` and `seed-asr-1.0`.
-- **Hotwords and context:** `hotwords` and `context_text` work with the Chinese-English model only, so keep `language` on `auto` or `zh-CN`. `context_image` (or `context_image_url`) is a visual hint for ASR 2.0 and is uploaded to Comfy.org storage.
+- **Hotwords and context:** `hotwords` and `context_text` work with the Chinese-English model only, so keep `language` on `auto` or `zh-CN` and `enable_auto_lang` off. `context_image` and `context_image_url` give a visual hint (an ASR 2.0 feature that `seed-asr-1.0` refuses). A connected `context_image` is uploaded to Comfy.org storage, so it needs a Comfy.org login; a `context_image_url` is sent as it is.
 - **`audio_format`:** with `auto` the node reads the extension of the link. For a link without one, it looks at the first bytes of the file, in standard mode. Set the format yourself if that does not work.
 - **Speakers and channels:** `enable_speaker_info` and `enable_channel_split` add speaker or channel labels to `srt`. Channel split needs stereo audio.
 
@@ -52,17 +52,17 @@ The node needs your separate Seed Speech API key (Singapore region only). `seed-
 - Uploads to Comfy.org storage are cached for 12 hours, so running the same clip again does not upload it again.
 - `seed-asr-fast` accepts raw, wav, mp3 and ogg audio from a link. Use `seed-asr-2.0` for m4a, aac, amr, spx or pcm.
 - `enable_lid` (language labels) is for the standard models. `end_window_size` is 0 or between 300 and 5000 ms.
-- Interrupting a run stops the node's wait. The node does not send a cancel request for a task that was already submitted.
+- Interrupting a run stops the node's wait. The node sends no cancel request, so a task that was already submitted may still be billed.
 
 ## Common errors
 
 | Message | What to do |
 |---|---|
-| `Connect audio or fill audio_url.` | Give the node one audio source. |
-| `Use audio or audio_url, not both.` | Disconnect the `audio` socket or empty `audio_url`. |
-| `Uploading the audio to Comfy.org storage failed` | Log in to your Comfy.org account in ComfyUI, or use a public `audio_url` instead. |
-| `Set audio_format: the audio_url has no recognizable extension` | Choose the format in `audio_format`, or use a link that ends in the file extension. |
-| `Hotwords and context only work with the Chinese-English model` | Set `language` to `auto` or `zh-CN`, and turn off `enable_auto_lang`. |
+| `[BytePlus] Connect audio or fill audio_url.` | Give the node one audio source. |
+| `[BytePlus] Use audio or audio_url, not both.` | Disconnect the `audio` socket or empty `audio_url`. |
+| `[BytePlus] Uploading the audio to Comfy.org storage failed: …` | Log in to your Comfy.org account in ComfyUI, or use a public `audio_url` instead. |
+| `[BytePlus] Set audio_format: the audio_url has no recognizable extension, …` | Choose the format in `audio_format`, or use a link that ends in the file extension. |
+| `[BytePlus] Hotwords and context only work with the Chinese-English model: …` | Set `language` to `auto` or `zh-CN`, and turn off `enable_auto_lang`. |
 
 ## Used in templates
 

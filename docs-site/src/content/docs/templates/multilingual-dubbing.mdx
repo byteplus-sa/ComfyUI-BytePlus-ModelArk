@@ -18,17 +18,17 @@ A new audio file in which your speech clip is spoken in another language, Japane
 
 <Shot src="templates/multilingual-dubbing-workflow.webp" alt="The Multilingual Dubbing template in four groups: source speech, transcribe, translate, dub" caption="Four groups, one per step of the chain." />
 
-1. **Load Audio** (named "Speech to dub") supplies the source clip.
-2. **[Seed Speech ASR](../../nodes/seed-asr/)** (`seed-asr-fast`, `language` auto) transcribes it. The `text` output goes to a **Preview Any** node called Transcript.
-3. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo) translates the text. The target language is written in its system prompt ("Target language: Japanese."), and the answer is shown in a **Preview Any** node called Translation.
+1. **Load Audio** (titled "Speech to dub (change me)") supplies the source clip. It points to a placeholder file, `speech_8s.wav`, so pick your own clip.
+2. **[Seed Speech ASR](../../nodes/seed-asr/)** (`seed-asr-fast`, `language` auto) transcribes it. The `text` output goes to a **Preview as Text** node called Transcript.
+3. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo) translates the text. The target language is written in its system prompt ("Target language: Japanese."), and the answer is shown in a **Preview as Text** node called Translation.
 4. **[Seed Speech TTS](../../nodes/seed-tts/)** (`seed-tts-2.0`, a Japanese female voice) speaks the translation.
-5. **Save Audio** writes an MP3 to `BytePlus/Audio/dub`.
+5. **Save Audio (Advanced)** (titled "Save the dub") writes an MP3 to `BytePlus/Audio/dub`.
 
 ## Run it
 
 1. Add your Seed Speech API key and your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The template needs both.
 2. Open the template browser and choose **Multilingual Dubbing** under BytePlus.
-3. In **Speech to dub**, choose your own audio file.
+3. In **Speech to dub (change me)**, choose your own audio file.
 4. To dub into another language, change the last words of the LLM system prompt and pick a voice for that language in the TTS node.
 5. Press **Run**. The transcript and translation appear, then the dub.
 
@@ -42,13 +42,13 @@ A new audio file in which your speech clip is spoken in another language, Japane
 
 ## Example result
 
-<Shot src="templates/multilingual-dubbing-result.webp" alt="The finished graph with the English transcript and the Japanese translation shown below the saved dub" caption="Result of the live test run: an English sample sentence dubbed into Japanese." />
+<Shot src="templates/multilingual-dubbing-result.webp" alt="The saved dub as a waveform, with the English transcript and the Japanese translation below it" caption="Result of the live test run: an English sample sentence dubbed into Japanese." />
 
 <Media kind="audio" file="multilingual-dubbing-0.mp3" caption="The saved Japanese dub from the live test (11 seconds)." />
 
 ## Time and cost
 
-The live test took about 5 seconds. Seed Speech ASR and Seed Speech TTS bill on your Seed Speech account, and the LLM bills on your ModelArk account. Running again with unchanged inputs reuses ComfyUI's cached results and does not bill.
+The live test took 5 seconds. Seed Speech ASR and Seed Speech TTS bill on your Seed Speech account, and the LLM bills on your ModelArk account. The LLM and TTS `seed` controls are set to `randomize`, so every run translates and speaks again and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
 
 ## Related
 

@@ -11,7 +11,7 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it makes
 
-A sharper, larger copy of a picture. The template loads an image (the 1024x1024 ComfyUI logo) and enhances it to twice the width and height, 2048x2048. It saves the result and also sets up a before-and-after comparison.
+A sharper, larger copy of a picture. The template loads an image (the ComfyUI logo) and enhances it to twice its width and height. It saves the result and also sets up a before-and-after comparison.
 
 ## The workflow
 
@@ -20,11 +20,11 @@ A sharper, larger copy of a picture. The template loads an image (the 1024x1024 
 1. **Load Image** supplies the picture to improve.
 2. **[Image Quality Enhance](../../nodes/image-quality-enhance/)** runs with `tool_version` set to `standard`, `output_size` set to `multiple` and `multiple` at 2.00. The `image_url` input is empty because the image comes from the socket.
 3. **Save Enhanced Image** writes the enhanced picture to `BytePlus/Image/enhanced`.
-4. **Compare Images** receives the enhanced image as `image_a` and the `original` output as `image_b`. The `original` output is the input resized to the enhanced size, so the slider lines up. Compare Images shows its slider in Nodes 2.0 only; Classic Canvas shows a note instead.
+4. **Compare Images** receives the `original` output as `image_a` and the enhanced image as `image_b`. The `original` output is the input resized to the enhanced size, so the slider lines up. Compare Images shows its slider in Nodes 2.0 only; Classic Canvas shows a note instead.
 
 ## Run it
 
-1. Add your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). It is a different key from the ModelArk key.
+1. Add your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This is a separate key from the ModelArk key.
 2. Log in to your Comfy.org account in ComfyUI. A connected image is uploaded to Comfy.org storage first, because AI MediaKit only takes links.
 3. Open the template browser and choose **Image Quality Enhance** under BytePlus.
 4. Press **Run**. The enhanced picture appears in **Save Enhanced Image**.
@@ -38,11 +38,11 @@ A sharper, larger copy of a picture. The template loads an image (the 1024x1024 
 
 ## Example result
 
-<Shot src="templates/image-quality-enhance-result.webp" alt="The enhanced 2048 by 2048 ComfyUI logo in Save Enhanced Image" caption="Result of the live test run." />
+<Shot src="templates/image-quality-enhance-result.webp" alt="The enhanced ComfyUI logo in Save Enhanced Image: a yellow ring above the word ComfyUI on a purple gradient" caption="Result of the live test run." />
 
 ## Time and cost
 
-The live test took about 11 seconds. AI MediaKit bills each enhanced image, and the price depends on `tool_version`. Running again with an unchanged workflow reuses ComfyUI's cached result and does not bill.
+The live test took 11 seconds. AI MediaKit bills each enhanced image, and the price depends on `tool_version`. Running again with an unchanged workflow reuses ComfyUI's cached result and does not bill.
 
 ## Related
 

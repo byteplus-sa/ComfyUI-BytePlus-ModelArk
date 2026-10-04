@@ -5,7 +5,7 @@ description: "Every model the nodes offer, the model ID sent to BytePlus, and th
 
 import ModelTable from '../../components/ModelTable.astro';
 
-Each node shows a short model name. The node sends the dated model ID next to it to BytePlus. A new model version only changes the ID, so the name in your workflow keeps working. The tables below are generated from the pack's model list.
+Most nodes show a short model name, and the node sends the dated model ID next to it to BytePlus. When BytePlus releases a new version of a model, the pack usually changes only the ID, so the name in your workflow keeps working. A few options (Seedream 4.5 and 4.0, Seedance 1.0 and the Seed Speech models) are shown as the ID itself. The tables below are generated from the pack's model list.
 
 ## Models by node
 
@@ -19,7 +19,7 @@ Seed Speech and AI MediaKit use their own keys, which you create in their own co
 
 ## Regions
 
-ModelArk keys belong to a region, `ap-southeast-1` (the default) or `eu-west-1`. The key and the region in **Settings → BytePlus** must match. See [Keys and regions](../concepts/keys-and-regions/).
+ModelArk API keys belong to a region, `ap-southeast-1` (the default) or `eu-west-1`. The key and the region in **Settings → BytePlus** must match. See [Keys and regions](../concepts/keys-and-regions/).
 
 - **Seedream 5.0 Lite is not available in `eu-west-1`.** BytePlus deactivated it there on 2026-09-10. The node refuses to send the request in that region.
 - Seed Speech and AI MediaKit run in `ap-southeast-1` only.
@@ -38,7 +38,8 @@ A draft is always 480p. The final rendered from a draft is 1080p for Seedance 2.
 
 ## Models with extra requirements
 
-- **Seedance 2.5 Premium (4K)** is listed as "whitelist only" in the pack's README, so your account may need access from BytePlus before it accepts requests. Premium tasks can also stay queued or running for tens of minutes. Ask BytePlus about access if a request is refused.
+- **Seedance 2.5 Premium (4K)** is whitelist only, so your account may need access from BytePlus before it accepts requests. In our live test on 2026-10-03, Premium (4K) tasks stayed queued or running for over 50 minutes without finishing. Ask BytePlus about access if a request is refused.
+- **Seed Speech ASR:** the table above repeats the option name in the ID column, but the node sends these BytePlus resource IDs: `seed-asr-fast` uses `volc.seedasr.auc_turbo` (one request, audio up to 2 hours), `seed-asr-2.0` uses `volc.seedasr.auc` and `seed-asr-1.0` uses `volc.bigasr.auc` (both submit a task, audio up to 5 hours).
 - **Seedance 1.0 First-Last-Frame to Video** offers Seedance 1.0 Pro only. Pro Fast has no last-frame support.
 - **BytePlus LLM audio input** works only on Seed 2.0 Lite and Mini. Seed 2.0 Pro and Seed 2.1 Turbo reject audio. DeepSeek V4.1 Flash and GLM 5.3 Flash accept it but cannot hear it, so the node offers the audio input only for Lite and Mini.
 - **Asset library nodes** need Advanced Creation Rights on your account. See [Reference media](../concepts/reference-media/).

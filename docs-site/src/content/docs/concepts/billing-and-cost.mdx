@@ -11,15 +11,16 @@ The nodes call BytePlus directly with your own keys. Everything is billed to **y
 
 ## Nodes run only when their output is used
 
-The BytePlus nodes are not output nodes and they save nothing themselves. ComfyUI runs a node only when something downstream needs its result, for example **Save Image**, **Save Video** or a preview.
+The BytePlus generation, language, speech and enhancement nodes are not output nodes, and they save nothing themselves. (Seedream Layer Separation writes files only if you turn on `save_layers`.) ComfyUI runs a node only when something downstream needs its result, for example **Save Image**, **Save Video** or a preview.
 
-A node with nothing connected to its output does not run and is not billed.
+A node with nothing connected to its output does not run and is not billed. Two nodes are the exception: **Video Query Tasks** and **Asset Library** are output nodes that only look things up, so they run even with nothing connected.
 
 ## ComfyUI caches results
 
 ComfyUI remembers a node's result for its input values. Run an unchanged workflow again and the node is skipped, so nothing is sent and nothing is billed.
 
 - Change the prompt, a setting or the `seed` to get a new result and a new charge.
+- A `seed` control set to `randomize` changes the seed after every run, so the next run is a new request and a new charge. Set the control to `fixed` to reuse the result. The Seedream template ships with `randomize`.
 - Changing a key does not count as a change. See [Keys and regions](../keys-and-regions/).
 - The Seedance nodes have a `non_blocking` option that submits the task and returns at once. Run the node again to collect the finished video.
 
@@ -27,7 +28,7 @@ ComfyUI remembers a node's result for its input values. Run an unchanged workflo
 
 The BytePlus SDK can retry a request after a timeout or a server error. For a call that starts paid work, that is dangerous: the first request may have gone through, and ModelArk has no way to recognize a repeat. A retry could create and bill the same video or image twice.
 
-So the pack never retries calls that start paid work (video task creation, image generation, LLM answers). The only exception is a rate limit (429), which means nothing started, so it waits and tries again. Looking up a task, polling and uploads can still be retried, because they cost nothing.
+So the pack never retries calls that start paid work (video task creation, image generation, LLM answers). The only exception is a rate limit (429), which means nothing started, so it waits briefly and tries again, up to twice. Looking up a task, polling and uploads can still be retried, because a repeat starts no new paid work. AI MediaKit video tools send a fresh task token with each run, and a retried submit reuses it, so a retry never creates a second task.
 
 The result for you: if a paid request fails with a timeout, the node reports the error and stops. Check your BytePlus console before you run it again, because the first request may have been billed.
 
@@ -39,7 +40,7 @@ The same holds for **Seed Audio**: each take is billed separately.
 
 ## Long-running tasks
 
-Video tasks can take minutes. The node keeps checking the task and shows its status under the node. Waiting costs nothing, but the task is billed when it runs. If you press Interrupt, see [Interrupts and cancelling](../interrupts/) for what is cancelled and what is still billed.
+Video tasks can take minutes. The node keeps checking the task and shows its status under the node. Waiting itself costs nothing. If you press Interrupt, see [Interrupts and cancelling](../interrupts/) for what is cancelled and what is still billed.
 
 ## Voice cloning
 

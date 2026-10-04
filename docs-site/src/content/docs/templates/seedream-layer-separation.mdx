@@ -18,7 +18,7 @@ A background image and a stack of layers. Seedream looks at one picture (the Com
 <Shot src="templates/seedream-layer-separation-workflow.webp" alt="Load Image feeding the Seedream Layer Separation node, whose base_image goes to Preview Image and layers go to Save Image" caption="Four nodes: Load Image, Layer Separation, Preview Image and Save Image." />
 
 1. **Load Image** supplies one picture. The node takes exactly one image.
-2. **[Seedream 5.0 Layer Separation](../../nodes/seedream-layer-separation/)** runs with the model `seedream 5.0 pro`, an empty `prompt` (it finds the main elements by itself), `size` set to `auto` and `crop_layers` on `full canvas`.
+2. **[Seedream 5.0 Layer Separation](../../nodes/seedream-layer-separation/)** runs with the model `seedream 5.0 pro`, an empty `prompt` (it finds the main elements by itself), `size` set to `auto` and `crop_layers` set to `full canvas`.
 3. **Preview Image** shows `base_image`, the background plate.
 4. **Save Image** receives `layers` and writes each layer to the output folder as `BytePlus/Layers/Seedream`. With `full canvas` every layer sits on a black canvas the size of the base at its own position.
 
@@ -30,7 +30,7 @@ A background image and a stack of layers. Seedream looks at one picture (the Com
 
 ## Settings worth changing
 
-- **Image:** pick your own picture in **Load Image**. The image must be one picture of at least 262,144 pixels (for example 512x512).
+- **Image:** pick your own picture in **Load Image**. It must be one picture of at least 262,144 pixels (for example 512x512).
 - **`prompt`:** leave it empty to separate all major elements, or name the elements you want in plain words. You can also target regions with `<bbox>left top right bottom</bbox>` tags.
 - **`crop_layers`:** switch to `minimal size` to crop each layer to its bounding box. That gives smaller images; use the `bboxes` output to put them back.
 - **`save_layers`:** an advanced input. Turn it on to also write the base image and the original layer PNGs from the node itself.
@@ -42,7 +42,7 @@ A background image and a stack of layers. Seedream looks at one picture (the Com
 
 ## Time and cost
 
-The live test took about 31 seconds. ModelArk bills one image generation per run. The `seed` control is set to `randomize`, so every run asks again; set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
+The live test took 31 seconds. The node bills once per run through your ModelArk account. The `seed` control is set to `randomize`, so every run asks again and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
 
 ## Related
 

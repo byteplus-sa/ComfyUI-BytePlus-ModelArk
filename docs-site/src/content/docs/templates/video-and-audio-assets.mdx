@@ -18,7 +18,7 @@ One 4 second video made from two assets that live in your library. The template 
 
 <Shot src="templates/video-and-audio-assets-workflow.webp" alt="Four groups: Media, Register as assets, Library and Use the assets in Seedance, with a how-to note at the top left" caption="Four groups, from the sample media to the saved video." />
 
-1. **[Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/)** (Seedance 2.0 Mini, 480p, 16:9, 4 seconds) makes the sample video from "A calm slow pan across a quiet mountain lake at sunrise, mist over the water." A **Regex Extract** node pulls the video link out of its `response`.
+1. **[Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/)** (Seedance 2.0 Mini, 480p, 16:9, 4 seconds) makes the sample video from "A calm slow pan across a quiet mountain lake at sunrise, mist over the water." A **Extract Text** node pulls the video link out of its `response`.
 2. **[Seed Audio 1.0](../../nodes/seed-audio/)** speaks "A calm narrator says: Welcome to the quiet mountain lake at sunrise." in the preset voice Tim (Male, American English) and outputs a `url` for the clip.
 3. **[Create Video Asset](../../nodes/create-video-asset/)** and **[Create Audio Asset](../../nodes/create-audio-asset/)** register the two links in the group "ComfyUI assets", as "ComfyUI video" and "ComfyUI audio". Each outputs an `asset_uri` and an `info` shown in a preview.
 4. **[Asset Library](../../nodes/asset-library/)** lists up to 10 active AIGC assets, filtered by the name "ComfyUI", and shows their URIs.
@@ -27,10 +27,10 @@ One 4 second video made from two assets that live in your library. The template 
 
 ## Run it
 
-1. Add your ModelArk API key, your Seed Speech API key and the IAM access key and secret key in **Settings → BytePlus** ([API keys](../../get-started/api-keys/)). Your account also needs Dreamina Seedance Advanced Creation Rights.
+1. Add your ModelArk API key, your Seed Speech API key and the IAM access key and secret key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The template needs all three. The IAM keys need asset-library permission, and your account also needs Dreamina Seedance Advanced Creation Rights.
 2. Open the template browser and choose **Video and Audio Assets** under BytePlus.
-3. Press **Run**. The sample media is made first, then registered, then used in Seedance.
-4. To use your own media, paste public https links into `video_url` and `audio_url` of the two Create nodes, or connect **Load Video** and **Load Audio** to their `video` and `audio` sockets. Local uploads need a Comfy.org login.
+3. Press **Run**. The sample media is made first, then registered, then used in Seedance. The shipped template passes links from node to node, so it needs no Comfy.org login.
+4. To use your own media, paste public https links into `video_url` and `audio_url` of the two Create nodes, or connect **Load Video** and **Load Audio** to their `video` and `audio` sockets. Local uploads need a Comfy.org login: log in to your Comfy.org account in ComfyUI first.
 
 ## Settings worth changing
 
@@ -42,13 +42,13 @@ One 4 second video made from two assets that live in your library. The template 
 
 ## Example result
 
-<Shot src="templates/video-and-audio-assets-result.webp" alt="The graph after the run with the library listing, three frames of a misty mountain lake at sunrise and the asset info" caption="Result of the live test run: the library list, the saved video and the two asset records." />
+<Shot src="templates/video-and-audio-assets-result.webp" alt="The result panel: four asset URIs from the library list, three frames of a misty mountain lake at sunrise, and the video and audio asset records as JSON with the IDs hidden" caption="Result of the live test run: the library list, the saved video and the two asset records." />
 
 <Media kind="video" file="video-and-audio-assets.mp4" caption="The video made by the live test run." />
 
 ## Time and cost
 
-The live test took about 181 seconds for the whole chain. It billed one Seedance 2.0 Mini sample video, one Seed Audio clip and one Seedance 2.5 Draft video. The Asset Library node is not connected to the two Create nodes, so on the first run it can list the library as it was before the new assets existed, as in the test picture. Run the template again to see them. Running again with an unchanged workflow reuses ComfyUI's cached results and does not bill. Only use media you are authorized to use.
+The live test took 3.0 minutes for the whole chain. It billed one Seedance 2.0 Mini sample video, one Seed Audio clip and one Seedance 2.5 Draft video. The Asset Library node is not connected to the two Create nodes, so on the first run it can list the library as it was before the new assets existed, as in the test picture. To see them, change an Asset Library setting (for example `max_results`) and run again, because ComfyUI reuses the cached list of an unchanged node. The seed controls are set to `randomize`, so every run makes new media and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. Only use media you are authorized to use.
 
 ## Related
 

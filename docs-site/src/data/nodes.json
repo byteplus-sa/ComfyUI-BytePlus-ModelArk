@@ -3755,7 +3755,7 @@
     "type": "integer",
     "required": true,
     "advanced": true,
-    "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
+    "tooltip": "Number of separate generations to run in parallel.",
     "default": 1,
     "min": 1
    },

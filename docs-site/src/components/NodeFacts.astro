@@ -13,5 +13,5 @@ const node = getNode(id);
 			<>{index > 0 && ', '}<a href={`${base}/get-started/api-keys/`}>{key}</a></>
 		))}
 	</dd>
-	<dt>Runs when</dt><dd>Its output is used by another node, such as Save Image or Save Video. It is not an output node.</dd>
+	<dt>Runs when</dt><dd>{node.is_output_node ? 'It is an output node: it runs on its own, whenever the workflow is queued.' : 'Its output is used by another node, such as Save Image or Save Video. It is not an output node.'}</dd>
 </dl>

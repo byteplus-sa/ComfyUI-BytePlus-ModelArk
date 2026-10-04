@@ -36,7 +36,7 @@ Local media is never added to your private asset library automatically.
 - an **`asset://<ASSET_ID>`** link, for example from [Asset Library](../../nodes/asset-library/);
 - a public **`https://`** link to an image, video or audio file. Type it into a String node and connect it.
 
-For `asset_N`, a link is recognized by its file extension or content type. Asset IDs are looked up in your asset library to find out whether they are images, videos or audio, and that lookup needs the IAM keys.
+For `asset_N`, a link is recognized by its file extension or content type. Asset IDs and `asset://` links are looked up in your asset library to find out whether they are images, videos or audio, and that lookup needs the IAM keys. In `first_frame_asset_id` and `last_frame_asset_id` the type is already known: with IAM keys saved the asset is also checked to be an Active image, and without them the ID is sent as it is.
 
 ### Using links as a bypass
 

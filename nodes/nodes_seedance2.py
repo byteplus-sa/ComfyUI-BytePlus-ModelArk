@@ -1315,7 +1315,7 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
                     "reviewed. A draft can be rendered for 7 days after it was created.",
                 ),
                 watermark_input(),
-                *video_extra_inputs(),
+                *video_extra_inputs(seeded=False),
             ],
             outputs=[
                 video_list_output(),

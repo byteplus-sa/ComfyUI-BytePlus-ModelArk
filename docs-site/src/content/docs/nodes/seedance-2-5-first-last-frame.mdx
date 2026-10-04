@@ -29,8 +29,8 @@ The node bills for every video it generates and waits until the task finishes. I
 ### Notes on inputs
 
 - **Frames:** use either `first_frame` or `first_frame_asset_id`, never both. The same rule applies to the last frame. The first frame is required, the last is optional.
-- **Asset IDs and links:** the `*_asset_id` fields take an asset ID, `asset://<asset_id>` or an https link to an image. With IAM keys saved in **Settings → BytePlus**, the node checks that the asset is active and an image. Without them it sends the value as it is.
-- **Aspect ratio:** on Seedance 2.5 the video keeps the aspect of the first frame. On Seedance 2.0, 2.0 Fast and 2.0 Mini the `ratio` setting is back and defaults to `adaptive`. When both frames are connected images (no asset IDs), they are cropped from the center and resized to the exact output size of the chosen `resolution` and `ratio`.
+- **Asset IDs and links:** the `*_asset_id` fields take an asset ID, `asset://<asset_id>` or an https link to an image. With IAM keys saved in **Settings → BytePlus**, an asset ID is checked to be active and an image. Without them it is sent unchecked. A link is only checked against its file extension.
+- **Aspect ratio:** on Seedance 2.5 the video keeps the aspect of the first frame. On Seedance 2.0, 2.0 Fast and 2.0 Mini the `ratio` setting is back and defaults to `adaptive`. When you connect images (no asset IDs) on these models, the node crops them from the center and resizes them to the exact output size of the chosen `resolution` and `ratio`. With `adaptive` it uses the supported ratio closest to the first frame.
 - **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/): 2.5 (480p to 1080p, up to 30 s), 2.5 Premium (4k only), the two Draft options (480p only) and 2.0, 2.0 Fast and 2.0 Mini (up to 15 s).
 - **Several videos:** raise `generation_count`. The tasks run in parallel and generation N uses `seed` + N.
 
@@ -41,16 +41,16 @@ The node bills for every video it generates and waits until the task finishes. I
 ### Notes on outputs
 
 - The `last_frame` output is the last frame of each generated video. It is not the `last_frame` image you connected.
-- With `generation_count` above 1, `VIDEO` is a list: the next node runs once per video.
-- `draft_task_id` only has a value for the two Draft models. Send it to [Draft to Final Video](../seedance-2-5-draft-to-final/).
+- With `generation_count` above 1, `VIDEO` is a list: the next node runs once per video, and `last_frame` holds their last frames as one batch in the same order.
+- `draft_task_id` is for the two Draft models. Send it to [Draft to Final Video](../seedance-2-5-draft-to-final/). Linking it while another model is selected stops the run.
+- With `non_blocking` on, the first run returns at once with the task IDs in `response` and no video, so nodes connected to `VIDEO` or `last_frame` are skipped. Run the node again to collect the finished video.
 
 ## Limits and tips
 
-- Each frame needs at least 300 pixels on both sides and an aspect ratio between 0.4 and 2.5. Frames above 6000 pixels on a side are scaled down on Seedance 2.5.
+- Each connected frame needs at least 300 pixels on both sides and an aspect ratio between 0.4 and 2.5. On Seedance 2.5 a frame with a side above 6000 pixels is scaled down.
 - Connected frames are sent inside the request, so nothing is uploaded and no Comfy.org login is needed.
-- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again.
-- A draft can be rendered into the final video for 7 days after it was created. Set `control after generate` under `seed` to `fixed` so the draft is not generated again.
-- With `non_blocking` on, the first run returns at once with the task IDs in `response`. Run the node again to collect the video.
+- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again. See [Interrupts and cancelling](../../concepts/interrupts/).
+- A draft can be rendered into the final video for 7 days after it was created. Set `control after generate` under `seed` to `fixed` so the draft is not generated again. See [Draft mode](../../concepts/draft-mode/).
 - With `generation_count` above 1, every video is billed. See [Billing and cost](../../concepts/billing-and-cost/).
 - For several images, audio or an existing clip, use [Reference to Video](../seedance-2-5-reference/).
 

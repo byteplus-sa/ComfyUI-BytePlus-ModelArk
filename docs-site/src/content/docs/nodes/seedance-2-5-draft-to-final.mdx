@@ -29,9 +29,10 @@ The node bills for every final video it renders and waits until the task finishe
 ### Notes on inputs
 
 - **Getting a draft:** on [Text to Video](../seedance-2-5-text-to-video/), [First-Last-Frame to Video](../seedance-2-5-first-last-frame/) or [Reference to Video](../seedance-2-5-reference/), select Seedance 2.5 Draft or Seedance 2.5 Premium Draft. Each outputs `draft_task_id`.
-- **Fixed seed:** set `control after generate` under `seed` on the draft node to `fixed`. Otherwise the next run generates a new draft instead of reusing the one you reviewed.
+- **Fixed seed:** set `control after generate` under `seed` on the draft node to `fixed`. Otherwise the next run generates a new draft instead of reusing the one you reviewed. See [Draft mode](../../concepts/draft-mode/).
 - **Pasting IDs:** `draft_task_id` also takes IDs typed or pasted in, one per line or separated by commas. With several IDs, the node renders one final per draft and ignores `generation_count`.
 - **Same model:** all drafts in one run must come from the same model. Render Seedance 2.5 drafts and Premium drafts in separate nodes.
+- **No seed here:** unlike the other video nodes, this node has no `seed` input and sends no seed, so `generation_count` does not add `seed` + N. The final reuses the draft's seed.
 
 ## Outputs
 
@@ -39,19 +40,19 @@ The node bills for every final video it renders and waits until the task finishe
 
 ### Notes on outputs
 
-- With several finals, `VIDEO` is a list: the next node runs once per video, and `last_frame` holds their last frames as one batch in the same order.
+- With more than one final, `VIDEO` is a list: the next node runs once per video, and `last_frame` holds their last frames as one batch in the same order.
 - There is no `draft_task_id` output here. The task IDs of the finals are in `response`.
-- With `non_blocking` on, the first run returns at once with the task IDs in `response`. Run the node again to collect the videos.
+- With `non_blocking` on, the first run returns at once with the task IDs in `response` and no video, so nodes connected to `VIDEO` or `last_frame` are skipped. Run the node again to collect the finished videos.
 
 ## Limits and tips
 
 - A draft can be rendered for 7 days after it was created. After that, generate a new draft.
 - The draft task must have succeeded. A task that is still queued or running, or that failed, is refused with its status.
 - Only drafts are accepted: a task that is already a final video, or a task that is not 480p, is refused.
-- The final keeps the draft's `output_format`. The draft's seed is reused as well.
+- The final keeps the draft's `output_format`. With several draft IDs, the node takes it from the first draft.
 - With one draft ID, `generation_count` above 1 renders several finals from that draft and every one is billed. See [Billing and cost](../../concepts/billing-and-cost/).
-- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again.
-- `watermark` applies to the final video only.
+- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again. See [Interrupts and cancelling](../../concepts/interrupts/).
+- `watermark` is set again here: it decides whether the final has a watermark, whatever the draft node used.
 
 ## Common errors
 

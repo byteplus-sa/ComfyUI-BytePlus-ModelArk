@@ -14,7 +14,7 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Upscales and cleans up images with BytePlus VOD AI MediaKit, for AIGC post-processing, old photos, OCR input and product images. Pick a `tool_version`, then scale by a factor or set a target size. It needs the separate AI MediaKit API key (Singapore only, see [API keys](../../get-started/api-keys/)). The node bills for every image, with pricing that differs per version, and saves nothing: connect **Save Image** to keep the result.
+Upscales and cleans up images with BytePlus VOD AI MediaKit, for AIGC post-processing, old photos, OCR input and product images. Pick a `tool_version`, then scale by a factor or set a target size. It needs the separate AI MediaKit API key (Singapore region only, see [API keys](../../get-started/api-keys/)). The node bills for every image, with pricing that differs per version (see the `tool_version` tooltip), and saves nothing: connect **Save Image** to keep the result.
 
 ## On the canvas
 
@@ -26,8 +26,8 @@ Upscales and cleans up images with BytePlus VOD AI MediaKit, for AIGC post-proce
 
 ### Notes on inputs
 
-- **Source:** use `image` or `image_url`, not both. A connected image is uploaded to Comfy.org storage first (Comfy.org login needed), as PNG, or as JPEG if the PNG is over 10 MB. `image_url` is sent as it is.
-- **Batches:** each image in a batch is enhanced on its own, up to 3 at a time.
+- **Source:** use `image` or `image_url`, not both. A connected image is uploaded to Comfy.org storage first (Comfy.org login needed), as PNG, or as JPEG if the PNG is over 10 MB. `image_url` is a public http(s) link (png, jpg, jpeg or webp, up to 10 MB) and is sent as it is.
+- **Batches:** each image in a batch is enhanced on its own, up to 3 at a time. If one image fails, the node fails and cancels the others.
 - **Versions:** `professional` and `max` add `generative_enhance_mode`. `max` also has `enable_correct_color`.
 - **Output size:** `multiple` scales width and height by the same factor. `target size` takes `target_width`, `target_height` or both. With both set, the image fits inside that box at its own aspect ratio.
 
@@ -37,28 +37,28 @@ Upscales and cleans up images with BytePlus VOD AI MediaKit, for AIGC post-proce
 
 ### Notes on outputs
 
-- `original` is your input resized to the enhanced size. Connect it and `IMAGE` to **Compare Images** for a slider.
+- `original` is your input resized to the enhanced size. Connect it and `IMAGE` to **Compare Images** for a slider (Nodes 2.0 only).
 - In a batch, results of a different size are resized to the first result, so the batch stays one tensor.
-- `response` is the MediaKit result as JSON, a list when the input is a batch.
+- `response` is the MediaKit result as JSON, a list when the batch has more than one image.
 
 ## Limits and tips
 
 - Checked before upload for a connected image, `standard` takes 16 to 1440 px on the short side and 16 to 2160 px on the long side, with an output of at most 6144 px per side and at most 8x.
 - `professional` takes a short side of at least 256 px and a long side of at most 2048 px, with an output long side of at most 10240 px and at most 30x.
 - `max` takes a short side of at least 64 px, a long side of at most 6240 px and a ratio up to 32:1, with an output long side of at most 10240 px and at most 30x. A `max` output above 8000 px can time out.
-- With `image_url` the source size is unknown, so only the `multiple` and target ranges are checked. A `target size` for `standard` also needs to be at least the original size.
-- The call is synchronous and waits up to 600 seconds for each image. Interrupting stops the wait.
-- The node downloads each result right away, because MediaKit links expire after 24 hours. Only the Singapore region is available.
+- With `image_url` the source size is unknown, so only the `multiple` and target ranges are checked. For a connected image, a `target size` for `standard` must also be at least the original size.
+- The call is synchronous and waits up to 600 seconds for each image. Interrupting a run stops the node's wait. The node sends no cancel request, so a request that was already sent may still be billed.
+- The node downloads each result right away, because MediaKit links expire after 24 hours. Only the Singapore region (`ap-southeast-1`) is available.
 
 ## Common errors
 
 | Message | What to do |
 |---|---|
-| `No AI MediaKit API key is set` | Add the AI MediaKit key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
-| `version takes images with` | The image is outside the version's input size. Resize it, or pick another `tool_version`. |
-| `output would be` | The result would exceed the version's size limit. Lower `multiple` or the target size. |
-| `multiple must be between 1 and` | Use a smaller `multiple`: at most 8 for `standard`, 30 for `professional` and `max`. |
-| `Uploading the image to Comfy.org storage failed` | Log in to Comfy.org in ComfyUI, or set `image_url` to a public link. |
+| `[BytePlus] No AI MediaKit API key is set. Add it in Settings > BytePlus …` | Add the AI MediaKit key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `[BytePlus] The … version takes images with …; this one is …` | The image is outside the version's input size. Resize it, or pick another `tool_version`. |
+| `[BytePlus] The … output would be …, but … allows …. Lower the scale.` | The result would exceed the version's size limit. Lower `multiple` or the target size. |
+| `[BytePlus] multiple must be between 1 and … for the … version, got …` | Use a smaller `multiple` (at most 8 for `standard`, 30 for `professional` and `max`), or for `standard` a smaller target size. |
+| `[BytePlus] Uploading the image to Comfy.org storage failed: …` | Log in to Comfy.org in ComfyUI, or set `image_url` to a public link. |
 
 ## Used in templates
 

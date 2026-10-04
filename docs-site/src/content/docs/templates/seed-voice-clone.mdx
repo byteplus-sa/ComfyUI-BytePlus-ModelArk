@@ -24,11 +24,12 @@ Two audio clips. Seed Voice Clone trains a voice from your reference clip and re
 
 ## Run it
 
-1. Add your Seed Speech API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
-2. In **Load Audio**, choose a clip of 10 to 15 seconds of clear speech, up to 10 MB.
-3. In Seed Voice Clone, replace the placeholder in `speaker_id` with your voice slot ID (starts with `S_`, bought in the Seed Speech console) or your own postpaid custom voice ID.
-4. Set `language` to the language spoken in the clip. Cross-language cloning is not supported, so write the TTS text in the same language.
-5. Press **Run**. The demo clip and the new sentence appear in the two **Preview Audio** nodes.
+1. Add your Seed Speech API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This is a separate key from the ModelArk key.
+2. Open the template browser and choose **Seed Voice Clone** under BytePlus.
+3. In **Load Audio**, choose a clip of 10 to 15 seconds of clear speech, up to 10 MB.
+4. In Seed Voice Clone, replace the placeholder in `speaker_id` with your voice slot ID (starts with `S_`, bought in the Seed Speech console) or your own postpaid custom voice ID.
+5. Set `language` to the language spoken in the clip. Cross-language cloning is not supported, so write the TTS text in the same language.
+6. Press **Run**. The demo clip and the new sentence appear in the two **Preview Audio** nodes.
 
 ## Settings worth changing
 
@@ -40,11 +41,11 @@ Two audio clips. Seed Voice Clone trains a voice from your reference clip and re
 
 ## Example result
 
-This template has not been run end to end. In the live test the Seed Voice Clone step stopped after about 1 second because no voice slot ID was available for the test account, and the API answered with a clear error. The TTS step therefore never ran, and there is no result picture or sample audio to show. Run it with your own slot to hear the result.
+This template has not been run end to end. In the live test the first node, Seed Voice Clone, stopped after 1 second with an API error, because no real voice slot ID was available for the test account and the template only holds the placeholder `S_your_voice_slot`. The TTS step therefore never ran, and there is no result picture or sample audio to show. Run it with your own slot to hear the result.
 
 ## Time and cost
 
-There is no measured run time, because the live test stopped at the first node. The voice clone step bills when it trains. Every run with changed inputs trains the slot again, and a slot can be trained 15 times. According to the pack's README, the first TTS call with the voice starts the slot's billing. A re-run with unchanged inputs reuses ComfyUI's cached result.
+There is no measured run time, because the live test stopped at the first node. Seed Voice Clone trains into a voice slot from the Seed Speech console. Every run with changed inputs trains the slot again, and a slot can be trained 15 times. According to the pack's README, the first TTS call with the voice starts the slot's billing. The TTS `seed` control is set to `randomize`, so every run speaks the sentence again; set it to `fixed` and ComfyUI reuses the cached result of an unchanged node.
 
 ## Related
 

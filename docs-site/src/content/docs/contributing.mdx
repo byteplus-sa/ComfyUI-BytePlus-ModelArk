@@ -47,8 +47,9 @@ npm run build
 ```
 
 - `generate_data.py` reads `/object_info` of a running ComfyUI that has the pack loaded, the example workflows and `nodes/models_config.py`. It writes `src/data/nodes.json`, `templates.json` and `models.json`, the template thumbnails and the workflow downloads. A key is not needed.
-- `check-docs.mjs` checks the format of node and template pages: front matter, the fixed headings and their order, and the links. Run it before every commit.
-- `npm run dev` serves the site at `http://localhost:4321/ComfyUI-BytePlus-ModelArk/`. `npm run build` also checks every link.
+- `check-docs.mjs` checks the format of node and template pages: front matter, the fixed headings and their order, images, sample media and banned text such as em dashes. Run it before every commit. CI runs it with `--strict`, which also fails on placeholder images.
+- `npm run dev` serves the site at `http://localhost:4321/ComfyUI-BytePlus-ModelArk/`. `npm run build` also checks every internal link.
+- The `docs.yml` workflow runs both checks on every change under `docs-site/` or `example_workflows/`, and publishes the site to GitHub Pages from `main`.
 - `import_evidence.py` copies the screenshots and sample media of a live end-to-end run into the docs and writes `src/data/evidence.json` (which run covered each template, and how long it took). Pages show these measured times.
 
 Writing rules: plain English, short sentences, "you", relative links that end in `/`, no keys or signed links, no em dashes, and only facts you checked in the code, the README or the evidence data. The full rules and the page formats are in `docs-site/CONTRIBUTING-DOCS.md`.
@@ -60,7 +61,7 @@ Writing rules: plain English, short sentences, "you", relative links that end in
 3. Run `generate_data.py`. It stops with a message if a node is missing from the list.
 4. Copy `src/content/docs/nodes/seedream.mdx` to `nodes/<slug>.mdx` and write the text. The headings and their order are fixed.
 5. Add a canvas screenshot at `src/assets/nodes/<slug>.png`.
-6. Add the node to the table on the [Nodes](../nodes/) page.
+6. Add the node to the table on the [Nodes](../nodes/) page, and update the node counts on that page and on the home page.
 7. Run `node scripts/check-docs.mjs`, then `npm run build`.
 
 ## Add a template page
@@ -69,7 +70,8 @@ Writing rules: plain English, short sentences, "you", relative links that end in
 2. Add its title to a group in `TEMPLATE_GROUPS` in `generate_data.py`. A template that is not listed fails the run.
 3. Run `generate_data.py`, then copy `src/content/docs/templates/seedream.mdx` to `templates/<slug>.mdx`.
 4. After a live run, use `import_evidence.py` for the screenshots and sample media.
-5. Run the checker and the build.
+5. Update the template count on the home page.
+6. Run the checker and the build.
 
 If you add or retire a model, follow the checklists in `CLAUDE.md`. The [Models](../models/) page updates when you run `generate_data.py`.
 

@@ -31,6 +31,11 @@
    "seed-2-0-pro": "seed-2-0-pro-260328",
    "seed-2-0-lite": "seed-2-0-lite-260428",
    "seed-2-0-mini": "seed-2-0-mini-260428"
+  },
+  "SEED_ASR_MODELS": {
+   "seed-asr-fast": "volc.seedasr.auc_turbo",
+   "seed-asr-2.0": "volc.seedasr.auc",
+   "seed-asr-1.0": "volc.bigasr.auc"
   }
  },
  "retired": {

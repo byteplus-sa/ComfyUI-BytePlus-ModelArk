@@ -19,14 +19,14 @@ A 15-second 16:9 sequence of three shots in which the same invented person walks
 <Shot src="templates/consistent-character-shots-workflow.webp" alt="The Consistent Character Shots template in four groups: character, portrait and asset, three shots, join and save" caption="Four groups. The asset link from the second group feeds all three shots." />
 
 1. A **Character description (change me)** text node holds the character. The template uses a young woman with short curly hair, a mustard cardigan and round glasses.
-2. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (Seedream 5.0 Pro, 3:4 at 1K) paints the portrait. An **Extract Regex** node turns its `response` into an image link.
-3. **[Create Image Asset](../../nodes/create-image-asset/)** registers that link in your private asset library, in the group "ComfyUI characters", and waits until the asset is active. A **Preview Any** node shows the `asset://` link it outputs.
-4. Three **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** nodes, set to Seedance 2.0, each get that link as `asset_1`. Each prompt starts with `asset1`, which the node replaces with the reference. All three make 5 seconds at 720p, 16:9, with audio.
-5. **Concatenate Video** joins the shots in order, and **Save Video** writes the result to `BytePlus/Video/character_shots`.
+2. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (Seedream 5.0 Pro, 3:4 at 1K) paints the portrait. An **Extract Text** node turns its `response` into an image link.
+3. **[Create Image Asset](../../nodes/create-image-asset/)** registers that link in your private asset library, in the group "ComfyUI characters", and waits until the asset is active. A **Preview as Text** node shows the `asset://` link it outputs.
+4. Three **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** nodes (titled "Shot 1", "Shot 2" and "Shot 3"), set to the model Seedance 2.0, each get that link as `asset_1`. Each prompt starts with `asset1`, which the node replaces with the reference. All three make 5 seconds at 720p, 16:9, with audio.
+5. **Concatenate Video** (titled "Join the three shots") joins the shots in order, and **Save Video** writes the result to `BytePlus/Video/character_shots`.
 
 ## Run it
 
-1. Add your ModelArk API key in **Settings → BytePlus**, and the IAM access key and secret key for the asset library in the same place ([API keys](../../get-started/api-keys/)). The IAM pair needs asset-library permission, and your account needs Seedance Advanced Creation Rights.
+1. Add your ModelArk API key and the IAM access key and secret key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The IAM keys need asset-library permission, and your account also needs Dreamina Seedance Advanced Creation Rights.
 2. Open the template browser and choose **Consistent Character Shots** under BytePlus.
 3. Rewrite **Character description (change me)** and, if you like, the three shot prompts.
 4. Press **Run**. The portrait comes first, then the asset, then the three shots.
@@ -41,13 +41,13 @@ A 15-second 16:9 sequence of three shots in which the same invented person walks
 
 ## Example result
 
-<Shot src="templates/consistent-character-shots-result.webp" alt="The finished graph with three frames of the same woman in a cafe, reading a letter and waving in a sunlit street" caption="Result of the live test run: 1280x720, 15 seconds, the same woman in each shot." />
+<Shot src="templates/consistent-character-shots-result.webp" alt="Three frames of the same woman with curly hair, round glasses and a mustard cardigan: smiling in a cafe, reading a letter and waving in a sunlit street" caption="Result of the live test run: 1280x720, 15 seconds, the same woman in each shot." />
 
 <Media kind="video" file="consistent-character-shots.mp4" caption="The joined sequence from the live test." />
 
 ## Time and cost
 
-The live test took about 319 seconds, a little over 5 minutes. Seedream and the three Seedance nodes bill on your ModelArk account, so three video generations are billed per run. Running again with unchanged inputs reuses ComfyUI's cached results and does not bill, and the asset is reused when you register the same image again. The asset can also be reused in later workflows: look it up with Asset Library or paste its ID into `asset_1`. No Comfy.org login is needed because the portrait goes to the asset library as a link.
+The live test took 5.3 minutes. Seedream and the three Seedance nodes bill on your ModelArk account, so three video generations are billed per run. The seed controls are set to `randomize`, so every run paints a new portrait and makes three new shots and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. The asset can be reused in later workflows: look it up with Asset Library or paste its ID into `asset_1`. No Comfy.org login is needed because the portrait goes to the asset library as a link.
 
 ## Related
 

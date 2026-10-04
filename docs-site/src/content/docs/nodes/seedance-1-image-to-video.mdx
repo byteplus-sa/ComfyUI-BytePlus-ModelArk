@@ -16,11 +16,11 @@ import Shot from '../../../components/Shot.astro';
 
 Turns one image into a video with Seedance 1.0 on BytePlus ModelArk. The image becomes the first frame, and the prompt describes how the scene moves.
 
-The node bills for every video it generates. It does not save anything itself: connect **Save Video** to keep the result. Seedance 1.0 is the older family. For clips up to 30 seconds, use the newer [Seedance 2.5 Text to Video](../seedance-2-5-text-to-video/) or [Seedance 2.5 First-Last-Frame](../seedance-2-5-first-last-frame/).
+The node bills for every video it generates and waits until the task finishes. It does not save anything itself: connect **Save Video** to keep the result. Seedance 1.0 is the older family; for clips up to 30 seconds, use the newer [Seedance 2.5 First-Last-Frame to Video](../seedance-2-5-first-last-frame/), where the last frame is optional.
 
 ## On the canvas
 
-<Shot src="nodes/seedance-1-image-to-video.png" alt="The Seedance Image to Video node with an image input, a prompt, resolution, aspect ratio and duration" caption="The image input is the first frame. The advanced inputs sit at the bottom." />
+<Shot src="nodes/seedance-1-image-to-video.png" alt="The Seedance Image to Video node with an image input, the Pro Fast model, a prompt about drifting clouds and swaying trees, 480p, aspect ratio adaptive and a duration of 5 seconds" caption="The image input is the first frame. The advanced inputs sit at the bottom." />
 
 ## Inputs
 
@@ -31,8 +31,7 @@ The node bills for every video it generates. It does not save anything itself: c
 - **Model:** `seedance-1-0-pro-fast-251015` (Pro Fast) is the default. `seedance-1-0-pro-250528` (Pro) is the other option.
 - **Aspect ratio:** `adaptive` leaves the choice of ratio to the model. Pick a fixed ratio to force one.
 - **Settings go in the widgets:** do not write flags such as `--resolution`, `--ratio`, `--dur`, `--frames`, `--seed`, `--camerafixed` or `--watermark` in the prompt. The node refuses a prompt that contains them.
-- **Camera:** `camera_fixed` adds an instruction to keep the camera still. BytePlus does not guarantee the effect.
-- **Lower price:** `enable_offline_inference` uses the flex tier. It costs less, but the result can take up to 48 hours.
+- **Camera and price:** `camera_fixed` adds an instruction to keep the camera still; BytePlus does not guarantee the effect. `enable_offline_inference` uses the flex tier: it costs less, but the result can take up to 48 hours.
 - **Several videos in one run:** raise `generation_count`. The runs go in parallel and generation N uses `seed` + N, so the videos differ.
 
 ## Outputs
@@ -43,7 +42,7 @@ The node bills for every video it generates. It does not save anything itself: c
 
 - `VIDEO` is a list output. With `generation_count` above 1, the next node runs once per video.
 - `last_frame` holds the final frame of every video as one image batch, in the same order. Feed it into the next Image to Video node to chain clips.
-- With `non_blocking` on, `response` lists the pending task IDs. `VIDEO` and `last_frame` stay empty, so nodes connected to them are skipped until the video is ready.
+- With `non_blocking` on, the first run returns at once with the task IDs in `response` and no video, so nodes connected to `VIDEO` or `last_frame` are skipped. Run the node again to collect the finished video.
 
 ## Limits and tips
 
@@ -51,8 +50,9 @@ The node bills for every video it generates. It does not save anything itself: c
 - The image is sent inline as base64. A single image cannot exceed 30 MB in that form.
 - Duration is 2 to 12 seconds. Resolution is 480p, 720p or 1080p.
 - Activate each Seedance model in the ModelArk console for the region you use.
-- If you interrupt the run, the node cancels the tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed, and the message lists its ID so you can find it with [Video Query Tasks](../video-query-tasks/).
-- A failed request that may have billed is never sent twice automatically.
+- The node keeps waiting until the task ends and shows its queued or running status under the node. With `enable_offline_inference` on, results can take up to 48 hours.
+- Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again. See [Interrupts and cancelling](../../concepts/interrupts/).
+- A failed request that may have billed is never sent again automatically. With `generation_count` above 1, every video is billed. See [Billing and cost](../../concepts/billing-and-cost/).
 
 ## Common errors
 

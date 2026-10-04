@@ -24,7 +24,7 @@ One image. The template sends a reference picture (the ComfyUI logo) and a promp
 ## Run it
 
 1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
-2. Open the template browser, choose **Seedream** under BytePlus.
+2. Open the template browser and choose **Seedream** under BytePlus.
 3. Press **Run**. The picture appears in **Save Image** when the model finishes.
 
 ## Settings worth changing
@@ -32,15 +32,15 @@ One image. The template sends a reference picture (the ComfyUI logo) and a promp
 - **Prompt:** describe the result you want. With a reference image, say what to keep and what to change.
 - **Reference image:** pick another file in **Load Image**, or delete the node to generate from the prompt alone.
 - **`size_preset`:** choose another ratio or resolution, for example a 16:9 size for a banner.
-- **`model`:** switch to Seedream 5.0 Flash for a faster and cheaper draft.
+- **`model`:** switch to `seedream 5.0 flash` or another Seedream model. Each model option shows its own inputs.
 
 ## Example result
 
-<Shot src="templates/seedream-result.webp" alt="The generated 3D badge next to the reference logo" caption="Result of the live test run." />
+<Shot src="templates/seedream-result.webp" alt="The generated glossy 3D badge: a purple rounded square with a yellow ring and the word ComfyUI" caption="Result of the live test run." />
 
 ## Time and cost
 
-The live test took about 100 seconds for one image with Seedream 5.0 Pro at 2K. The node bills once per generated image; running again with an unchanged workflow reuses ComfyUI's cached result and does not bill.
+The live test took 97 seconds for one image with Seedream 5.0 Pro at 2K. The node bills once per generated image. The `seed` control is set to `randomize`, so every run asks again and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
 
 ## Related
 

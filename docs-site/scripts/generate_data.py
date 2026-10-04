@@ -170,7 +170,7 @@ def build_nodes(object_info):
     return nodes
 
 
-def build_templates(nodes):
+def build_templates(nodes, object_info):
     by_id = {n["id"]: n for n in nodes}
     folder = os.path.join(REPO, "example_workflows")
     out_dir = os.path.join(SITE, "src", "assets", "templates")
@@ -209,7 +209,9 @@ def build_templates(nodes):
             "slug": slug,
             "group": group,
             "nodes": [{"id": t, "count": counts[t]} for t in byteplus],
-            "other_nodes": sorted(t for t in counts if t not in by_id),
+            "other_nodes": sorted(
+                (object_info.get(t, {}).get("display_name") or t) for t in counts if t not in by_id
+            ),
             "keys": keys,
             "groups": groups,
             "note": note,
@@ -230,6 +232,9 @@ def build_models():
         value = getattr(module, name)
         if name.endswith("_MODEL_MAP") and isinstance(value, dict):
             maps[name] = value
+    asr = getattr(module, "SEED_ASR_MODELS", {})  # UI name -> (mode, resource ID)
+    if asr:
+        maps["SEED_ASR_MODELS"] = {name: value[1] for name, value in asr.items()}
     return {
         "maps": maps,
         "retired": {k: {"model_id": v[0], "replacement": v[1]} for k, v in getattr(module, "RETIRED_MODELS", {}).items()},
@@ -246,7 +251,7 @@ def main():
     else:
         object_info = json.load(open(args.object_info))
     nodes = build_nodes(object_info)
-    templates = build_templates(nodes)
+    templates = build_templates(nodes, object_info)
     models = build_models()
     data_dir = os.path.join(SITE, "src", "data")
     os.makedirs(data_dir, exist_ok=True)

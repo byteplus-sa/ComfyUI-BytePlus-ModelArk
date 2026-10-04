@@ -11,8 +11,8 @@
    }
   ],
   "other_nodes": [
-   "LoadImage",
-   "SaveImage"
+   "Load Image",
+   "Save Image"
   ],
   "keys": [
    "ModelArk API key"
@@ -45,10 +45,10 @@
    }
   ],
   "other_nodes": [
-   "LoadAudio",
-   "LoadImage",
-   "LoadVideo",
-   "SaveVideo"
+   "Load Audio",
+   "Load Image",
+   "Load Video",
+   "Save Video"
   ],
   "keys": [
    "ModelArk API key"
@@ -73,8 +73,8 @@
    }
   ],
   "other_nodes": [
-   "LoadImage",
-   "PreviewAny"
+   "Load Image",
+   "Preview as Text"
   ],
   "keys": [
    "ModelArk API key"
@@ -99,8 +99,8 @@
    }
   ],
   "other_nodes": [
-   "SaveImage",
-   "SaveVideo"
+   "Save Image",
+   "Save Video"
   ],
   "keys": [
    "ModelArk API key"
@@ -121,9 +121,9 @@
    }
   ],
   "other_nodes": [
-   "LoadImage",
-   "PreviewImage",
-   "SaveImage"
+   "Load Image",
+   "Preview Image",
+   "Save Image"
   ],
   "keys": [
    "ModelArk API key"
@@ -144,9 +144,9 @@
    }
   ],
   "other_nodes": [
-   "ImageCompare",
-   "LoadImage",
-   "SaveImage"
+   "Compare Images",
+   "Load Image",
+   "Save Image"
   ],
   "keys": [
    "AI MediaKit API key"
@@ -179,9 +179,9 @@
    }
   ],
   "other_nodes": [
-   "ImageCompare",
-   "SaveImage",
-   "SaveVideo"
+   "Compare Images",
+   "Save Image",
+   "Save Video"
   ],
   "keys": [
    "ModelArk API key",
@@ -214,9 +214,9 @@
    }
   ],
   "other_nodes": [
-   "PreviewAny",
-   "SaveImage",
-   "SaveVideo"
+   "Preview as Text",
+   "Save Image",
+   "Save Video"
   ],
   "keys": [
    "ModelArk API key"
@@ -243,9 +243,9 @@
    }
   ],
   "other_nodes": [
-   "ConcatenateVideo",
+   "Concatenate Video",
    "MarkdownNote",
-   "SaveVideo"
+   "Save Video"
   ],
   "keys": [
    "ModelArk API key"
@@ -272,10 +272,10 @@
    }
   ],
   "other_nodes": [
+   "Extract Text",
    "MarkdownNote",
-   "PreviewAny",
-   "PrimitiveString",
-   "RegexExtract"
+   "Preview as Text",
+   "Text"
   ],
   "keys": [
    "ModelArk API key"
@@ -299,9 +299,9 @@
    }
   ],
   "other_nodes": [
-   "ImageCompare",
-   "LoadVideo",
-   "SaveVideo"
+   "Compare Images",
+   "Load Video",
+   "Save Video"
   ],
   "keys": [
    "AI MediaKit API key"
@@ -322,9 +322,9 @@
    }
   ],
   "other_nodes": [
-   "LoadVideo",
-   "PreviewAny",
-   "SaveVideo"
+   "Load Video",
+   "Preview as Text",
+   "Save Video"
   ],
   "keys": [
    "AI MediaKit API key"
@@ -349,8 +349,8 @@
    }
   ],
   "other_nodes": [
-   "PreviewAny",
-   "SaveImage"
+   "Preview as Text",
+   "Save Image"
   ],
   "keys": [
    "ModelArk API key"
@@ -371,8 +371,8 @@
    }
   ],
   "other_nodes": [
-   "PreviewAny",
-   "PreviewAudio"
+   "Preview Audio",
+   "Preview as Text"
   ],
   "keys": [
    "Seed Speech API key"
@@ -397,8 +397,8 @@
    }
   ],
   "other_nodes": [
-   "PreviewAny",
-   "PreviewAudio"
+   "Preview Audio",
+   "Preview as Text"
   ],
   "keys": [
    "Seed Speech API key"
@@ -423,8 +423,8 @@
    }
   ],
   "other_nodes": [
-   "LoadAudio",
-   "PreviewAudio"
+   "Load Audio",
+   "Preview Audio"
   ],
   "keys": [
    "Seed Speech API key"
@@ -449,9 +449,9 @@
    }
   ],
   "other_nodes": [
-   "PreviewAny",
-   "PrimitiveString",
-   "SaveVideo"
+   "Preview as Text",
+   "Save Video",
+   "Text"
   ],
   "keys": [
    "ModelArk API key",
@@ -480,9 +480,9 @@
    }
   ],
   "other_nodes": [
-   "LoadImage",
-   "PreviewAny",
-   "SaveVideo"
+   "Load Image",
+   "Preview as Text",
+   "Save Video"
   ],
   "keys": [
    "ModelArk API key",
@@ -524,10 +524,10 @@
    }
   ],
   "other_nodes": [
+   "Extract Text",
    "MarkdownNote",
-   "PreviewAny",
-   "RegexExtract",
-   "SaveVideo"
+   "Preview as Text",
+   "Save Video"
   ],
   "keys": [
    "ModelArk API key",
@@ -563,14 +563,14 @@
    }
   ],
   "other_nodes": [
-   "CreateVideo",
-   "GetVideoComponents",
-   "LoadImage",
+   "Create Video",
+   "Extract Text",
+   "Get Video Components",
+   "Load Image",
    "MarkdownNote",
-   "PreviewAny",
-   "PrimitiveString",
-   "RegexExtract",
-   "SaveVideo"
+   "Preview as Text",
+   "Save Video",
+   "Text"
   ],
   "keys": [
    "ModelArk API key",
@@ -610,11 +610,11 @@
    }
   ],
   "other_nodes": [
+   "Extract Text",
    "MarkdownNote",
-   "PreviewAny",
-   "PrimitiveStringMultiline",
-   "RegexExtract",
-   "SaveVideo"
+   "Preview as Text",
+   "Save Video",
+   "Text (Multiline)"
   ],
   "keys": [
    "ModelArk API key",
@@ -654,10 +654,10 @@
    }
   ],
   "other_nodes": [
+   "Extract Text",
    "MarkdownNote",
-   "RegexExtract",
-   "SaveImage",
-   "SaveVideo"
+   "Save Image",
+   "Save Video"
   ],
   "keys": [
    "ModelArk API key",
@@ -696,13 +696,13 @@
    }
   ],
   "other_nodes": [
-   "AudioConcat",
+   "Concatenate Audio",
+   "Extract Text",
    "MarkdownNote",
-   "PreviewAny",
-   "PrimitiveStringMultiline",
-   "RegexExtract",
-   "SaveAudioAdvanced",
-   "SaveImage"
+   "Preview as Text",
+   "Save Audio (Advanced)",
+   "Save Image",
+   "Text (Multiline)"
   ],
   "keys": [
    "ModelArk API key",
@@ -738,10 +738,10 @@
    }
   ],
   "other_nodes": [
-   "LoadAudio",
+   "Load Audio",
    "MarkdownNote",
-   "PreviewAny",
-   "SaveAudioAdvanced"
+   "Preview as Text",
+   "Save Audio (Advanced)"
   ],
   "keys": [
    "Seed Speech API key",
@@ -768,9 +768,9 @@
    }
   ],
   "other_nodes": [
-   "LoadImage",
+   "Load Image",
    "MarkdownNote",
-   "SaveImage"
+   "Save Image"
   ],
   "keys": [
    "ModelArk API key"
@@ -799,9 +799,9 @@
   ],
   "other_nodes": [
    "MarkdownNote",
-   "PreviewAny",
-   "PrimitiveStringMultiline",
-   "SaveAudioAdvanced"
+   "Preview as Text",
+   "Save Audio (Advanced)",
+   "Text (Multiline)"
   ],
   "keys": [
    "ModelArk API key",
@@ -835,12 +835,12 @@
    }
   ],
   "other_nodes": [
-   "ConcatenateVideo",
+   "Concatenate Video",
+   "Extract Text",
    "MarkdownNote",
-   "PreviewAny",
-   "PrimitiveStringMultiline",
-   "RegexExtract",
-   "SaveVideo"
+   "Preview as Text",
+   "Save Video",
+   "Text (Multiline)"
   ],
   "keys": [
    "ModelArk API key",

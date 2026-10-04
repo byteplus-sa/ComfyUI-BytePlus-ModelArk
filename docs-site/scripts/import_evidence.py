@@ -37,6 +37,14 @@ PRIMARY = {
 }
 
 
+# further live runs of the same template (other groups, other options) quoted on its page
+EXTRA = {
+    "generate-and-enhance": ["tpl-02b-generate-enhance-video"],
+    "seedance-2": ["tpl-10b-seedance-2-draft-final", "tpl-10c-seedance-2-flf", "tpl-10d-seedance-2-reference"],
+    "virtual-portrait-existing-asset": ["tpl-16b-vp-lookup-by-name"],
+}
+
+
 def to_webp(src, dst, max_width):
     image = Image.open(src).convert("RGB")
     if image.width > max_width:
@@ -74,6 +82,10 @@ def main(report):
                 dst = os.path.join(media_dir, f"{t['slug']}-{i}.mp3")
                 subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", os.path.join(outputs, name), "-ac", "1", "-b:a", "48k", dst], check=True)
                 entry["media"].append({"type": "audio", "path": f"media/{t['slug']}-{i}.mp3"})
+        entry["extra_runs"] = []
+        for extra in EXTRA.get(t["slug"], []):
+            run = json.load(open(os.path.join(report, extra, "result.json")))
+            entry["extra_runs"].append({"case": extra, "status": run["status"], "seconds": round(run.get("seconds") or 0)})
         evidence[t["slug"]] = entry
     json.dump(evidence, open(os.path.join(SITE, "src/data/evidence.json"), "w"), indent=1)
     print(len(evidence), "templates;", sum(len(e["media"]) for e in evidence.values()), "media files")

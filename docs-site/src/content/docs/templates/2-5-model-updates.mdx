@@ -12,7 +12,7 @@ import Media from '../../../components/Media.astro';
 
 ## What it makes
 
-Three separate results from one click: a 2K poster image, a 30 second video with sound, and a text storyboard. Each branch uses one of the newest models, so the template doubles as a quick check that your key can reach all of them. The three branches do not depend on each other, so you can delete the ones you do not need.
+Three separate results from one click: a 2K poster image, a 30 second video with sound, and a text storyboard. Each branch uses one of the newest models, so the template also shows whether your key can use all of them. The three branches do not depend on each other, so you can delete the ones you do not need.
 
 ## The workflow
 
@@ -31,10 +31,10 @@ Three separate results from one click: a 2K poster image, a 30 second video with
 ## Settings worth changing
 
 - **Poster prompt:** replace the tea festival text with your own. Put the exact title you want in quotes.
-- **`duration` on the video node:** the template asks for 30 seconds. Lower it for a faster first try.
+- **`duration` on the video node:** the template asks for 30 seconds. Lower it for a shorter first try.
 - **`resolution` on the video node:** `720p` is the default here; the Seedance 2.5 model also offers `480p` and `1080p`.
 - **Storyboard prompt:** change the product or the number of shots. The model is `Seed 2.1 Turbo`; the same node lists other Seed, DeepSeek and GLM models.
-- **Unused branches:** delete a row to skip it. A node whose output nothing uses does not run, so it does not bill.
+- **Unused branches:** delete the **Save** or **Preview** node at the end of a row to skip that row. A BytePlus node whose output nothing uses does not run, so it does not bill.
 
 ## Example result
 
@@ -44,7 +44,7 @@ Three separate results from one click: a 2K poster image, a 30 second video with
 
 ## Time and cost
 
-The live test took about 359 seconds for the whole run, with the video as the slow part. Each node bills once per run: one image from Seedream, one video from Seedance and one request from the LLM node. Running again with unchanged settings reuses ComfyUI's cached results and does not bill; the seed widgets are set to `randomize`, so they change after every run and a new run generates fresh results.
+The live test took 6.0 minutes for the whole run. Each node bills once per run: one image from Seedream, one video from Seedance and one request from the LLM node. The seed controls are set to `randomize`, so every run makes new results and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
 
 ## Related
 

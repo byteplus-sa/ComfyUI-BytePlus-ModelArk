@@ -26,10 +26,11 @@ Two videos and a comparison slider. The template sends a video you pick to vCube
 
 ## Run it
 
-1. Add your AI MediaKit API key in **Settings → BytePlus**. This is a separate key from the ModelArk key ([API keys](../../get-started/api-keys/)).
-2. Log in to your Comfy.org account in ComfyUI. The video you connect is uploaded through Comfy.org storage so MediaKit can fetch it. To skip that, remove **Load Video** and set `video_url` on the vCube node to a public link instead.
-3. Open the template browser, choose **vCube Video Enhance** under BytePlus, and pick a video in **Load Video**.
-4. Press **Run**. The two videos appear in the Save Video nodes and the frames in **Compare Images** when the task finishes.
+1. Add your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This is a separate key from the ModelArk key.
+2. Log in to your Comfy.org account in ComfyUI. A connected video is uploaded to Comfy.org storage first, because AI MediaKit only takes links. To skip that, remove **Load Video** and set `video_url` on the vCube node to a public link instead.
+3. Open the template browser and choose **vCube Video Enhance** under BytePlus.
+4. In **Load Video**, pick a video of your own.
+5. Press **Run**. The two videos appear in the Save Video nodes and the frames in **Compare Images** when the task finishes.
 
 ## Settings worth changing
 
@@ -41,13 +42,13 @@ Two videos and a comparison slider. The template sends a video you pick to vCube
 
 ## Example result
 
-<Shot src="templates/vcube-video-enhance-result.webp" alt="The finished template with frames from the enhanced video and the comparison video, taken from a colour bar test clip" caption="Result of the live test run, using a 5 second 720p test clip." />
+<Shot src="templates/vcube-video-enhance-result.webp" alt="The result panel of the live test run: OK in 71 seconds, with the input clip_720p_5s.mp4 and the saved enhanced and comparison videos listed, and three frames of the enhanced clip" caption="Result of the live test run, using a 5 second 720p colour bar test clip." />
 
 <Media kind="video" file="vcube-video-enhance.mp4" caption="The enhanced video from the live test." />
 
 ## Time and cost
 
-The live test took about 71 seconds for a 5 second 720p clip enhanced to 1080p. The task bills on AI MediaKit once per run, and the price depends on the settings above. Running again with an unchanged workflow and the same video reuses ComfyUI's cached result and does not bill. The comparison is built on your computer after the download, so it adds no MediaKit charge.
+The live test took 71 seconds for a 5 second 720p clip enhanced to 1080p. The task bills on AI MediaKit once per run, and the price depends on the settings above. Running again with an unchanged workflow and the same video reuses ComfyUI's cached result and does not bill. The comparison is built on your computer after the download, so it adds no MediaKit charge.
 
 ## Related
 

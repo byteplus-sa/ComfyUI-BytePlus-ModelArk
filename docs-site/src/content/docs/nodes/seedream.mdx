@@ -14,13 +14,13 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Creates images with BytePlus Seedream from a text prompt. Connect up to 10 reference images (14 on Seedream 5.0 Lite) to edit a picture, combine several, or keep a subject consistent. Each model option shows its own inputs, so pick the model first.
+Creates images with BytePlus Seedream from a text prompt. Connect reference images to edit a picture, combine several, or keep a subject consistent: up to 10 on Seedream 5.0 Pro and Flash, and up to 14 on 5.0 Lite, 4.5 and 4.0. Each model option shows its own inputs, so pick the model first.
 
 The node bills for every image it generates. It does not save anything itself: connect **Save Image** to keep the result.
 
 ## On the canvas
 
-<Shot src="nodes/seedream.png" alt="The Seedream node with the model set to seedream 5.0 pro, a prompt box and the size preset" caption="Seedream 5.0 Pro selected. The inputs below the model change with the model." />
+<Shot src="nodes/seedream.png" alt="The Seedream node with the model set to seedream 5.0 pro, a prompt about a glossy 3D paper crane badge, the size preset (1K) 1024x1024 (1:1), and the advanced settings below it" caption="Seedream 5.0 Pro selected, with one free image slot. The inputs below the model change with the model." />
 
 ## Inputs
 
@@ -28,9 +28,10 @@ The node bills for every image it generates. It does not save anything itself: c
 
 ### Notes on inputs
 
-- **Size:** `size_preset` lists ready-made sizes for 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2 and 21:9. The “adaptive” levels let the model choose the ratio. Choose **Custom** to use `width` and `height`, which accept ratios from 1:16 to 16:1.
-- **Reference images:** connect them to the `images` slots in order. With reference images the model edits or combines them following the prompt.
-- **Transparent background** (5.0 Pro and Flash): set `output_format` to `png`, set `background` to `transparent`, and connect the `MASK` of **Load Image** to `reference_mask`.
+- **Size:** `size_preset` lists ready-made sizes for 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2 and 21:9. The entries ending in “(adaptive)” send only a resolution level and let the model choose the ratio. Choose **Custom** to use `width` and `height`. The size limits are under Limits and tips.
+- **Reference images:** connect them to the `images` slots (`image_1`, `image_2`, …) in order. With reference images the model edits or combines them following the prompt.
+- **Related image sets** (5.0 Lite, 4.5 and 4.0): set `max_images` above 1 to let one request return between 1 and `max_images` related images, for example story scenes or character variations. Reference images plus `max_images` cannot exceed 15. With `fail_on_partial` on, the run aborts if any requested image is missing or returns an error.
+- **Transparent background** (5.0 Pro and Flash): connect exactly one reference image, set `output_format` to `png`, set `background` to `transparent`, and connect the `MASK` of **Load Image** to `reference_mask`.
 - **Several images in one run:** raise `generation_count`. The runs go in parallel and generation N uses `seed` + N, so the pictures differ.
 
 ## Outputs
@@ -39,24 +40,28 @@ The node bills for every image it generates. It does not save anything itself: c
 
 ### Notes on outputs
 
-- With `generation_count` above 1, `IMAGE` holds all pictures as one batch.
-- `mask` is empty unless `background` is `transparent`.
+- With `generation_count` or `max_images` above 1, `IMAGE` holds all pictures as one batch. A picture of a different size is resized to the size of the first one.
+- `mask` is fully opaque (all zeros) unless `background` is `transparent`. Then it holds the transparency of the result, with 1 meaning transparent, like **Load Image**.
 
 ## Limits and tips
 
-- Activate each Seedream model in the ModelArk console for the region you use. Seedream 5.0 Lite is not available in `eu-west-1`.
-- Seedream 5.0 Pro with `thinking` on takes noticeably longer than the other models.
+- Activate each Seedream model in the ModelArk console for the region you use. Seedream 5.0 Lite is not available in `eu-west-1`: the node stops before it sends anything.
+- The size is checked before anything is sent. The ratio must be between 1:16 and 16:1, and the total pixels must fit the model: 921,600 to 4,624,220 on 5.0 Pro and Flash, 3,686,400 to 16,777,216 on 5.0 Lite and 4.5, and 921,600 to 16,777,216 on 4.0.
+- On 5.0 Pro the 1.5K sizes are priced like 1K.
+- `thinking` is on by default (5.0 Flash has no such setting). It can substantially increase generation time, most on 5.0 Pro, and it can only be switched off when no reference image is connected.
 - A rejected result (“Generated image contains sensitive content”) can be a false alarm. Run again with another `seed` or reword the prompt.
-- Parallel generations are not retried automatically: a failed request that may have billed is never sent twice.
+- If you interrupt the run, the node stops waiting. A request that was already sent may still be billed.
+- A failed request that may have billed is never sent again automatically. See [Billing and cost](../../concepts/billing-and-cost/).
 
 ## Common errors
 
 | Message | What to do |
 |---|---|
-| `[BytePlus] No BytePlus API key is set. Add it in Settings > BytePlus …` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `No BytePlus API key is set` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
 | `has not activated the model` | Open the ModelArk console and activate the model for the same region as your key. |
+| `is not available in` | The model is not offered in your region, for example Seedream 5.0 Lite in `eu-west-1`. Pick another model, or another region in **Settings → BytePlus**. |
 | `Generated image contains sensitive content` | Run again with another seed or rephrase the prompt. |
-| `RateLimitExceeded` | Wait a moment, or lower `generation_count`. |
+| `Rate Limit Exceeded (429)` | The node already waited and retried twice. Wait a moment, or lower `generation_count`. |
 
 ## Used in templates
 

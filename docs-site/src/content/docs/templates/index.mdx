@@ -5,23 +5,23 @@ description: "Ready-made workflows for the BytePlus nodes, from one image to a d
 
 import TemplateGrid from '../../../components/TemplateGrid.astro';
 
-The templates install with the pack. To open one, use ComfyUI's template browser, pick a BytePlus workflow and press **Run**. Connect **Save Image** or **Save Video** if you want to keep a result.
+The templates install with the pack. To open one, use ComfyUI's template browser, pick a BytePlus workflow and press **Run**. Most templates end in a Save node that keeps the result in your `output` folder. The others only show it in a preview node, so add a Save node if you want to keep it.
 
 Each template needs the keys of the services it uses. The facts box at the top of every template page lists them, and [API keys](../get-started/api-keys/) shows where to create each one. Workflows contain no keys: they come from **Settings → BytePlus**.
 
-We ran every template live against the real BytePlus services on 2026-10-03, and each page shows the measured time. The one exception is Seed Voice Clone, which has not been run end to end yet. Running a template bills your BytePlus account, so check [billing and cost](../concepts/billing-and-cost/) first.
+We ran every template live against the real BytePlus services on 2026-10-03, and each page shows the measured time. The one exception is Seed Voice Clone, which has not been run end to end yet. Running a template bills your BytePlus account, so check [Billing and cost](../concepts/billing-and-cost/) first.
 
 Templates show current models only. The Seedance 1.0 nodes and the older Seedream 4.5 and 4.0 options stay in the pack, but no template uses them.
 
 ## Start here
 
-One template per core service. Run these first to check that your key works.
+One template each for images (Seedream), video (Seedance 2) and language (Seed), and one that chains an image into a video. Run these first to check that your key works.
 
 <TemplateGrid group="Start here" />
 
 ## Images
 
-Layer separation, image enhancement and a combined generate-then-enhance flow.
+Layer separation, image enhancement, and a generate-then-enhance flow for an image or a video.
 
 <TemplateGrid group="Images" />
 

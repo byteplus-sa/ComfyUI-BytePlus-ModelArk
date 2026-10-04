@@ -17,9 +17,9 @@ Four lifestyle photos of the same product in four different places, from one req
 
 <Shot src="templates/product-lookbook-workflow.webp" alt="The Product Lookbook template: Load Image into the Seedream node, then Save Image" caption="Two groups: the product photo, and the Seedream node with its Save Image." />
 
-1. **Load Image** supplies the product photo (the template names it a placeholder to change).
-2. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (Seedream 5.0 Lite) receives the photo as `image_1`. The prompt asks for a four-image lookbook with numbered scenes: a home office desk, a backpack on a hiking trail, a cafe table at golden hour and a gym bench. The size is 2304x1728 (4:3) and `max_images` is 4.
-3. **Save Image** writes all four pictures to `BytePlus/Image/lookbook`.
+1. **Load Image** (titled "Product photo (change me)") supplies the product photo. It points to a placeholder file, `product_photo.png`, so pick your own image.
+2. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (`seedream 5.0 lite`, titled "Sequential lookbook") receives the photo as `image_1`. The prompt asks for a four-image lookbook with numbered scenes: a home office desk, a backpack on a hiking trail, a cafe table at golden hour and a gym bench. The size is 2304x1728 (4:3) and `max_images` is 4.
+3. **Save Image** (titled "Save the lookbook") writes all four pictures to `BytePlus/Image/lookbook`.
 
 ## Run it
 
@@ -33,7 +33,7 @@ Four lifestyle photos of the same product in four different places, from one req
 - **Prompt:** keep the pattern "same product in every image" plus a numbered list of scenes, and say what must stay the same, such as the shape and the cap.
 - **`max_images`:** match it to the number of scenes you wrote. The template note says up to 15 in total, with reference images counted.
 - **`size_preset`:** choose a ratio for where the pictures will be used, such as 1:1 or 3:4.
-- **`model`:** Seedream 5.0 Pro gives more detail; the template uses Lite.
+- **`model`:** `max_images` exists on `seedream 5.0 lite` and on the 4.5 and 4.0 models, but not on 5.0 Pro or Flash. Keep one of those three for a sequential lookbook.
 - **`fail_on_partial`:** off here, so you still get the images that succeeded if one fails.
 
 ## Example result
@@ -42,7 +42,7 @@ Four lifestyle photos of the same product in four different places, from one req
 
 ## Time and cost
 
-The live test took about 66 seconds for four images with Seedream 5.0 Lite at 2K. The node bills on your ModelArk account for the images it generates. Running again with unchanged inputs reuses ComfyUI's cached result and does not bill.
+The live test took 66 seconds for four images with Seedream 5.0 Lite at 2K. The node bills on your ModelArk account for the images it generates. The `seed` control is set to `randomize`, so every run makes four new images and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
 
 ## Related
 

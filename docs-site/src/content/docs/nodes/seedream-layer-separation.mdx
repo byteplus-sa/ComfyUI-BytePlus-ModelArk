@@ -16,7 +16,7 @@ import Shot from '../../../components/Shot.astro';
 
 Takes one image and separates it into a base image (the background plate) plus up to 16 transparent layers. Each layer comes with its stacking order, bounding box, name and description. Leave the prompt empty to let the model find the main elements, or describe the elements you want to control the split.
 
-The node bills for each run through your ModelArk account. It does not save anything unless you turn on `save_layers`: connect **Save Image**, or send `layer_stack` to a layered-image node, to keep the result.
+The node bills for every run. It does not save anything itself unless you turn on `save_layers`: connect **Save Image**, or send `layer_stack` to **Create Layered Image**, to keep the result.
 
 ## On the canvas
 
@@ -31,7 +31,7 @@ The node bills for each run through your ModelArk account. It does not save anyt
 - **Prompt:** an empty prompt separates all major elements. To target one area, add a tag such as `<bbox>left top right bottom</bbox>`. The coordinates run from 0 to 999 and are relative to the image.
 - **Model:** 5.0 Pro adds `prompt_optimization`. `standard` gives higher quality, `fast` shortens generation time. 5.0 Flash has no such setting.
 - **crop_layers:** `full canvas` puts every layer on a canvas the size of the base image, ready for **ImageCompositeMasked**. `minimal size` crops each layer to its bounding box, which makes much smaller tensors. Rebuild the placement from the `bboxes` output with **Layers From Bounding Boxes**.
-- **Saving files:** `save_layers` writes the base image and the original layer PNGs to the ComfyUI output folder under `filename_prefix`. It is the only setting in the pack that writes files by itself.
+- **Saving files:** `save_layers` writes the base image and the original layer PNGs to the ComfyUI output folder under `filename_prefix`. `output_format` sets the format of the base image; layers are always PNG. It is the only setting in the pack that writes files by itself.
 
 ## Outputs
 
@@ -43,15 +43,17 @@ The node bills for each run through your ModelArk account. It does not save anyt
 - `masks` use the Load Image convention (1 means transparent). Add **InvertMask** before **ImageCompositeMasked**.
 - `layer_stack` is always tight-cropped, whatever `crop_layers` says. Connect it to **Create Layered Image**, or extend it with **Add Layer**.
 - `base_mask` is currently always fully opaque.
+- `layers_json` lists the `z_index`, name, description and bounding box of the base image and each layer, and the saved file of each one when `save_layers` is on.
 
 ## Limits and tips
 
 - Connect exactly one image. It needs at least 262,144 pixels in total (for example 512x512) and an aspect ratio between 1:16 and 16:1.
 - Images above about 4 MP are scaled down before upload.
-- `size` set to `auto` follows the input and stays between 1K and 2K. `1.5K` is also available.
+- `size` is `auto`, `1K`, `1.5K` or `2K`. `auto` follows the size of the input and stays between 1K and 2K.
 - The layer count is chosen by the model, up to 16. If you need a specific object on its own layer, name it in the prompt or mark its box.
 - Activate Seedream 5.0 Pro or Flash in the ModelArk console for the region you use.
-- The request is not retried automatically after a failure that may have been billed. See [Billing and cost](../../concepts/billing-and-cost/).
+- If you interrupt the run, the node stops waiting. A request that was already sent may still be billed.
+- A failed request that may have billed is never sent again automatically. See [Billing and cost](../../concepts/billing-and-cost/).
 - For ordinary image generation use [Seedream 4.5 & 5.0](../seedream/).
 
 ## Common errors

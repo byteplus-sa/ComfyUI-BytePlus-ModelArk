@@ -14,13 +14,13 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Sends a prompt to a language model on BytePlus ModelArk and returns the answer as text. Pick Seed 2.0 Pro, Lite or Mini, Seed 2.1 Turbo, DeepSeek V4.1 Flash or GLM 5.3 Flash. You can add images and videos as context, and Seed 2.0 Lite and Mini also take audio clips.
+Sends a prompt to a language model on BytePlus ModelArk and returns the answer as text. Pick Seed 2.0 Pro, Lite or Mini, Seed 2.1 Turbo, DeepSeek V4.1 Flash or GLM 5.3 Flash, and add images and videos as context (Seed 2.0 Lite and Mini also take audio clips).
 
-The node bills for the tokens it uses. Use it to describe pictures, write or rewrite prompts for other nodes, or answer questions about a video. Connect its `STRING` output to any node that takes text.
+Use it to describe pictures, write or rewrite prompts for other nodes, or answer questions about a video. The node bills for the tokens it uses and runs only when another node uses one of its outputs.
 
 ## On the canvas
 
-<Shot src="nodes/byteplus-llm.png" alt="The BytePlus LLM node with the model set to Seed 2.0 Pro, an image slot, a video slot, a prompt and the advanced reasoning inputs" caption="Seed 2.0 Pro selected. The slots below the model change with the model: audio slots appear only for Seed 2.0 Lite and Mini." />
+<Shot src="nodes/byteplus-llm.png" alt="The BytePlus LLM node with the model set to Seed 2.0 Pro, one image slot, one video slot, a prompt box and the advanced inputs such as reasoning_mode, turns and stream" caption="Seed 2.0 Pro selected, so the node has no audio slots. Seed 2.0 Lite and Mini add them." />
 
 ## Inputs
 
@@ -28,10 +28,10 @@ The node bills for the tokens it uses. Use it to describe pictures, write or rew
 
 ### Notes on inputs
 
-- **Media slots:** `image_1`, `video_1` and so on appear as you connect them. The model accepts up to 20 images and 4 videos.
+- **Media slots:** `image_1`, `video_1` and so on appear as you connect them, up to 20 images and 4 videos.
 - **Audio:** only Seed 2.0 Lite and Mini show `audio_1` to `audio_4`. The other models cannot hear audio, so the node does not offer the input for them.
 - **Thinking:** `reasoning_mode` set to `auto` sends nothing, and the model uses its own default. `reasoning_effort` goes from `minimal` to `max`; `max` thinks the longest and costs the most. It is not sent when `reasoning_mode` is `disabled`.
-- **Several turns:** with `turns` at 1, every run starts a new conversation and nothing is stored. With 2 or more, each run continues this node's last conversation with the new prompt. The media you gave in the first turn stays in the conversation, and the model must stay the same.
+- **Several turns:** with `turns` at 1, every run starts a new conversation and nothing is stored. With 2 or more, each run continues this node's last conversation with the new prompt. Only the first turn sends media, which then stays in the conversation: media you connect later is not sent. Changing the model, the key or the region starts a new conversation.
 - **System prompt:** `system_prompt` is sent again on every turn.
 - **Streaming:** turn on `stream` to watch the answer appear in the console. The `STRING` output still arrives complete at the end.
 
@@ -52,17 +52,17 @@ The node bills for the tokens it uses. Use it to describe pictures, write or rew
 - `fps` sets how many frames per second the model samples from each video.
 - `seed` only decides whether ComfyUI runs the node again. The answers are not deterministic, even with the same seed.
 - Activate each model in the ModelArk console for the region you use.
-- If you interrupt the run, the node stops waiting for the answer. A request that was already sent may still be billed.
+- Interrupting a run stops the node's wait. The node sends no cancel request, so a request that was already sent may still be billed.
 
 ## Common errors
 
 | Message | What to do |
 |---|---|
-| `No BytePlus API key is set` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
-| `prompt is empty.` | Write a prompt. |
-| `Up to 4 videos are supported per request` | Disconnect videos until four or fewer remain. The same limit applies to images (20) and audio clips (4). |
-| `ModelArk accepts at most 120 minutes of audio per request` | Shorten or remove audio clips. |
-| `The model refused to respond` | Rephrase the prompt or change the media. The message includes the reason the model gave. |
+| `[BytePlus] No BytePlus API key is set. Add it in Settings > BytePlus …` | Add the key in **Settings → BytePlus**. See [API keys](../../get-started/api-keys/). |
+| `[BytePlus] prompt is empty.` | Write a prompt. |
+| `[BytePlus] Up to 4 videos are supported per request; … are connected.` | Disconnect videos until four or fewer remain. The same limit applies to images (20) and audio clips (4). |
+| `[BytePlus] The audio clips total … minutes; ModelArk accepts at most 120 minutes of audio per request.` | Shorten or remove audio clips. |
+| `[BytePlus] The model refused to respond: …` | Rephrase the prompt or change the media. The message includes the reason the model gave. |
 
 ## Used in templates
 

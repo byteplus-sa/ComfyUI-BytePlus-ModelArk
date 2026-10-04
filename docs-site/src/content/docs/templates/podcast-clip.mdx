@@ -16,13 +16,13 @@ A short audio episode with a host and a guest, an SRT subtitle file for it and a
 
 ## The workflow
 
-<Shot src="templates/podcast-clip-workflow.webp" alt="The Podcast Clip template in five groups: topic, dialogue, voices, subtitles, cover art" caption="Five groups. Both voices run in parallel and meet in the Join node." />
+<Shot src="templates/podcast-clip-workflow.webp" alt="The Podcast Clip template in five groups: topic, dialogue, voices, subtitles, cover art" caption="Five groups. Both voices feed the Join node, and its audio goes to Save and to the ASR node." />
 
 1. A **Topic** text node holds the subject ("Why do cats purr? A friendly two-person explainer").
-2. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo) replies with `HOST:`, `GUEST:` and `COVER:` lines. Three **Extract Regex** nodes split them, and **Preview Any** nodes show the host and guest lines.
+2. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo) replies with `HOST:`, `GUEST:` and `COVER:` lines. Three **Extract Text** nodes split them, and **Preview as Text** nodes show the host and guest lines.
 3. Two **[Seed Speech TTS](../../nodes/seed-tts/)** nodes, **Host voice** (an English female voice) and **Guest voice** (an English male voice), speak the lines with `seed-tts-2.0`.
-4. **Audio Concat** joins the two clips, guest after host, and **Save Audio** writes an MP3 to `BytePlus/Audio/podcast`.
-5. **[Seed Speech ASR](../../nodes/seed-asr/)** (`seed-asr-fast`) transcribes the joined audio. Its `srt` output is shown in a **Preview Any** node.
+4. **Concatenate Audio** (titled "Join the two voices") joins the two clips, guest after host, and **Save Audio (Advanced)** writes an MP3 to `BytePlus/Audio/podcast`.
+5. **[Seed Speech ASR](../../nodes/seed-asr/)** (`seed-asr-fast`) transcribes the joined audio. Its `srt` output is shown in a **Preview as Text** node.
 6. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** (Seedream 5.0 Flash, 1:1 at 1K) paints the cover from the `COVER:` prompt, and **Save Image** keeps it.
 
 ## Run it
@@ -35,20 +35,20 @@ A short audio episode with a host and a guest, an SRT subtitle file for it and a
 ## Settings worth changing
 
 - **Topic:** add the tone or the audience, for example "for ten-year-olds".
-- **Host voice and Guest voice:** pick two clearly different voices. The voice list on each node shows which languages a voice supports.
+- **Host voice and Guest voice:** pick two clearly different voices. Voice names start with a language code, so keep both in the language of the dialogue.
 - **System prompt of the LLM:** change the number of sentences, or the language of the dialogue (then pick matching voices).
 - **`model` in Seed Speech ASR:** `seed-asr-fast` handles audio up to 2 hours in one request. The 2.0 and 1.0 models upload the audio to Comfy.org storage and need a login.
-- **Cover `model` and `size_preset`:** switch to Seedream 5.0 Pro for a sharper cover or a different ratio.
+- **Cover `model` and `size_preset`:** switch to Seedream 5.0 Pro, or pick another ratio for the cover.
 
 ## Example result
 
-<Shot src="templates/podcast-clip-result.webp" alt="The finished graph with the saved episode, the SRT subtitles, the orange cat cover art and the written host and guest lines" caption="Result of the live test run: an 81 second episode and a cover of a sleeping orange cat." />
+<Shot src="templates/podcast-clip-result.webp" alt="The saved episode as a waveform, the SRT subtitles, the cover art of a sleeping orange cat in a knitted blanket and the written host and guest lines" caption="Result of the live test run: an 81 second episode and a cover of a sleeping orange cat." />
 
 <Media kind="audio" file="podcast-clip-0.mp3" caption="The saved episode from the live test." />
 
 ## Time and cost
 
-The live test took about 22 seconds. The LLM and Seedream nodes bill on your ModelArk account, and the two TTS nodes and the ASR node bill on your Seed Speech account. Running again with unchanged inputs reuses ComfyUI's cached results and does not bill. Read the subtitles before you publish them: in the live test the recognizer misheard the guest's name in one line.
+The live test took 22 seconds. The LLM and Seedream nodes bill on your ModelArk account, and the two TTS nodes and the ASR node bill on your Seed Speech account. The seed controls are set to `randomize`, so every run writes a new dialogue and cover and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. Read the subtitles before you publish them: in the live test the recognizer wrote the guest's name wrongly in one line and left one entry empty.
 
 ## Related
 

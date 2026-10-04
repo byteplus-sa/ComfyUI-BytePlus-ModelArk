@@ -1,16 +1,16 @@
 ---
 title: "Run your first template"
-description: "Open the Seedream template, run it with your ModelArk key and find the saved image."
+description: "Open the Seedream template, run it with your ModelArk API key and find the saved image."
 ---
 
 import { Steps, Aside } from '@astrojs/starlight/components';
 
-Templates are ready-made workflows. The quickest way to test your setup is the **Seedream** template: it needs only a ModelArk key and makes one image.
+Templates are ready-made workflows. The quickest way to test your setup is the **Seedream** template: it needs only a ModelArk API key and makes one image.
 
 ## Before you start
 
 - The pack is installed ([Install](../install/)).
-- Your ModelArk key is saved in **Settings → BytePlus** ([API keys](../api-keys/)).
+- Your ModelArk API key is saved in **Settings → BytePlus** ([API keys](../api-keys/)).
 - The Seedream model is activated in the ModelArk console for the region of your key.
 
 ## Run the template
@@ -28,11 +28,11 @@ The steps and the settings worth changing are on the [Seedream template page](..
 
 ## Save Image and Save Video
 
-The BytePlus nodes save nothing themselves. They only run when another node uses their output. That is why templates end in **Save Image** or **Save Video**. If you build your own workflow, connect one of them, or a preview node. A BytePlus node with nothing connected to its output does not run and is not billed.
+The BytePlus generation nodes save nothing themselves. They only run when another node uses their output. That is why most templates end in a **Save** node such as **Save Image** or **Save Video**; a few only show the result in a preview node. If you build your own workflow, connect a Save node to keep the result, or a preview node to look at it. A BytePlus node with nothing connected to its output does not run and is not billed. The exceptions are the lookup nodes **Video Query Tasks** and **Asset Library**, which run on their own.
 
 ## What a run costs
 
-A run sends your prompt to BytePlus and **bills your own BytePlus account**. No Comfy credits are used. The Seedream template bills for one image. Run it again without changing anything and ComfyUI reuses the cached result, so nothing new is sent or billed. More in [Billing and cost](../../concepts/billing-and-cost/).
+A run sends your prompt to BytePlus and **bills your own BytePlus account**. No Comfy credits are used. The Seedream template bills for one image. ComfyUI reuses the cached result of a node whose inputs did not change, but this template sets the `seed` control to `randomize`, so each new run changes the seed and bills one more image. Set the control to `fixed` to get the cached result back. More in [Billing and cost](../../concepts/billing-and-cost/).
 
 ## Where results are saved
 
@@ -42,9 +42,9 @@ A run sends your prompt to BytePlus and **bills your own BytePlus account**. No 
 
 Without a key the node stops before it sends anything and the run fails with this message:
 
-> No BytePlus API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_API_KEY=... in the `.env` path shown in the message.
+> No BytePlus API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_API_KEY=... in … (or set the BYTEPLUS_API_KEY environment variable).
 
-Save the key, then run again. You do not need to restart ComfyUI. The Seed Speech and AI MediaKit nodes give the same kind of message for their own keys.
+Save the key, then run again. You do not need to restart ComfyUI. The Seed Speech and AI MediaKit nodes give the same kind of message for their own keys. In the real message, the “…” is the path of your `.env` file.
 
 <Aside type="tip">
 Other common first errors: *Invalid API Key (401)* means the key and region do not match. *has not activated the model* means you must activate the model in the ModelArk console for that region.

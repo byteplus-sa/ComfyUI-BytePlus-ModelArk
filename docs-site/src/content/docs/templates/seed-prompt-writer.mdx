@@ -43,7 +43,7 @@ One image, and the prompt that produced it. You type a few words, here "a cozy b
 
 ## Time and cost
 
-The live test took about 64 seconds for the prompt and one image. Each node bills once per run: one LLM request and one Seedream image. Running again with unchanged settings reuses ComfyUI's cached results and does not bill; the seed widgets are set to `randomize`, so a new run writes a new prompt and draws a new picture.
+The live test took 64 seconds for the prompt and one image. Each node bills once per run: one LLM request and one Seedream image. The seed controls are set to `randomize`, so every run writes a new prompt, draws a new picture and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
 
 ## Related
 

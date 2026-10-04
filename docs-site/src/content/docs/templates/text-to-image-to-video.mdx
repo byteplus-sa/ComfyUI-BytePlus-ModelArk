@@ -32,9 +32,9 @@ A still image and a short video from one idea. Seedream paints an astronaut on a
 ## Settings worth changing
 
 - **Seedream prompt:** describe the scene you want as the first frame. Write the Seedance prompt about the motion, not about the scene again.
-- **`size_preset`:** the video ratio is `adaptive`, so it follows the shape of the image. Pick another preset for a vertical or square clip.
-- **Seedance `model`:** Seedance 2.0 is set. The list also has Seedance 2.5 and the Fast and Mini variants.
-- **`resolution` and `duration`:** 720p and 5 seconds are set. Raise them when you are happy with the motion.
+- **Seedream `size_preset`:** the video ratio is `adaptive`, so the clip follows the shape of the image. Pick another preset for a vertical or square clip.
+- **Seedance `model`:** Seedance 2.0 is set. The list also has Seedance 2.5 and the Draft, Premium, Fast and Mini variants. Seedance 2.5 models have no `ratio` input.
+- **Seedance `resolution` and `duration`:** 720p and 5 seconds are set. Raise them when you are happy with the motion.
 - **`last_frame`:** connect a second image to make the clip end on a given picture.
 
 ## Example result
@@ -45,7 +45,7 @@ A still image and a short video from one idea. Seedream paints an astronaut on a
 
 ## Time and cost
 
-The live test took about 175 seconds for the image and the video together. ModelArk bills the image once and the video task once. Both seed controls are set to `randomize`, so every run creates new results; set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
+The live test took 2.9 minutes for the image and the video together. ModelArk bills the image once and the video task once. The seed controls are set to `randomize`, so every run makes new results and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
 
 ## Related
 

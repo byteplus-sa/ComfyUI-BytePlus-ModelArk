@@ -44,7 +44,7 @@ export default defineConfig({
 				},
 			],
 			description:
-				'Seedream, Seedance, Seed LLM, Seed Speech and AI MediaKit nodes for ComfyUI, using your own BytePlus API keys.',
+				'Seedream, Seedance, Seed, DeepSeek and GLM language models, Seed Speech and AI MediaKit nodes for ComfyUI, using your own BytePlus API keys.',
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk' },
 			],

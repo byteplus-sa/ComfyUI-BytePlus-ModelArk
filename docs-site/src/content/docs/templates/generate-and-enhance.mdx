@@ -19,33 +19,33 @@ Generated media at a higher quality than the model outputs directly. The image g
 
 1. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** makes the picture with `seedream 5.0 pro` at 1312x736 (16:9) from the prompt "A product photo of a ceramic coffee mug on a walnut table, morning window light...".
 2. **[Image Quality Enhance](../../nodes/image-quality-enhance/)** takes it with `tool_version` `standard` and `multiple` 2.00, giving 2624x1472.
-3. **Save Enhanced Image** writes the result, and **Compare Images** shows the enhanced image against the `original` output for a slider (Nodes 2.0 only).
+3. **Save Enhanced Image** writes the result, and **Compare Images** shows the `original` output against the enhanced image in a slider (Nodes 2.0 only).
 4. **[Seedance 2.5 Text to Video](../../nodes/seedance-2-5-text-to-video/)** (video group) makes the clip with the model Seedance 2.0 Fast at 720p, 16:9, 5 seconds, from a prompt about the mug and a clinking spoon.
 5. **[vCube Video Enhance](../../nodes/vcube-video-enhance/)** (video group) upscales it with `standard`, scene `aigc`, style `hd`, resolution 1080p and the source frame rate. **Save Enhanced Video** keeps the video, and the `source_frame` and `enhanced_frame` outputs feed a second **Compare Images**.
 
 ## Run it
 
-1. Add your ModelArk API key and your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). They are different keys.
-2. Log in to your Comfy.org account in ComfyUI. Both enhance nodes upload the generated image or video to Comfy.org storage first, because AI MediaKit only takes links.
+1. Add your ModelArk API key and your AI MediaKit API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The template needs both, and they are separate keys.
+2. Log in to your Comfy.org account in ComfyUI. The enhance nodes upload the generated image or video to Comfy.org storage first, because AI MediaKit only takes links.
 3. Open the template browser and choose **Generate and Enhance** under BytePlus.
 4. Press **Run**. The image group runs and the enhanced picture appears in **Save Enhanced Image**.
 5. For the video, set the video group to **Always** and run again.
 
 ## Settings worth changing
 
-- **Seedream prompt and `size_preset`:** describe your own subject. A larger preset gives the enhancer more to work with, and a larger result.
+- **Seedream prompt and `size_preset`:** describe your own subject. A larger preset gives a larger enhanced picture.
 - **Enhance `multiple`:** 2.00 is set. `standard` allows 1 to 8; `professional` and `max` go higher and add texture.
 - **Seedance `model`:** the video group uses Seedance 2.0 Fast. Pick another model for different speed or quality.
 - **vCube `resolution`:** 1080p is set. Change it, or `fps`, to change the output.
-- **Video group:** it is bypassed because it takes much longer than the image group.
+- **Video group:** it is bypassed in the template. Set the group to **Always** to run it, or leave it off if you only need the image.
 
 ## Example result
 
-<Shot src="templates/generate-and-enhance-result.webp" alt="The enhanced coffee mug photo, 2624 by 1472 pixels, in Save Enhanced Image" caption="Result of the live test run of the image group." />
+<Shot src="templates/generate-and-enhance-result.webp" alt="The enhanced photo of a steaming ceramic coffee mug on a walnut table in Save Enhanced Image" caption="Result of the live test run of the image group." />
 
 ## Time and cost
 
-Both groups passed in the live test on 2026-10-03: the image group took about 44 seconds and the video group about 222 seconds. ModelArk bills the Seedream image and the Seedance video, and AI MediaKit bills each enhancement. Groups that are bypassed do not run and do not bill. The seed controls are set to `randomize`, so every run makes a new result. Set one to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
+The live test ran the image group, the only one active in the template, and took 44 seconds. A separate live run of the video group took 3.7 minutes. ModelArk bills the Seedream image and the Seedance video, and AI MediaKit bills each enhancement. Groups that are bypassed do not run and do not bill. The seed controls are set to `randomize`, so every run makes new results and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
 
 ## Related
 

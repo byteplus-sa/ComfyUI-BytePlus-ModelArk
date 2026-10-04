@@ -14,13 +14,13 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Sends a video to BytePlus VOD AI MediaKit, which upscales it, removes compression artifacts and noise, and can raise the frame rate. It needs the separate AI MediaKit API key (Singapore region only), not your ModelArk key. See [API keys](../../get-started/api-keys/).
+Sends a video to BytePlus VOD AI MediaKit, which upscales it, removes compression artifacts and noise, and can raise the frame rate. It needs the separate AI MediaKit API key (Singapore region only, see [API keys](../../get-started/api-keys/)), not your ModelArk key.
 
-Connect a local `video` or paste a public link in `video_url`. The node bills for every run, and it does not save anything itself: connect **Save Video** to keep the result.
+Connect a local `video` or paste a public link in `video_url`. The node bills for every task it sends, and it does not save anything itself: connect **Save Video** to keep the result.
 
 ## On the canvas
 
-<Shot src="nodes/vcube-video-enhance.png" alt="The vCube Video Enhance node with the standard tool version, the aigc scene, 1080p and the five outputs" caption="Default values with tool_version set to standard. The comparison, source_frame and enhanced_frame outputs are on by default." />
+<Shot src="nodes/vcube-video-enhance.png" alt="The vCube Video Enhance node with the standard tool version, the aigc scene, 1080p and the five outputs" caption="Default values with tool_version set to standard. The comparison option is on, so the comparison, source_frame and enhanced_frame outputs are filled." />
 
 ## Inputs
 
@@ -28,10 +28,10 @@ Connect a local `video` or paste a public link in `video_url`. The node bills fo
 
 ### Notes on inputs
 
-- **Source:** use `video` or `video_url`, not both. A connected video is uploaded to Comfy.org storage first, so you need a Comfy.org login. A `video_url` link is sent as it is and nothing is uploaded.
+- **Source:** use `video` or `video_url`, not both. A connected video is uploaded to Comfy.org storage first, so you need a Comfy.org login. A `video_url` link must be public http(s); it is sent as it is and nothing is uploaded.
 - **Checks before upload:** a connected video must be at most 600 seconds long and at most 2560x1440. A `video_url` source is not checked here, so MediaKit decides.
 - **Tool version:** `standard` has a `scene` preset and an `enhance_style`. `professional` only has `enhance_style`.
-- **Resolution:** pick a preset, `source` or `custom`. `custom` shows `short_side` (128 to 4320 px).
+- **Resolution:** pick a preset (`1080p`, `720p`, `2k`, `4k`, `8k`), `source` or `custom`. `custom` shows `short_side` (128 to 4320 px).
 - **Bitrate:** `bitrate_level` sets the target. A `bitrate` above 0 (10 to 150000 kbps) replaces it.
 
 ## Outputs
@@ -41,14 +41,14 @@ Connect a local `video` or paste a public link in `video_url`. The node bills fo
 ### Notes on outputs
 
 - `comparison` shows your source on the left and the enhanced video on the right, with a divider that sweeps across the frame. Its short side is at most 1080 px.
-- `source_frame` and `enhanced_frame` are one matching frame at full enhanced size. Connect both to **Compare Images** for a slider. Set `compare_time` to pick the moment; -1 takes the middle.
+- `source_frame` and `enhanced_frame` are one matching frame at full enhanced size. Connect both to **Compare Images** for a slider (Nodes 2.0 only). Set `compare_time` to pick the moment; -1 takes the middle.
 - With `comparison` off, or if building it fails, these three outputs are empty and nodes that use them are skipped. The enhanced `VIDEO` is still returned.
 
 ## Limits and tips
 
-- Every run sends a fresh task, so running again with the same settings bills again. The node retries a failed submit with the same task token, which never creates a second task.
-- Frame rates above 30 fps cost 2x and above 60 fps 4x. Sources wider or taller than about 2.2:1 are billed one resolution tier higher. `professional` takes about 3x longer and costs 10x more than `standard`.
-- The node polls every 10 seconds and has no time limit of its own, because `professional` runs can take a long time. Interrupting stops the wait.
+- Every execution sends a new task, so it bills even with the same settings and the same video. ComfyUI's own cache still skips the node when nothing changed. A submit that fails with a network error, a timeout, 429 or 5xx is retried with the same task token, so it does not create a second task.
+- Billing rules from the tooltips: frame rates above 30 fps cost 2x and above 60 fps 4x, sources wider or taller than about 2.2:1 are billed one resolution tier higher, and `professional` takes about 3x longer and costs 10x more than `standard`.
+- The node polls every 10 seconds and has no time limit of its own, because `professional` runs can take a long time. Interrupting a run stops the node's wait. The node sends no cancel request, so a submitted task may still finish and be billed.
 - MediaKit result links expire after 24 hours, so the node downloads the result as soon as the task finishes.
 - Setting `fps` to `source` keeps the source rate. A higher rate adds AI frame interpolation, a lower one drops frames.
 - Only the Singapore region (`ap-southeast-1`) is available for AI MediaKit.
@@ -57,11 +57,11 @@ Connect a local `video` or paste a public link in `video_url`. The node bills fo
 
 | Message | What to do |
 |---|---|
-| `No AI MediaKit API key is set` | Add the AI MediaKit key in **Settings → BytePlus**. ModelArk and Seed Speech keys do not work here. |
-| `Video resolution must be at most 2560x1440 (2K)` | Scale the video down before enhancing it, or use a `video_url` link. |
-| `vCube accepts at most 600s` | Trim the video to 10 minutes or less. |
-| `Uploading the video to Comfy.org storage failed` | Log in to Comfy.org in ComfyUI, or set `video_url` to a public link. |
-| `AI MediaKit did not answer within` | The request may have been processed and billed. Check the AI MediaKit console before you run it again. |
+| `[BytePlus] No AI MediaKit API key is set. Add it in Settings > BytePlus …` | Add the AI MediaKit key in **Settings → BytePlus**. ModelArk and Seed Speech keys do not work here. |
+| `[BytePlus] Video resolution must be at most 2560x1440 (2K), got … Scale the video down before enhancing it.` | Scale the video down before enhancing it. |
+| `[BytePlus] The video is …s long; vCube accepts at most 600s.` | Trim the video to 10 minutes or less. |
+| `[BytePlus] Uploading the video to Comfy.org storage failed: …` | Log in to Comfy.org in ComfyUI, or set `video_url` to a public link. |
+| `[BytePlus] AI MediaKit did not answer within …s. The request may still have been processed and billed; …` | Check the AI MediaKit console before you run it again. |
 
 ## Used in templates
 

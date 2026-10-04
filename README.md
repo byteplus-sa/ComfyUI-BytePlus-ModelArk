@@ -112,7 +112,7 @@ The file doesn't exist until you save a key.
 
 Add **BytePlus LLM**, type `Reply with OK`, pick **Seed 2.0 Mini**, connect its output to **Preview as Text** (*Preview Any* in older ComfyUI) and press **Run**. It costs a few tokens.
 
-![A BytePlus LLM node answering in Preview as Text](docs/images/workflow-without-client-node.jpg)
+![A BytePlus LLM node connected to Preview as Text: no key and no client node on the canvas](docs/images/workflow-without-client-node.jpg)
 
 Change the prompt or seed between test runs: ComfyUI reuses the cached result of an unchanged node, so an identical run makes no new request.
 
@@ -144,7 +144,7 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 
 **Seedream 4.5 & 5.0**
 - Sizes: presets for 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2 and 21:9 at each supported resolution (5.0 Pro and Flash add 1.5K, priced like 1K on Pro); "adaptive" levels where the model picks the ratio; or a custom width × height from 1:16 to 16:1.
-- Up to 10 reference images (14 on 5.0 Lite). `max_images` for related image sets (Lite, 4.5, 4.0). Prompt optimization and "thinking" where supported.
+- Up to 10 reference images (14 on 5.0 Lite, 4.5 and 4.0). `max_images` for related image sets (Lite, 4.5, 4.0). Prompt optimization and "thinking" where supported.
 - Advanced: parallel generations, PNG output, transparent background on Pro and Flash (connect Load Image's `MASK` to `reference_mask`; the `mask` output holds the result's transparency).
 
 **Seedream 5.0 Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and a JSON list of layer names and descriptions. Its opt-in `save_layers` is the only setting in the pack that writes files itself.

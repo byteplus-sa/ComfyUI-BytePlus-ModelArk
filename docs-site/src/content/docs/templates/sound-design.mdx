@@ -19,9 +19,9 @@ Two alternative audio takes of the same scene, such as a rainy harbour at night.
 <Shot src="templates/sound-design-workflow.webp" alt="The Sound Design template in three groups: scene, sound prompt from the LLM, render with Seed Audio" caption="Three groups from the scene text to the two saved takes." />
 
 1. A **Scene description (change me)** text node holds the idea. The template describes thunder, creaking ropes on boats and a fisherman humming a sea shanty.
-2. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo) writes one sound-design paragraph of at most 60 words: each sound, its distance and its mood. A **Preview Any** node shows the prompt.
+2. **[BytePlus LLM](../../nodes/byteplus-llm/)** (Seed 2.1 Turbo, titled "Sound designer") writes one sound-design paragraph of at most 60 words: each sound, its distance and its mood. A **Preview as Text** node shows the prompt.
 3. **[Seed Audio 1.0](../../nodes/seed-audio/)** turns the prompt into sound with `reference_mode` text only, and `generation_count` set to 2 so you get two takes.
-4. **Save Audio** keeps both takes as MP3 files in `BytePlus/Audio/sound_design`.
+4. **Save Audio (Advanced)** (titled "Save the takes") keeps both takes as MP3 files in `BytePlus/Audio/sound_design`.
 
 ## Run it
 
@@ -35,12 +35,12 @@ Two alternative audio takes of the same scene, such as a rainy harbour at night.
 - **Scene description:** name the place, the time and two or three sounds you must hear.
 - **`generation_count`:** each take is a separate request, run in parallel and billed on its own. More takes means more choice and more cost.
 - **System prompt of the LLM:** change the word limit or the style, for example "film foley" instead of ambience.
-- **`audio_format` and `sample_rate`:** the node produces WAV at 24000 Hz here, and Save Audio converts to MP3 at quality V0. Change the Save Audio format if you need a lossless file.
+- **`audio_format` and `sample_rate`:** the node produces WAV at 24000 Hz here, and Save Audio (Advanced) converts to MP3 at quality V0. Change its format if you need a lossless file.
 - **`reference_mode`:** switch from text only to audio reference (clone up to three voices), image reference (derive a voice from a character image) or preset voice (a built-in voice reads the prompt).
 
 ## Example result
 
-<Shot src="templates/sound-design-result.webp" alt="The finished graph with two saved takes shown as waveforms and the sound prompt written by the LLM" caption="Result of the live test run: two takes, 34.5 and 24.0 seconds long." />
+<Shot src="templates/sound-design-result.webp" alt="Two saved takes shown as waveforms, 34.5 and 24.0 seconds long, and the sound prompt the LLM wrote" caption="Result of the live test run: two takes, 34.5 and 24.0 seconds long." />
 
 <Media kind="audio" file="sound-design-0.mp3" caption="Take 1 from the live test." />
 
@@ -48,7 +48,7 @@ Two alternative audio takes of the same scene, such as a rainy harbour at night.
 
 ## Time and cost
 
-The live test took about 27 seconds for both takes. The LLM bills on your ModelArk account; Seed Audio bills on your Seed Speech account, and each take is a separate request. Running again with unchanged inputs reuses ComfyUI's cached results and does not bill. The two takes differ from each other (34.5 and 24.0 seconds in the live test), so listen to both.
+The live test took 27 seconds for both takes. The LLM bills on your ModelArk account; Seed Audio bills on your Seed Speech account, and each take is a separate request. The seed controls are set to `randomize`, so every run writes a new prompt and two new takes and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. The two takes differ from each other (34.5 and 24.0 seconds in the live test), so listen to both.
 
 ## Related
 

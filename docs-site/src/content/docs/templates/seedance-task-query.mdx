@@ -17,21 +17,21 @@ No new video. This is a utility template. A Seedance task keeps running on ByteP
 
 <Shot src="templates/seedance-task-query-workflow.webp" alt="The Seedance Task Query template: a note and a Task ID field on the left, the lookup node and three text previews on the right" caption="A Task ID field feeds the lookup node; two Extract nodes pick the status and the model out of its JSON." />
 
-1. **Task ID** is a string field. The title says to paste yours, or leave it empty to list the latest tasks.
-2. **[Video Query Tasks](../../nodes/video-query-tasks/)** receives the ID as `task_ids` and returns the task list as JSON together with the number of tasks found. The template uses its defaults: `page_num` 1, `page_size` 10, `status` all and `model_version` all.
+1. **Task ID** is a string field. Its title says to paste your ID, or leave it empty to list the latest tasks. A note called **How to use** sits above it.
+2. **[Video Query Tasks](../../nodes/video-query-tasks/)** (titled "Look up the task") receives the ID as `task_ids` and returns the task list as JSON together with the number of tasks found. The template uses its defaults: `page_num` 1, `page_size` 10, `status` all, `service_tier` default and `model_version` all.
 3. **Tasks found** previews the count (`total_tasks`).
 4. Two **Extract** nodes use a regular expression to pull the first `status` and the first `model` out of the JSON. **Task status** and **Model that made it** preview them.
 
 ## Run it
 
 1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
-2. Find a task ID. It is the Task ID line in the ComfyUI console while a Seedance video runs, or the `draft_task_id` output of a Seedance 2.5 Draft run.
-3. Open the template browser and choose **Seedance Task Query** under BytePlus, then paste the ID into the **Task ID** field. The field must hold a real task ID from your own account. An ID the account does not know is reported as not found.
+2. Open the template browser and choose **Seedance Task Query** under BytePlus.
+3. Find a task ID and paste it into the **Task ID** field. The ID is the Task ID line in the ComfyUI console while a Seedance video runs, or the `draft_task_id` output of a Seedance 2.5 Draft run. It must be a real task ID from your own account, and ModelArk keeps a task for 7 days. An ID the account does not know is reported as not found.
 4. Press **Run**. The three previews fill in within a moment.
 
 ## Settings worth changing
 
-- **Task ID:** to look up several tasks, put one ID per line. Leave the field empty to list your latest tasks.
+- **Task ID:** leave the field empty to list your latest tasks. The lookup accepts one ID per line, but the **Task ID** field is a single line, so swap it for a multiline text node to look up several tasks at once.
 - **`status`:** filter the list, for example to `running` or `failed`.
 - **`model_version`:** show only tasks of one Seedance model, for example `dreamina-seedance-2-5`.
 - **`page_size` and `page_num`:** page through a long list of tasks.
@@ -40,11 +40,11 @@ No new video. This is a utility template. A Seedance task keeps running on ByteP
 
 <Shot src="templates/seedance-task-query-result.webp" alt="The three previews after a run with an empty Task ID: tasks found, task status and the model that made the first task" caption="Live test with an empty Task ID: the node listed the latest tasks of the test account." />
 
-The live test left the ID empty, so the previews describe the newest task in that account: the count of tasks found, its status and its model. With a task ID you see that one task instead.
+The live test left the ID empty, so the previews describe the account's task list: the count of tasks found, and the status and model of the first task in the list, which is the newest. With a task ID you see that one task instead.
 
 ## Time and cost
 
-The live test finished in under a second. The template only reads task information and does not generate a video. Because the lookup node is an output node, it runs on every press of **Run**, and its `seed` is set to `randomize` so the lookup is repeated each time.
+The live test finished in under a second. The template only reads task information and does not generate a video. The `seed` of the lookup node is set to `randomize`, so every run repeats the lookup instead of reusing ComfyUI's cached result.
 
 ## Related
 

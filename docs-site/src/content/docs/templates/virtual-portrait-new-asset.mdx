@@ -25,10 +25,11 @@ One 5 second video, plus a new asset in your library. The template uploads a pic
 
 ## Run it
 
-1. Add your ModelArk API key and the IAM access key and secret key in **Settings → BytePlus** ([API keys](../../get-started/api-keys/)). Your account also needs Dreamina Seedance Advanced Creation Rights.
-2. Log in to your Comfy.org account in ComfyUI. A connected image is uploaded through Comfy.org storage.
-3. Open the template browser, choose **Virtual Portrait - New Asset** under BytePlus, and pick your portrait in **Portrait image**.
-4. Press **Run**. The asset details appear first and the video follows when Seedance finishes.
+1. Add your ModelArk API key and the IAM access key and secret key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). The IAM keys need asset-library permission, and your account also needs Dreamina Seedance Advanced Creation Rights.
+2. Log in to your Comfy.org account in ComfyUI. A connected image is uploaded to Comfy.org storage first, because creating an asset takes a link.
+3. Open the template browser and choose **Virtual Portrait - New Asset** under BytePlus.
+4. In **Portrait image**, pick your own portrait.
+5. Press **Run**. The asset details appear first and the video follows when Seedance finishes.
 
 ## Settings worth changing
 
@@ -40,13 +41,13 @@ One 5 second video, plus a new asset in your library. The template uploads a pic
 
 ## Example result
 
-<Shot src="templates/virtual-portrait-new-asset-result.webp" alt="The graph after the run with the asset details and three frames of a glowing ComfyUI logo on a beach" caption="Result of the live test run, made with the ComfyUI logo as the picture." />
+<Shot src="templates/virtual-portrait-new-asset-result.webp" alt="The result panel of the live test run: OK in 180 seconds, the saved video file name, three frames of the video and the asset details as JSON with the asset and group IDs hidden" caption="Result of the live test run, made with the ComfyUI logo as the picture. The test run named its asset differently from the template." />
 
 <Media kind="video" file="virtual-portrait-new-asset.mp4" caption="The video made by the live test run." />
 
 ## Time and cost
 
-The live test took about 180 seconds from upload to saved video. It billed one Seedance 2.5 generation. Registering the asset is cached per image content, so running again with the same picture reuses the asset. Running again with an unchanged workflow reuses ComfyUI's cached result and does not bill. Only use media you are authorized to use.
+The live test took 3.0 minutes from upload to saved video. It billed one Seedance 2.5 generation. Registering the asset is cached per image content, so running again with the same picture reuses the asset. The Seedance `seed` control is set to `randomize`, so every run makes a new clip and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing. Only use media you are authorized to use.
 
 ## Related
 
