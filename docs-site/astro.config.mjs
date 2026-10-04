@@ -40,6 +40,10 @@ export default defineConfig({
 			},
 			plugins: [starlightImageZoom(), starlightLinksValidator({ errorOnRelativeLinks: false })],
 			customCss: ['./src/styles/custom.css'],
+			expressiveCode: {
+				themes: ['vitesse-black', 'vitesse-light'],
+				styleOverrides: { borderRadius: '8px', borderColor: 'var(--sl-color-hairline)', codeBackground: 'var(--sl-color-gray-6)' },
+			},
 			sidebar: [
 				{
 					label: 'Get started',

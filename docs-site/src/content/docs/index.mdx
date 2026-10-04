@@ -17,6 +17,7 @@ hero:
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
+import TemplateGrid from '../../components/TemplateGrid.astro';
 
 <CardGrid>
 	<Card title="22 nodes" icon="puzzle">
@@ -32,3 +33,9 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 		Every template ran end to end against the real BytePlus services before this documentation was written.
 	</Card>
 </CardGrid>
+
+## What you can build
+
+Eight ready-made recipes that chain several services. Open one in the template browser and press Run.
+
+<TemplateGrid group="Showcase" />
