@@ -272,3 +272,12 @@ html[data-has-hero] .sl-markdown-content .sl-heading-wrapper.level-h2 { border-b
 	.sl-markdown-content table td:last-child { min-width: 11rem; }
 	.card-grid-links { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
 }
+
+/* BytePlus mark: in the header (logo option) and above the landing headline */
+.site-title img { height: 1.15rem; width: auto; }
+html[data-has-hero] .hero .copy::before {
+	content: ''; display: block; width: 3.4rem; height: 2.65rem; margin: 0 auto 1.5rem;
+	background: var(--sl-color-white);
+	-webkit-mask: url('../assets/byteplus-mark-dark.svg') center / contain no-repeat;
+	mask: url('../assets/byteplus-mark-dark.svg') center / contain no-repeat;
+}

@@ -30,6 +30,19 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'BytePlus ModelArk for ComfyUI',
+			logo: {
+				light: './src/assets/byteplus-mark-light.svg',
+				dark: './src/assets/byteplus-mark-dark.svg',
+				alt: 'BytePlus',
+			},
+			head: [
+				// External links (GitHub, consoles) open in a new tab.
+				{
+					tag: 'script',
+					content:
+						"document.addEventListener('DOMContentLoaded',function(){for(const a of document.querySelectorAll('a[href^=\"http\"]')){try{if(new URL(a.href).host!==location.host){a.target='_blank';a.rel='noopener noreferrer';}}catch(e){}}});",
+				},
+			],
 			description:
 				'Seedream, Seedance, Seed LLM, Seed Speech and AI MediaKit nodes for ComfyUI, using your own BytePlus API keys.',
 			social: [
