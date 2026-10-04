@@ -103,3 +103,4 @@ import Media from '../../../components/Media.astro';
 - `src/assets/nodes/<slug>.png`: one canvas screenshot per node (Classic Canvas, default values, no keys visible).
 - `src/assets/templates/<slug>-workflow.webp` and `<slug>-result.webp`: from the live test run (`scripts/import_evidence.py`).
 - Alt text says what the picture shows, not “screenshot”. Captions are one sentence.
+- `<Shot>` images open in a full-screen viewer when clicked or tapped (`public/lightbox.js`): actual size with panning on phones, fitted to the window on wide screens, with zoom buttons. Always use `<Shot>` for screenshots so they get it.

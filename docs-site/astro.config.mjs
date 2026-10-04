@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import starlightImageZoom from 'starlight-image-zoom';
 import starlightLinksValidator from 'starlight-links-validator';
 import { readFileSync } from 'node:fs';
 
@@ -36,6 +35,8 @@ export default defineConfig({
 				alt: 'BytePlus',
 			},
 			head: [
+				// Tap or click a screenshot to view it full size (pan and zoom on phones).
+				{ tag: 'script', attrs: { src: '/ComfyUI-BytePlus-ModelArk/lightbox.js', defer: true } },
 				// External links (GitHub, consoles) open in a new tab.
 				{
 					tag: 'script',
@@ -51,7 +52,7 @@ export default defineConfig({
 			editLink: {
 				baseUrl: 'https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/edit/main/docs-site/',
 			},
-			plugins: [starlightImageZoom(), starlightLinksValidator({ errorOnRelativeLinks: false })],
+			plugins: [starlightLinksValidator({ errorOnRelativeLinks: false })],
 			customCss: ['./src/styles/custom.css'],
 			expressiveCode: {
 				themes: ['vitesse-black', 'vitesse-light'],

@@ -1,6 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 // <Shot src="nodes/seedream.png" alt="..." caption="..." />  (file under src/assets/)
+// The image links to its full-size file; public/lightbox.js opens it in a viewer (pan and zoom on phones).
 const { src, alt, caption } = Astro.props;
 const files = import.meta.glob<{ default: ImageMetadata }>('/src/assets/**/*.{png,jpg,jpeg,webp}');
 const loader = files[`/src/assets/${src}`];
@@ -8,6 +9,11 @@ if (!loader) throw new Error(`Shot: /src/assets/${src} does not exist`);
 const image = (await loader()).default;
 ---
 <figure class="shot">
-	<Image src={image} alt={alt} widths={[640, 960, 1280, 1920]} sizes="(min-width: 50rem) 50rem, 100vw" />
+	<a class="shot-zoom" href={image.src} data-width={image.width} data-height={image.height} target="_blank" rel="noopener" aria-label={`View full size: ${alt}`}>
+		<Image src={image} alt={alt} widths={[640, 960, 1280, 1920]} sizes="(min-width: 50rem) 50rem, 100vw" />
+		<span class="shot-badge" aria-hidden="true">
+			<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+		</span>
+	</a>
 	{caption && <figcaption>{caption}</figcaption>}
 </figure>
