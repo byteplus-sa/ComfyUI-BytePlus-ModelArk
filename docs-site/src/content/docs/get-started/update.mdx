@@ -1,0 +1,65 @@
+---
+title: "Update"
+description: "Update the BytePlus ModelArk node pack to the latest version with ComfyUI-Manager, the Comfy CLI or git."
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+New versions are published on the Comfy Registry: **[ComfyUI-BytePlus-ModelArk on registry.comfy.org](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. Its **Versions** tab lists every release. Use the method that matches how you [installed](../install/) the pack. Your saved keys and settings stay where they are: they live in `user/.env`, not in the pack folder.
+
+## Update with ComfyUI-Manager
+
+<Steps>
+
+1. Open **ComfyUI-Manager** and choose **Custom Nodes Manager**.
+2. Find *ComfyUI BytePlus ModelArk & AI MediaKit*. When a newer version exists, the entry shows an **Update** button.
+3. Press **Update**, then restart ComfyUI and reload the browser page.
+
+</Steps>
+
+## Update with the Comfy CLI
+
+Update the pack on its own:
+
+```bash
+comfy node update ComfyUI-BytePlus-ModelArk
+```
+
+Or update every installed custom node at once:
+
+```bash
+comfy node update all
+```
+
+To see what is installed, run `comfy node show installed`. Restart ComfyUI and reload the browser page afterwards. To update ComfyUI itself, use `comfy update`.
+
+## Update a manual install
+
+<Steps>
+
+1. Pull the latest code in the pack folder:
+
+   ```bash
+   cd ComfyUI/custom_nodes/ComfyUI-BytePlus-ModelArk
+   git pull
+   ```
+
+2. Install the requirements with **the same Python that runs ComfyUI**, in case a new version needs a newer BytePlus SDK:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Restart ComfyUI and reload the browser page.
+
+</Steps>
+
+<Aside type="note">
+If the BytePlus nodes do not appear after an update, the BytePlus SDK may be too old. ComfyUI prints the exact `pip install` command in its console. See [If the BytePlus SDK is missing](../install/#if-the-byteplus-sdk-is-missing).
+</Aside>
+
+## After updating
+
+- Reload the browser page, not only the server, so the new Settings page and node definitions load.
+- A workflow that was saved with an older version keeps working: node IDs do not change between versions. Workflows saved with an older version of a template keep their own node settings; open the template again from the template browser to get the newest one.
+- Before reporting a problem, check the version you run in ComfyUI-Manager and compare it with the latest one on the Registry page.

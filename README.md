@@ -8,7 +8,7 @@ Calls go straight to BytePlus and are billed to your BytePlus account (contract 
 
 ## Contents
 
-Full documentation, with a page for every node and template: **https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/**
+Full documentation, with a page for every node and template: **https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/**. Install and update from the [Comfy Registry](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk).
 
 - [Quick Start](#quick-start)
 - [What's Included](#whats-included)
@@ -20,7 +20,13 @@ Full documentation, with a page for every node and template: **https://byteplus-
 
 ## Quick Start
 
-**1. Install.** In ComfyUI-Manager, search for *BytePlus ModelArk* (listed as *ComfyUI BytePlus ModelArk & AI MediaKit*). Or by hand:
+**1. Install.** The pack is on the Comfy Registry: **[registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. In ComfyUI-Manager, search for *BytePlus ModelArk* (listed as *ComfyUI BytePlus ModelArk & AI MediaKit*), or use the [Comfy CLI](https://github.com/Comfy-Org/comfy-cli):
+
+```bash
+comfy node install ComfyUI-BytePlus-ModelArk
+```
+
+Or by hand:
 
 ```bash
 cd ComfyUI/custom_nodes
@@ -29,6 +35,14 @@ pip install -r ComfyUI-BytePlus-ModelArk/requirements.txt
 ```
 
 Run `pip` with the Python that runs ComfyUI, then restart ComfyUI. If the BytePlus SDK is missing or too old, the nodes don't load and the console prints the install command.
+
+**Update.** In ComfyUI-Manager press **Update** on the pack, or run:
+
+```bash
+comfy node update ComfyUI-BytePlus-ModelArk
+```
+
+For a manual install, run `git pull` in the pack folder and `pip install -r requirements.txt` again. Restart ComfyUI afterwards. Your saved keys stay in `user/.env`. See the [Update page](https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/get-started/update/).
 
 **2. Add your key.** Create a key in the [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) and activate the models you want (keys and models are per region). In ComfyUI open **Settings → BytePlus**, paste the key, pick its region and press **Save**. No restart needed.
 
@@ -287,7 +301,7 @@ The final reuses the draft's prompt, references, duration, aspect ratio, seed an
 
 ## Example Workflows
 
-Templates are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser: one per node, `2.5 Model Updates` (Seedream, Seedance 2.5 and the LLM together), plus pipelines that chain services:
+Templates are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser: a starter for every node except the Seedance 1.0 ones (templates show current models only), `2.5 Model Updates` (Seedream, Seedance 2.5 and the LLM together), plus pipelines that chain services:
 
 | Template | What it does |
 |---|---|

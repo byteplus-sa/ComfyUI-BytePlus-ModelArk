@@ -549,7 +549,7 @@ class WorkflowTemplateTests(unittest.TestCase):
             text = json.dumps(load_workflow(name))
             for prefix in self.LEGACY_MODEL_PREFIXES:
                 with self.subTest(workflow=name, prefix=prefix):
-                    self.assertNotIn(prefix, text)
+                    self.assertFalse(prefix in text, f"{name} shows an older model: {prefix}")
 
     def test_templates_are_english_and_byteplus_only(self):
         for name in sorted(EXPECTED_WORKFLOWS):

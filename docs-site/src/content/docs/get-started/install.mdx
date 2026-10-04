@@ -1,11 +1,13 @@
 ---
 title: "Install"
-description: "Install the BytePlus ModelArk node pack with ComfyUI-Manager or by hand, and fix the missing SDK message."
+description: "Install the BytePlus ModelArk node pack from the Comfy Registry with ComfyUI-Manager or the Comfy CLI, or by hand, and fix the missing SDK message."
 ---
 
 import { Steps, Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 This pack adds BytePlus nodes to ComfyUI. It needs ComfyUI **0.31.0 or later** and works in both **Classic Canvas** and **Nodes 2.0** (Vue nodes).
+
+The pack is published on the Comfy Registry: **[ComfyUI-BytePlus-ModelArk on registry.comfy.org](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. ComfyUI-Manager and the Comfy CLI both install from there. To get a newer version later, see [Update](../update/).
 
 ## Install with ComfyUI-Manager
 
@@ -17,6 +19,16 @@ This pack adds BytePlus nodes to ComfyUI. It needs ComfyUI **0.31.0 or later** a
 4. Restart ComfyUI and reload the browser page.
 
 </Steps>
+
+## Install with the Comfy CLI
+
+If you use [comfy-cli](https://github.com/Comfy-Org/comfy-cli), run this from your ComfyUI folder (or with `--workspace` pointing at it):
+
+```bash
+comfy node install ComfyUI-BytePlus-ModelArk
+```
+
+The command downloads the latest version from the Registry and installs its requirements. Restart ComfyUI and reload the browser page afterwards.
 
 ## Install by hand
 
@@ -56,7 +68,7 @@ For an old SDK the message starts with *BytePlus SDK … is older than the requi
 1. Double-click the canvas to open node search and type `Seedream`. The BytePlus nodes appear under the **BytePlus ModelArk** category.
 2. Open **Settings** (the gear icon, or Ctrl+, / Cmd+,) and search for **BytePlus**. You should see a **BytePlus** page with a **Default credentials** section and one row per key: ModelArk API key, Seed Speech API key, AI MediaKit API key and Asset library IAM AK/SK.
 
-If the Settings page is missing, update the pack (**ComfyUI-Manager → Update**), restart ComfyUI and reload the page.
+If the Settings page is missing, [update the pack](../update/), restart ComfyUI and reload the page.
 
 ## Classic Canvas and Nodes 2.0
 

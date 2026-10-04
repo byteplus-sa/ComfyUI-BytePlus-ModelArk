@@ -64,6 +64,7 @@ export default defineConfig({
 						{ slug: 'get-started/install' },
 						{ slug: 'get-started/api-keys' },
 						{ slug: 'get-started/first-run' },
+						{ slug: 'get-started/update' },
 					],
 				},
 				{
