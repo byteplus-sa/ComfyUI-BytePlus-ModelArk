@@ -306,6 +306,8 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Seedance Task Query | Video Query Tasks collects a Seedance task by ID (or lists the latest tasks) and shows its status and model. |
 | Video and Audio Assets | Create Video Asset and Create Audio Asset register media in your private library, Asset Library lists it, Seedance 2.5 Reference uses both as `asset_1` and `asset_2` (IAM AK/SK). |
 
+Templates show current models only. The Seedance 1.0 nodes, the Seedream 4.5 / 4.0 options and the Seed Speech 1.0 models (`seed-tts-1.0`, `seed-icl-1.0`, `seed-asr-1.0`) are still in the pack, but no template uses them.
+
 ## Development
 
 ```bash
