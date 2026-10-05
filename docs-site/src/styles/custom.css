@@ -227,8 +227,13 @@ dialog[aria-label] { border: 1px solid var(--sl-color-hairline); border-radius: 
 .pagefind-ui__result-link, #starlight__search .pagefind-ui__result-link { color: var(--sl-color-white); }
 
 /* ---------- pagination, edit link ---------- */
-.pagination-links a { border: 1px solid var(--sl-color-hairline); border-radius: 10px; background: var(--sl-color-gray-6); box-shadow: none; transition: border-color 0.15s; }
+.pagination-links a { border: 1px solid var(--sl-color-hairline); border-radius: 10px; background: var(--sl-color-gray-6); box-shadow: none; transition: border-color 0.15s; padding: 0.5rem 0.9rem; font-size: 0.875rem; }
 .pagination-links a:hover { border-color: var(--sl-color-gray-4); }
+.pagination-links { gap: 0.75rem; }
+.pagination-links a { gap: 0.6rem; line-height: 1.35; }
+.pagination-links a span { font-size: 0.75rem; color: var(--sl-color-gray-3); }
+.pagination-links .link-title { font-size: 0.9375rem; font-weight: 500; line-height: 1.35; color: var(--sl-color-white); }
+.pagination-links svg { width: 1rem; height: 1rem; }
 .meta a { color: var(--sl-color-gray-3); }
 footer .meta { border-top: 1px solid var(--sl-color-hairline); padding-top: 1rem; }
 
