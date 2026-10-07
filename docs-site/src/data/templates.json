@@ -245,6 +245,30 @@
   "has_thumbnail": true
  },
  {
+  "file": "Image and Video References.json",
+  "title": "Image and Video References",
+  "slug": "image-and-video-references",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "Load Video",
+   "MarkdownNote",
+   "Save Video"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [],
+  "note": "## Image + Video References\n\n1. Upload an image: **@Image 1** supplies the subject's appearance and style.\n2. Upload a video: **@Video 1** supplies camera movement and pacing.\n3. Edit the prompt to assign a clear role to each reference, then Run.\n\nUse exactly **@Image 1** and **@Video 1**, including the space before the number. Numbering is separate for each media type: image_1 is @Image 1, video_1 is @Video 1. These are reference labels, not filenames.\n\n**task_type = reference** creates a new video. Choose **edit** to modify the input clip, or **extend** to continue it, and rewrite the prompt accordingly.\n\nNeeds a ModelArk key in Settings > BytePlus and a Comfy.org login for local video upload. Each generation is billed. Fixed seed reuses unchanged cached outputs.",
+  "has_thumbnail": true
+ },
+ {
   "file": "Image to Video - Seedance 2.5 and 2.0.json",
   "title": "Image to Video - Seedance 2.5 and 2.0",
   "slug": "image-to-video-seedance-2-5-and-2-0",

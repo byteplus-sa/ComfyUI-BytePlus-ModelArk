@@ -378,5 +378,10 @@
   "tested": "2026-10-07",
   "media": [],
   "extra_runs": []
+ },
+ "image-and-video-references": {
+  "status": "not_run",
+  "media": [],
+  "extra_runs": []
  }
 }

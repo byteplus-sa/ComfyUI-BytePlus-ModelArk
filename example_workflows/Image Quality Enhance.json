@@ -125,7 +125,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.3",
+        "ver": "0.5.4",
         "Node name for S&R": "BytePlusImageEnhance"
       },
       "widgets_values": ["standard", "multiple", 2, ""]
