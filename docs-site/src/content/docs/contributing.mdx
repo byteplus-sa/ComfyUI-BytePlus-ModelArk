@@ -50,7 +50,7 @@ npm run build
 - `check-docs.mjs` checks the format of node and template pages: front matter, the fixed headings and their order, images, sample media and banned text such as em dashes. Run it before every commit. CI runs it with `--strict`, which also fails on placeholder images.
 - `npm run dev` serves the site at `http://localhost:4321/ComfyUI-BytePlus-ModelArk/`. `npm run build` also checks every internal link.
 - The `docs.yml` workflow runs both checks on every change under `docs-site/` or `example_workflows/`, and publishes the site to GitHub Pages from `main`.
-- `import_evidence.py` copies the screenshots and sample media of a live end-to-end run into the docs and writes `src/data/evidence.json` (which run covered each template, and how long it took). Pages show these measured times.
+- `import_evidence.py` imports example screenshots and sample media, with provenance kept in `src/data/evidence.json` for maintainers. Public pages describe the examples without internal test reports or measured run times.
 
 Writing rules: plain English, short sentences, "you", relative links that end in `/`, no keys or signed links, no em dashes, and only facts you checked in the code, the README or the evidence data. The full rules and the page formats are in `docs-site/CONTRIBUTING-DOCS.md`.
 
@@ -69,7 +69,7 @@ Writing rules: plain English, short sentences, "you", relative links that end in
 1. Add the workflow to `example_workflows/` with its `.jpg` thumbnail, and add it to the pack's template tests.
 2. Add its title to a group in `TEMPLATE_GROUPS` in `generate_data.py`. A template that is not listed fails the run.
 3. Run `generate_data.py`, then copy `src/content/docs/templates/seedream.mdx` to `templates/<slug>.mdx`.
-4. After a live run, use `import_evidence.py` for the screenshots and sample media.
+4. Use `import_evidence.py` to import example screenshots and sample media.
 5. Update the template count on the home page.
 6. Run the checker and the build.
 

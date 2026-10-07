@@ -25,6 +25,7 @@ npm run build                    # also validates every link
 - Only state facts you checked in the code (`nodes/*.py`, `nodes/constants.py`, `nodes/models_config.py`), the README, or
   the live test data in `src/data/evidence.json`. If you are not sure, leave it out. Do not invent limits, prices or speeds.
 - No Chinese text and no Jimeng/Doubao names. No em dashes; use a comma, a colon or a new sentence.
+- Keep internal validation details out of public pages and captions: no test dates, pass/fail status, measured run times, execution-history reports or test-account anecdotes. Describe example outputs and useful customer guidance instead.
 - Do not repeat what a generated table already says. Notes explain what the table cannot: how inputs work together, what to pick.
 
 ## Node page: `src/content/docs/nodes/<slug>.mdx`
@@ -82,7 +83,7 @@ import Shot from '../../../components/Shot.astro';
 ## Run it                     numbered steps
 ## Settings worth changing    3 to 6 bullets
 ## Example result             <Shot src="templates/<slug>-result.webp" .../> and the sample media (see below)
-## Time and cost              measured time from `evidence.json`, what bills, what is cached
+## Time and cost              what affects runtime, what bills, what is cached
 ## Related                    links to the nodes and one next-step template
 ```
 

@@ -42,7 +42,7 @@ The node needs your separate Seed Speech API key (Singapore region only), and ev
 
 - All five outputs are lists with the same order, one entry per clip. A node connected to them runs once per clip.
 - `duration` is the length the service reports, in seconds. If the service gives none, the node measures the decoded audio.
-- `url` is the link Seed Speech returns for the clip. In the live test it had no file extension. [Seed Speech ASR](../seed-asr/) can still read it: with `audio_format` on `auto`, the standard models detect the format from the file.
+- `url` is the link Seed Speech returns for the clip. The link can omit the file extension. [Seed Speech ASR](../seed-asr/) can still read it: with `audio_format` on `auto`, the standard models detect the format from the file.
 - `audio_format` only changes what is requested from the API. The `AUDIO` output is always decoded audio.
 - Without `enable_subtitle` no subtitles are requested, so `srt` stays empty and `subtitles_json` has no segments.
 

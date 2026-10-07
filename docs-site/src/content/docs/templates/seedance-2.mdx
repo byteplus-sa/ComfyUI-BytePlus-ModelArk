@@ -41,13 +41,13 @@ Short videos with sound, in four ways, in one workflow. The text group renders a
 
 ## Example result
 
-<Shot src="templates/seedance-2-result.webp" alt="Two frames of the 480p red fox draft in Save Video: a fox trotting through snow with its breath visible" caption="Result of the live test run: the 480p draft of the fox." />
+<Shot src="templates/seedance-2-result.webp" alt="Two frames of the 480p red fox draft in Save Video: a fox trotting through snow with its breath visible" caption="Example result: the 480p draft of the fox." />
 
 <Media kind="video" file="seedance-2.mp4" caption="The Seedance 2.5 draft: a red fox trotting through snow." />
 
 ## Time and cost
 
-The live test ran the template as shipped, which makes only the draft, and took 2.8 minutes. The other parts passed separate live runs on the same day: the draft with Draft to Final took 2.5 minutes, the first-last-frame group 2.3 minutes and the reference group 2.7 minutes. ModelArk bills each video task that runs, so the draft and the final render are separate tasks; nodes and groups that are bypassed do not run and do not bill. The draft node's seed is `fixed`, so running again with an unchanged workflow reuses ComfyUI's cached draft and does not bill. The first-last-frame and reference nodes use `randomize`, so each run of those groups asks again and bills again.
+ModelArk bills each video task that runs, so the draft and the final render are separate tasks; nodes and groups that are bypassed do not run and do not bill. The draft node's seed is `fixed`, so running again with an unchanged workflow reuses ComfyUI's cached draft and does not bill. The first-last-frame and reference nodes use `randomize`, so each run of those groups asks again and bills again.
 
 ## Related
 

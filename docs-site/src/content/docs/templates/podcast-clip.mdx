@@ -42,13 +42,13 @@ A short audio episode with a host and a guest, an SRT subtitle file for it and a
 
 ## Example result
 
-<Shot src="templates/podcast-clip-result.webp" alt="The saved episode as a waveform, the SRT subtitles, the cover art of a sleeping orange cat in a knitted blanket and the written host and guest lines" caption="Result of the live test run: an 81 second episode and a cover of a sleeping orange cat." />
+<Shot src="templates/podcast-clip-result.webp" alt="The saved episode as a waveform, the SRT subtitles, the cover art of a sleeping orange cat in a knitted blanket and the written host and guest lines" caption="Example result: an 81 second episode and a cover of a sleeping orange cat." />
 
-<Media kind="audio" file="podcast-clip-0.mp3" caption="The saved episode from the live test." />
+<Media kind="audio" file="podcast-clip-0.mp3" caption="The saved episode from this example." />
 
 ## Time and cost
 
-The live test took 22 seconds. The LLM and Seedream nodes bill on your ModelArk account, and the two TTS nodes and the ASR node bill on your Seed Speech account. The seed controls are set to `randomize`, so every run writes a new dialogue and cover and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. Read the subtitles before you publish them: in the live test the recognizer wrote the guest's name wrongly in one line and left one entry empty.
+The LLM and Seedream nodes bill on your ModelArk account, and the two TTS nodes and the ASR node bill on your Seed Speech account. The seed controls are set to `randomize`, so every run writes a new dialogue and cover and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. Review the subtitles before publishing, especially names and empty entries.
 
 ## Related
 

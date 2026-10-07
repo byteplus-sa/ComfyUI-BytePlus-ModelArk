@@ -11,7 +11,7 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it makes
 
-A background image and a stack of layers. Seedream looks at one picture (the ComfyUI logo) and decomposes it into a base image plus the elements on top of it, each as its own layer. In the live test it found two layers: the yellow ring and the word ComfyUI. You can then move or edit each layer on its own.
+A background image and a stack of layers. Seedream looks at one picture (the ComfyUI logo) and decomposes it into a base image plus the elements on top of it, each as its own layer. The example contains two layers: the yellow ring and the word ComfyUI. You can then move or edit each layer on its own.
 
 ## The workflow
 
@@ -38,11 +38,11 @@ A background image and a stack of layers. Seedream looks at one picture (the Com
 
 ## Example result
 
-<Shot src="templates/seedream-layer-separation-result.webp" alt="The purple gradient base image in Preview Image, and two saved layers on black: the word ComfyUI and a yellow ring" caption="Result of the live test run: the background and two layers." />
+<Shot src="templates/seedream-layer-separation-result.webp" alt="The purple gradient base image in Preview Image, and two saved layers on black: the word ComfyUI and a yellow ring" caption="Example result: the background and two layers." />
 
 ## Time and cost
 
-The live test took 31 seconds. The node bills once per run through your ModelArk account. The `seed` control is set to `randomize`, so every run asks again and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
+The node bills once per run through your ModelArk account. The `seed` control is set to `randomize`, so every run asks again and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
 
 ## Related
 

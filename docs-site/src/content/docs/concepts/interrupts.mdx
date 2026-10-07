@@ -30,7 +30,7 @@ Add [Video Query Tasks](../../nodes/video-query-tasks/) and filter by status, mo
 
 ## Long waits
 
-Waiting does not cost anything by itself, but Seedance tasks can queue or run for a long time, and the node has no time limit. **Seedance 2.5 Premium** 4K tasks in particular did not finish within 50 minutes in our live test on 2026-10-03. After 20 minutes of waiting the node adds a hint with the time already waited and a reminder of what Interrupt does: queued tasks are cancelled, running ones finish and are billed.
+Waiting does not cost anything by itself, but Seedance tasks can queue or run for a long time, and the node has no time limit. After 20 minutes of waiting the node adds a hint with the time already waited and a reminder of what Interrupt does: queued tasks are cancelled, running ones finish and are billed.
 
 The node shows queued and running status text while it waits. If polling fails repeatedly, or BytePlus says the key is wrong or the task is unknown or expired, the wait ends with the task ID in the message instead of waiting forever.
 

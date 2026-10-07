@@ -45,7 +45,7 @@ Paid requests are not repeated after a failure (only a rate limit is retried), b
 | What you see | Why | What to do |
 |---|---|---|
 | `Task is currently running and cannot be cancelled (409). It keeps running and will be billed; only queued tasks can be cancelled.` | You interrupted a running task. | Find it later with **Video Query Tasks**. |
-| `Waiting for … min already.` | The node adds this hint after 20 minutes of waiting. In our live test on 2026-10-03, Seedance 2.5 Premium (4K) tasks stayed queued or running for over 50 minutes without finishing. | Keep waiting. A running task is billed even if you interrupt. |
+| `Waiting for … min already.` | The node adds this hint after 20 minutes of waiting. | Keep waiting. A running task is billed even if you interrupt. |
 | `No task found for …` | The ID is unknown. ModelArk keeps tasks for 7 days. | Copy the Task ID from the console, or the `draft_task_id` of a draft run. |
 | `… With a reference video connected, set task_type to reference, edit or extend instead of auto.` | `auto` with a reference video can be rejected. | Set `task_type` to `reference`, `edit` or `extend`. |
 | `Task … is not a draft.` | The ID is not from a Draft model. | Use the `draft_task_id` of a Seedance 2.5 Draft run. |
@@ -55,7 +55,7 @@ Paid requests are not repeated after a failure (only a rate limit is retried), b
 | What you see | Why | What to do |
 |---|---|---|
 | `The voice is not available for this key or model.` | The speaker does not fit the model. | TTS 2.0 voices need `seed-tts-2.0`, cloned voices `seed-icl-*`. |
-| The Seed Audio `url` output has no file extension | The link Seed Speech returns had none in the live test. | Nothing to fix. When you pass this link to a standard ASR model, the node reads the format from the file. |
+| The Seed Audio `url` output has no file extension | Seed Speech links can omit the file extension. | Nothing to fix. When you pass this link to a standard ASR model, the node reads the format from the file. |
 | `… takes audio as a URL: connected audio is uploaded to Comfy.org storage first.` | Standard ASR models only take URLs. | Log in to Comfy.org, use `seed-asr-fast`, or pass a public URL. |
 
 ## Assets and Comfy.org login

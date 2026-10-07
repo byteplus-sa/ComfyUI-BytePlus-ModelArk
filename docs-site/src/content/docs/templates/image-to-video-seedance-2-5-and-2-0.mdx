@@ -43,7 +43,7 @@ import Media from '../../../components/Media.astro';
 
 ## Example result
 
-The live test on 7 October 2026 uses the same illustrated character, motion prompt and fixed seed for both models. Both runs succeed. With the square image and 720p setting, both saved videos are 960 × 960, 24 fps and 5.056 seconds long, with audio. Seedance 2.5 shows a wave and a head tilt; Seedance 2.0 mainly tilts its head in the sampled frames. The models do not produce identical motion from the same seed.
+This example uses the same illustrated character, motion prompt and fixed seed for both models. With the square image and 720p setting, both saved videos are 960 × 960, 24 fps and 5.056 seconds long, with audio. Seedance 2.5 shows a wave and a head tilt; Seedance 2.0 mainly tilts its head in the sampled frames. The models do not produce identical motion from the same seed.
 
 <Shot src="templates/image-to-video-seedance-2-5-and-2-0-result.webp" alt="ComfyUI shows successful square videos from Seedance 2.5 and Seedance 2.0 in separate Save Video nodes" caption="Both models animate the same first frame." />
 
@@ -51,7 +51,7 @@ The live test on 7 October 2026 uses the same illustrated character, motion prom
 
 ## Time and cost
 
-**Each enabled model is a separate billed generation.** The template starts with one branch active. Re-running unchanged inputs with fixed seeds reuses ComfyUI's cached outputs. Changing the image, prompt or seed requests another generation. The live test takes 142 seconds for Seedance 2.5 and 168 seconds for Seedance 2.0, including polling and saving. Execution history confirms that the second run reuses the cached Seedance 2.5 generation. The billed amount was not queried.
+**Each enabled model is a separate billed generation.** The template starts with one branch active. Re-running unchanged inputs with fixed seeds reuses ComfyUI's cached outputs. Changing the image, prompt or seed requests another generation.
 
 ## Related
 

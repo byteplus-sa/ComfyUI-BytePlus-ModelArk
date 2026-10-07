@@ -1,9 +1,7 @@
 ---
 import { getTemplate, getNode, nodeUrl, base, shortName } from './lib';
-import evidence from '../data/evidence.json';
 const { file } = Astro.props;
 const t = getTemplate(file);
-const run = (evidence as any)[t.slug];
 ---
 <dl class="facts">
 	<dt>Template</dt><dd>{t.title}, in the ComfyUI template browser under BytePlus</dd>
@@ -22,13 +20,4 @@ const run = (evidence as any)[t.slug];
 		))}
 	</dd>
 	<dt>Also uses</dt><dd>{t.other_nodes.length ? t.other_nodes.join(', ') + ' (built into ComfyUI)' : 'Only BytePlus nodes'}</dd>
-	{run && (
-		<>
-			<dt>Last live test</dt>
-			<dd>
-				{run.status === 'success' ? `Passed on ${run.tested}` : `Not completed on ${run.tested}`}
-				{run.status === 'success' && run.seconds > 0 && `, ${run.seconds >= 120 ? `${(run.seconds / 60).toFixed(1)} min` : `${run.seconds} s`} for one run`}
-			</dd>
-		</>
-	)}
 </dl>

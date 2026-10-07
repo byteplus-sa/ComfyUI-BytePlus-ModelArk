@@ -38,7 +38,7 @@ A draft is always 480p. The final rendered from a draft is 1080p for Seedance 2.
 
 ## Models with extra requirements
 
-- **Seedance 2.5 Premium (4K)** is whitelist only, so your account may need access from BytePlus before it accepts requests. In our live test on 2026-10-03, Premium (4K) tasks stayed queued or running for over 50 minutes without finishing. Ask BytePlus about access if a request is refused.
+- **Seedance 2.5 Premium (4K)** is whitelist only, so your account may need access from BytePlus before it accepts requests. Ask BytePlus about access if a request is refused.
 - **Seed Speech ASR:** the table above repeats the option name in the ID column, but the node sends these BytePlus resource IDs: `seed-asr-fast` uses `volc.seedasr.auc_turbo` (one request, audio up to 2 hours), `seed-asr-2.0` uses `volc.seedasr.auc` and `seed-asr-1.0` uses `volc.bigasr.auc` (both submit a task, audio up to 5 hours).
 - **Seedance 1.0 First-Last-Frame to Video** offers Seedance 1.0 Pro only. Pro Fast has no last-frame support.
 - **BytePlus LLM audio input** works only on Seed 2.0 Lite and Mini. Seed 2.0 Pro and Seed 2.1 Turbo reject audio. DeepSeek V4.1 Flash and GLM 5.3 Flash accept it but cannot hear it, so the node offers the audio input only for Lite and Mini.

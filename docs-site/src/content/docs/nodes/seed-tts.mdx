@@ -52,7 +52,6 @@ The node needs your separate Seed Speech API key (Singapore region only), and ev
 - A voice supports specific languages. If the service says the voice is not available, check that the model matches the voice: TTS 2.0 voices need `seed-tts-2.0`, cloned voices need `seed-icl-*`.
 - `filter_markdown` and the advanced `read_emoji`, `read_latex` and `read_parentheses` control how Markdown, emoji, LaTeX and text in parentheses are read. `unsupported_char_ratio` makes the request fail when too much of the text is in a language the voice cannot read.
 - Interrupting a run stops the node's wait. The node sends no cancel request, so a request that was already sent may still be billed.
-- The live test run only used `seed-tts-2.0`. `seed-tts-1.0` and the `seed-icl-*` models need a speaker ID that was not available then, so what this page says about them comes from the code and the tooltips.
 
 ## Common errors
 

@@ -42,13 +42,13 @@ One 4 second video made from two assets that live in your library. The template 
 
 ## Example result
 
-<Shot src="templates/video-and-audio-assets-result.webp" alt="The result panel: four asset URIs from the library list, three frames of a misty mountain lake at sunrise, and the video and audio asset records as JSON with the IDs hidden" caption="Result of the live test run: the library list, the saved video and the two asset records." />
+<Shot src="templates/video-and-audio-assets-result.webp" alt="The result panel: four asset URIs from the library list, three frames of a misty mountain lake at sunrise, and the video and audio asset records as JSON with the IDs hidden" caption="Example result: the library list, the saved video and the two asset records." />
 
-<Media kind="video" file="video-and-audio-assets.mp4" caption="The video made by the live test run." />
+<Media kind="video" file="video-and-audio-assets.mp4" caption="The video from this example." />
 
 ## Time and cost
 
-The live test took 3.0 minutes for the whole chain. It billed one Seedance 2.0 Mini sample video, one Seed Audio clip and one Seedance 2.5 Draft video. The Asset Library node is not connected to the two Create nodes, so on the first run it can list the library as it was before the new assets existed, as in the test picture. To see them, change an Asset Library setting (for example `max_results`) and run again, because ComfyUI reuses the cached list of an unchanged node. The seed controls are set to `randomize`, so every run makes new media and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. Only use media you are authorized to use.
+The workflow bills one Seedance 2.0 Mini sample video, one Seed Audio clip and one Seedance 2.5 Draft video. The Asset Library node is not connected to the two Create nodes, so on the first run it can list the library as it was before the new assets existed. To see them, change an Asset Library setting (for example `max_results`) and run again, because ComfyUI reuses the cached list of an unchanged node. The seed controls are set to `randomize`, so every run makes new media and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing. Only use media you are authorized to use.
 
 ## Related
 

@@ -42,7 +42,7 @@ import Media from '../../../components/Media.astro';
 
 ## Example result
 
-The live test on 7 October 2026 uses ComfyUI’s bundled illustrated character image. The draft is 854 × 480 and the final is 1920 × 1080. Both are 24 fps, about five seconds long, with audio. Execution history confirms that the final run reuses the cached image and draft.
+This example uses ComfyUI’s bundled illustrated character image. The draft is 854 × 480 and the final is 1920 × 1080. Both are 24 fps, about five seconds long, with audio.
 
 <Shot src="templates/image-to-draft-to-1080p-result.webp" alt="ComfyUI displays the illustrated character in both the draft and final Save Video nodes" caption="The same reviewed draft renders successfully at 1080p." />
 
@@ -50,7 +50,7 @@ The live test on 7 October 2026 uses ComfyUI’s bundled illustrated character i
 
 ## Time and cost
 
-**Draft and final are separate billed tasks.** The final nodes start bypassed, so the first run requests only the draft. An unchanged draft with a fixed seed is reused from ComfyUI's cache. Restarting ComfyUI clears that cache; use a saved draft task ID in a separate Draft to Final workflow to render an existing draft without requesting another. Draft tasks can be rendered for seven days. The live test takes 162 seconds for the draft and 41 seconds for the final, including polling and saving. The billed amount was not queried.
+**Draft and final are separate billed tasks.** The final nodes start bypassed, so the first run requests only the draft. An unchanged draft with a fixed seed is reused from ComfyUI's cache. Restarting ComfyUI clears that cache; use a saved draft task ID in a separate Draft to Final workflow to render an existing draft without requesting another. Draft tasks can be rendered for seven days.
 
 ## Related
 

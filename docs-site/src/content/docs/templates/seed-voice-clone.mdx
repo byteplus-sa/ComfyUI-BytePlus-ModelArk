@@ -41,11 +41,11 @@ Two audio clips. Seed Voice Clone trains a voice from your reference clip and re
 
 ## Example result
 
-This template has not been run end to end. In the live test the first node, Seed Voice Clone, stopped after 1 second with an API error, because no real voice slot ID was available for the test account and the template only holds the placeholder `S_your_voice_slot`. The TTS step therefore never ran, and there is no result picture or sample audio to show. Run it with your own slot to hear the result.
+Replace `S_your_voice_slot` with a valid voice slot from Seed Speech, then run the template to create your voice and hear the TTS result.
 
 ## Time and cost
 
-There is no measured run time, because the live test stopped at the first node. Seed Voice Clone trains into a voice slot from the Seed Speech console. Every run with changed inputs trains the slot again, and a slot can be trained 15 times. According to the pack's README, the first TTS call with the voice starts the slot's billing. The TTS `seed` control is set to `randomize`, so every run speaks the sentence again; set it to `fixed` and ComfyUI reuses the cached result of an unchanged node.
+Seed Voice Clone trains into a voice slot from the Seed Speech console. Every run with changed inputs trains the slot again, and a slot can be trained 15 times. According to the pack's README, the first TTS call with the voice starts the slot's billing. The TTS `seed` control is set to `randomize`, so every run speaks the sentence again; set it to `fixed` and ComfyUI reuses the cached result of an unchanged node.
 
 ## Related
 

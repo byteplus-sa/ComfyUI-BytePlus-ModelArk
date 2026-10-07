@@ -169,8 +169,6 @@ for (const t of templates) {
 			const name = m.path.replace(/^media\//, '');
 			if (!body.includes(`file="${name}"`)) fail(file, `Example result must show the sample media <Media kind="${m.type}" file="${name}" />`);
 		}
-	} else if (!/not (been )?(run|completed|tested)/i.test(sectionBody(body, 'Example result'))) {
-		fail(file, 'this template has no successful live run: Example result must say it was not run end to end');
 	}
 	const steps = (sectionBody(body, 'The workflow').match(/^\d+\. /gm) ?? []).length;
 	if (steps < 2) fail(file, 'The workflow needs a numbered list with at least 2 steps');

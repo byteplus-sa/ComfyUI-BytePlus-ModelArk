@@ -39,13 +39,13 @@ One spoken sentence, its transcript and its subtitles. The template reads "Welco
 
 ## Example result
 
-<Shot src="templates/seed-speech-tts-and-asr-result.webp" alt="The graph after the run with a 6.4 second waveform, the transcript and two subtitle entries" caption="Result of the live test run: the transcript matches the spoken sentence." />
+<Shot src="templates/seed-speech-tts-and-asr-result.webp" alt="The graph after the run with a 6.4 second waveform, the transcript and two subtitle entries" caption="Example result: the transcript matches the spoken sentence." />
 
-<Media kind="audio" file="seed-speech-tts-and-asr-0.mp3" caption="The speech made by the live test run." />
+<Media kind="audio" file="seed-speech-tts-and-asr-0.mp3" caption="The speech from this example." />
 
 ## Time and cost
 
-The live test took 2 seconds for 6.4 seconds of speech. Each node sends one request to Seed Speech. The TTS `seed` is not sent to the API; it only decides whether ComfyUI runs the node again. Its control is set to `randomize`, so every run speaks the sentence again and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
+Each node sends one request to Seed Speech. The TTS `seed` is not sent to the API; it only decides whether ComfyUI runs the node again. Its control is set to `randomize`, so every run speaks the sentence again and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
 
 ## Related
 
