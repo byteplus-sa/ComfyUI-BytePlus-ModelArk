@@ -1,0 +1,640 @@
+{
+  "id": "b8799752-1493-4466-9767-815b385a2381",
+  "revision": 0,
+  "last_node_id": 6,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        30,
+        160
+      ],
+      "size": [
+        310,
+        340
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1,
+            2
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "comfyui_logo.png",
+        "image"
+      ],
+      "title": "1. Upload your first frame"
+    },
+    {
+      "id": 2,
+      "type": "BytePlusSeedance2FirstLastFrame",
+      "pos": [
+        410,
+        160
+      ],
+      "size": [
+        370,
+        480
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model.resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "model.duration",
+          "type": "INT",
+          "widget": {
+            "name": "model.duration"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generate_audio",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.generate_audio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "first_frame",
+          "type": "IMAGE",
+          "link": 1,
+          "shape": 7
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "first_frame_asset_id",
+          "type": "STRING",
+          "widget": {
+            "name": "first_frame_asset_id"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "last_frame_asset_id",
+          "type": "STRING",
+          "widget": {
+            "name": "last_frame_asset_id"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "shape": 6,
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.2",
+        "Node name for S&R": "BytePlusSeedance2FirstLastFrame"
+      },
+      "widgets_values": [
+        "Seedance 2.5",
+        "Animate this illustrated character with a cheerful gentle wave and a small head tilt. Preserve the drawing style, colors and background. Keep the camera steady. Soft outdoor ambience, no dialogue.",
+        "720p",
+        5,
+        true,
+        "mp4",
+        42,
+        "fixed",
+        false,
+        "",
+        "",
+        1,
+        false
+      ],
+      "title": "2. Animate with Seedance 2.5"
+    },
+    {
+      "id": 3,
+      "type": "SaveVideo",
+      "pos": [
+        850,
+        160
+      ],
+      "size": [
+        340,
+        400
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 3
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "BytePlus/Video/ImageToVideo_2_5",
+        "auto",
+        "auto"
+      ],
+      "title": "3. Save Seedance 2.5 video"
+    },
+    {
+      "id": 4,
+      "type": "BytePlusSeedance2FirstLastFrame",
+      "pos": [
+        1290,
+        160
+      ],
+      "size": [
+        370,
+        480
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model.resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "model.ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.duration",
+          "type": "INT",
+          "widget": {
+            "name": "model.duration"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generate_audio",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.generate_audio"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "first_frame",
+          "type": "IMAGE",
+          "link": 2,
+          "shape": 7
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "first_frame_asset_id",
+          "type": "STRING",
+          "widget": {
+            "name": "first_frame_asset_id"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "last_frame_asset_id",
+          "type": "STRING",
+          "widget": {
+            "name": "last_frame_asset_id"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "shape": 6,
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.2",
+        "Node name for S&R": "BytePlusSeedance2FirstLastFrame"
+      },
+      "widgets_values": [
+        "Seedance 2.0",
+        "Animate this illustrated character with a cheerful gentle wave and a small head tilt. Preserve the drawing style, colors and background. Keep the camera steady. Soft outdoor ambience, no dialogue.",
+        "720p",
+        "adaptive",
+        5,
+        true,
+        42,
+        "fixed",
+        false,
+        "",
+        "",
+        1,
+        false
+      ],
+      "title": "4. Animate with Seedance 2.0"
+    },
+    {
+      "id": 5,
+      "type": "SaveVideo",
+      "pos": [
+        1730,
+        160
+      ],
+      "size": [
+        340,
+        400
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 4
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "BytePlus/Video/ImageToVideo_2_0",
+        "auto",
+        "auto"
+      ],
+      "title": "5. Save Seedance 2.0 video"
+    },
+    {
+      "id": 6,
+      "type": "MarkdownNote",
+      "pos": [
+        30,
+        550
+      ],
+      "size": [
+        310,
+        250
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "title": "Choose a model or compare both",
+      "widgets_values": [
+        "## Image to video\n\n1. Upload your image as the **first frame**.\n2. Edit the prompt to describe motion.\n3. Run **Seedance 2.5** at 720p, 5 seconds.\n4. To compare, select both purple **Seedance 2.0** nodes and press **Ctrl+B**, then run again.\n\nKeep seeds **fixed** and inputs unchanged to reuse the first result. Each enabled model generates a separately billed video. To use only 2.0, bypass both 2.5 nodes first.\n\nOptional: connect a last frame for a first-to-last transition. Both models also offer 1080p. Needs a ModelArk key in Settings > BytePlus."
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      8,
+      "IMAGE"
+    ],
+    [
+      2,
+      1,
+      0,
+      4,
+      8,
+      "IMAGE"
+    ],
+    [
+      3,
+      2,
+      0,
+      3,
+      0,
+      "VIDEO"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "1. Your image",
+      "bounding": [
+        0,
+        70,
+        370,
+        770
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "2. Seedance 2.5 (active)",
+      "bounding": [
+        385,
+        70,
+        835,
+        770
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "3. Seedance 2.0 (enable both nodes)",
+      "bounding": [
+        1265,
+        70,
+        835,
+        770
+      ],
+      "color": "#705296",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.55,
+      "offset": [
+        40,
+        40
+      ]
+    }
+  },
+  "version": 0.4
+}

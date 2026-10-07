@@ -11,6 +11,7 @@ EXPECTED_WORKFLOWS = {
     "2.5 Model Updates.json",
     "Seedance 2.json",
     "Image to Draft to 1080p.json",
+    "Image to Video - Seedance 2.5 and 2.0.json",
     "Seed Audio.json",
     "Seed Speech TTS and ASR.json",
     "Seed Voice Clone.json",
@@ -487,6 +488,28 @@ class WorkflowTemplateTests(unittest.TestCase):
             [output["name"] for output in layers["outputs"]],
             ["base_image", "base_mask", "layers", "masks", "bboxes", "layer_stack", "layers_json"],
         )
+
+    def test_image_to_video_models_share_first_frame_and_save_separately(self):
+        workflow = load_workflow("Image to Video - Seedance 2.5 and 2.0.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        generators = [node for node in nodes.values() if node["type"] == "BytePlusSeedance2FirstLastFrame"]
+        self.assertEqual(len(generators), 2)
+        self.assertEqual({node["widgets_values"][0] for node in generators}, {"Seedance 2.5", "Seedance 2.0"})
+        image_sources = set()
+        for node in generators:
+            inputs = {item["name"]: item for item in node["inputs"]}
+            link = next(link for link in workflow["links"] if link[0] == inputs["first_frame"]["link"])
+            image_sources.add(link[1])
+            self.assertEqual(nodes[link[1]]["type"], "LoadImage")
+            self.assertIsNone(inputs["last_frame"]["link"])
+            self.assertEqual(node["widgets_values"][2], "720p")
+            self.assertIn("fixed", node["widgets_values"])
+            self.assertEqual(node["mode"], 0 if node["widgets_values"][0] == "Seedance 2.5" else 4)
+            video_link = next(link for link in workflow["links"] if link[1:3] == [node["id"], 0])
+            save = nodes[video_link[3]]
+            self.assertEqual(save["type"], "SaveVideo")
+            self.assertEqual(save["mode"], node["mode"])
+        self.assertEqual(len(image_sources), 1)
 
     def test_image_draft_final_preserves_reviewed_draft(self):
         workflow = load_workflow("Image to Draft to 1080p.json")

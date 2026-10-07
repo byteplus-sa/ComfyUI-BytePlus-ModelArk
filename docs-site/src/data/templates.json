@@ -195,6 +195,33 @@
   "has_thumbnail": true
  },
  {
+  "file": "Image to Video - Seedance 2.5 and 2.0.json",
+  "title": "Image to Video - Seedance 2.5 and 2.0",
+  "slug": "image-to-video-seedance-2-5-and-2-0",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusSeedance2FirstLastFrame",
+    "count": 2
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "MarkdownNote",
+   "Save Video"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1. Your image",
+   "2. Seedance 2.5 (active)",
+   "3. Seedance 2.0 (enable both nodes)"
+  ],
+  "note": "## Image to video\n\n1. Upload your image as the **first frame**.\n2. Edit the prompt to describe motion.\n3. Run **Seedance 2.5** at 720p, 5 seconds.\n4. To compare, select both purple **Seedance 2.0** nodes and press **Ctrl+B**, then run again.\n\nKeep seeds **fixed** and inputs unchanged to reuse the first result. Each enabled model generates a separately billed video. To use only 2.0, bypass both 2.5 nodes first.\n\nOptional: connect a last frame for a first-to-last transition. Both models also offer 1080p. Needs a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
   "file": "Image to Draft to 1080p.json",
   "title": "Image to Draft to 1080p",
   "slug": "image-to-draft-to-1080p",

@@ -349,5 +349,18 @@
    }
   ],
   "extra_runs": []
+ },
+ "image-to-video-seedance-2-5-and-2-0": {
+  "case": "image-to-video-models",
+  "status": "success",
+  "seconds": 310,
+  "tested": "2026-10-07",
+  "media": [
+   {
+    "type": "video",
+    "path": "media/image-to-video-seedance-2-5-and-2-0.mp4"
+   }
+  ],
+  "extra_runs": []
  }
 }

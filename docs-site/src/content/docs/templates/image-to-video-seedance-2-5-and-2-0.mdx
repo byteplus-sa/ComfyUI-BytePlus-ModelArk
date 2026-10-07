@@ -1,0 +1,60 @@
+---
+title: "Image to Video - Seedance 2.5 and 2.0"
+description: "Animate one image as the first frame with Seedance 2.5 or Seedance 2.0, and compare their saved videos."
+template_file: Image to Video - Seedance 2.5 and 2.0.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Image to Video - Seedance 2.5 and 2.0.json" />
+
+## What it makes
+
+**Turn your image into a short video with either model.** Both branches use the same image as `first_frame`, with separate prompts and saved results. Seedance 2.5 starts active; Seedance 2.0 starts bypassed so the first run generates only one video.
+
+## The workflow
+
+<Shot src="templates/image-to-video-seedance-2-5-and-2-0-workflow.webp" alt="One Load Image feeds two First-Last-Frame video nodes, with Seedance 2.5 active and Seedance 2.0 bypassed" caption="Choose one model or enable both branches to compare their results." />
+
+1. **Load Image** supplies the first frame to both branches.
+2. **[First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/)** in the middle group runs Seedance 2.5 at 720p for five seconds, with audio.
+3. **Save Video** displays and saves the Seedance 2.5 result.
+4. The same **[First-Last-Frame node](../../nodes/seedance-2-5-first-last-frame/)** in the purple group runs Seedance 2.0 at 720p for five seconds, with `ratio` set to `adaptive`.
+5. A separate **Save Video** displays and saves the Seedance 2.0 result.
+
+## Run it
+
+1. Add your ModelArk key in **Settings → BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Open **Image to Video - Seedance 2.5 and 2.0** and upload your image.
+3. Edit the motion prompt in the Seedance 2.5 node, then run.
+4. To compare models, copy your prompt to the Seedance 2.0 node. Select both purple nodes and press **Ctrl+B** to enable them, then run again.
+5. Keep the first branch's inputs and fixed seed unchanged to reuse its cached result. To run only Seedance 2.0, bypass both Seedance 2.5 nodes first.
+
+## Settings worth changing
+
+- **Prompt:** describe subject motion, camera motion and sound. The shipped prompt animates an illustrated character waving with a small head tilt; replace it for your own image.
+- **Resolution:** both branches start at 720p and also offer 1080p.
+- **Duration:** both branches start at five seconds; each model exposes its supported range.
+- **Seed:** both start at 42 with `fixed`. Change it deliberately for another variation.
+- **Last frame:** optionally connect a second image for a first-to-last-frame transition.
+- **Audio:** toggle generated sound on each branch.
+
+## Example result
+
+The live test on 7 October 2026 uses the same illustrated character, motion prompt and fixed seed for both models. Both runs succeed. With the square image and 720p setting, both saved videos are 960 × 960, 24 fps and 5.056 seconds long, with audio. Seedance 2.5 shows a wave and a head tilt; Seedance 2.0 mainly tilts its head in the sampled frames. The models do not produce identical motion from the same seed.
+
+<Shot src="templates/image-to-video-seedance-2-5-and-2-0-result.webp" alt="ComfyUI shows successful square videos from Seedance 2.5 and Seedance 2.0 in separate Save Video nodes" caption="Both models animate the same first frame." />
+
+<Media kind="video" file="image-to-video-seedance-2-5-and-2-0.mp4" caption="Seedance 2.5 on the left and Seedance 2.0 on the right, resized for comparison. Audio is from Seedance 2.5." />
+
+## Time and cost
+
+**Each enabled model is a separate billed generation.** The template starts with one branch active. Re-running unchanged inputs with fixed seeds reuses ComfyUI's cached outputs. Changing the image, prompt or seed requests another generation. The live test takes 142 seconds for Seedance 2.5 and 168 seconds for Seedance 2.0, including polling and saving. Execution history confirms that the second run reuses the cached Seedance 2.5 generation. The billed amount was not queried.
+
+## Related
+
+- [Seedance 2.5 First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/)
+- [Image to Draft to 1080p](../image-to-draft-to-1080p/) lets you review a reference-image draft before rendering the final.
+- [Seedance Video Extension](../seedance-video-extension/) continues an existing clip.
