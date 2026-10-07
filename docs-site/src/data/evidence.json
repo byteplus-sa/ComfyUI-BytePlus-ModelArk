@@ -336,5 +336,18 @@
    }
   ],
   "extra_runs": []
+ },
+ "image-to-draft-to-1080p": {
+  "case": "image-reference-draft-final",
+  "status": "success",
+  "seconds": 203,
+  "tested": "2026-10-07",
+  "media": [
+   {
+    "type": "video",
+    "path": "media/image-to-draft-to-1080p.mp4"
+   }
+  ],
+  "extra_runs": []
  }
 }

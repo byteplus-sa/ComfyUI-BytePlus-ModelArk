@@ -27,6 +27,7 @@ PRIMARY = {
     "Seedream Layer Separation": "tpl-12-layer-separation", "Image Quality Enhance": "tpl-03-image-quality-enhance",
     "Generate and Enhance": "tpl-02-generate-enhance", "2.5 Model Updates": "tpl-01-model-updates",
     "Seedance Video Extension": "tpl-11-video-extension", "Seedance Task Query": "cov-query",
+    "Image to Draft to 1080p": "image-reference-draft-final",
     "vCube Video Enhance": "tpl-18-vcube", "Video Smoothness Enhance": "tpl-15-video-smoothness",
     "Seed Prompt Writer": "tpl-05-seed-prompt-writer", "Seed Audio": "tpl-04-seed-audio",
     "Seed Speech TTS and ASR": "tpl-06-seed-speech-tts-asr", "Seed Voice Clone": "tpl-07-seed-voice-clone",

@@ -1,0 +1,59 @@
+---
+title: "Image to Draft to 1080p"
+description: "Use a reference image to make a 480p Seedance 2.5 draft, review the result, then render that draft at 1080p."
+template_file: Image to Draft to 1080p.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import Media from '../../../components/Media.astro';
+
+<TemplateFacts file="Image to Draft to 1080p.json" />
+
+## What it makes
+
+**A reviewed draft becomes a 1080p video.** Your image guides the subject and style. Seedance 2.5 Draft creates a 480p preview, then Draft to Final keeps its scene and motion in the final render.
+
+## The workflow
+
+<Shot src="templates/image-to-draft-to-1080p-workflow.webp" alt="Reference image connected to Seedance 2.5 Draft and Save Video, with Draft to Final and the final Save Video bypassed" caption="Review the draft before enabling the two purple final nodes." />
+
+1. **Load Image** supplies your character or style reference.
+2. **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** uses `Seedance 2.5 Draft`, 480p, 16:9 and 5 seconds.
+3. **Save Video** saves and displays the draft for review.
+4. **[Draft to Final Video](../../nodes/seedance-2-5-draft-to-final/)** receives `draft_task_id` and renders at 1080p. The final stage starts bypassed.
+5. A second **Save Video** saves and displays the final.
+
+## Run it
+
+1. Set your ModelArk API key in **Settings → BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Open **Image to Draft to 1080p**, upload your image and edit the prompt.
+3. Run and review the draft in **Save Video**.
+4. Select both purple final nodes and press **Ctrl+B** to enable them. Run again with the draft inputs unchanged.
+5. Keep the draft seed control on `fixed` to reuse the cached draft. To revise the shot, bypass both final nodes again before changing the image, prompt or seed.
+
+## Settings worth changing
+
+- **Prompt:** refer to your subject as Image 1 and describe motion, camera and sound.
+- **Ratio and duration:** set these in the draft; the final inherits them.
+- **Seed:** keep `fixed` during review and final generation. Change the seed deliberately for a new draft.
+- **Model:** keep `Seedance 2.5 Draft` for a 1080p final. Premium drafts render at 4k.
+- **Audio:** the final inherits the draft's audio setting.
+
+## Example result
+
+The live test on 7 October 2026 uses ComfyUI’s bundled illustrated character image. The draft is 854 × 480 and the final is 1920 × 1080. Both are 24 fps, about five seconds long, with audio. Execution history confirms that the final run reuses the cached image and draft.
+
+<Shot src="templates/image-to-draft-to-1080p-result.webp" alt="ComfyUI displays the illustrated character in both the draft and final Save Video nodes" caption="The same reviewed draft renders successfully at 1080p." />
+
+<Media kind="video" file="image-to-draft-to-1080p.mp4" caption="A playback preview of the 1080p final, resized to 540p for this page." />
+
+## Time and cost
+
+**Draft and final are separate billed tasks.** The final nodes start bypassed, so the first run requests only the draft. An unchanged draft with a fixed seed is reused from ComfyUI's cache. Restarting ComfyUI clears that cache; use a saved draft task ID in a separate Draft to Final workflow to render an existing draft without requesting another. Draft tasks can be rendered for seven days. The live test takes 162 seconds for the draft and 41 seconds for the final, including polling and saving. The billed amount was not queried.
+
+## Related
+
+- [Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)
+- [Seedance 2.5 Draft to Final Video](../../nodes/seedance-2-5-draft-to-final/)
+- [Seedance Video Extension](../seedance-video-extension/)

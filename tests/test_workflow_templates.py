@@ -10,6 +10,7 @@ WORKFLOW_DIR = os.path.join(PLUGIN_ROOT, "example_workflows")
 EXPECTED_WORKFLOWS = {
     "2.5 Model Updates.json",
     "Seedance 2.json",
+    "Image to Draft to 1080p.json",
     "Seed Audio.json",
     "Seed Speech TTS and ASR.json",
     "Seed Voice Clone.json",
@@ -486,6 +487,29 @@ class WorkflowTemplateTests(unittest.TestCase):
             [output["name"] for output in layers["outputs"]],
             ["base_image", "base_mask", "layers", "masks", "bboxes", "layer_stack", "layers_json"],
         )
+
+    def test_image_draft_final_preserves_reviewed_draft(self):
+        workflow = load_workflow("Image to Draft to 1080p.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        draft = next(node for node in nodes.values() if node["type"] == "BytePlusSeedance2Reference")
+        final = next(node for node in nodes.values() if node["type"] == "BytePlusSeedanceDraftToFinal")
+        self.assertEqual(draft["widgets_values"][0], "Seedance 2.5 Draft")
+        self.assertEqual(draft["widgets_values"][2], "480p")
+        self.assertEqual(draft["widgets_values"][6], "reference")
+        self.assertIn("fixed", draft["widgets_values"])
+        self.assertEqual(draft["mode"], 0)
+        self.assertEqual(final["mode"], 4)
+        image_input = next(item for item in draft["inputs"] if item["name"] == "model.reference_images.image_1")
+        image_link = next(link for link in workflow["links"] if link[0] == image_input["link"])
+        self.assertEqual(nodes[image_link[1]]["type"], "LoadImage")
+        final_input = next(item for item in final["inputs"] if item["name"] == "draft_task_id")
+        final_link = next(link for link in workflow["links"] if link[0] == final_input["link"])
+        self.assertEqual(final_link[1:3], [draft["id"], 1])
+        for source in (draft, final):
+            video_link = next(link for link in workflow["links"] if link[1:3] == [source["id"], 0])
+            save = nodes[video_link[3]]
+            self.assertEqual(save["type"], "SaveVideo")
+            self.assertEqual(save["mode"], source["mode"])
 
     def test_seedance2_template_uses_core_style_nodes(self):
         workflow = load_workflow("Seedance 2.json")
