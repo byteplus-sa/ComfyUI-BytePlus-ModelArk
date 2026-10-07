@@ -95,7 +95,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedream",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "",
@@ -223,7 +223,7 @@
       "properties": {
         "Node name for S&R": "BytePlusCreateImageAsset",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "",
@@ -309,7 +309,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "Seedance 2.0",
@@ -402,7 +402,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "Seedance 2.0",
@@ -495,7 +495,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "Seedance 2.0",

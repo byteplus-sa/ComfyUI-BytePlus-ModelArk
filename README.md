@@ -4,7 +4,9 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.5.2.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.5.3.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+
+**New in v0.5.3:** Image Edit, Image Variations, Image to Draft to 1080p, and independent Seedance 2.5 / 2.0 image-to-video templates, with fixed seeds and documented live examples.
 
 ## Contents
 

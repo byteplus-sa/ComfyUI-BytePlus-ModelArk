@@ -183,7 +183,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2",
+        "ver": "0.5.3",
         "Node name for S&R": "BytePlusSeedreamLayerSeparation"
       },
       "widgets_values": [

@@ -48,7 +48,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2TextToVideo",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "Seedance 2.0 Mini",
@@ -164,7 +164,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedAudio",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "A calm narrator says: \"Welcome to the quiet mountain lake at sunrise.\"",
@@ -248,7 +248,7 @@
       "properties": {
         "Node name for S&R": "BytePlusCreateVideoAsset",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "",
@@ -319,7 +319,7 @@
       "properties": {
         "Node name for S&R": "BytePlusCreateAudioAsset",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "",
@@ -363,7 +363,7 @@
       "properties": {
         "Node name for S&R": "BytePlusAssetLibrary",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "AIGC",
@@ -483,7 +483,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.2"
+        "ver": "0.5.3"
       },
       "widgets_values": [
         "Seedance 2.5 Draft",
