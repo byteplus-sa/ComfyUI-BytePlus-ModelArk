@@ -110,6 +110,56 @@
   "has_thumbnail": true
  },
  {
+  "file": "Image Edit.json",
+  "title": "Image Edit",
+  "slug": "image-edit",
+  "group": "Images",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "MarkdownNote",
+   "Save Image"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "Image Edit | Reference to result"
+  ],
+  "note": "## Image Edit\n\n1. Upload your reference image.\n2. Edit the prompt: say what to keep and what to change.\n3. Run and review Save Image.\n\nOne edited image is generated and saved.\n\nThe fixed seed allows unchanged runs to reuse cached outputs. Change the seed or prompt for new results.\n\nNeeds a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Image Variations.json",
+  "title": "Image Variations",
+  "slug": "image-variations",
+  "group": "Images",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "MarkdownNote",
+   "Save Image"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "Image Variations | Reference to result"
+  ],
+  "note": "## Image Variations\n\n1. Upload your reference image.\n2. Edit the prompt: say what to keep and what to change.\n3. Run and review Save Image.\n\nThree separate generations use seeds 42, 43 and 44. Save Image saves every result. Increase generation_count for more variations; each image is billed.\n\nThe fixed seed allows unchanged runs to reuse cached outputs. Change the seed or prompt for new results.\n\nNeeds a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
   "file": "Seedream Layer Separation.json",
   "title": "Seedream Layer Separation",
   "slug": "seedream-layer-separation",
@@ -192,6 +242,63 @@
    "Video: Seedance, then vCube Video Enhance (enable as needed)"
   ],
   "note": "",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Image to Video - Seedance 2.5 and 2.0.json",
+  "title": "Image to Video - Seedance 2.5 and 2.0",
+  "slug": "image-to-video-seedance-2-5-and-2-0",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusSeedance2FirstLastFrame",
+    "count": 2
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "MarkdownNote",
+   "Save Video"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1. Your image",
+   "2. Seedance 2.5 (active)",
+   "3. Seedance 2.0 (enable both nodes)"
+  ],
+  "note": "## Image to video\n\n1. Upload your image as the **first frame**.\n2. Edit the prompt to describe motion.\n3. Run **Seedance 2.5** at 720p, 5 seconds.\n4. To compare, select both purple **Seedance 2.0** nodes and press **Ctrl+B**, then run again.\n\nKeep seeds **fixed** and inputs unchanged to reuse the first result. Each enabled model generates a separately billed video. To use only 2.0, bypass both 2.5 nodes first.\n\nOptional: connect a last frame for a first-to-last transition. Both models also offer 1080p. Needs a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Image to Draft to 1080p.json",
+  "title": "Image to Draft to 1080p",
+  "slug": "image-to-draft-to-1080p",
+  "group": "Video",
+  "nodes": [
+   {
+    "id": "BytePlusSeedance2Reference",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedanceDraftToFinal",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "MarkdownNote",
+   "Save Video"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1. Generate and review the 480p draft",
+   "2. Enable both nodes for the 1080p final"
+  ],
+  "note": "## Image to Draft to 1080p\n\n1. Upload an image and edit the draft prompt.\n2. Run to save a **480p draft**.\n3. Review it in Save Video.\n4. Select both purple final nodes and press **Ctrl+B** to enable them, then run again.\n\nKeep the draft seed **fixed** and its inputs unchanged to reuse the reviewed draft. Final uses **draft_task_id**, preserving scene and motion at **1080p**. Draft and final are billed separately.\n\nDraft IDs can be rendered for 7 days. After restarting ComfyUI, paste a saved draft ID into Draft to Final in a separate workflow to avoid generating another draft.",
   "has_thumbnail": true
  },
  {

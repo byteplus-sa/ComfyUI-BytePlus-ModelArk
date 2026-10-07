@@ -10,10 +10,14 @@ WORKFLOW_DIR = os.path.join(PLUGIN_ROOT, "example_workflows")
 EXPECTED_WORKFLOWS = {
     "2.5 Model Updates.json",
     "Seedance 2.json",
+    "Image to Draft to 1080p.json",
+    "Image to Video - Seedance 2.5 and 2.0.json",
     "Seed Audio.json",
     "Seed Speech TTS and ASR.json",
     "Seed Voice Clone.json",
     "Seedream.json",
+    "Image Edit.json",
+    "Image Variations.json",
     "Seedream Layer Separation.json",
     "Seed.json",
     "vCube Video Enhance.json",
@@ -37,6 +41,7 @@ EXPECTED_WORKFLOWS = {
     "Seedance Task Query.json",
     "Video and Audio Assets.json",
 }
+FRONTEND_SAVED_IMAGE_TEMPLATES = {"Image Edit.json", "Image Variations.json"}
 NEW_TEMPLATE_FILES = {
     "Seedance Video Extension.json",  # rebuilt on Seedance 2.5 task_type = extend (saved by frontend 1.53.6)
     "Image to UGC Video.json",
@@ -433,7 +438,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 if expected is None:
                     continue
                 found_types.add(node["type"])
-                if name in NEW_TEMPLATE_FILES:
+                if name in NEW_TEMPLATE_FILES | FRONTEND_SAVED_IMAGE_TEMPLATES:
                     # Saved by frontend 1.53.6, which lists only the sockets and the linked
                     # widget inputs (sockets first): every saved name must belong to the schema.
                     names = [
@@ -486,6 +491,51 @@ class WorkflowTemplateTests(unittest.TestCase):
             [output["name"] for output in layers["outputs"]],
             ["base_image", "base_mask", "layers", "masks", "bboxes", "layer_stack", "layers_json"],
         )
+
+    def test_image_to_video_models_share_first_frame_and_save_separately(self):
+        workflow = load_workflow("Image to Video - Seedance 2.5 and 2.0.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        generators = [node for node in nodes.values() if node["type"] == "BytePlusSeedance2FirstLastFrame"]
+        self.assertEqual(len(generators), 2)
+        self.assertEqual({node["widgets_values"][0] for node in generators}, {"Seedance 2.5", "Seedance 2.0"})
+        image_sources = set()
+        for node in generators:
+            inputs = {item["name"]: item for item in node["inputs"]}
+            link = next(link for link in workflow["links"] if link[0] == inputs["first_frame"]["link"])
+            image_sources.add(link[1])
+            self.assertEqual(nodes[link[1]]["type"], "LoadImage")
+            self.assertIsNone(inputs["last_frame"]["link"])
+            self.assertEqual(node["widgets_values"][2], "720p")
+            self.assertIn("fixed", node["widgets_values"])
+            self.assertEqual(node["mode"], 0 if node["widgets_values"][0] == "Seedance 2.5" else 4)
+            video_link = next(link for link in workflow["links"] if link[1:3] == [node["id"], 0])
+            save = nodes[video_link[3]]
+            self.assertEqual(save["type"], "SaveVideo")
+            self.assertEqual(save["mode"], node["mode"])
+        self.assertEqual(len(image_sources), 1)
+
+    def test_image_draft_final_preserves_reviewed_draft(self):
+        workflow = load_workflow("Image to Draft to 1080p.json")
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        draft = next(node for node in nodes.values() if node["type"] == "BytePlusSeedance2Reference")
+        final = next(node for node in nodes.values() if node["type"] == "BytePlusSeedanceDraftToFinal")
+        self.assertEqual(draft["widgets_values"][0], "Seedance 2.5 Draft")
+        self.assertEqual(draft["widgets_values"][2], "480p")
+        self.assertEqual(draft["widgets_values"][6], "reference")
+        self.assertIn("fixed", draft["widgets_values"])
+        self.assertEqual(draft["mode"], 0)
+        self.assertEqual(final["mode"], 4)
+        image_input = next(item for item in draft["inputs"] if item["name"] == "model.reference_images.image_1")
+        image_link = next(link for link in workflow["links"] if link[0] == image_input["link"])
+        self.assertEqual(nodes[image_link[1]]["type"], "LoadImage")
+        final_input = next(item for item in final["inputs"] if item["name"] == "draft_task_id")
+        final_link = next(link for link in workflow["links"] if link[0] == final_input["link"])
+        self.assertEqual(final_link[1:3], [draft["id"], 1])
+        for source in (draft, final):
+            video_link = next(link for link in workflow["links"] if link[1:3] == [source["id"], 0])
+            save = nodes[video_link[3]]
+            self.assertEqual(save["type"], "SaveVideo")
+            self.assertEqual(save["mode"], source["mode"])
 
     def test_seedance2_template_uses_core_style_nodes(self):
         workflow = load_workflow("Seedance 2.json")
@@ -595,6 +645,32 @@ class WorkflowTemplateTests(unittest.TestCase):
             (nodes[o]["type"], os_, nodes[t]["type"], nodes[t]["inputs"][ts]["name"])
             for _id, o, os_, t, ts, _type in workflow["links"]
         }
+
+    def test_basic_image_templates_edit_and_save_every_variation(self):
+        for name, count in (("Image Edit.json", 1), ("Image Variations.json", 3)):
+            with self.subTest(workflow=name):
+                workflow = load_workflow(name)
+                self.assertEqual(self.edges(workflow), {
+                    ("LoadImage", 0, "BytePlusSeedream", "model.images.image_1"),
+                    ("BytePlusSeedream", 0, "SaveImage", "images"),
+                })
+                generation = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeedream")
+                self.assertEqual(generation["widgets_values"][1:], [
+                    "seedream 5.0 flash", "(1K) 1024x1024 (1:1)", 1024, 1024,
+                    42, "fixed", False, count, "png", "opaque", "fixed",
+                ])
+                self.assertEqual(generation["mode"], 0)
+                self.assertTrue(generation["widgets_values"][0].strip())
+                self.assertEqual(generation["widgets_values_named"]["model"], "seedream 5.0 flash")
+                self.assertEqual(generation["widgets_values_named"]["model.generation_count"], count)
+                source = next(node for node in workflow["nodes"] if node["type"] == "LoadImage")
+                self.assertEqual(source["widgets_values_named"]["image"], source["widgets_values"][0])
+                self.assertEqual([item["name"] for item in generation["inputs"]], [
+                    "model.images.image_1", "model.images.image_2", "model.reference_mask",
+                ])
+                save = next(node for node in workflow["nodes"] if node["type"] == "SaveImage")
+                self.assertEqual(save["mode"], 0)
+                self.assertEqual(save["widgets_values"], ["BytePlus/Image/" + name.removesuffix(".json").replace(" ", "")])
 
     def test_text_to_image_to_video_template(self):
         workflow = load_workflow("Text to Image to Video.json")

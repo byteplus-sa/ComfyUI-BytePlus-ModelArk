@@ -1,0 +1,580 @@
+{
+  "id": "81bbc945-c3e1-4f16-a151-cfe53176fb33",
+  "revision": 0,
+  "last_node_id": 6,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        30,
+        150
+      ],
+      "size": [
+        300,
+        330
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "comfyui_logo.png",
+        "image"
+      ],
+      "title": "1. Reference image (upload yours)"
+    },
+    {
+      "id": 2,
+      "type": "BytePlusSeedance2Reference",
+      "pos": [
+        390,
+        150
+      ],
+      "size": [
+        370,
+        680
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "name": "model.prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "model.prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "model.resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "model.ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.duration",
+          "type": "INT",
+          "widget": {
+            "name": "model.duration"
+          },
+          "link": null
+        },
+        {
+          "name": "model.generate_audio",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.generate_audio"
+          },
+          "link": null
+        },
+        {
+          "name": "model.task_type",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.task_type"
+          },
+          "link": null
+        },
+        {
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "name": "model.reference_images.image_1",
+          "type": "IMAGE",
+          "link": 1,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_images.image_2",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_videos.video_1",
+          "type": "VIDEO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_videos.video_2",
+          "type": "VIDEO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_audios.audio_1",
+          "type": "AUDIO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_audios.audio_2",
+          "type": "AUDIO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_assets.asset_1",
+          "type": "STRING",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "model.auto_downscale",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.auto_downscale"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "model.auto_upscale",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.auto_upscale"
+          },
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "link": null
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "shape": 6,
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.2",
+        "Node name for S&R": "BytePlusSeedance2Reference"
+      },
+      "widgets_values": [
+        "Seedance 2.5 Draft",
+        "The subject from Image 1 moves naturally through a cinematic scene. Preserve the appearance and style of Image 1. Slow camera push-in, soft daylight, gentle ambient sound.",
+        "480p",
+        "16:9",
+        5,
+        true,
+        "reference",
+        "mp4",
+        true,
+        false,
+        0,
+        "fixed",
+        false,
+        1,
+        false
+      ],
+      "title": "2. Seedance 2.5 Draft (480p)"
+    },
+    {
+      "id": 3,
+      "type": "SaveVideo",
+      "pos": [
+        820,
+        150
+      ],
+      "size": [
+        340,
+        380
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 2
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "BytePlus/Video/ImageDraft_480p",
+        "auto",
+        "auto"
+      ],
+      "title": "3. Review the draft"
+    },
+    {
+      "id": 4,
+      "type": "BytePlusSeedanceDraftToFinal",
+      "pos": [
+        1220,
+        150
+      ],
+      "size": [
+        330,
+        240
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "draft_task_id",
+          "type": "STRING",
+          "widget": {
+            "name": "draft_task_id"
+          },
+          "link": 3
+        },
+        {
+          "name": "watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "watermark"
+          },
+          "link": null
+        },
+        {
+          "name": "generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "generation_count"
+          },
+          "link": null
+        },
+        {
+          "name": "non_blocking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "non_blocking"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "shape": 6,
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.2",
+        "Node name for S&R": "BytePlusSeedanceDraftToFinal"
+      },
+      "widgets_values": [
+        "",
+        false,
+        1,
+        false
+      ],
+      "title": "4. Render reviewed draft at 1080p"
+    },
+    {
+      "id": 5,
+      "type": "SaveVideo",
+      "pos": [
+        1610,
+        150
+      ],
+      "size": [
+        340,
+        380
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 4
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "BytePlus/Video/ImageDraft_1080p",
+        "auto",
+        "auto"
+      ],
+      "title": "5. Save the 1080p final"
+    },
+    {
+      "id": 6,
+      "type": "MarkdownNote",
+      "pos": [
+        30,
+        570
+      ],
+      "size": [
+        300,
+        260
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "title": "Review before final generation",
+      "widgets_values": [
+        "## Image to Draft to 1080p\n\n1. Upload an image and edit the draft prompt.\n2. Run to save a **480p draft**.\n3. Review it in Save Video.\n4. Select both purple final nodes and press **Ctrl+B** to enable them, then run again.\n\nKeep the draft seed **fixed** and its inputs unchanged to reuse the reviewed draft. Final uses **draft_task_id**, preserving scene and motion at **1080p**. Draft and final are billed separately.\n\nDraft IDs can be rendered for 7 days. After restarting ComfyUI, paste a saved draft ID into Draft to Final in a separate workflow to avoid generating another draft."
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      8,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "VIDEO"
+    ],
+    [
+      3,
+      2,
+      1,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "1. Generate and review the 480p draft",
+      "bounding": [
+        0,
+        65,
+        1190,
+        805
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "2. Enable both nodes for the 1080p final",
+      "bounding": [
+        1195,
+        65,
+        785,
+        805
+      ],
+      "color": "#705296",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6,
+      "offset": [
+        30,
+        40
+      ]
+    }
+  },
+  "version": 0.4
+}

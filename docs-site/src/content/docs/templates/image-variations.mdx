@@ -1,0 +1,51 @@
+---
+title: "Image Variations"
+description: "Generate three variations from one reference image and prompt, then save every result."
+template_file: Image Variations.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Image Variations.json" />
+
+## What it makes
+
+Three alternatives from one image and prompt. Each separate generation uses the same reference and a different seed, starting at 42, 43 and 44. Both the reference and prompt guide the result. Preservation is a request to the model, so review the output for unwanted changes.
+
+## The workflow
+
+<Shot src="templates/image-variations-workflow.webp" alt="Load Image connects to Seedream 5.0 Flash, then Save Image, with instructions below the reference" caption="Upload a reference, describe the change, then save the result." />
+
+1. **Load Image** supplies your reference as `image_1`.
+2. **[Seedream](../../nodes/seedream/)** uses Seedream 5.0 Flash at 1024 × 1024 to generate three variations.
+3. **Save Image** saves every image in the output batch.
+
+## Run it
+
+1. Add your ModelArk key in **Settings → BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Open **Image Variations** and upload your reference in **Load Image**.
+3. Edit the prompt to say what to keep and what to change.
+4. Press **Run**, then review the results in **Save Image**.
+
+## Settings worth changing
+
+- **Prompt:** describe the intended changes and the details you want preserved.
+- **`size_preset`:** choose another output size or ratio. The template starts at 1K square.
+- **`seed`:** the fixed seed allows unchanged runs to use ComfyUI's cached output. Change it for a new result.
+- **`generation_count`:** starts at 3. Each additional generation requests another billed image.
+- **`model`:** switch to Seedream 5.0 Pro if you want to try another model; its settings differ.
+
+## Example result
+
+<Shot src="templates/image-variations-result.webp" alt="Original drawing beside three generated color and background variations" caption="Live results from the same illustrated reference image." />
+
+## Time and cost
+
+The live test generates three generated images, with three separate requests running in parallel. Measured time is recorded in the facts card above. The billed amount was not queried. An unchanged run with fixed seeds reuses cached outputs; changing the reference, prompt or seed requests new generations. If a batch partially fails, the node can return fewer images, so check the saved count.
+
+## Related
+
+- [Seedream](../../nodes/seedream/)
+- [Image Edit](../image-edit/)
+- [Text to Image to Video](../text-to-image-to-video/) animates a generated image.

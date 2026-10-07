@@ -1,0 +1,252 @@
+{
+  "id": "9fab1385-31d4-4ed3-96c9-d7c6857ae12f",
+  "revision": 0,
+  "last_node_id": 5,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [
+        30,
+        130
+      ],
+      "size": [
+        310,
+        350
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "1. Upload your image",
+      "properties": {
+        "Node name for S&R": "LoadImage",
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2"
+      },
+      "widgets_values": [
+        "comfyui_logo.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "comfyui_logo.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 3,
+      "type": "BytePlusSeedream",
+      "pos": [
+        410,
+        130
+      ],
+      "size": [
+        410,
+        500
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "model.images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "2. Edit your image",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.2"
+      },
+      "widgets_values": [
+        "Edit the reference image: change the sky to a warm orange sunset and change the dress to teal. Preserve the character, pose, facial features, simple hand-drawn style and green hills. Keep the composition unchanged. Do not add text.",
+        "seedream 5.0 flash",
+        "(1K) 1024x1024 (1:1)",
+        1024,
+        1024,
+        42,
+        "fixed",
+        false,
+        1,
+        "png",
+        "opaque",
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "prompt": "Edit the reference image: change the sky to a warm orange sunset and change the dress to teal. Preserve the character, pose, facial features, simple hand-drawn style and green hills. Keep the composition unchanged. Do not add text.",
+        "model": "seedream 5.0 flash",
+        "model.size_preset": "(1K) 1024x1024 (1:1)",
+        "model.width": 1024,
+        "model.height": 1024,
+        "model.seed": 42,
+        "control_after_generate#1": "fixed",
+        "model.watermark": false,
+        "model.generation_count": 1,
+        "model.output_format": "png",
+        "model.background": "opaque",
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 4,
+      "type": "SaveImage",
+      "pos": [
+        890,
+        130
+      ],
+      "size": [
+        380,
+        400
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "3. Save edited image",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "BytePlus/Image/ImageEdit"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/Image/ImageEdit"
+      }
+    },
+    {
+      "id": 5,
+      "type": "MarkdownNote",
+      "pos": [
+        30,
+        540
+      ],
+      "size": [
+        310,
+        260
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Image Edit\n\n1. Upload your reference image.\n2. Edit the prompt: say what to keep and what to change.\n3. Run and review Save Image.\n\nOne edited image is generated and saved.\n\nThe fixed seed allows unchanged runs to reuse cached outputs. Change the seed or prompt for new results.\n\nNeeds a ModelArk key in Settings > BytePlus."
+      ],
+      "widgets_values_named": {
+        "text": "## Image Edit\n\n1. Upload your reference image.\n2. Edit the prompt: say what to keep and what to change.\n3. Run and review Save Image.\n\nOne edited image is generated and saved.\n\nThe fixed seed allows unchanged runs to reuse cached outputs. Change the seed or prompt for new results.\n\nNeeds a ModelArk key in Settings > BytePlus."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      2,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Image Edit | Reference to result",
+      "bounding": [
+        0,
+        40,
+        1300,
+        820
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.55,
+      "offset": [
+        40,
+        40
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}
