@@ -56,7 +56,7 @@ SKIPPED_NODES = {"BytePlusProgressTest"}  # dev-only
 # Template title -> group. The order is the sidebar order. A template that is not listed fails the run.
 TEMPLATE_GROUPS = [
     ("Start here", ["Seedream", "Seedance 2", "Seed", "Text to Image to Video"]),
-    ("Images", ["Seedream Layer Separation", "Image Quality Enhance", "Generate and Enhance"]),
+    ("Images", ["Image Edit", "Image Variations", "Seedream Layer Separation", "Image Quality Enhance", "Generate and Enhance"]),
     ("Video", ["Image to Video - Seedance 2.5 and 2.0", "Image to Draft to 1080p", "2.5 Model Updates", "Seedance Video Extension", "Seedance Task Query", "vCube Video Enhance", "Video Smoothness Enhance"]),
     ("Language", ["Seed Prompt Writer"]),
     ("Speech", ["Seed Audio", "Seed Speech TTS and ASR", "Seed Voice Clone"]),

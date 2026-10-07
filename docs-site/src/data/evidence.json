@@ -362,5 +362,21 @@
    }
   ],
   "extra_runs": []
+ },
+ "image-edit": {
+  "case": "image-edit",
+  "status": "success",
+  "seconds": 13,
+  "tested": "2026-10-07",
+  "media": [],
+  "extra_runs": []
+ },
+ "image-variations": {
+  "case": "image-variations",
+  "status": "success",
+  "seconds": 139,
+  "tested": "2026-10-07",
+  "media": [],
+  "extra_runs": []
  }
 }

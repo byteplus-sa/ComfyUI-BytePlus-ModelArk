@@ -27,6 +27,7 @@ PRIMARY = {
     "Seedream Layer Separation": "tpl-12-layer-separation", "Image Quality Enhance": "tpl-03-image-quality-enhance",
     "Generate and Enhance": "tpl-02-generate-enhance", "2.5 Model Updates": "tpl-01-model-updates",
     "Seedance Video Extension": "tpl-11-video-extension", "Seedance Task Query": "cov-query",
+    "Image Edit": "image-edit", "Image Variations": "image-variations",
     "Image to Draft to 1080p": "image-reference-draft-final",
     "Image to Video - Seedance 2.5 and 2.0": "image-to-video-models",
     "vCube Video Enhance": "tpl-18-vcube", "Video Smoothness Enhance": "tpl-15-video-smoothness",

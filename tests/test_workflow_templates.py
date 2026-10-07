@@ -16,6 +16,8 @@ EXPECTED_WORKFLOWS = {
     "Seed Speech TTS and ASR.json",
     "Seed Voice Clone.json",
     "Seedream.json",
+    "Image Edit.json",
+    "Image Variations.json",
     "Seedream Layer Separation.json",
     "Seed.json",
     "vCube Video Enhance.json",
@@ -39,6 +41,7 @@ EXPECTED_WORKFLOWS = {
     "Seedance Task Query.json",
     "Video and Audio Assets.json",
 }
+FRONTEND_SAVED_IMAGE_TEMPLATES = {"Image Edit.json", "Image Variations.json"}
 NEW_TEMPLATE_FILES = {
     "Seedance Video Extension.json",  # rebuilt on Seedance 2.5 task_type = extend (saved by frontend 1.53.6)
     "Image to UGC Video.json",
@@ -435,7 +438,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 if expected is None:
                     continue
                 found_types.add(node["type"])
-                if name in NEW_TEMPLATE_FILES:
+                if name in NEW_TEMPLATE_FILES | FRONTEND_SAVED_IMAGE_TEMPLATES:
                     # Saved by frontend 1.53.6, which lists only the sockets and the linked
                     # widget inputs (sockets first): every saved name must belong to the schema.
                     names = [
@@ -642,6 +645,32 @@ class WorkflowTemplateTests(unittest.TestCase):
             (nodes[o]["type"], os_, nodes[t]["type"], nodes[t]["inputs"][ts]["name"])
             for _id, o, os_, t, ts, _type in workflow["links"]
         }
+
+    def test_basic_image_templates_edit_and_save_every_variation(self):
+        for name, count in (("Image Edit.json", 1), ("Image Variations.json", 3)):
+            with self.subTest(workflow=name):
+                workflow = load_workflow(name)
+                self.assertEqual(self.edges(workflow), {
+                    ("LoadImage", 0, "BytePlusSeedream", "model.images.image_1"),
+                    ("BytePlusSeedream", 0, "SaveImage", "images"),
+                })
+                generation = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeedream")
+                self.assertEqual(generation["widgets_values"][1:], [
+                    "seedream 5.0 flash", "(1K) 1024x1024 (1:1)", 1024, 1024,
+                    42, "fixed", False, count, "png", "opaque", "fixed",
+                ])
+                self.assertEqual(generation["mode"], 0)
+                self.assertTrue(generation["widgets_values"][0].strip())
+                self.assertEqual(generation["widgets_values_named"]["model"], "seedream 5.0 flash")
+                self.assertEqual(generation["widgets_values_named"]["model.generation_count"], count)
+                source = next(node for node in workflow["nodes"] if node["type"] == "LoadImage")
+                self.assertEqual(source["widgets_values_named"]["image"], source["widgets_values"][0])
+                self.assertEqual([item["name"] for item in generation["inputs"]], [
+                    "model.images.image_1", "model.images.image_2", "model.reference_mask",
+                ])
+                save = next(node for node in workflow["nodes"] if node["type"] == "SaveImage")
+                self.assertEqual(save["mode"], 0)
+                self.assertEqual(save["widgets_values"], ["BytePlus/Image/" + name.removesuffix(".json").replace(" ", "")])
 
     def test_text_to_image_to_video_template(self):
         workflow = load_workflow("Text to Image to Video.json")

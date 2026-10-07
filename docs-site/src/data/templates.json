@@ -110,6 +110,56 @@
   "has_thumbnail": true
  },
  {
+  "file": "Image Edit.json",
+  "title": "Image Edit",
+  "slug": "image-edit",
+  "group": "Images",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "MarkdownNote",
+   "Save Image"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "Image Edit | Reference to result"
+  ],
+  "note": "## Image Edit\n\n1. Upload your reference image.\n2. Edit the prompt: say what to keep and what to change.\n3. Run and review Save Image.\n\nOne edited image is generated and saved.\n\nThe fixed seed allows unchanged runs to reuse cached outputs. Change the seed or prompt for new results.\n\nNeeds a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Image Variations.json",
+  "title": "Image Variations",
+  "slug": "image-variations",
+  "group": "Images",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "MarkdownNote",
+   "Save Image"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "Image Variations | Reference to result"
+  ],
+  "note": "## Image Variations\n\n1. Upload your reference image.\n2. Edit the prompt: say what to keep and what to change.\n3. Run and review Save Image.\n\nThree separate generations use seeds 42, 43 and 44. Save Image saves every result. Increase generation_count for more variations; each image is billed.\n\nThe fixed seed allows unchanged runs to reuse cached outputs. Change the seed or prompt for new results.\n\nNeeds a ModelArk key in Settings > BytePlus.",
+  "has_thumbnail": true
+ },
+ {
   "file": "Seedream Layer Separation.json",
   "title": "Seedream Layer Separation",
   "slug": "seedream-layer-separation",
