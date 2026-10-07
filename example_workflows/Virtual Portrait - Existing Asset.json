@@ -216,7 +216,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.3",
+        "ver": "0.5.4",
         "Node name for S&R": "BytePlusSeedance2Reference"
       },
       "widgets_values": ["Seedance 2.5", "asset1 walks along a beach at sunset, turns toward the camera and smiles. Waves, soft wind, cinematic lighting.", "720p", "16:9", 5, true, "reference", "mp4", true, false, 0, "randomize", false, 1, false]
@@ -355,7 +355,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.3",
+        "ver": "0.5.4",
         "Node name for S&R": "BytePlusAssetLibrary"
       },
       "widgets_values": ["AIGC", "", "Active", "My portrait", 1, "default"]
@@ -539,7 +539,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.3",
+        "ver": "0.5.4",
         "Node name for S&R": "BytePlusSeedance2Reference"
       },
       "widgets_values": ["Seedance 2.5", "asset1 walks along a beach at sunset, turns toward the camera and smiles. Waves, soft wind, cinematic lighting.", "720p", "16:9", 5, true, "reference", "mp4", true, false, 0, "randomize", false, 1, false]

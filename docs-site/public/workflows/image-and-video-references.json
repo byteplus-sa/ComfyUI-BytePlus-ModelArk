@@ -1,14 +1,20 @@
 {
-  "id": "3039b006-db27-4df9-9804-78f7ee92ee14",
+  "id": "dbd0f312-0832-4495-9028-aba10bc91dc9",
   "revision": 0,
   "last_node_id": 5,
-  "last_link_id": 4,
+  "last_link_id": 3,
   "nodes": [
     {
       "id": 1,
       "type": "LoadImage",
-      "pos": [20, 120],
-      "size": [300, 326],
+      "pos": [
+        30,
+        100
+      ],
+      "size": [
+        300,
+        320
+      ],
       "flags": {},
       "order": 0,
       "mode": 0,
@@ -34,7 +40,9 @@
         {
           "name": "IMAGE",
           "type": "IMAGE",
-          "links": [1]
+          "links": [
+            1
+          ]
         },
         {
           "name": "MASK",
@@ -42,112 +50,80 @@
           "links": null
         }
       ],
-      "title": "Portrait image",
       "properties": {
         "cnr_id": "comfy-core",
         "ver": "0.33.2",
         "Node name for S&R": "LoadImage"
       },
-      "widgets_values": ["comfyui_logo.png", "image"]
+      "widgets_values": [
+        "comfyui_logo.png",
+        "image"
+      ],
+      "title": "@Image 1 - appearance reference"
     },
     {
       "id": 2,
-      "type": "BytePlusCreateImageAsset",
-      "pos": [370, 120],
-      "size": [360, 210],
+      "type": "LoadVideo",
+      "pos": [
+        30,
+        470
+      ],
+      "size": [
+        300,
+        320
+      ],
       "flags": {},
       "order": 1,
       "mode": 0,
       "inputs": [
         {
-          "name": "image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 1
-        },
-        {
-          "name": "group_id",
-          "type": "STRING",
+          "name": "file",
+          "type": "COMBO",
           "widget": {
-            "name": "group_id"
+            "name": "file"
           },
           "link": null
         },
         {
-          "name": "image_url",
-          "type": "STRING",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
           "widget": {
-            "name": "image_url"
-          },
-          "link": null
-        },
-        {
-          "name": "group_name",
-          "type": "STRING",
-          "widget": {
-            "name": "group_name"
-          },
-          "link": null
-        },
-        {
-          "name": "asset_name",
-          "type": "STRING",
-          "widget": {
-            "name": "asset_name"
-          },
-          "link": null
-        },
-        {
-          "name": "project_name",
-          "type": "STRING",
-          "widget": {
-            "name": "project_name"
-          },
-          "link": null
-        },
-        {
-          "name": "wait_until_active",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "wait_until_active"
+            "name": "upload"
           },
           "link": null
         }
       ],
       "outputs": [
         {
-          "name": "asset_id",
-          "type": "STRING",
-          "links": [2]
-        },
-        {
-          "name": "group_id",
-          "type": "STRING",
-          "links": null
-        },
-        {
-          "name": "asset_uri",
-          "type": "STRING",
-          "links": null
-        },
-        {
-          "name": "info",
-          "type": "STRING",
-          "links": [3]
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            2
+          ]
         }
       ],
       "properties": {
-        "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4",
-        "Node name for S&R": "BytePlusCreateImageAsset"
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "LoadVideo"
       },
-      "widgets_values": ["", "", "ComfyUI Virtual Portraits", "My portrait", "default", true]
+      "widgets_values": [
+        "",
+        "image"
+      ],
+      "title": "@Video 1 - motion reference"
     },
     {
       "id": 3,
       "type": "BytePlusSeedance2Reference",
-      "pos": [780, 120],
-      "size": [460, 600],
+      "pos": [
+        400,
+        100
+      ],
+      "size": [
+        490,
+        690
+      ],
       "flags": {},
       "order": 2,
       "mode": 0,
@@ -218,51 +194,63 @@
         },
         {
           "name": "model.reference_images.image_1",
-          "shape": 7,
           "type": "IMAGE",
-          "link": null
+          "link": 1,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_images.image_2",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
         },
         {
           "name": "model.reference_videos.video_1",
-          "shape": 7,
           "type": "VIDEO",
-          "link": null
+          "link": 2,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_videos.video_2",
+          "type": "VIDEO",
+          "link": null,
+          "shape": 7
         },
         {
           "name": "model.reference_audios.audio_1",
-          "shape": 7,
           "type": "AUDIO",
-          "link": null
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "model.reference_audios.audio_2",
+          "type": "AUDIO",
+          "link": null,
+          "shape": 7
         },
         {
           "name": "model.reference_assets.asset_1",
-          "shape": 7,
           "type": "STRING",
-          "link": 2
-        },
-        {
-          "name": "model.reference_assets.asset_2",
-          "shape": 7,
-          "type": "STRING",
-          "link": null
+          "link": null,
+          "shape": 7
         },
         {
           "name": "model.auto_downscale",
-          "shape": 7,
           "type": "BOOLEAN",
           "widget": {
             "name": "model.auto_downscale"
           },
-          "link": null
+          "link": null,
+          "shape": 7
         },
         {
           "name": "model.auto_upscale",
-          "shape": 7,
           "type": "BOOLEAN",
           "widget": {
             "name": "model.auto_upscale"
           },
-          "link": null
+          "link": null,
+          "shape": 7
         },
         {
           "name": "seed",
@@ -300,9 +288,11 @@
       "outputs": [
         {
           "name": "VIDEO",
-          "shape": 6,
           "type": "VIDEO",
-          "links": [4]
+          "shape": 6,
+          "links": [
+            3
+          ]
         },
         {
           "name": "draft_task_id",
@@ -325,13 +315,36 @@
         "ver": "0.5.4",
         "Node name for S&R": "BytePlusSeedance2Reference"
       },
-      "widgets_values": ["Seedance 2.5", "asset1 walks along a beach at sunset, turns toward the camera and smiles. Waves, soft wind, cinematic lighting.", "720p", "16:9", 5, true, "reference", "mp4", true, false, 0, "randomize", false, 1, false]
+      "widgets_values": [
+        "Seedance 2.5",
+        "Create a new cinematic shot using the subject from @Image 1. Preserve the subject's appearance, colors and visual style from @Image 1. Use @Video 1 only for camera movement, action pacing and shot rhythm; do not copy its subject or background. Show the subject in a softly lit outdoor scene. Smooth natural motion, no added text.",
+        "720p",
+        "16:9",
+        5,
+        false,
+        "reference",
+        "mp4",
+        true,
+        false,
+        42,
+        "fixed",
+        false,
+        1,
+        false
+      ],
+      "title": "Seedance 2.5 - @Image + @Video"
     },
     {
       "id": 4,
       "type": "SaveVideo",
-      "pos": [1290, 120],
-      "size": [300, 106],
+      "pos": [
+        960,
+        100
+      ],
+      "size": [
+        340,
+        380
+      ],
       "flags": {},
       "order": 3,
       "mode": 0,
@@ -339,7 +352,7 @@
         {
           "name": "video",
           "type": "VIDEO",
-          "link": 4
+          "link": 3
         },
         {
           "name": "filename_prefix",
@@ -350,16 +363,8 @@
           "link": null
         },
         {
-          "name": "format.codec",
-          "type": "COMFY_DYNAMICCOMBO_V3",
-          "widget": {
-            "name": "format.codec"
-          },
-          "link": null
-        },
-        {
           "name": "format",
-          "type": "COMFY_DYNAMICCOMBO_V3",
+          "type": "COMBO",
           "widget": {
             "name": "format"
           },
@@ -367,57 +372,47 @@
         },
         {
           "name": "codec",
-          "shape": 7,
-          "type": "COMFY_DYNAMICCOMBO_V3",
+          "type": "COMBO",
           "widget": {
             "name": "codec"
           },
           "link": null
         }
       ],
-      "outputs": [
-        {
-          "name": "video",
-          "type": "VIDEO",
-          "links": null
-        }
-      ],
+      "outputs": [],
       "properties": {
         "cnr_id": "comfy-core",
         "ver": "0.33.2",
         "Node name for S&R": "SaveVideo"
       },
-      "widgets_values": ["BytePlus/Video/Seedance_new_asset", "auto", "auto", "auto"]
+      "widgets_values": [
+        "BytePlus/Video/ImageVideoReferences",
+        "auto",
+        "auto"
+      ],
+      "title": "Save the reference-guided video"
     },
     {
       "id": 5,
-      "type": "PreviewAny",
-      "pos": [370, 380],
-      "size": [360, 220],
+      "type": "MarkdownNote",
+      "pos": [
+        960,
+        540
+      ],
+      "size": [
+        340,
+        350
+      ],
       "flags": {},
       "order": 4,
       "mode": 0,
-      "inputs": [
-        {
-          "name": "source",
-          "type": "*",
-          "link": 3
-        }
-      ],
-      "outputs": [
-        {
-          "name": "STRING",
-          "type": "STRING",
-          "links": null
-        }
-      ],
-      "title": "Asset details",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.37.4",
-        "Node name for S&R": "PreviewAny"
-      },
-      "widgets_values": []
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "title": "How @reference syntax works",
+      "widgets_values": [
+        "## Image + Video References\n\n1. Upload an image: **@Image 1** supplies the subject's appearance and style.\n2. Upload a video: **@Video 1** supplies camera movement and pacing.\n3. Edit the prompt to assign a clear role to each reference, then Run.\n\nUse exactly **@Image 1** and **@Video 1**, including the space before the number. Numbering is separate for each media type: image_1 is @Image 1, video_1 is @Video 1. These are reference labels, not filenames.\n\n**task_type = reference** creates a new video. Choose **edit** to modify the input clip, or **extend** to continue it, and rewrite the prompt accordingly.\n\nNeeds a ModelArk key in Settings > BytePlus and a Comfy.org login for local video upload. Each generation is billed. Fixed seed reuses unchanged cached outputs."
+      ]
     }
   ],
   "links": [
@@ -425,8 +420,8 @@
       1,
       1,
       0,
-      2,
-      0,
+      3,
+      8,
       "IMAGE"
     ],
     [
@@ -434,19 +429,11 @@
       2,
       0,
       3,
-      11,
-      "STRING"
+      10,
+      "VIDEO"
     ],
     [
       3,
-      2,
-      3,
-      5,
-      0,
-      "STRING"
-    ],
-    [
-      4,
       3,
       0,
       4,
@@ -458,8 +445,11 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6,
-      "offset": [40, 40]
+      "scale": 0.7,
+      "offset": [
+        30,
+        50
+      ]
     }
   },
   "version": 0.4

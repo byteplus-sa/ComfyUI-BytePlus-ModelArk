@@ -1,0 +1,60 @@
+---
+title: "Image and Video References"
+description: "Guide a Seedance video with an image for appearance and a video for motion, using explicit @Image 1 and @Video 1 prompt references."
+template_file: Image and Video References.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Image and Video References.json" />
+
+## What it makes
+
+A new five-second video guided by two references. **@Image 1 supplies the subject's appearance and style; @Video 1 supplies camera movement and pacing.** The prompt assigns a separate purpose to each reference so you can combine them deliberately.
+
+## The workflow
+
+<Shot src="templates/image-and-video-references-workflow.webp" alt="Load Image and Load Video connect to separate reference inputs of Seedance 2.5, followed by Save Video and a reference syntax guide" caption="Each media type has its own reference numbering." />
+
+1. **Load Image**, titled **@Image 1 - appearance reference**, connects to `image_1` in [Reference to Video](../../nodes/seedance-2-5-reference/).
+2. **Load Video**, titled **@Video 1 - motion reference**, connects to `video_1` in the same node.
+3. **[Seedance 2.5 Reference to Video](../../nodes/seedance-2-5-reference/)** uses `task_type` `reference` to create a new clip from both inputs.
+4. **Save Video** displays and saves the output.
+
+## Run it
+
+1. Add your ModelArk key in **Settings → BytePlus** ([API keys](../../get-started/api-keys/)). Log in to Comfy.org in ComfyUI so the node can upload a local reference video.
+2. Open **Image and Video References** in the template browser.
+3. Upload an image of the subject you want to show and a short video with the camera movement or pacing you want to follow.
+4. Edit the prompt to describe what each reference contributes, then press **Run**.
+5. Review the result in **Save Video**. Adjust the prompt or seed for another take.
+
+## Settings worth changing
+
+- **Reference roles:** specify whether each input contributes appearance, motion, setting or style. Describe what should be excluded too.
+- **Labels:** use `@Image 1` for `image_1` and `@Video 1` for `video_1`, with a space before the number. Images and videos are numbered separately. The labels refer to connected media, not filenames.
+- **`task_type`:** `reference` creates a new clip. Use `edit` to change an existing video, or `extend` to continue it, and rewrite the prompt for that purpose.
+- **Resolution and duration:** the template starts at 720p and five seconds.
+- **Seed:** starts at 42 with `fixed`; change it for a new take.
+- **Audio:** generated audio is off. Enable it and describe the sound if needed.
+
+## Example result
+
+The shipped prompt separates subject appearance from camera motion:
+
+> Create a new cinematic shot using the subject from @Image 1. Preserve the subject's appearance, colors and visual style from @Image 1. Use @Video 1 only for camera movement, action pacing and shot rhythm; do not copy its subject or background. Show the subject in a softly lit outdoor scene. Smooth natural motion, no added text.
+
+For a video edit instead, set `task_type` to `edit` and use a prompt such as: **Change the background of @Video 1 to the environment in @Image 1. Preserve the original subject, action and camera movement.** A reference image does not fix the first or last frame; use [First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/) when you need those endpoints.
+
+## Time and cost
+
+Each generation bills one Seedance task on your ModelArk account. Generation time depends on the model, media and service load. Unchanged inputs with a fixed seed reuse ComfyUI's cached output; changing the image, video, prompt or seed requests a new generation.
+
+## Related
+
+- [Reference to Video](../../nodes/seedance-2-5-reference/)
+- [Reference media](../../concepts/reference-media/)
+- [Image to Video - Seedance 2.5 and 2.0](../image-to-video-seedance-2-5-and-2-0/) animates an image as the first frame.
+- [Seedance Video Extension](../seedance-video-extension/) continues a video.
+- [BytePlus Seedance 2.5 guide](https://docs.byteplus.com/en/docs/modelark/seedance-2-5)

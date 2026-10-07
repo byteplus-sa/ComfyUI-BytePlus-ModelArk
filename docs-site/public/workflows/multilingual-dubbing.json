@@ -94,7 +94,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedASR",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.3"
+        "ver": "0.5.4"
       },
       "widgets_values": [
         "seed-asr-fast",
@@ -175,7 +175,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeed",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.3"
+        "ver": "0.5.4"
       },
       "widgets_values": [
         "",
@@ -240,7 +240,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedTTS",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.3"
+        "ver": "0.5.4"
       },
       "widgets_values": [
         "seed-tts-2.0",

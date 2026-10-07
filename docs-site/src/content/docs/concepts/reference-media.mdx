@@ -44,7 +44,9 @@ A link or asset ID skips the Comfy.org upload completely. That is the way to use
 
 ### Naming references in the prompt
 
-Refer to references by position: *Image 1*, *Video 1*, and so on. Connected inputs come first, then the `asset_N` entries. You can also write `asset1`, `asset2` in the prompt, and the node replaces them with the matching position.
+Refer to media by position with `@Image 1`, `@Video 1` and `@Audio 1`. Numbering is separate for each media type: `image_1` is `@Image 1`, and `video_1` is `@Video 1`. These labels identify the media you supplied, not filenames. Connected inputs come first, then the `asset_N` entries. You can also write `asset1`, `asset2` in the prompt, and the node replaces them with the matching position.
+
+See [Image and Video References](../../templates/image-and-video-references/) for a template that uses an image for appearance and a video for camera motion.
 
 ## The private asset library
 

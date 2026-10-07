@@ -10,6 +10,7 @@ WORKFLOW_DIR = os.path.join(PLUGIN_ROOT, "example_workflows")
 EXPECTED_WORKFLOWS = {
     "2.5 Model Updates.json",
     "Seedance 2.json",
+    "Image and Video References.json",
     "Image to Draft to 1080p.json",
     "Image to Video - Seedance 2.5 and 2.0.json",
     "Seed Audio.json",
@@ -396,7 +397,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 for node in workflow["nodes"]:
                     if node["type"].startswith("BytePlus"):
                         self.assertEqual(node["properties"]["cnr_id"], "ComfyUI-BytePlus-ModelArk")
-                        self.assertEqual(node["properties"]["ver"], "0.5.3")
+                        self.assertEqual(node["properties"]["ver"], "0.5.4")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
         combo_inputs = {
@@ -513,6 +514,21 @@ class WorkflowTemplateTests(unittest.TestCase):
             self.assertEqual(save["type"], "SaveVideo")
             self.assertEqual(save["mode"], node["mode"])
         self.assertEqual(len(image_sources), 1)
+
+    def test_image_video_references_bind_prompt_labels_to_media_slots(self):
+        workflow = load_workflow("Image and Video References.json")
+        references = [node for node in workflow["nodes"] if node["type"] == "BytePlusSeedance2Reference"]
+        self.assertEqual(len(references), 1)
+        reference = references[0]
+        self.assertEqual(reference["widgets_values"][0], "Seedance 2.5")
+        self.assertIn("@Image 1", reference["widgets_values"][1])
+        self.assertIn("@Video 1", reference["widgets_values"][1])
+        self.assertEqual(reference["widgets_values"][6], "reference")
+        edges = self.edges(workflow)
+        self.assertIn(("LoadImage", 0, "BytePlusSeedance2Reference", "model.reference_images.image_1"), edges)
+        self.assertIn(("LoadVideo", 0, "BytePlusSeedance2Reference", "model.reference_videos.video_1"), edges)
+        self.assertIn(("BytePlusSeedance2Reference", 0, "SaveVideo", "video"), edges)
+        self.assertTrue(all(node["mode"] == 0 for node in workflow["nodes"]))
 
     def test_image_draft_final_preserves_reviewed_draft(self):
         workflow = load_workflow("Image to Draft to 1080p.json")
