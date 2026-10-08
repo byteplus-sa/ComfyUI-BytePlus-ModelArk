@@ -1,0 +1,55 @@
+---
+title: "Location Sheet"
+description: "Make a clean, people-free reference still of a place with Seedream 5.0 Pro, from a place, an era, set dressing and a lighting plan."
+template_file: Location Sheet.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Location Sheet.json" />
+
+## What it makes
+
+One wide image of a place with no people in it: an interior, an exterior or a set. It is for anyone who needs a location reference that later images or videos can match. You describe the place in six short boxes, and a fixed prompt adds the quality line and the exclusions. The template shows a below-deck captain's cabin on an 18th-century sailing ship.
+
+## The workflow
+
+<Shot src="templates/location-sheet-workflow.webp" alt="The Location Sheet template in four groups: six text boxes, a Format Text node, a prompt preview, and Seedream with Save Image" caption="Six text boxes feed one prompt, which Seedream paints." />
+
+1. **Location (change me)** says what the place is, indoors or outdoors, and its function and scale.
+2. **Era and world rules** fixes the period, region, technology and realism, so modern things do not creep in.
+3. **Set dressing and objects** lists the few objects and materials that make the place feel used.
+4. **Style**, **Lighting and atmosphere** and **Composition and lens** describe the image language, the light sources and how the place is photographed.
+5. **Build the location prompt** (Format Text, a ComfyUI core node) puts the six texts into one prompt and adds the fixed quality line and exclusions. **Prompt sent to Seedream** shows it.
+6. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** runs `seedream 5.0 pro` at `(2K) 2848x1600 (16:9)`, and **Save Image** writes the result to `BytePlus/Image/location_sheet`.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This template needs no other key.
+2. Open the template browser and choose **Location Sheet** under BytePlus.
+3. Rewrite the six boxes. Start with the place, then the era and world rules.
+4. Press **Run** and check **Save Image**.
+
+## Settings worth changing
+
+- **Location and Era and world rules:** put the place first and the era second. The era box is the one that keeps the image from drifting into the present day.
+- **Set dressing and objects:** name one to three hero pieces and a few signs of use, such as wear, rope or smoke, rather than a long list.
+- **Lighting and atmosphere:** name the real light sources, the time of day and the haze or dust. The template uses one warm lantern as the key light.
+- **The fixed exclusions:** the prompt in **Build the location prompt** ends with "no people, no modern objects" and similar. If you change the era, change this line too.
+- **`size_preset` (Seedream):** 16:9 at 2K by default. Pick another ratio if the place will be used in vertical video.
+
+## Example result
+
+<Shot src="templates/location-sheet-result.webp" alt="A dim wooden ship cabin with a hanging brass lantern, a large sea chart on the wall, brass instruments on a table, coiled rope and a barrel, with no people" caption="Example result: 2848x1600, a below-deck cabin lit by one lantern." />
+
+A wide still of the cabin with the lantern as the main light, the chart on the back wall, brass instruments on the table, and rope and a barrel in the foreground. No people appear in it. Check that nothing modern appears in an old setting. If it does, change the era text first, then the dressing.
+
+## Time and cost
+
+The template bills one Seedream image per run. The `seed` control is set to `randomize`, so every run paints a new view and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
+
+## Related
+
+- Node: [Seedream 4.5 & 5.0](../../nodes/seedream/)
+- Next step: [Storyboard Grid](../storyboard-grid/) lays out a scene in numbered panels. [Prop Sheet](../prop-sheet/) makes a reference for an object in the place.

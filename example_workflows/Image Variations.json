@@ -105,7 +105,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedream",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "Create a fresh color and background variation of the reference illustration. Preserve the same character, cheerful expression, pose and simple hand-drawn style. Explore a different harmonious dress color and a playful outdoor background. Keep one character centered. Do not add text.",

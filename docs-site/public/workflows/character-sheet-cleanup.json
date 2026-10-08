@@ -1,0 +1,594 @@
+{
+  "id": "8c279ffa-9882-4436-9743-26bef46a6cfd",
+  "revision": 0,
+  "last_node_id": 7,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        20,
+        60
+      ],
+      "size": [
+        440,
+        420
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Character Sheet Cleanup\n\nA Seedance reference should show **one readable face**. This edit removes the head from the front full-body panel of a three-panel sheet, so the close-up is the only face.\n\n1. Load your sheet (for example the output of the **Character Sheet** template).\n2. Check the **Head box**. The default covers the head of the middle panel of a 16:9 sheet. If a face remains, widen it or replace the numbers with coordinates from your annotation tool (0 to 999 scale: x1 y1 x2 y2).\n3. Run. The original stays untouched, so compare both before you use the new one.\n\nIf the back panel also shows a face, run it again with the box moved to that panel.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed."
+      ],
+      "widgets_values_named": {
+        "text": "## Character Sheet Cleanup\n\nA Seedance reference should show **one readable face**. This edit removes the head from the front full-body panel of a three-panel sheet, so the close-up is the only face.\n\n1. Load your sheet (for example the output of the **Character Sheet** template).\n2. Check the **Head box**. The default covers the head of the middle panel of a 16:9 sheet. If a face remains, widen it or replace the numbers with coordinates from your annotation tool (0 to 999 scale: x1 y1 x2 y2).\n3. Run. The original stays untouched, so compare both before you use the new one.\n\nIf the back panel also shows a face, run it again with the box moved to that panel.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [
+        20,
+        540
+      ],
+      "size": [
+        440,
+        400
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "choose file to upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Character sheet (change me)",
+      "properties": {
+        "Node name for S&R": "LoadImage",
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2"
+      },
+      "widgets_values": [
+        "comfyui_logo.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "comfyui_logo.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 3,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        500,
+        60
+      ],
+      "size": [
+        440,
+        120
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "title": "Head box",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "<bbox>454 22 549 204</bbox>"
+      ],
+      "widgets_values_named": {
+        "value": "<bbox>454 22 549 204</bbox>"
+      }
+    },
+    {
+      "id": 4,
+      "type": "StringFormat",
+      "pos": [
+        500,
+        240
+      ],
+      "size": [
+        520,
+        600
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 1
+        },
+        {
+          "localized_name": "b",
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "f_string",
+          "name": "f_string",
+          "type": "STRING",
+          "widget": {
+            "name": "f_string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            2,
+            3
+          ]
+        }
+      ],
+      "title": "Build the edit prompt",
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": [
+        "References:\nImage 1: the character sheet to edit\n\nTask:\nImage Editing\n\nEditing mode:\nDeletion, positioned with {a}\n\nEdit instructions:\nIn image 1, remove the entire head from the full-body front-view panel so the figure is headless. There must be no head, no face, no hair and no headwear in that panel. Fill the space where the head was with the studio background.\n\nConstraints:\nKeep the neck, shoulders, body, costume, pose, panel spacing, divider lines, studio background, and the close-up face panel unchanged."
+      ],
+      "widgets_values_named": {
+        "f_string": "References:\nImage 1: the character sheet to edit\n\nTask:\nImage Editing\n\nEditing mode:\nDeletion, positioned with {a}\n\nEdit instructions:\nIn image 1, remove the entire head from the full-body front-view panel so the figure is headless. There must be no head, no face, no hair and no headwear in that panel. Fill the space where the head was with the studio background.\n\nConstraints:\nKeep the neck, shoulders, body, costume, pose, panel spacing, divider lines, studio background, and the close-up face panel unchanged."
+      }
+    },
+    {
+      "id": 5,
+      "type": "PreviewAny",
+      "pos": [
+        1080,
+        60
+      ],
+      "size": [
+        440,
+        300
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "source",
+          "name": "source",
+          "type": "*",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Prompt sent to Seedream",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 6,
+      "type": "BytePlusSeedream",
+      "pos": [
+        1080,
+        420
+      ],
+      "size": [
+        440,
+        520
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 3
+        },
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "size_preset",
+          "name": "model.size_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.size_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "model.width",
+          "type": "INT",
+          "widget": {
+            "name": "model.width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "model.height",
+          "type": "INT",
+          "widget": {
+            "name": "model.height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "image_1",
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "localized_name": "image_2",
+          "name": "model.images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "prompt_optimization",
+          "name": "model.prompt_optimization",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.prompt_optimization"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "model.seed",
+          "type": "INT",
+          "widget": {
+            "name": "model.seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "watermark",
+          "name": "model.watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.watermark"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "thinking",
+          "name": "model.thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.thinking"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "generation_count",
+          "name": "model.generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "model.generation_count"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_format",
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "background",
+          "name": "model.background",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.background"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "reference_mask",
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5
+          ]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Remove the head (Seedream 5.0 Pro)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.5"
+      },
+      "widgets_values": [
+        "",
+        "seedream 5.0 pro",
+        "(2K) 2848x1600 (16:9)",
+        2848,
+        1600,
+        "standard",
+        42,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque",
+        "randomize"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "model": "seedream 5.0 pro",
+        "model.size_preset": "(2K) 2848x1600 (16:9)",
+        "model.width": 2848,
+        "model.height": 1600,
+        "model.prompt_optimization": "standard",
+        "model.seed": 42,
+        "control_after_generate#1": "randomize",
+        "model.watermark": false,
+        "model.thinking": true,
+        "model.generation_count": 1,
+        "model.output_format": "jpeg",
+        "model.background": "opaque",
+        "control_after_generate": "randomize"
+      }
+    },
+    {
+      "id": 7,
+      "type": "SaveImage",
+      "pos": [
+        1580,
+        420
+      ],
+      "size": [
+        460,
+        520
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Save the cleaned sheet",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "BytePlus/Image/character_sheet_cleaned"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/Image/character_sheet_cleaned"
+      }
+    }
+  ],
+  "links": [
+    [
+      2,
+      4,
+      0,
+      5,
+      0,
+      "STRING"
+    ],
+    [
+      5,
+      6,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      1,
+      3,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      3,
+      4,
+      0,
+      6,
+      0,
+      "STRING"
+    ],
+    [
+      4,
+      2,
+      0,
+      6,
+      5,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "1 · Sheet and head box",
+      "bounding": [
+        0,
+        0,
+        480,
+        1000
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "2 · Build the edit prompt",
+      "bounding": [
+        480,
+        0,
+        580,
+        880
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "3 · Edit and save",
+      "bounding": [
+        1060,
+        0,
+        1000,
+        1000
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5,
+      "offset": [
+        40,
+        40
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

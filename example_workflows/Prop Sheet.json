@@ -1,0 +1,770 @@
+{
+  "id": "7462a033-b276-411d-aa6d-371145e0bd37",
+  "revision": 0,
+  "last_node_id": 10,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        20,
+        60
+      ],
+      "size": [
+        440,
+        400
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Prop Sheet\n\nOne **prop reference**: a single object on a clean seamless background, for an object that is held, recurs or carries the story.\n\n1. Rewrite **Prop (change me)**: silhouette, real-world size, materials, two to four identifying details, and the state (open or closed, lit or unlit).\n2. Match **Background** to the object: white, or gray when the object is white, silver, chrome or clear.\n3. Run, then check **Save Image**.\n\n**Three-panel sheet.** For a large or mechanical object, replace **Composition** with: *Three panels side by side in one horizontal row with even spacing: left, the whole object in a front three-quarter view; center, a full side profile; right, a close-up of [detail]. Same object, scale and lighting in every panel.* Then use a 16:9 size in Seedream.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed."
+      ],
+      "widgets_values_named": {
+        "text": "## Prop Sheet\n\nOne **prop reference**: a single object on a clean seamless background, for an object that is held, recurs or carries the story.\n\n1. Rewrite **Prop (change me)**: silhouette, real-world size, materials, two to four identifying details, and the state (open or closed, lit or unlit).\n2. Match **Background** to the object: white, or gray when the object is white, silver, chrome or clear.\n3. Run, then check **Save Image**.\n\n**Three-panel sheet.** For a large or mechanical object, replace **Composition** with: *Three panels side by side in one horizontal row with even spacing: left, the whole object in a front three-quarter view; center, a full side profile; right, a close-up of [detail]. Same object, scale and lighting in every panel.* Then use a 16:9 size in Seedream.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 2,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        20,
+        510
+      ],
+      "size": [
+        440,
+        280
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "title": "Prop (change me)",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Prop reference of one antique brass pocket compass, about five centimetres across: a round hinged case of worn polished brass with a domed lid standing open at ninety degrees, a cream enamel dial with a fine black compass rose whose cardinal points are small triangles, a slim blued-steel needle, a small knurled crown, and a brass suspension ring at the top. One compass only, lid open."
+      ],
+      "widgets_values_named": {
+        "value": "Prop reference of one antique brass pocket compass, about five centimetres across: a round hinged case of worn polished brass with a domed lid standing open at ninety degrees, a cream enamel dial with a fine black compass rose whose cardinal points are small triangles, a slim blued-steel needle, a small knurled crown, and a brass suspension ring at the top. One compass only, lid open."
+      }
+    },
+    {
+      "id": 3,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        20,
+        840
+      ],
+      "size": [
+        440,
+        150
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "title": "Background (white or gray)",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Isolated on a pure white seamless background with a single faint contact shadow directly beneath the compass. No other objects."
+      ],
+      "widgets_values_named": {
+        "value": "Isolated on a pure white seamless background with a single faint contact shadow directly beneath the compass. No other objects."
+      }
+    },
+    {
+      "id": 4,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        500,
+        60
+      ],
+      "size": [
+        420,
+        150
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "title": "Style",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Photorealistic product-reference photography, 50mm lens, true brass and enamel micro-texture, not CGI-waxy."
+      ],
+      "widgets_values_named": {
+        "value": "Photorealistic product-reference photography, 50mm lens, true brass and enamel micro-texture, not CGI-waxy."
+      }
+    },
+    {
+      "id": 5,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        500,
+        260
+      ],
+      "size": [
+        420,
+        150
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "title": "Lighting",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Soft, even, neutral studio light, gentle fill, neutral white balance, controlled highlights along the brass rim, no hotspots."
+      ],
+      "widgets_values_named": {
+        "value": "Soft, even, neutral studio light, gentle fill, neutral white balance, controlled highlights along the brass rim, no hotspots."
+      }
+    },
+    {
+      "id": 6,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        500,
+        460
+      ],
+      "size": [
+        420,
+        200
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "title": "Composition",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Single isolated hero view, three-quarter angle from slightly above, the open lid and the dial both visible, the whole compass centered with margin on every side, deep focus across the object."
+      ],
+      "widgets_values_named": {
+        "value": "Single isolated hero view, three-quarter angle from slightly above, the open lid and the dial both visible, the whole compass centered with margin on every side, deep focus across the object."
+      }
+    },
+    {
+      "id": 7,
+      "type": "StringFormat",
+      "pos": [
+        960,
+        60
+      ],
+      "size": [
+        520,
+        800
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 1
+        },
+        {
+          "localized_name": "b",
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": 2
+        },
+        {
+          "localized_name": "c",
+          "name": "values.c",
+          "shape": 7,
+          "type": "*",
+          "link": 3
+        },
+        {
+          "localized_name": "f_string",
+          "name": "f_string",
+          "type": "STRING",
+          "widget": {
+            "name": "f_string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "d",
+          "name": "values.d",
+          "shape": 7,
+          "type": "*",
+          "link": 4
+        },
+        {
+          "localized_name": "e",
+          "name": "values.e",
+          "shape": 7,
+          "type": "*",
+          "link": 5
+        },
+        {
+          "localized_name": "f",
+          "name": "values.f",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            6,
+            7
+          ]
+        }
+      ],
+      "title": "Build the prop prompt",
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": [
+        "Task:\nText-to-Image (T2I)\n\nSubject:\n{a}\n\nSetting:\n{b}\n\nStyle:\n{c}\n\nLighting:\n{d}\n\nComposition:\n{e}\n\nConstraints:\nQuality: sharp material detail, clean silhouette\nNegative: no hands, no people, no other objects, no readable text, letters or numbers, no logos, no colored or gradient background, no cropped edges, no extra panels, no watermarks"
+      ],
+      "widgets_values_named": {
+        "f_string": "Task:\nText-to-Image (T2I)\n\nSubject:\n{a}\n\nSetting:\n{b}\n\nStyle:\n{c}\n\nLighting:\n{d}\n\nComposition:\n{e}\n\nConstraints:\nQuality: sharp material detail, clean silhouette\nNegative: no hands, no people, no other objects, no readable text, letters or numbers, no logos, no colored or gradient background, no cropped edges, no extra panels, no watermarks"
+      }
+    },
+    {
+      "id": 8,
+      "type": "PreviewAny",
+      "pos": [
+        1540,
+        60
+      ],
+      "size": [
+        440,
+        330
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "source",
+          "name": "source",
+          "type": "*",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Prompt sent to Seedream",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 9,
+      "type": "BytePlusSeedream",
+      "pos": [
+        1540,
+        440
+      ],
+      "size": [
+        440,
+        480
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 7
+        },
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "size_preset",
+          "name": "model.size_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.size_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "model.width",
+          "type": "INT",
+          "widget": {
+            "name": "model.width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "model.height",
+          "type": "INT",
+          "widget": {
+            "name": "model.height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "image_1",
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "prompt_optimization",
+          "name": "model.prompt_optimization",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.prompt_optimization"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "model.seed",
+          "type": "INT",
+          "widget": {
+            "name": "model.seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "watermark",
+          "name": "model.watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.watermark"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "thinking",
+          "name": "model.thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.thinking"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "generation_count",
+          "name": "model.generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "model.generation_count"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_format",
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "background",
+          "name": "model.background",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.background"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "reference_mask",
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            8
+          ]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Paint the prop (Seedream 5.0 Pro)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.5"
+      },
+      "widgets_values": [
+        "",
+        "seedream 5.0 pro",
+        "(2K) 2048x2048 (1:1)",
+        2048,
+        2048,
+        "standard",
+        42,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque",
+        "randomize"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "model": "seedream 5.0 pro",
+        "model.size_preset": "(2K) 2048x2048 (1:1)",
+        "model.width": 2048,
+        "model.height": 2048,
+        "model.prompt_optimization": "standard",
+        "model.seed": 42,
+        "control_after_generate#1": "randomize",
+        "model.watermark": false,
+        "model.thinking": true,
+        "model.generation_count": 1,
+        "model.output_format": "jpeg",
+        "model.background": "opaque",
+        "control_after_generate": "randomize"
+      }
+    },
+    {
+      "id": 10,
+      "type": "SaveImage",
+      "pos": [
+        2040,
+        440
+      ],
+      "size": [
+        460,
+        480
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 8
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Save the prop",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "BytePlus/Image/prop_sheet"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/Image/prop_sheet"
+      }
+    }
+  ],
+  "links": [
+    [
+      6,
+      7,
+      0,
+      8,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      9,
+      0,
+      10,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      7,
+      0,
+      9,
+      0,
+      "STRING"
+    ],
+    [
+      1,
+      2,
+      0,
+      7,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      3,
+      0,
+      7,
+      1,
+      "STRING"
+    ],
+    [
+      3,
+      4,
+      0,
+      7,
+      2,
+      "STRING"
+    ],
+    [
+      4,
+      5,
+      0,
+      7,
+      4,
+      "STRING"
+    ],
+    [
+      5,
+      6,
+      0,
+      7,
+      5,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "1 · Describe the prop",
+      "bounding": [
+        0,
+        0,
+        480,
+        1020
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "2 · Look and view",
+      "bounding": [
+        480,
+        0,
+        460,
+        700
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "3 · Build the prompt",
+      "bounding": [
+        940,
+        0,
+        580,
+        900
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "4 · Paint and save",
+      "bounding": [
+        1520,
+        0,
+        1000,
+        1000
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5,
+      "offset": [
+        40,
+        40
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

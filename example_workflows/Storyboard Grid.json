@@ -1,0 +1,653 @@
+{
+  "id": "8ffe936f-7cec-4795-892f-bc73f459b531",
+  "revision": 0,
+  "last_node_id": 6,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        20,
+        60
+      ],
+      "size": [
+        460,
+        400
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Storyboard Grid\n\nA **storyboard in one image**: describe a scene in beats, and Seed writes a grid prompt that Seedream paints as a pencil-sketch board with numbered panels.\n\n1. Rewrite **Scene beats (change me)**. Give each beat one clear action, say how many panels you want, and describe each recurring character and place once.\n2. Run. Read the prompt Seed wrote, then check **Save Image**.\n\nA sketch board is for deciding **staging and shot order**, not for polish. To keep faces and rooms consistent, connect your Character Sheet and Location Sheet images to `image_1`, `image_2` in the Seedream node and mention them in the beats (\"image 1 is the captain\").\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed."
+      ],
+      "widgets_values_named": {
+        "text": "## Storyboard Grid\n\nA **storyboard in one image**: describe a scene in beats, and Seed writes a grid prompt that Seedream paints as a pencil-sketch board with numbered panels.\n\n1. Rewrite **Scene beats (change me)**. Give each beat one clear action, say how many panels you want, and describe each recurring character and place once.\n2. Run. Read the prompt Seed wrote, then check **Save Image**.\n\nA sketch board is for deciding **staging and shot order**, not for polish. To keep faces and rooms consistent, connect your Character Sheet and Location Sheet images to `image_1`, `image_2` in the Seedream node and mention them in the beats (\"image 1 is the captain\").\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 2,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        20,
+        520
+      ],
+      "size": [
+        460,
+        460
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "title": "Scene beats (change me)",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Scene: a pirate captain alone in his cramped wooden cabin at night. Beats: 1) He studies a sea chart on the table by lantern light. 2) Close-up: the needle of a brass pocket compass on the chart spins wildly. 3) He looks up sharply toward the cabin door. 4) He grabs his coat and heads for the door. 5) He throws the door open onto a stormy deck. 6) Wide shot from the deck: lightning shows a huge ship bearing down on them. Panels: 6. Pirate captain: a man in his early 30s with dark curly hair, a mustard-yellow durag, an open linen shirt and a dark leather vest. Location: a low, beamed ship's cabin lit by one hanging brass lantern."
+      ],
+      "widgets_values_named": {
+        "value": "Scene: a pirate captain alone in his cramped wooden cabin at night. Beats: 1) He studies a sea chart on the table by lantern light. 2) Close-up: the needle of a brass pocket compass on the chart spins wildly. 3) He looks up sharply toward the cabin door. 4) He grabs his coat and heads for the door. 5) He throws the door open onto a stormy deck. 6) Wide shot from the deck: lightning shows a huge ship bearing down on them. Panels: 6. Pirate captain: a man in his early 30s with dark curly hair, a mustard-yellow durag, an open linen shirt and a dark leather vest. Location: a low, beamed ship's cabin lit by one hanging brass lantern."
+      }
+    },
+    {
+      "id": 3,
+      "type": "BytePlusSeed",
+      "pos": [
+        540,
+        60
+      ],
+      "size": [
+        460,
+        700
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 1
+        },
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "image_1",
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "video_1",
+          "name": "model.videos.video_1",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "localized_name": "temperature",
+          "name": "model.temperature",
+          "type": "FLOAT",
+          "widget": {
+            "name": "model.temperature"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "system_prompt",
+          "name": "system_prompt",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "detail",
+          "name": "detail",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "detail"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "fps",
+          "name": "fps",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "reasoning_mode",
+          "name": "reasoning_mode",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "reasoning_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "reasoning_effort",
+          "name": "reasoning_effort",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "reasoning_effort"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "turns",
+          "name": "turns",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "turns"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "stream",
+          "name": "stream",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "stream"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "file_expire_seconds",
+          "name": "file_expire_seconds",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "file_expire_seconds"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            2,
+            3
+          ]
+        },
+        {
+          "localized_name": "raw_json",
+          "name": "raw_json",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Write the grid prompt (BytePlus LLM)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeed",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.5"
+      },
+      "widgets_values": [
+        "",
+        "Seed 2.1 Turbo",
+        1,
+        0,
+        "randomize",
+        "You write one image-generation prompt for Seedream: a single-image storyboard grid. Reply with the prompt only, in plain sentences, with no preamble and no markdown. Rules: 1) Break the scene into observable beats and use one panel per beat. Use the panel count the user gives; otherwise use the fewest panels that tell the scene, between 4 and 9. 2) Arrange the panels in a reading-order grid, left to right and top to bottom, using the smallest grid that fits (2 panels: 1x2, 3: 1x3, 4: 2x2, 5 or 6: 2x3, 7 to 9: 3x3). Separate the panels with thin divider lines and put a small panel number in the top-left corner of each. Add no speech bubbles, captions, watermarks or decorative borders. 3) Describe one frozen, decisive moment per panel: shot size, camera angle, who is where, which way they face, and what they are doing. Keep screen direction and the geography of the location consistent from panel to panel. 4) Describe each recurring character, costume, location and prop with exactly the same words in every panel. 5) Render style: rough pencil sketch storyboard, monochrome graphite lines on white, loose shading, no color, unless the user asks for another style. 6) Put no dialogue and no readable text in the image.",
+        "high",
+        1,
+        "auto",
+        "medium",
+        1,
+        false,
+        604800
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "model": "Seed 2.1 Turbo",
+        "model.temperature": 1,
+        "seed": 0,
+        "control_after_generate": "randomize",
+        "system_prompt": "You write one image-generation prompt for Seedream: a single-image storyboard grid. Reply with the prompt only, in plain sentences, with no preamble and no markdown. Rules: 1) Break the scene into observable beats and use one panel per beat. Use the panel count the user gives; otherwise use the fewest panels that tell the scene, between 4 and 9. 2) Arrange the panels in a reading-order grid, left to right and top to bottom, using the smallest grid that fits (2 panels: 1x2, 3: 1x3, 4: 2x2, 5 or 6: 2x3, 7 to 9: 3x3). Separate the panels with thin divider lines and put a small panel number in the top-left corner of each. Add no speech bubbles, captions, watermarks or decorative borders. 3) Describe one frozen, decisive moment per panel: shot size, camera angle, who is where, which way they face, and what they are doing. Keep screen direction and the geography of the location consistent from panel to panel. 4) Describe each recurring character, costume, location and prop with exactly the same words in every panel. 5) Render style: rough pencil sketch storyboard, monochrome graphite lines on white, loose shading, no color, unless the user asks for another style. 6) Put no dialogue and no readable text in the image.",
+        "detail": "high",
+        "fps": 1,
+        "reasoning_mode": "auto",
+        "reasoning_effort": "medium",
+        "turns": 1,
+        "stream": false,
+        "file_expire_seconds": 604800
+      }
+    },
+    {
+      "id": 4,
+      "type": "PreviewAny",
+      "pos": [
+        1060,
+        60
+      ],
+      "size": [
+        440,
+        360
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "source",
+          "name": "source",
+          "type": "*",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Prompt written by Seed",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 5,
+      "type": "BytePlusSeedream",
+      "pos": [
+        1060,
+        480
+      ],
+      "size": [
+        440,
+        500
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 3
+        },
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "size_preset",
+          "name": "model.size_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.size_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "model.width",
+          "type": "INT",
+          "widget": {
+            "name": "model.width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "model.height",
+          "type": "INT",
+          "widget": {
+            "name": "model.height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "image_1",
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "prompt_optimization",
+          "name": "model.prompt_optimization",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.prompt_optimization"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "model.seed",
+          "type": "INT",
+          "widget": {
+            "name": "model.seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "watermark",
+          "name": "model.watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.watermark"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "thinking",
+          "name": "model.thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.thinking"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "generation_count",
+          "name": "model.generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "model.generation_count"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_format",
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "background",
+          "name": "model.background",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.background"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "reference_mask",
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Paint the board (Seedream 5.0 Pro)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.5"
+      },
+      "widgets_values": [
+        "",
+        "seedream 5.0 pro",
+        "(2K) 2848x1600 (16:9)",
+        2848,
+        1600,
+        "standard",
+        42,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque",
+        "randomize"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "model": "seedream 5.0 pro",
+        "model.size_preset": "(2K) 2848x1600 (16:9)",
+        "model.width": 2848,
+        "model.height": 1600,
+        "model.prompt_optimization": "standard",
+        "model.seed": 42,
+        "control_after_generate#1": "randomize",
+        "model.watermark": false,
+        "model.thinking": true,
+        "model.generation_count": 1,
+        "model.output_format": "jpeg",
+        "model.background": "opaque",
+        "control_after_generate": "randomize"
+      }
+    },
+    {
+      "id": 6,
+      "type": "SaveImage",
+      "pos": [
+        1560,
+        480
+      ],
+      "size": [
+        460,
+        500
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Save the board",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "BytePlus/Image/storyboard_grid"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/Image/storyboard_grid"
+      }
+    }
+  ],
+  "links": [
+    [
+      2,
+      3,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      4,
+      5,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      1,
+      2,
+      0,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      3,
+      3,
+      0,
+      5,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "1 · Describe the scene",
+      "bounding": [
+        0,
+        0,
+        500,
+        1020
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "2 · Seed writes the prompt",
+      "bounding": [
+        520,
+        0,
+        500,
+        1020
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "3 · Paint and save",
+      "bounding": [
+        1040,
+        0,
+        1000,
+        1020
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5,
+      "offset": [
+        40,
+        40
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

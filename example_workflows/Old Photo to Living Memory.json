@@ -55,7 +55,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedream",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "A faded, slightly damaged black-and-white studio portrait photograph of a smiling elderly couple in 1950s clothes, soft grain, scratches and creases, vintage",
@@ -175,7 +175,7 @@
       "properties": {
         "Node name for S&R": "BytePlusImageEnhance",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "standard",
@@ -241,7 +241,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2FirstLastFrame",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "Seedance 2.0",
@@ -370,7 +370,7 @@
       "properties": {
         "Node name for S&R": "BytePlusVideoSmoothness",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "repair",

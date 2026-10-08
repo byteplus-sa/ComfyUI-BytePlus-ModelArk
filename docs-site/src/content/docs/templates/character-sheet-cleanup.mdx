@@ -1,0 +1,54 @@
+---
+title: "Character Sheet Cleanup"
+description: "Remove the head from the front full-body panel of a character sheet with a Seedream 5.0 Pro edit, so the close-up is the only readable face."
+template_file: Character Sheet Cleanup.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Character Sheet Cleanup.json" />
+
+## What it makes
+
+An edited copy of a three-panel character sheet in which the front full-body figure has no head. The close-up panel stays as the only readable face. It is for sheets that will be used as a video reference, where one clear face keeps the reference unambiguous. The original is not changed, so you can compare both and pick one.
+
+## The workflow
+
+<Shot src="templates/character-sheet-cleanup-workflow.webp" alt="The Character Sheet Cleanup template in three groups: a Load Image node and a Head box text, a Format Text prompt, and a Seedream edit with Save Image" caption="Load the sheet, set the head box, then edit and save." />
+
+1. **Load Image** (titled "Character sheet (change me)") supplies the sheet. Choose the image made by [Character Sheet](../character-sheet/) or your own.
+2. **Head box** holds a `<bbox>x1 y1 x2 y2</bbox>` tag on a 0 to 999 scale. The default covers the head of the middle panel of a 16:9 three-panel sheet.
+3. **Build the edit prompt** (Format Text, a ComfyUI core node) inserts the box into a fixed edit instruction: remove the whole head from the front full-body panel, fill the space with the studio background, and keep the neck, body, costume, divider lines and close-up unchanged. **Prompt sent to Seedream** shows it.
+4. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** runs `seedream 5.0 pro` with the sheet as `image_1` and edits it.
+5. **Save Image** writes the result to `BytePlus/Image/character_sheet_cleaned`.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This template needs no other key.
+2. Open the template browser and choose **Character Sheet Cleanup** under BytePlus.
+3. In **Load Image**, upload your sheet. Adjust **Head box** if your panels are laid out differently.
+4. Press **Run** and compare the saved image with the original.
+
+## Settings worth changing
+
+- **Head box:** the default is a starting estimate. If a face is still visible, widen the box to the whole head, hair and headwear included. For exact numbers, take them from an annotation tool.
+- **The edit instruction:** to remove the neck as well, change the text in **Build the edit prompt** to say "head and neck". Do this if the edit keeps drawing a head.
+- **Back panel:** if the back view also shows a face, run the template again with the box moved to that panel.
+- **`size_preset` (Seedream):** the template uses 16:9 at 2K, which matches the sheet from Character Sheet. Use the ratio of your own sheet.
+- **`seed`:** the edit is a new generation. Change the seed for another attempt.
+
+## Example result
+
+<Shot src="templates/character-sheet-cleanup-result.webp" alt="Two character sheets one above the other: the original with a readable face in the front and close-up panels, and the edited sheet where the front figure has no head" caption="Example result: the original sheet above, the edited sheet below." />
+
+In the edited sheet the front figure has no head and the studio background fills the gap. The costume, pose, divider lines and the close-up are unchanged, so the close-up is the only face. The back view keeps the back of its head, which shows no face. Compare the two sheets side by side and look for a blurred or featureless head left behind.
+
+## Time and cost
+
+The template bills one Seedream image per run. The `seed` control is set to `randomize`, so every run is a new generation and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing. Keep the original sheet: the cleaned copy is a new version, not a replacement, until you have checked it.
+
+## Related
+
+- Node: [Seedream 4.5 & 5.0](../../nodes/seedream/)
+- Next step: [Character Sheet](../character-sheet/) makes the sheet to clean. [Consistent Character Shots](../consistent-character-shots/) uses a character portrait in video.

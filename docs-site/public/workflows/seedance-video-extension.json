@@ -49,7 +49,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2TextToVideo",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "Seedance 2.5",
@@ -142,7 +142,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "Seedance 2.5",
@@ -237,7 +237,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedance2Reference",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "Seedance 2.5",

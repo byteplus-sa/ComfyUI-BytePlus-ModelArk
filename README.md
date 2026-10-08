@@ -4,9 +4,9 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.5.4.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.5.5.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.5.4:** Image and Video References combines an appearance image with a motion video using `@Image 1` and `@Video 1` in a Seedance 2.5 prompt. Includes an on-canvas guide and a downloadable workflow.
+**New in v0.5.5:** five production-asset templates, each a clean Seedream 5.0 Pro reference from a few text boxes: Character Sheet (back, front and face close-up on gray), Location Sheet, Prop Sheet, Character Sheet Cleanup (leaves one readable face on a sheet) and Storyboard Grid (the LLM turns scene beats into a numbered pencil-sketch board). They need only a ModelArk key.
 
 ## Contents
 
@@ -321,6 +321,11 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Product Lookbook | One product photo and one prompt give four coherent lifestyle images with Seedream sequential generation. |
 | Sound Design | The LLM turns a scene description into a sound-design prompt and Seed Audio renders two takes. |
 | Consistent Character Shots | Seedream paints a character, Create Image Asset registers it, three Seedance 2.0 Reference shots use it as `asset_1`, Concatenate Video joins them (IAM AK/SK). |
+| Character Sheet | A description becomes a three-panel identity sheet (back, front, face close-up) on plain gray, with the fixed sheet rules built into the prompt (ModelArk key). |
+| Location Sheet | Six text boxes (place, era, dressing, style, light, lens) become a people-free reference still of a location. |
+| Prop Sheet | One object on a clean seamless background, as a hero view or a three-panel sheet, for props that are held, recur or carry the story. |
+| Character Sheet Cleanup | A Seedream 5.0 Pro edit that removes the head from the front full-body panel of a sheet so the close-up is the only readable face. |
+| Storyboard Grid | The LLM turns scene beats into a grid prompt and Seedream paints a numbered pencil-sketch storyboard in one image. |
 | Seedance Task Query | Video Query Tasks collects a Seedance task by ID (or lists the latest tasks) and shows its status and model. |
 | Video and Audio Assets | Create Video Asset and Create Audio Asset register media in your private library, Asset Library lists it, Seedance 2.5 Reference uses both as `asset_1` and `asset_2` (IAM AK/SK). |
 

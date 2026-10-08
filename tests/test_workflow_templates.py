@@ -41,6 +41,12 @@ EXPECTED_WORKFLOWS = {
     "Consistent Character Shots.json",
     "Seedance Task Query.json",
     "Video and Audio Assets.json",
+    # Production asset templates (character, location and prop sheets, cleanup, storyboard).
+    "Character Sheet.json",
+    "Location Sheet.json",
+    "Prop Sheet.json",
+    "Character Sheet Cleanup.json",
+    "Storyboard Grid.json",
 }
 FRONTEND_SAVED_IMAGE_TEMPLATES = {"Image Edit.json", "Image Variations.json"}
 NEW_TEMPLATE_FILES = {
@@ -55,6 +61,11 @@ NEW_TEMPLATE_FILES = {
     "Consistent Character Shots.json",
     "Seedance Task Query.json",
     "Video and Audio Assets.json",
+    "Character Sheet.json",
+    "Location Sheet.json",
+    "Prop Sheet.json",
+    "Character Sheet Cleanup.json",
+    "Storyboard Grid.json",
 }
 
 
@@ -192,6 +203,62 @@ NEW_TEMPLATES = {
             ('BytePlusSeedance2Reference', 0, 'SaveVideo', 'video'),
             ('BytePlusSeedance2TextToVideo', 3, 'RegexExtract', 'string'),
             ('RegexExtract', 0, 'BytePlusCreateVideoAsset', 'video_url'),
+        ],
+    },
+    "Character Sheet.json": {
+        "nodes": {"BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 2, "SaveImage": 1, "StringFormat": 1},
+        "edges": [
+            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.a'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.b'),
+            ('StringFormat', 0, 'BytePlusSeedream', 'prompt'),
+            ('StringFormat', 0, 'PreviewAny', 'source'),
+        ],
+    },
+    "Location Sheet.json": {
+        "nodes": {"BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 6, "SaveImage": 1, "StringFormat": 1},
+        "edges": [
+            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.a'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.b'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.c'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.d'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.e'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.f'),
+            ('StringFormat', 0, 'BytePlusSeedream', 'prompt'),
+            ('StringFormat', 0, 'PreviewAny', 'source'),
+        ],
+    },
+    "Prop Sheet.json": {
+        "nodes": {"BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 5, "SaveImage": 1, "StringFormat": 1},
+        "edges": [
+            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.a'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.b'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.c'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.d'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.e'),
+            ('StringFormat', 0, 'BytePlusSeedream', 'prompt'),
+            ('StringFormat', 0, 'PreviewAny', 'source'),
+        ],
+    },
+    "Character Sheet Cleanup.json": {
+        "nodes": {"BytePlusSeedream": 1, "LoadImage": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 1, "SaveImage": 1, "StringFormat": 1},
+        "edges": [
+            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
+            ('LoadImage', 0, 'BytePlusSeedream', 'model.images.image_1'),
+            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.a'),
+            ('StringFormat', 0, 'BytePlusSeedream', 'prompt'),
+            ('StringFormat', 0, 'PreviewAny', 'source'),
+        ],
+    },
+    "Storyboard Grid.json": {
+        "nodes": {"BytePlusSeed": 1, "BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 1, "SaveImage": 1},
+        "edges": [
+            ('BytePlusSeed', 0, 'BytePlusSeedream', 'prompt'),
+            ('BytePlusSeed', 0, 'PreviewAny', 'source'),
+            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
+            ('PrimitiveStringMultiline', 0, 'BytePlusSeed', 'prompt'),
         ],
     },
 }
@@ -397,7 +464,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 for node in workflow["nodes"]:
                     if node["type"].startswith("BytePlus"):
                         self.assertEqual(node["properties"]["cnr_id"], "ComfyUI-BytePlus-ModelArk")
-                        self.assertEqual(node["properties"]["ver"], "0.5.4")
+                        self.assertEqual(node["properties"]["ver"], "0.5.5")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
         combo_inputs = {
@@ -866,8 +933,92 @@ class WorkflowTemplateTests(unittest.TestCase):
     ALLOWED_CORE_TYPES = {
         "LoadImage", "LoadAudio", "PrimitiveString", "PrimitiveStringMultiline", "RegexExtract",
         "PreviewAny", "GetVideoComponents", "CreateVideo", "SaveVideo", "SaveImage",
-        "SaveAudioAdvanced", "AudioConcat", "ConcatenateVideo", "MarkdownNote",
+        "SaveAudioAdvanced", "AudioConcat", "ConcatenateVideo", "MarkdownNote", "StringFormat",
     }
+
+    SHEET_TEMPLATES = {
+        "Character Sheet.json": {
+            "size": "(2K) 2848x1600 (16:9)",
+            "contains": [
+                "Relaxed neutral expression in all panels: mouth relaxed and closed, eyes looking straight into camera, no smile, no frown, no raised brows, no emotion.",
+                "Three-panel sheet only: one full-body back view, one full-body front view, and one face close-up panel.",
+                "Clean plain gray studio background",
+                "no props in hands, no held objects, no weapons",
+            ],
+        },
+        "Location Sheet.json": {
+            "size": "(2K) 2848x1600 (16:9)",
+            "contains": ["Era and world rules:", "Set dressing and objects:", "Negative: no people, no modern objects"],
+        },
+        "Prop Sheet.json": {
+            "size": "(2K) 2048x2048 (1:1)",
+            "contains": ["Prop reference of one", "pure white seamless background", "no hands, no people, no other objects"],
+        },
+        "Character Sheet Cleanup.json": {
+            "size": "(2K) 2848x1600 (16:9)",
+            "contains": ["<bbox>", "Deletion, positioned with", "so the figure is headless", "the close-up face panel unchanged"],
+        },
+    }
+
+    @staticmethod
+    def rendered_prompt(workflow):
+        """The text a StringFormat node sends on: its f_string filled from the linked text nodes."""
+        nodes = {node["id"]: node for node in workflow["nodes"]}
+        (fmt,) = [node for node in nodes.values() if node["type"] == "StringFormat"]
+        links = {link[0]: link for link in workflow["links"]}
+        values = {}
+        for item in fmt["inputs"]:
+            if item["name"].startswith("values.") and item["link"] is not None:
+                source = nodes[links[item["link"]][1]]
+                values[item["name"].split(".", 1)[1]] = source["widgets_values"][0]
+        return fmt["widgets_values"][0], values
+
+    def test_sheet_templates_fill_every_placeholder_and_keep_the_fixed_rules(self):
+        import string
+
+        for name, expected in self.SHEET_TEMPLATES.items():
+            workflow = load_workflow(name)
+            with self.subTest(workflow=name):
+                scaffold, values = self.rendered_prompt(workflow)
+                placeholders = {field for _, field, _, _ in string.Formatter().parse(scaffold) if field}
+                self.assertEqual(placeholders, set(values), msg="every placeholder needs a linked text and the reverse")
+                prompt = scaffold.format(**values)
+                self.assertNotIn("{", prompt)
+                self.assertNotIn("}", prompt)
+                for phrase in expected["contains"]:
+                    self.assertIn(phrase, prompt)
+                for text in values.values():
+                    self.assertTrue(text.strip())
+                seedream = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeedream")
+                self.assertEqual(seedream["widgets_values"][1:5], ["seedream 5.0 pro", expected["size"], *map(int, expected["size"].split(" ")[1].split("x"))])
+                self.assertIn(("StringFormat", 0, "BytePlusSeedream", "prompt"), self.edges(workflow))
+
+    def test_character_sheet_keeps_held_props_off_the_sheet(self):
+        scaffold, values = self.rendered_prompt(load_workflow("Character Sheet.json"))
+        prompt = scaffold.format(**values)
+        self.assertIn("nothing held in the hands, no props, no weapons", prompt)
+        self.assertIn("Same person in all panels", prompt)
+        self.assertNotIn("holding", values["a"].lower())
+
+    def test_cleanup_template_edits_the_loaded_sheet_with_a_head_box(self):
+        workflow = load_workflow("Character Sheet Cleanup.json")
+        scaffold, values = self.rendered_prompt(workflow)
+        self.assertRegex(values["a"], r"^<bbox>\d+ \d+ \d+ \d+</bbox>$")
+        x1, y1, x2, y2 = map(int, values["a"][6:-7].split())
+        self.assertTrue(0 <= x1 < x2 <= 999 and 0 <= y1 < y2 <= 999)
+        self.assertIn(("LoadImage", 0, "BytePlusSeedream", "model.images.image_1"), self.edges(workflow))
+        save = next(node for node in workflow["nodes"] if node["type"] == "SaveImage")
+        self.assertNotEqual(save["widgets_values"][0], "BytePlus/Image/character_sheet")
+
+    def test_storyboard_template_asks_for_a_numbered_sketch_grid(self):
+        workflow = load_workflow("Storyboard Grid.json")
+        llm = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeed")
+        system_prompt = llm["widgets_values"][5]
+        for phrase in ("single-image storyboard grid", "thin divider lines", "panel number", "pencil sketch", "one frozen, decisive moment"):
+            self.assertIn(phrase, system_prompt)
+        self.assertEqual(llm["widgets_values"][1], "Seed 2.1 Turbo")
+        beats = next(node for node in workflow["nodes"] if node["type"] == "PrimitiveStringMultiline")
+        self.assertIn("Panels: 6", beats["widgets_values"][0])
 
     def test_new_templates_match_snapshot(self):
         import collections
