@@ -1,0 +1,54 @@
+---
+title: "Prop Sheet"
+description: "Make a reference image of one object on a clean seamless background with Seedream 5.0 Pro, for props that are held, recur or carry the story."
+template_file: Prop Sheet.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Prop Sheet.json" />
+
+## What it makes
+
+One image of a single object on a seamless background, shown whole and centered with room around it. It is for objects that a character holds, that appear in several shots or that the story depends on. The template makes an antique brass pocket compass, open, on white. The background is plain on purpose, so that it does not leak into later images or videos.
+
+## The workflow
+
+<Shot src="templates/prop-sheet-workflow.webp" alt="The Prop Sheet template in four groups: five text boxes, a Format Text node with a prompt preview, and Seedream with Save Image" caption="Describe the prop and its look, build the prompt, then paint and save." />
+
+1. **Prop (change me)** describes the object: its shape, real-world size in words, materials, two to four identifying details and its state, such as open or closed.
+2. **Background (white or gray)** sets the backdrop. White is the default. Use gray when the object is white, silver, chrome or clear, because its outline would be lost on white.
+3. **Style**, **Lighting** and **Composition** set the photographic look, the light and the view. The default view is one three-quarter hero view.
+4. **Build the prop prompt** (Format Text, a ComfyUI core node) puts the five texts into one prompt and adds the fixed quality line and exclusions. **Prompt sent to Seedream** shows it.
+5. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** runs `seedream 5.0 pro` at `(2K) 2048x2048 (1:1)`, and **Save Image** writes the result to `BytePlus/Image/prop_sheet`.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). This template needs no other key.
+2. Open the template browser and choose **Prop Sheet** under BytePlus.
+3. Rewrite **Prop (change me)** and make the object name in **Background** match it.
+4. Press **Run**. Check that the whole object is in frame and that nothing looks like writing.
+
+## Settings worth changing
+
+- **Prop (change me):** start with "Prop reference of one" and the object, and say how many there are. Describe one state only.
+- **Background (white or gray):** keep the faint contact shadow in the sentence, and change `white` to `light-gray` for pale or shiny objects.
+- **Composition:** for a large or mechanical object, use three panels in one row instead: a three-quarter view, a side profile and a close-up of one detail. The note in the template has the wording. Choose a 16:9 `size_preset` for it.
+- **Text on the object:** the fixed exclusions ask for no readable text, letters or numbers, because invented lettering tends to look wrong. If a label matters, add it afterwards or use the real product photo.
+- **`seed`:** set it to `fixed` to rerun the same image without billing again.
+
+## Example result
+
+<Shot src="templates/prop-sheet-result.webp" alt="An open antique brass pocket compass with a cream dial, a blue needle and a ring at the top, on a plain white background" caption="Example result: 2048x2048, one compass, lid open." />
+
+One open brass compass, whole and centered on white, with a ring at the top, a small crown, a blue needle and a cream dial whose cardinal points are small triangles instead of letters. Check that the shape and details are right, that nothing is cropped, and that no stray marks look like writing. Make a separate sheet for each state the object needs on camera.
+
+## Time and cost
+
+The template bills one Seedream image per run. The `seed` control is set to `randomize`, so every run paints a new image and bills again. Set it to `fixed` and ComfyUI reuses the cached result of an unchanged workflow without billing.
+
+## Related
+
+- Node: [Seedream 4.5 & 5.0](../../nodes/seedream/)
+- Next step: [Character Sheet](../character-sheet/) makes the character who holds the prop. [Storyboard Grid](../storyboard-grid/) places both in a scene.

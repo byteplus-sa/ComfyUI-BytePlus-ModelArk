@@ -105,7 +105,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedream",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.5.4"
+        "ver": "0.5.5"
       },
       "widgets_values": [
         "Edit the reference image: change the sky to a warm orange sunset and change the dress to teal. Preserve the character, pose, facial features, simple hand-drawn style and green hills. Keep the composition unchanged. Do not add text.",

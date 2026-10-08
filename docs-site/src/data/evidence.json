@@ -383,5 +383,45 @@
   "status": "not_run",
   "media": [],
   "extra_runs": []
+ },
+ "character-sheet": {
+  "case": "show-character-sheet",
+  "status": "success",
+  "seconds": 90,
+  "tested": "2026-10-08",
+  "media": [],
+  "extra_runs": []
+ },
+ "location-sheet": {
+  "case": "show-location-sheet",
+  "status": "success",
+  "seconds": 62,
+  "tested": "2026-10-08",
+  "media": [],
+  "extra_runs": []
+ },
+ "prop-sheet": {
+  "case": "show-prop-sheet",
+  "status": "success",
+  "seconds": 55,
+  "tested": "2026-10-08",
+  "media": [],
+  "extra_runs": []
+ },
+ "character-sheet-cleanup": {
+  "case": "show-sheet-cleanup",
+  "status": "success",
+  "seconds": 43,
+  "tested": "2026-10-08",
+  "media": [],
+  "extra_runs": []
+ },
+ "storyboard-grid": {
+  "case": "show-storyboard-grid",
+  "status": "success",
+  "seconds": 110,
+  "tested": "2026-10-08",
+  "media": [],
+  "extra_runs": []
  }
 }

@@ -245,6 +245,157 @@
   "has_thumbnail": true
  },
  {
+  "file": "Character Sheet.json",
+  "title": "Character Sheet",
+  "slug": "character-sheet",
+  "group": "Production assets",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Format Text",
+   "MarkdownNote",
+   "Preview as Text",
+   "Save Image",
+   "Text (Multiline)"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · Describe the character",
+   "2 · Build the prompt",
+   "3 · Paint and save"
+  ],
+  "note": "## Character Sheet\n\nOne **identity sheet** of an invented character: back full-body, front full-body and a face close-up, on plain gray with neutral light. Use it as the character reference for later shots.\n\n1. Rewrite **Character (change me)**: age, face, hair, and **only the clothes and accessories worn in every scene**.\n2. Optional: change **Photo style**.\n3. Run, then check **Save Image**.\n\nThe fixed rules (neutral expression, gray background, no held props) live in **Build the sheet prompt**. Keep held items and sometimes-worn items (sunglasses, a hat) off the sheet and make them a **Prop Sheet** instead.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Location Sheet.json",
+  "title": "Location Sheet",
+  "slug": "location-sheet",
+  "group": "Production assets",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Format Text",
+   "MarkdownNote",
+   "Preview as Text",
+   "Save Image",
+   "Text (Multiline)"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · Describe the place",
+   "2 · Dressing, look and light",
+   "3 · Camera and prompt",
+   "4 · Paint and save"
+  ],
+  "note": "## Location Sheet\n\nOne **location reference**: a clean, readable still of a place with no people, usable as an environment reference for storyboards and video.\n\n1. Rewrite the six boxes. Put the **place** first, then the **era and world rules**, then the objects that make it feel lived in.\n2. Run, then check **Save Image**.\n\nThe fixed negatives (no people, no modern objects, no text) are in **Build the location prompt**. If you change the era, change them too.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Prop Sheet.json",
+  "title": "Prop Sheet",
+  "slug": "prop-sheet",
+  "group": "Production assets",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Format Text",
+   "MarkdownNote",
+   "Preview as Text",
+   "Save Image",
+   "Text (Multiline)"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · Describe the prop",
+   "2 · Look and view",
+   "3 · Build the prompt",
+   "4 · Paint and save"
+  ],
+  "note": "## Prop Sheet\n\nOne **prop reference**: a single object on a clean seamless background, for an object that is held, recurs or carries the story.\n\n1. Rewrite **Prop (change me)**: silhouette, real-world size, materials, two to four identifying details, and the state (open or closed, lit or unlit).\n2. Match **Background** to the object: white, or gray when the object is white, silver, chrome or clear.\n3. Run, then check **Save Image**.\n\n**Three-panel sheet.** For a large or mechanical object, replace **Composition** with: *Three panels side by side in one horizontal row with even spacing: left, the whole object in a front three-quarter view; center, a full side profile; right, a close-up of [detail]. Same object, scale and lighting in every panel.* Then use a 16:9 size in Seedream.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Character Sheet Cleanup.json",
+  "title": "Character Sheet Cleanup",
+  "slug": "character-sheet-cleanup",
+  "group": "Production assets",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Format Text",
+   "Load Image",
+   "MarkdownNote",
+   "Preview as Text",
+   "Save Image",
+   "Text (Multiline)"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · Sheet and head box",
+   "2 · Build the edit prompt",
+   "3 · Edit and save"
+  ],
+  "note": "## Character Sheet Cleanup\n\nA Seedance reference should show **one readable face**. This edit removes the head from the front full-body panel of a three-panel sheet, so the close-up is the only face.\n\n1. Load your sheet (for example the output of the **Character Sheet** template).\n2. Check the **Head box**. The default covers the head of the middle panel of a 16:9 sheet. If a face remains, widen it or replace the numbers with coordinates from your annotation tool (0 to 999 scale: x1 y1 x2 y2).\n3. Run. The original stays untouched, so compare both before you use the new one.\n\nIf the back panel also shows a face, run it again with the box moved to that panel.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Storyboard Grid.json",
+  "title": "Storyboard Grid",
+  "slug": "storyboard-grid",
+  "group": "Production assets",
+  "nodes": [
+   {
+    "id": "BytePlusSeed",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "Preview as Text",
+   "Save Image",
+   "Text (Multiline)"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "1 · Describe the scene",
+   "2 · Seed writes the prompt",
+   "3 · Paint and save"
+  ],
+  "note": "## Storyboard Grid\n\nA **storyboard in one image**: describe a scene in beats, and Seed writes a grid prompt that Seedream paints as a pencil-sketch board with numbered panels.\n\n1. Rewrite **Scene beats (change me)**. Give each beat one clear action, say how many panels you want, and describe each recurring character and place once.\n2. Run. Read the prompt Seed wrote, then check **Save Image**.\n\nA sketch board is for deciding **staging and shot order**, not for polish. To keep faces and rooms consistent, connect your Character Sheet and Location Sheet images to `image_1`, `image_2` in the Seedream node and mention them in the beats (\"image 1 is the captain\").\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed.",
+  "has_thumbnail": true
+ },
+ {
   "file": "Image and Video References.json",
   "title": "Image and Video References",
   "slug": "image-and-video-references",

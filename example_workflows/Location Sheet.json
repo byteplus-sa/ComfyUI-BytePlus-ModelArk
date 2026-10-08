@@ -1,0 +1,831 @@
+{
+  "id": "640fd5a6-214b-4ccc-8260-702106ca5234",
+  "revision": 0,
+  "last_node_id": 11,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        20,
+        60
+      ],
+      "size": [
+        420,
+        330
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How to use",
+      "properties": {},
+      "widgets_values": [
+        "## Location Sheet\n\nOne **location reference**: a clean, readable still of a place with no people, usable as an environment reference for storyboards and video.\n\n1. Rewrite the six boxes. Put the **place** first, then the **era and world rules**, then the objects that make it feel lived in.\n2. Run, then check **Save Image**.\n\nThe fixed negatives (no people, no modern objects, no text) are in **Build the location prompt**. If you change the era, change them too.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed."
+      ],
+      "widgets_values_named": {
+        "text": "## Location Sheet\n\nOne **location reference**: a clean, readable still of a place with no people, usable as an environment reference for storyboards and video.\n\n1. Rewrite the six boxes. Put the **place** first, then the **era and world rules**, then the objects that make it feel lived in.\n2. Run, then check **Save Image**.\n\nThe fixed negatives (no people, no modern objects, no text) are in **Build the location prompt**. If you change the era, change them too.\n\nBefore the first run, add your ModelArk API key in **Settings > BytePlus**. No other key is needed."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 2,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        20,
+        440
+      ],
+      "size": [
+        420,
+        150
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "title": "Location (change me)",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "A cramped below-deck captain's cabin on an old wooden sailing ship."
+      ],
+      "widgets_values_named": {
+        "value": "A cramped below-deck captain's cabin on an old wooden sailing ship."
+      }
+    },
+    {
+      "id": 3,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        20,
+        640
+      ],
+      "size": [
+        420,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "title": "Era and world rules",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Early 18th-century Golden Age of Piracy, Caribbean privateer vessel, grounded period maritime realism, lantern-and-candle era, tropical maritime setting, no modern objects."
+      ],
+      "widgets_values_named": {
+        "value": "Early 18th-century Golden Age of Piracy, Caribbean privateer vessel, grounded period maritime realism, lantern-and-candle era, tropical maritime setting, no modern objects."
+      }
+    },
+    {
+      "id": 4,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        480,
+        60
+      ],
+      "size": [
+        420,
+        330
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "title": "Set dressing and objects",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "A large weathered sea-chart is pinned to the rough plank back wall above a heavy waxed-oak table strewn with brass navigation instruments including dividers and a sextant. A gimbaled brass lantern hangs low in the upper frame. Tarred coiled rope and a barrel fill the foreground edges. Low heavy-beamed ceiling, rough plank walls and floor. Hand-hewn waxed oak grain, tarred rough hemp, tarnished brass, brittle creased parchment, coarse canvas."
+      ],
+      "widgets_values_named": {
+        "value": "A large weathered sea-chart is pinned to the rough plank back wall above a heavy waxed-oak table strewn with brass navigation instruments including dividers and a sextant. A gimbaled brass lantern hangs low in the upper frame. Tarred coiled rope and a barrel fill the foreground edges. Low heavy-beamed ceiling, rough plank walls and floor. Hand-hewn waxed oak grain, tarred rough hemp, tarnished brass, brittle creased parchment, coarse canvas."
+      }
+    },
+    {
+      "id": 5,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        480,
+        440
+      ],
+      "size": [
+        420,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "title": "Style",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Photorealistic cinematic movie still, grounded period maritime realism, painterly low-key cinematography, warm-leaning but desaturated muted period grade, fine low-intensity 35mm grain, organic texture."
+      ],
+      "widgets_values_named": {
+        "value": "Photorealistic cinematic movie still, grounded period maritime realism, painterly low-key cinematography, warm-leaning but desaturated muted period grade, fine low-intensity 35mm grain, organic texture."
+      }
+    },
+    {
+      "id": 6,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        480,
+        690
+      ],
+      "size": [
+        420,
+        330
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "title": "Lighting and atmosphere",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Mid-morning, calm weather, warm and enclosed tropical maritime atmosphere. Warm tungsten lantern as the single key practical from frame-left, soft Rembrandt pooling, deep shadow falloff into the corners, thin hard daylight slivers leaking through plank gaps. Color palette of aged oak brown, tarred black, oxidized brass amber, sun-bleached parchment cream, shadowed sea-grey. Drifting dust motes in the lantern beam, faint smoke haze. Mood: enclosed, hushed, conspiratorial, weathered, intimate."
+      ],
+      "widgets_values_named": {
+        "value": "Mid-morning, calm weather, warm and enclosed tropical maritime atmosphere. Warm tungsten lantern as the single key practical from frame-left, soft Rembrandt pooling, deep shadow falloff into the corners, thin hard daylight slivers leaking through plank gaps. Color palette of aged oak brown, tarred black, oxidized brass amber, sun-bleached parchment cream, shadowed sea-grey. Drifting dust motes in the lantern beam, faint smoke haze. Mood: enclosed, hushed, conspiratorial, weathered, intimate."
+      }
+    },
+    {
+      "id": 7,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        940,
+        60
+      ],
+      "size": [
+        420,
+        330
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "title": "Composition and lens",
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "Wide three-quarter interior establishing shot, eye-level. Shot on a modern digital cinema camera with vintage spherical prime lenses, 24mm, 16:9 widescreen. Gentle horizontal flare off the lantern, soft bokeh, mild halation on the flame. Deep depth of field, bow-to-stern interior in focus, slight falloff only in the darkest corners."
+      ],
+      "widgets_values_named": {
+        "value": "Wide three-quarter interior establishing shot, eye-level. Shot on a modern digital cinema camera with vintage spherical prime lenses, 24mm, 16:9 widescreen. Gentle horizontal flare off the lantern, soft bokeh, mild halation on the flame. Deep depth of field, bow-to-stern interior in focus, slight falloff only in the darkest corners."
+      }
+    },
+    {
+      "id": 8,
+      "type": "StringFormat",
+      "pos": [
+        940,
+        440
+      ],
+      "size": [
+        520,
+        580
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 1
+        },
+        {
+          "localized_name": "b",
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": 2
+        },
+        {
+          "localized_name": "c",
+          "name": "values.c",
+          "shape": 7,
+          "type": "*",
+          "link": 3
+        },
+        {
+          "localized_name": "f_string",
+          "name": "f_string",
+          "type": "STRING",
+          "widget": {
+            "name": "f_string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "d",
+          "name": "values.d",
+          "shape": 7,
+          "type": "*",
+          "link": 4
+        },
+        {
+          "localized_name": "e",
+          "name": "values.e",
+          "shape": 7,
+          "type": "*",
+          "link": 5
+        },
+        {
+          "localized_name": "f",
+          "name": "values.f",
+          "shape": 7,
+          "type": "*",
+          "link": 6
+        },
+        {
+          "localized_name": "g",
+          "name": "values.g",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            7,
+            8
+          ]
+        }
+      ],
+      "title": "Build the location prompt",
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": [
+        "Task:\nText-to-Image (T2I)\n\nLocation:\n{a}\n\nEra and world rules:\n{b}\n\nSet dressing and objects:\n{c}\n\nStyle:\n{d}\n\nLighting and atmosphere:\n{e}\n\nComposition and lens:\n{f}\n\nConstraints:\nQuality: 4K, rich material realism, strong environmental storytelling, consistent period authenticity\nNegative: no people, no modern objects, no electric light fixtures, no plastic surfaces, no bright white walls, no text overlays, no watermarks"
+      ],
+      "widgets_values_named": {
+        "f_string": "Task:\nText-to-Image (T2I)\n\nLocation:\n{a}\n\nEra and world rules:\n{b}\n\nSet dressing and objects:\n{c}\n\nStyle:\n{d}\n\nLighting and atmosphere:\n{e}\n\nComposition and lens:\n{f}\n\nConstraints:\nQuality: 4K, rich material realism, strong environmental storytelling, consistent period authenticity\nNegative: no people, no modern objects, no electric light fixtures, no plastic surfaces, no bright white walls, no text overlays, no watermarks"
+      }
+    },
+    {
+      "id": 9,
+      "type": "PreviewAny",
+      "pos": [
+        1520,
+        60
+      ],
+      "size": [
+        440,
+        360
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "source",
+          "name": "source",
+          "type": "*",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Prompt sent to Seedream",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 10,
+      "type": "BytePlusSeedream",
+      "pos": [
+        1520,
+        480
+      ],
+      "size": [
+        440,
+        480
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 8
+        },
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "size_preset",
+          "name": "model.size_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.size_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "model.width",
+          "type": "INT",
+          "widget": {
+            "name": "model.width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "model.height",
+          "type": "INT",
+          "widget": {
+            "name": "model.height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "image_1",
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "prompt_optimization",
+          "name": "model.prompt_optimization",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.prompt_optimization"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "model.seed",
+          "type": "INT",
+          "widget": {
+            "name": "model.seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "watermark",
+          "name": "model.watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.watermark"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "thinking",
+          "name": "model.thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.thinking"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "generation_count",
+          "name": "model.generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "model.generation_count"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_format",
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "background",
+          "name": "model.background",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.background"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "reference_mask",
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            9
+          ]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Paint the location (Seedream 5.0 Pro)",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.5.5"
+      },
+      "widgets_values": [
+        "",
+        "seedream 5.0 pro",
+        "(2K) 2848x1600 (16:9)",
+        2848,
+        1600,
+        "standard",
+        42,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque",
+        "randomize"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "model": "seedream 5.0 pro",
+        "model.size_preset": "(2K) 2848x1600 (16:9)",
+        "model.width": 2848,
+        "model.height": 1600,
+        "model.prompt_optimization": "standard",
+        "model.seed": 42,
+        "control_after_generate#1": "randomize",
+        "model.watermark": false,
+        "model.thinking": true,
+        "model.generation_count": 1,
+        "model.output_format": "jpeg",
+        "model.background": "opaque",
+        "control_after_generate": "randomize"
+      }
+    },
+    {
+      "id": 11,
+      "type": "SaveImage",
+      "pos": [
+        2020,
+        480
+      ],
+      "size": [
+        460,
+        480
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Save the location",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.2",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "BytePlus/Image/location_sheet"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/Image/location_sheet"
+      }
+    }
+  ],
+  "links": [
+    [
+      7,
+      8,
+      0,
+      9,
+      0,
+      "STRING"
+    ],
+    [
+      9,
+      10,
+      0,
+      11,
+      0,
+      "IMAGE"
+    ],
+    [
+      8,
+      8,
+      0,
+      10,
+      0,
+      "STRING"
+    ],
+    [
+      1,
+      2,
+      0,
+      8,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      3,
+      0,
+      8,
+      1,
+      "STRING"
+    ],
+    [
+      3,
+      4,
+      0,
+      8,
+      2,
+      "STRING"
+    ],
+    [
+      4,
+      5,
+      0,
+      8,
+      4,
+      "STRING"
+    ],
+    [
+      5,
+      6,
+      0,
+      8,
+      5,
+      "STRING"
+    ],
+    [
+      6,
+      7,
+      0,
+      8,
+      6,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "1 · Describe the place",
+      "bounding": [
+        0,
+        0,
+        460,
+        1060
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "2 · Dressing, look and light",
+      "bounding": [
+        460,
+        0,
+        460,
+        1060
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "3 · Camera and prompt",
+      "bounding": [
+        920,
+        0,
+        580,
+        1060
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "4 · Paint and save",
+      "bounding": [
+        1500,
+        0,
+        1000,
+        1060
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5,
+      "offset": [
+        40,
+        40
+      ]
+    },
+    "frontendVersion": "1.53.6"
+  },
+  "version": 0.4
+}

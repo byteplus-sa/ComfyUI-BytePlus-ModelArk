@@ -49,6 +49,7 @@ The node bills for every image it generates. It does not save anything itself: c
 - The size is checked before anything is sent. The ratio must be between 1:16 and 16:1, and the total pixels must fit the model: 921,600 to 4,624,220 on 5.0 Pro and Flash, 3,686,400 to 16,777,216 on 5.0 Lite and 4.5, and 921,600 to 16,777,216 on 4.0.
 - On 5.0 Pro the 1.5K sizes are priced like 1K.
 - `thinking` is on by default (5.0 Flash has no such setting). It can substantially increase generation time, most on 5.0 Pro, and it can only be switched off when no reference image is connected.
+- For reference images of a character, a place or an object, the Production assets templates ([Character Sheet](../../templates/character-sheet/), [Location Sheet](../../templates/location-sheet/), [Prop Sheet](../../templates/prop-sheet/)) fill a fixed prompt from a few text boxes and send it to this node.
 - A rejected result (“Generated image contains sensitive content”) can be a false alarm. Run again with another `seed` or reword the prompt.
 - If you interrupt the run, the node stops waiting. A request that was already sent may still be billed.
 - A failed request that may have billed is never sent again automatically. See [Billing and cost](../../concepts/billing-and-cost/).

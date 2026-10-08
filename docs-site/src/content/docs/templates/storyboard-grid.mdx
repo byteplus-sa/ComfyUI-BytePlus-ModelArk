@@ -1,0 +1,54 @@
+---
+title: "Storyboard Grid"
+description: "Describe a scene in beats, let Seed write the grid prompt, and paint a numbered pencil-sketch storyboard in one Seedream 5.0 Pro image."
+template_file: Storyboard Grid.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Storyboard Grid.json" />
+
+## What it makes
+
+One image that holds a whole storyboard: numbered panels in a grid, drawn as rough pencil sketches. It is for deciding staging and shot order before you spend on video. You write the scene as a list of beats. The BytePlus LLM node turns them into a grid prompt, and Seedream paints it. The template tells a six-panel scene about a pirate captain and a spinning compass.
+
+## The workflow
+
+<Shot src="templates/storyboard-grid-workflow.webp" alt="The Storyboard Grid template in three groups: a text box with the scene beats, the BytePlus LLM node, and a prompt preview with Seedream and Save Image" caption="Scene beats go to Seed, which writes the prompt that Seedream draws." />
+
+1. **Scene beats (change me)** holds the scene: one clear action per beat, the panel count, and one description of each recurring character and place.
+2. **[BytePlus LLM](../../nodes/byteplus-llm/)** runs `Seed 2.1 Turbo`. Its `system_prompt` asks for one image prompt for a storyboard grid: one panel per beat, a reading-order grid with thin dividers and small panel numbers, one frozen moment per panel, the same words for each recurring character and place, and a pencil-sketch style.
+3. **Prompt written by Seed** (Preview as Text) shows what the LLM wrote.
+4. **[Seedream 4.5 & 5.0](../../nodes/seedream/)** runs `seedream 5.0 pro` at `(2K) 2848x1600 (16:9)` with that text as the prompt.
+5. **Save Image** writes the board to `BytePlus/Image/storyboard_grid`.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)). One key covers both nodes.
+2. Open the template browser and choose **Storyboard Grid** under BytePlus.
+3. Rewrite **Scene beats (change me)**. Say how many panels you want.
+4. Press **Run**. Read the prompt Seed wrote, then check the board in **Save Image**.
+
+## Settings worth changing
+
+- **Scene beats:** number the beats and state the panel count, for example "Panels: 6". Without a count, the LLM picks between 4 and 9.
+- **`system_prompt` (LLM):** change the style line to ask for ink, charcoal or full color instead of pencil. Keep the rules about dividers, numbers and one moment per panel.
+- **Reference images:** to keep a character or room consistent, connect a [Character Sheet](../character-sheet/) or [Location Sheet](../location-sheet/) image to `image_1` or `image_2` in Seedream and say in the beats what each one is.
+- **`size_preset` (Seedream):** 16:9 suits a horizontal board. Use a vertical size for a vertical video.
+- **A board for a video model:** the panel numbers are drawn into the image. If you will use the board as a video reference, edit the `system_prompt` to ask for a grid without numbers.
+
+## Example result
+
+<Shot src="templates/storyboard-grid-result.webp" alt="A pencil-sketch storyboard of six numbered panels in two rows: a pirate captain at a chart table, a spinning compass, his upward glance, taking his coat, opening the cabin door onto a storm, and a ship in the lightning" caption="Example result: six numbered panels, 2848x1600." />
+
+Six panels in two rows of three with thin dividers and a number in each top-left corner, following the six beats. The captain and the cabin look the same from panel to panel. It is a planning sketch, so judge staging and shot order and not surface polish. If a panel is wrong, change that beat and run again.
+
+## Time and cost
+
+Each node bills once per run: one LLM request and one Seedream image. The seed controls are set to `randomize`, so every run writes a new prompt, draws a new board and bills again. Set a control to `fixed` and ComfyUI reuses the cached result of an unchanged node without billing.
+
+## Related
+
+- Nodes: [BytePlus LLM](../../nodes/byteplus-llm/), [Seedream 4.5 & 5.0](../../nodes/seedream/)
+- Next step: [Character Sheet](../character-sheet/), [Location Sheet](../location-sheet/) and [Prop Sheet](../prop-sheet/) make the references that keep a board consistent. [Text to Image to Video](../text-to-image-to-video/) animates an image.
