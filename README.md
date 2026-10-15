@@ -1,12 +1,12 @@
 # ComfyUI BytePlus ModelArk & AI MediaKit
 
-Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Seed / DeepSeek / GLM language models, Seed Speech audio, and AI MediaKit video and image enhancement.
+Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, and AI MediaKit video and image enhancement.
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.5.5.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.6.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.5.5:** five production-asset templates, each a clean Seedream 5.0 Pro reference from a few text boxes: Character Sheet (back, front and face close-up on gray), Location Sheet, Prop Sheet, Character Sheet Cleanup (leaves one readable face on a sheet) and Storyboard Grid (the LLM turns scene beats into a numbered pencil-sketch board). They need only a ModelArk key.
+**New in v0.6.0:** two 3D generation nodes, Hyper3D Gen2 (text and images to 3D) and Hitem3D 2.0 (images to 3D), with two templates that open the result in ComfyUI's 3D viewer and save it as GLB. They need only a ModelArk key and a ComfyUI release with 3D file support (tested on 0.38).
 
 ## Contents
 
@@ -56,6 +56,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 |---|---|---|
 | **ModelArk** – images | Seedream 4.5 & 5.0, Seedream 5.0 Layer Separation | ModelArk API key |
 | **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 (3 nodes), Draft to Final | ModelArk API key |
+| **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
 | **ModelArk** – asset library | Create Image / Video / Audio Asset, Asset Library | ModelArk API key + IAM AK/SK |
 | **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
@@ -222,6 +223,15 @@ Needs Dreamina Seedance Advanced Creation Rights and IAM AK/SK. See [Private Ass
 - Use the `speaker_id` with TTS model `seed-icl-2.0` (`custom_speaker_id`) or in a Seed Audio reference slot.
 - Each slot can be trained 15 times. **The first TTS call with the voice starts the slot's billing.**
 
+### 3D generation (ModelArk)
+
+| Node | What it does |
+|---|---|
+| **Hyper3D Gen2** | A textured 3D model from a text prompt (up to 400 characters), up to five images, or both. Mesh mode, material, polygon count, HD and 4K textures, T-pose, file format. |
+| **Hitem3D 2.0** | A 3D model from one to four images (front, back, left, right), geometry only or with texture, at 1536 or 1536pro. |
+
+Both nodes use the Seedance task endpoint, poll the task, download the result (the link lives 24 hours) and output it as a 3D file. They save nothing: connect **Save 3D (Advanced)** to view the model in ComfyUI's 3D viewer and keep a copy. Interrupting a run deletes the pending task.
+
 ### Video and Image Enhancement (AI MediaKit)
 
 Connected videos and images are uploaded to Comfy.org storage first (**Comfy.org login required**); the advanced `video_url` / `image_url` inputs take a public link instead. MediaKit result links expire after 24 hours, so the nodes download results right away.
@@ -325,6 +335,8 @@ Templates are in [`example_workflows/`](./example_workflows) and appear in Comfy
 | Location Sheet | Six text boxes (place, era, dressing, style, light, lens) become a people-free reference still of a location. |
 | Prop Sheet | One object on a clean seamless background, as a hero view or a three-panel sheet, for props that are held, recur or carry the story. |
 | Character Sheet Cleanup | A Seedream 5.0 Pro edit that removes the head from the front full-body panel of a sheet so the close-up is the only readable face. |
+| Hyper3D Text to 3D | A text prompt becomes a textured 3D model (Hyper3D Gen2), opened and saved with Save 3D (Advanced) (ModelArk key). |
+| Hyper3D and Hitem3D Image to 3D | Seedream draws one object, Hyper3D Gen2 and Hitem3D 2.0 each build a 3D model from it, so you can compare them (ModelArk key). |
 | Storyboard Grid | The LLM turns scene beats into a grid prompt and Seedream paints a numbered pencil-sketch storyboard in one image. |
 | Seedance Task Query | Video Query Tasks collects a Seedance task by ID (or lists the latest tasks) and shows its status and model. |
 | Video and Audio Assets | Create Video Asset and Create Audio Asset register media in your private library, Asset Library lists it, Seedance 2.5 Reference uses both as `asset_1` and `asset_2` (IAM AK/SK). |

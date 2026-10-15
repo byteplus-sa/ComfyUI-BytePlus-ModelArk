@@ -1,0 +1,65 @@
+---
+title: "Hyper3D Gen2"
+description: "Generate a textured 3D model from a text prompt, from up to five reference images, or from both, with Hyper3D Gen2."
+node_id: BytePlusHyper3D
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusHyper3D" />
+
+## What it does
+
+Builds a 3D model with Hyper3D Gen2 on ModelArk. Describe the object in `prompt`, connect up to five images of it in `images`, or use both. The node submits one task, waits for it, downloads the result and returns it as a 3D file. It needs only the ModelArk key and bills for every task. It saves nothing: connect **Save 3D (Advanced)** to view the model and keep a copy.
+
+## On the canvas
+
+<Shot src="nodes/hyper3d.png" alt="The Hyper3D Gen2 node with a prompt box, mesh and material choices and advanced polygon inputs" caption="Default values: Quad mesh, PBR material, GLB file." />
+
+## Inputs
+
+<NodeInputs id="BytePlusHyper3D" />
+
+### Notes on inputs
+
+- **Prompt or images:** at least one is required. The prompt is English text of up to 400 characters, and it cannot contain `--option` flags: use the node's inputs instead.
+- **Images:** connect one image batch of up to five pictures of a single object. Clear, centered pictures on a plain background work best. Images with transparency are sent as PNG, other images as JPEG.
+- **Polygons:** `subdivision_level` picks a preset. `quality_override` sets an exact face count and replaces the preset: 500 to 1,000,000 for Raw, 1,000 to 200,000 for Quad.
+- **Bounding box:** `bbox_width`, `bbox_height` and `bbox_length` only apply when all three are set. Leave them at 0 to switch it off.
+- **Seed:** 0 to 65535.
+
+## Outputs
+
+<NodeOutputs id="BytePlusHyper3D" />
+
+### Notes on outputs
+
+- `model` is the main model file from the result, in the format you chose.
+- `response` holds the task ID and the file format as JSON.
+
+## Limits and tips
+
+- The model ID is `hyper3d-gen2-260112`. It uses the Seedance task endpoint, so generation runs as a background task that the node polls every few seconds.
+- The result link from BytePlus lives 24 hours. The node downloads it as soon as the task finishes. If the download fails, the error shows the task ID.
+- Interrupting a run deletes the pending task on ModelArk.
+- Paid task creation is never retried automatically, so a failed submit cannot bill twice.
+- The result link points straight to the model file. With `obj` the file has no material or texture file next to it; use `glb` to keep textures.
+- The default format is GLB. The file formats you can choose are listed in the `file_format` input.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `[BytePlus] BytePlus Hyper3D needs a prompt or at least one image.` | Type a prompt or connect an image. |
+| `[BytePlus] The prompt is … characters long; Hyper3D accepts at most 400.` | Shorten the prompt. |
+| `[BytePlus] Remove the --… option from the prompt: use the node's inputs instead.` | Delete the flag from the prompt and set the matching input. |
+| `[BytePlus] The 3D task … failed: …` | Read the reason. Content filters can reject a prompt or image: change it and run again. |
+| `[BytePlus] The 3D result of task … could not be downloaded …` | Run again. The task ID in the message identifies the finished task. |
+
+## Used in templates
+
+<UsedIn id="BytePlusHyper3D" />

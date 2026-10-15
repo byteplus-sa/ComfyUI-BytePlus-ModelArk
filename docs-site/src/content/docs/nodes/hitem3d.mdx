@@ -1,0 +1,64 @@
+---
+title: "Hitem3D 2.0"
+description: "Generate a 3D model with Hitem3D 2.0 from one to four images of an object, as geometry only or with texture."
+node_id: BytePlusHitem3D
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusHitem3D" />
+
+## What it does
+
+Builds a 3D model with Hitem3D 2.0 on ModelArk from one to four pictures of one object: front, back, left and right. It submits one task, waits, downloads the result and returns it as a 3D file. It needs only the ModelArk key and bills for every task. It saves nothing: connect **Save 3D (Advanced)** to view the model and keep a copy.
+
+## On the canvas
+
+<Shot src="nodes/hitem3d.png" alt="The Hitem3D 2.0 node with resolution, request type and file format choices" caption="Default values: 1536 resolution, geometry and texture, GLB file." />
+
+## Inputs
+
+<NodeInputs id="BytePlusHitem3D" />
+
+### Notes on inputs
+
+- **Images:** connect one image batch of 1 to 4 pictures. With one image, the node sends no view information.
+- **Views:** with two to four images the node sends which views you supply, as four digits for front, back, left, right. Leave `views` empty to use the first views in order (two images are front and back). Set `1010` for front and left. The number of 1 digits must equal the number of images.
+- **Request type:** Geometry only returns a model without texture.
+- **Face count:** `face` sets the number of faces, 100,000 to 2,000,000. Leave it at 0 for the model's default.
+
+## Outputs
+
+<NodeOutputs id="BytePlusHitem3D" />
+
+### Notes on outputs
+
+- `model` is the main model file from the result, in the format you chose.
+- `response` holds the task ID and the file format as JSON.
+
+## Limits and tips
+
+- The model ID is `hitem3d-2-0-251223`. It uses the Seedance task endpoint, so generation runs as a background task that the node polls every few seconds.
+- The result link from BytePlus lives 24 hours. The node downloads it as soon as the task finishes. If the download fails, the error shows the task ID.
+- Hitem3D takes much longer than Hyper3D, and its GLB can be tens of megabytes. Keep the run going until the task finishes.
+- Interrupting a run deletes the pending task on ModelArk.
+- Paid task creation is never retried automatically, so a failed submit cannot bill twice.
+- This model takes images only. For a text prompt use [Hyper3D Gen2](../hyper3d/), or make an image first with [Seedream](../seedream/).
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `[BytePlus] BytePlus Hitem3D needs at least one image.` | Connect an image. |
+| `[BytePlus] BytePlus Hitem3D accepts at most 4 images, got …` | Connect at most four pictures. |
+| `[BytePlus] views must be 4 characters of 0 and 1 …` | Use four digits with one 1 per image, or clear the field. |
+| `[BytePlus] The 3D task … failed: …` | Read the reason. Content filters can reject an image: use another one. |
+| `[BytePlus] The 3D result of task … could not be downloaded …` | Run again. The task ID in the message identifies the finished task. |
+
+## Used in templates
+
+<UsedIn id="BytePlusHitem3D" />

@@ -46,6 +46,8 @@ NODES = [
     ("BytePlusVideoEnhance", "vcube-video-enhance", "MediaKit"),
     ("BytePlusVideoSmoothness", "video-smoothness-enhance", "MediaKit"),
     ("BytePlusImageEnhance", "image-quality-enhance", "MediaKit"),
+    ("BytePlusHyper3D", "hyper3d", "3D"),
+    ("BytePlusHitem3D", "hitem3d", "3D"),
     ("BytePlusCreateImageAsset", "create-image-asset", "Assets"),
     ("BytePlusCreateVideoAsset", "create-video-asset", "Assets"),
     ("BytePlusCreateAudioAsset", "create-audio-asset", "Assets"),
@@ -59,6 +61,7 @@ TEMPLATE_GROUPS = [
     ("Images", ["Image Edit", "Image Variations", "Seedream Layer Separation", "Image Quality Enhance", "Generate and Enhance"]),
     ("Production assets", ["Character Sheet", "Location Sheet", "Prop Sheet", "Character Sheet Cleanup", "Storyboard Grid"]),
     ("Video", ["Image and Video References", "Image to Video - Seedance 2.5 and 2.0", "Image to Draft to 1080p", "2.5 Model Updates", "Seedance Video Extension", "Seedance Task Query", "vCube Video Enhance", "Video Smoothness Enhance"]),
+    ("3D", ["Hyper3D Text to 3D", "Hyper3D and Hitem3D Image to 3D"]),
     ("Language", ["Seed Prompt Writer"]),
     ("Speech", ["Seed Audio", "Seed Speech TTS and ASR", "Seed Voice Clone"]),
     ("Assets", ["Virtual Portrait - Existing Asset", "Virtual Portrait - New Asset", "Video and Audio Assets"]),
@@ -69,6 +72,7 @@ TEMPLATE_GROUPS = [
 # Keys a node needs (Settings > BytePlus). Assets also need the IAM pair.
 KEYS_BY_CATEGORY = {
     "BytePlus ModelArk": ["ModelArk API key"],
+    "BytePlus ModelArk/3D": ["ModelArk API key"],
     "BytePlus ModelArk/Speech": ["Seed Speech API key"],
     "BytePlus ModelArk/MediaKit": ["AI MediaKit API key"],
 }

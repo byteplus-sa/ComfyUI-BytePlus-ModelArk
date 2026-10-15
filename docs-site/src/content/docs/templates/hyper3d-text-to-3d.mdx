@@ -1,0 +1,50 @@
+---
+title: "Hyper3D Text to 3D"
+description: "Generate a textured 3D model from a text prompt with Hyper3D Gen2, then view it and download it as GLB."
+template_file: Hyper3D Text to 3D.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Hyper3D Text to 3D.json" />
+
+## What it makes
+
+A textured 3D model of an object you describe. The template asks for a complete armored four-legged mech robot, and shows the result in ComfyUI's 3D viewer, where you can orbit it and download it.
+
+## The workflow
+
+<Shot src="templates/hyper3d-text-to-3d-workflow.webp" alt="Hyper3D Gen2 feeding Save 3D (Advanced), with a how-to note beside them" caption="Two nodes and a note: Hyper3D Gen2, Save 3D (Advanced) and the how-to." />
+
+1. **[Hyper3D Gen2](../../nodes/hyper3d/)** turns the prompt into a model with a Quad mesh, PBR material and GLB format.
+2. **Save 3D (Advanced)** opens the model in the viewer and saves a copy to `BytePlus/3D/Hyper3D` in your ComfyUI output folder.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Open the template browser and choose **Hyper3D Text to 3D** under BytePlus.
+3. Replace the prompt with your own object, in English and under 400 characters.
+4. Press **Run**. The model appears in **Save 3D (Advanced)**: orbit it, and use the viewer's export button to download it in another format.
+
+## Settings worth changing
+
+- **`prompt`:** say what the object is, its colors and materials, and that it is complete and fully assembled.
+- **`mesh_mode`:** Quad gives clean topology for editing. Raw gives triangles.
+- **`material`:** PBR for physically based textures, Shaded for baked lighting, None for a white model.
+- **Advanced inputs:** `quality_override` sets an exact face count, `hd_texture` and `high_pack` raise texture quality, and `ta_pose` forces a T-pose for characters.
+
+## Example result
+
+<Shot src="templates/hyper3d-text-to-3d-result.webp" alt="A rendered orange and black armored mech robot with glowing blue eyes on a gray background" caption="The template's default prompt, rendered from the saved GLB. Your result will differ with each seed." />
+
+The result is a GLB file. After a run it opens in the viewer on **Save 3D (Advanced)**, and a copy sits in your output folder under `BytePlus/3D/`.
+
+## Time and cost
+
+Each run creates one billed task. Running again with an unchanged workflow reuses ComfyUI's cached result and does not bill; change the `seed` to make a new model.
+
+## Related
+
+- Node: [Hyper3D Gen2](../../nodes/hyper3d/)
+- Next step: [Hyper3D and Hitem3D Image to 3D](../hyper3d-and-hitem3d-image-to-3d/) builds 3D models from a picture and compares two models.

@@ -6826,6 +6826,289 @@
   ]
  },
  {
+  "id": "BytePlusHyper3D",
+  "slug": "hyper3d",
+  "group": "3D",
+  "display_name": "BytePlus Hyper3D Gen2",
+  "category": "BytePlus ModelArk/3D",
+  "description": "Generate a textured 3D model with Hyper3D Gen2 from a text prompt, from up to 5 reference images, or from both.",
+  "search_aliases": [
+   "Hyper3D",
+   "Rodin",
+   "text to 3D",
+   "image to 3D"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "mesh_mode",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Quad: clean quad topology for editing. Raw: triangles.",
+    "default": "Quad",
+    "options": [
+     "Quad",
+     "Raw"
+    ]
+   },
+   {
+    "name": "material",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "PBR: physically based textures. Shaded: baked lighting. All: both. None: white model.",
+    "default": "PBR",
+    "options": [
+     "PBR",
+     "Shaded",
+     "All",
+     "None"
+    ]
+   },
+   {
+    "name": "file_format",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Format of the 3D file. GLB is the default.",
+    "default": "glb",
+    "options": [
+     "glb",
+     "obj",
+     "fbx",
+     "usdz",
+     "stl"
+    ]
+   },
+   {
+    "name": "prompt",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Describe the model in English (up to 400 characters). Required when no image is connected.",
+    "default": "",
+    "multiline": true
+   },
+   {
+    "name": "images",
+    "type": "IMAGE",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Up to 5 reference images of one object (a batch). A clean, single-object picture on a plain background works best."
+   },
+   {
+    "name": "seed",
+    "type": "integer",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Seed for repeatable results (0-65535).",
+    "default": 0,
+    "min": 0,
+    "max": 65535
+   },
+   {
+    "name": "subdivision_level",
+    "type": "choice",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Polygon count level. Ignored when quality_override is set.",
+    "default": "medium",
+    "options": [
+     "medium",
+     "high",
+     "low"
+    ]
+   },
+   {
+    "name": "quality_override",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Exact face count. 0 = use subdivision_level. Raw: 500-1,000,000. Quad: 1,000-200,000.",
+    "default": 0,
+    "min": 0,
+    "max": 1000000
+   },
+   {
+    "name": "hd_texture",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Generate higher resolution textures.",
+    "default": false
+   },
+   {
+    "name": "high_pack",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "HighPack add-on: 4K textures.",
+    "default": false
+   },
+   {
+    "name": "ta_pose",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Force a T-pose or A-pose for humanoid characters.",
+    "default": false
+   },
+   {
+    "name": "use_original_alpha",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Keep the transparent areas of the input images (only used with images).",
+    "default": false
+   },
+   {
+    "name": "bbox_width",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Bounding box width. Set width, height and length together; 0 = off.",
+    "default": 0,
+    "min": 0,
+    "max": 10000
+   },
+   {
+    "name": "bbox_height",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Bounding box height. Set width, height and length together; 0 = off.",
+    "default": 0,
+    "min": 0,
+    "max": 10000
+   },
+   {
+    "name": "bbox_length",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Bounding box length. Set width, height and length together; 0 = off.",
+    "default": 0,
+    "min": 0,
+    "max": 10000
+   }
+  ],
+  "outputs": [
+   {
+    "name": "model",
+    "type": "FILE_3D",
+    "is_list": false,
+    "tooltip": "The generated 3D model. Connect it to Save 3D Model to keep it, or to any 3D node."
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Task ID and format of the result, as JSON."
+   }
+  ]
+ },
+ {
+  "id": "BytePlusHitem3D",
+  "slug": "hitem3d",
+  "group": "3D",
+  "display_name": "BytePlus Hitem3D 2.0",
+  "category": "BytePlus ModelArk/3D",
+  "description": "Generate a 3D model with Hitem3D 2.0 from 1 to 4 images of one object (front, back, left, right).",
+  "search_aliases": [
+   "Hitem3D",
+   "image to 3D",
+   "multi view to 3D"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "images",
+    "type": "IMAGE",
+    "required": true,
+    "advanced": false,
+    "tooltip": "1 to 4 images of one object (a batch), in the order front, back, left, right. With several images, set views if they are not the first views."
+   },
+   {
+    "name": "resolution",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Model resolution: 1536 (default) or 1536pro.",
+    "default": "1536",
+    "options": [
+     "1536",
+     "1536pro"
+    ]
+   },
+   {
+    "name": "request_type",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Geometry only returns an untextured model.",
+    "default": "Geometry and texture",
+    "options": [
+     "Geometry and texture",
+     "Geometry only"
+    ]
+   },
+   {
+    "name": "file_format",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Format of the 3D file. GLB is the default.",
+    "default": "glb",
+    "options": [
+     "obj",
+     "glb",
+     "stl",
+     "fbx",
+     "usdz"
+    ]
+   },
+   {
+    "name": "face",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Face count (100,000-2,000,000). 0 = the model's default.",
+    "default": 0,
+    "min": 0,
+    "max": 2000000
+   },
+   {
+    "name": "views",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Which views the images are, as 4 digits for front, back, left, right: 1010 = front and left. One 1 per image. Empty = the first views in order.",
+    "default": ""
+   }
+  ],
+  "outputs": [
+   {
+    "name": "model",
+    "type": "FILE_3D",
+    "is_list": false,
+    "tooltip": "The generated 3D model. Connect it to Save 3D Model to keep it, or to any 3D node."
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Task ID and format of the result, as JSON."
+   }
+  ]
+ },
+ {
   "id": "BytePlusCreateImageAsset",
   "slug": "create-image-asset",
   "group": "Assets",

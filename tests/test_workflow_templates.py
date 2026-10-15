@@ -47,6 +47,8 @@ EXPECTED_WORKFLOWS = {
     "Prop Sheet.json",
     "Character Sheet Cleanup.json",
     "Storyboard Grid.json",
+    "Hyper3D Text to 3D.json",
+    "Hyper3D and Hitem3D Image to 3D.json",
 }
 FRONTEND_SAVED_IMAGE_TEMPLATES = {"Image Edit.json", "Image Variations.json"}
 NEW_TEMPLATE_FILES = {
@@ -66,11 +68,26 @@ NEW_TEMPLATE_FILES = {
     "Prop Sheet.json",
     "Character Sheet Cleanup.json",
     "Storyboard Grid.json",
+    "Hyper3D Text to 3D.json",
+    "Hyper3D and Hitem3D Image to 3D.json",
 }
 
 
 # Node counts and links (origin type, origin slot, target type, target input) of the showcase and coverage templates.
 NEW_TEMPLATES = {
+    "Hyper3D Text to 3D.json": {
+        "nodes": {"BytePlusHyper3D": 1, "MarkdownNote": 1, "Save3DAdvanced": 1},
+        "edges": [("BytePlusHyper3D", 0, "Save3DAdvanced", "model_3d")],
+    },
+    "Hyper3D and Hitem3D Image to 3D.json": {
+        "nodes": {"BytePlusHitem3D": 1, "BytePlusHyper3D": 1, "BytePlusSeedream": 1, "MarkdownNote": 1, "Save3DAdvanced": 2},
+        "edges": [
+            ("BytePlusHitem3D", 0, "Save3DAdvanced", "model_3d"),
+            ("BytePlusHyper3D", 0, "Save3DAdvanced", "model_3d"),
+            ("BytePlusSeedream", 0, "BytePlusHitem3D", "images"),
+            ("BytePlusSeedream", 0, "BytePlusHyper3D", "images"),
+        ],
+    },
     "Seedance Video Extension.json": {
         "nodes": {"BytePlusSeedance2Reference": 2, "BytePlusSeedance2TextToVideo": 1, "ConcatenateVideo": 1, "MarkdownNote": 1, "SaveVideo": 1},
         "edges": [
@@ -359,6 +376,12 @@ class WorkflowTemplateTests(unittest.TestCase):
         return ["model", *text, "seed", "watermark"] + cls.CORE_STYLE_EXTRAS
 
     CURRENT_INPUT_ORDERS = {
+        "BytePlusHyper3D": [
+            "images", "mesh_mode", "material", "file_format", "prompt", "seed", "subdivision_level",
+            "quality_override", "hd_texture", "high_pack", "ta_pose", "use_original_alpha",
+            "bbox_width", "bbox_height", "bbox_length",
+        ],
+        "BytePlusHitem3D": ["images", "resolution", "request_type", "file_format", "face", "views"],
         # As the frontend saves it: sockets, then the DynamicCombo children before their parent.
         "BytePlusVideoEnhance": [
             "video", "tool_version.scene", "tool_version.enhance_style",
@@ -455,7 +478,8 @@ class WorkflowTemplateTests(unittest.TestCase):
                     self.assertEqual(target["inputs"][target_slot]["link"], link_id)
                     target_type = target["inputs"][target_slot]["type"].split(",")[0]
                     if target_type != "*":  # wildcard inputs, e.g. PreviewAny
-                        self.assertEqual(target_type, link_type)
+                        # Multi-type inputs list every accepted type, e.g. Save 3D's FILE_3D_GLB,...,FILE_3D.
+                        self.assertIn(link_type, target["inputs"][target_slot]["type"].split(","))
                     self.assertIn(link_id, origin["outputs"][origin_slot]["links"])
 
                 self.assertGreaterEqual(
@@ -464,7 +488,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 for node in workflow["nodes"]:
                     if node["type"].startswith("BytePlus"):
                         self.assertEqual(node["properties"]["cnr_id"], "ComfyUI-BytePlus-ModelArk")
-                        self.assertEqual(node["properties"]["ver"], "0.5.5")
+                        self.assertEqual(node["properties"]["ver"], "0.6.0")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
         combo_inputs = {
@@ -883,7 +907,7 @@ class WorkflowTemplateTests(unittest.TestCase):
     # Nodes ComfyUI runs on their own; every other node runs only when one of these uses its output.
     OUTPUT_NODE_TYPES = {
         "SaveImage", "PreviewImage", "SaveVideo", "PreviewAny", "PreviewAudio", "SaveAudio",
-        "ImageCompare", "SaveAudioAdvanced", "BytePlusVideoQueryTasks", "BytePlusAssetLibrary",
+        "ImageCompare", "SaveAudioAdvanced", "Save3DAdvanced", "BytePlusVideoQueryTasks", "BytePlusAssetLibrary",
     }
 
     def test_every_node_leads_to_an_output_node(self):
@@ -933,7 +957,7 @@ class WorkflowTemplateTests(unittest.TestCase):
     ALLOWED_CORE_TYPES = {
         "LoadImage", "LoadAudio", "PrimitiveString", "PrimitiveStringMultiline", "RegexExtract",
         "PreviewAny", "GetVideoComponents", "CreateVideo", "SaveVideo", "SaveImage",
-        "SaveAudioAdvanced", "AudioConcat", "ConcatenateVideo", "MarkdownNote", "StringFormat",
+        "SaveAudioAdvanced", "AudioConcat", "ConcatenateVideo", "MarkdownNote", "StringFormat", "Save3DAdvanced",
     }
 
     SHEET_TEMPLATES = {
@@ -1088,6 +1112,18 @@ class WorkflowTemplateTests(unittest.TestCase):
     @staticmethod
     def node_values(workflow, node_type):
         return [n["widgets_values"] for n in workflow["nodes"] if n["type"] == node_type]
+
+    def test_3d_templates_save_every_model_and_share_the_concept_image(self):
+        text = load_workflow("Hyper3D Text to 3D.json")
+        (hyper,) = self.node_values(text, "BytePlusHyper3D")
+        self.assertTrue(hyper[3].strip())
+        self.assertLessEqual(len(hyper[3]), 400)
+        self.assertEqual(hyper[:3], ["Quad", "PBR", "glb"])
+        image = load_workflow("Hyper3D and Hitem3D Image to 3D.json")
+        saves = self.node_values(image, "Save3DAdvanced")
+        self.assertEqual(len({values[0] for values in saves}), 2)
+        (hitem,) = self.node_values(image, "BytePlusHitem3D")
+        self.assertEqual(hitem, ["1536", "Geometry and texture", "glb", 0, ""])
 
     def test_ugc_template_defaults(self):
         workflow = load_workflow("Image to UGC Video.json")

@@ -423,5 +423,21 @@
   "tested": "2026-10-08",
   "media": [],
   "extra_runs": []
+ },
+ "hyper3d-text-to-3d": {
+  "case": "tpl-3d-hyper3d-text",
+  "status": "success",
+  "seconds": 115,
+  "tested": "2026-10-15",
+  "media": [],
+  "extra_runs": []
+ },
+ "hyper3d-and-hitem3d-image-to-3d": {
+  "case": "tpl-3d-image-to-3d",
+  "status": "success",
+  "seconds": 1450,
+  "tested": "2026-10-15",
+  "media": [],
+  "extra_runs": []
  }
 }
