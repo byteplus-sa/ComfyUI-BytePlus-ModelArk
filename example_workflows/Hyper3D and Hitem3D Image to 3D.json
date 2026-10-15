@@ -1,0 +1,914 @@
+{
+  "id": "01ab0ed2-bcac-4ae9-b2b2-377999332f94",
+  "revision": 0,
+  "last_node_id": 6,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "BytePlusSeedream",
+      "pos": [
+        40,
+        100
+      ],
+      "size": [
+        400,
+        416
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "size_preset",
+          "name": "model.size_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.size_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "model.width",
+          "type": "INT",
+          "widget": {
+            "name": "model.width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "model.height",
+          "type": "INT",
+          "widget": {
+            "name": "model.height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "image_1",
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "prompt_optimization",
+          "name": "model.prompt_optimization",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.prompt_optimization"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "model.seed",
+          "type": "INT",
+          "widget": {
+            "name": "model.seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "watermark",
+          "name": "model.watermark",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.watermark"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "thinking",
+          "name": "model.thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "model.thinking"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "generation_count",
+          "name": "model.generation_count",
+          "type": "INT",
+          "widget": {
+            "name": "model.generation_count"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_format",
+          "name": "model.output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.output_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "background",
+          "name": "model.background",
+          "type": "COMBO",
+          "widget": {
+            "name": "model.background"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "reference_mask",
+          "name": "model.reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1,
+            2
+          ]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.6.0"
+      },
+      "widgets_values": [
+        "A single orange and black armored quadrupedal mech robot with a rounded head and glowing blue sensors, full body, three-quarter front view, centered on a plain light grey background, soft even studio lighting, nothing cropped",
+        "seedream 5.0 pro",
+        "(1K) 1024x1024 (1:1)",
+        2048,
+        2048,
+        "standard",
+        42,
+        "randomize",
+        false,
+        true,
+        1,
+        "jpeg",
+        "opaque"
+      ],
+      "widgets_values_named": {
+        "prompt": "A single orange and black armored quadrupedal mech robot with a rounded head and glowing blue sensors, full body, three-quarter front view, centered on a plain light grey background, soft even studio lighting, nothing cropped",
+        "model": "seedream 5.0 pro",
+        "model.size_preset": "(1K) 1024x1024 (1:1)",
+        "model.width": 2048,
+        "model.height": 2048,
+        "model.prompt_optimization": "standard",
+        "model.seed": 42,
+        "control_after_generate": "randomize",
+        "model.watermark": false,
+        "model.thinking": true,
+        "model.generation_count": 1,
+        "model.output_format": "jpeg",
+        "model.background": "opaque"
+      }
+    },
+    {
+      "id": 2,
+      "type": "BytePlusHyper3D",
+      "pos": [
+        580,
+        100
+      ],
+      "size": [
+        400,
+        444
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "localized_name": "mesh_mode",
+          "name": "mesh_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mesh_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "material",
+          "name": "material",
+          "type": "COMBO",
+          "widget": {
+            "name": "material"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "file_format",
+          "name": "file_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "file_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "subdivision_level",
+          "name": "subdivision_level",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "subdivision_level"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "quality_override",
+          "name": "quality_override",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "quality_override"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "hd_texture",
+          "name": "hd_texture",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "hd_texture"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "high_pack",
+          "name": "high_pack",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "high_pack"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ta_pose",
+          "name": "ta_pose",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "ta_pose"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "use_original_alpha",
+          "name": "use_original_alpha",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "use_original_alpha"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "bbox_width",
+          "name": "bbox_width",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "bbox_width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "bbox_height",
+          "name": "bbox_height",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "bbox_height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "bbox_length",
+          "name": "bbox_length",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "bbox_length"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "FILE_3D",
+          "links": [
+            3
+          ]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BytePlusHyper3D",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.6.0"
+      },
+      "widgets_values": [
+        "Quad",
+        "PBR",
+        "glb",
+        "",
+        0,
+        "randomize",
+        "medium",
+        0,
+        false,
+        false,
+        false,
+        false,
+        0,
+        0,
+        0
+      ],
+      "widgets_values_named": {
+        "mesh_mode": "Quad",
+        "material": "PBR",
+        "file_format": "glb",
+        "prompt": "",
+        "seed": 0,
+        "control_after_generate": "randomize",
+        "subdivision_level": "medium",
+        "quality_override": 0,
+        "hd_texture": false,
+        "high_pack": false,
+        "ta_pose": false,
+        "use_original_alpha": false,
+        "bbox_width": 0,
+        "bbox_height": 0,
+        "bbox_length": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": "BytePlusHitem3D",
+      "pos": [
+        580,
+        700
+      ],
+      "size": [
+        270,
+        174
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "request_type",
+          "name": "request_type",
+          "type": "COMBO",
+          "widget": {
+            "name": "request_type"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "file_format",
+          "name": "file_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "file_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "face",
+          "name": "face",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "face"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "views",
+          "name": "views",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "views"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "FILE_3D",
+          "links": [
+            4
+          ]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BytePlusHitem3D",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.6.0"
+      },
+      "widgets_values": [
+        "1536",
+        "Geometry and texture",
+        "glb",
+        0,
+        ""
+      ],
+      "widgets_values_named": {
+        "resolution": "1536",
+        "request_type": "Geometry and texture",
+        "file_format": "glb",
+        "face": 0,
+        "views": ""
+      }
+    },
+    {
+      "id": 4,
+      "type": "Save3DAdvanced",
+      "pos": [
+        1040,
+        100
+      ],
+      "size": [
+        400,
+        550
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model_3d",
+          "name": "model_3d",
+          "type": "FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_FBX,FILE_3D_OBJ,FILE_3D_STL,FILE_3D_USDZ,FILE_3D",
+          "link": 3
+        },
+        {
+          "localized_name": "model_3d_info",
+          "name": "model_3d_info",
+          "shape": 7,
+          "type": "LOAD3D_MODEL_INFO",
+          "link": null
+        },
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "shape": 7,
+          "type": "LOAD3D_CAMERA",
+          "link": null
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "viewport_state",
+          "name": "viewport_state",
+          "type": "LOAD_3D",
+          "widget": {
+            "name": "viewport_state"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model_3d",
+          "name": "model_3d",
+          "type": "FILE_3D",
+          "links": null
+        },
+        {
+          "localized_name": "model_3d_info",
+          "name": "model_3d_info",
+          "type": "LOAD3D_MODEL_INFO",
+          "links": null
+        },
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "type": "LOAD3D_CAMERA",
+          "links": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.2"
+      },
+      "widgets_values": [
+        "BytePlus/3D/Hyper3D",
+        "",
+        1024,
+        1024
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/3D/Hyper3D",
+        "viewport_state": "",
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "id": 5,
+      "type": "Save3DAdvanced",
+      "pos": [
+        1040,
+        760
+      ],
+      "size": [
+        400,
+        550
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model_3d",
+          "name": "model_3d",
+          "type": "FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_FBX,FILE_3D_OBJ,FILE_3D_STL,FILE_3D_USDZ,FILE_3D",
+          "link": 4
+        },
+        {
+          "localized_name": "model_3d_info",
+          "name": "model_3d_info",
+          "shape": 7,
+          "type": "LOAD3D_MODEL_INFO",
+          "link": null
+        },
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "shape": 7,
+          "type": "LOAD3D_CAMERA",
+          "link": null
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "viewport_state",
+          "name": "viewport_state",
+          "type": "LOAD_3D",
+          "widget": {
+            "name": "viewport_state"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model_3d",
+          "name": "model_3d",
+          "type": "FILE_3D",
+          "links": null
+        },
+        {
+          "localized_name": "model_3d_info",
+          "name": "model_3d_info",
+          "type": "LOAD3D_MODEL_INFO",
+          "links": null
+        },
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "type": "LOAD3D_CAMERA",
+          "links": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.2"
+      },
+      "widgets_values": [
+        "BytePlus/3D/Hitem3D",
+        "",
+        1024,
+        1024
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/3D/Hitem3D",
+        "viewport_state": "",
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "id": 6,
+      "type": "MarkdownNote",
+      "pos": [
+        40,
+        720
+      ],
+      "size": [
+        400,
+        420
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How image to 3D works",
+      "properties": {},
+      "widgets_values": [
+        "## Image to 3D: Hyper3D Gen2 vs Hitem3D 2.0\n\n1. Seedream draws one object on a plain background. Replace the prompt, or swap in **Load Image** with your own picture of a single object.\n2. Both models build a textured 3D model from that same image, so you can compare them side by side.\n3. Open each result in its **Save 3D (Advanced)** viewer; use the export button to download another format. GLB copies are saved to the ComfyUI output folder.\n\nFor better results use one clear object, centered, on a plain background. Hitem3D accepts up to four views (front, back, left, right): connect an image batch and set **views**. **1536pro** is the second resolution option.\n\nNeeds a ModelArk key in Settings > BytePlus. Each generation is billed."
+      ],
+      "widgets_values_named": {
+        "text": ""
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      3,
+      2,
+      0,
+      4,
+      0,
+      "FILE_3D"
+    ],
+    [
+      4,
+      3,
+      0,
+      5,
+      0,
+      "FILE_3D"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Concept image",
+      "bounding": [
+        20,
+        20,
+        520,
+        640
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "Hyper3D Gen2",
+      "bounding": [
+        560,
+        20,
+        440,
+        640
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "Hitem3D 2.0",
+      "bounding": [
+        560,
+        680,
+        440,
+        480
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "Hyper3D result",
+      "bounding": [
+        1020,
+        20,
+        440,
+        700
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "Hitem3D result",
+      "bounding": [
+        1020,
+        740,
+        440,
+        700
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 6,
+      "title": "How it works",
+      "bounding": [
+        20,
+        680,
+        520,
+        500
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        40,
+        40
+      ]
+    }
+  },
+  "version": 0.4
+}

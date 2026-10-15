@@ -47,6 +47,7 @@ if COMFY_ROOT:
     core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
+    nodes_3d = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_3d")
     nodes_assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
     nodes_seedream = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedream")
     nodes_seedance1 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance1")
@@ -468,7 +469,7 @@ class WithClientTests(unittest.TestCase):
 
 ALL_NODES = [
     *nodes_seedream.NODES, *nodes_seedance1.NODES, *nodes_seedance2.NODES, *nodes_seed.NODES,
-    *nodes_assets.NODES, *nodes_speech.NODES, *nodes_mediakit.NODES, nodes_video.BytePlusVideoQueryTasks,
+    *nodes_assets.NODES, *nodes_speech.NODES, *nodes_mediakit.NODES, *nodes_3d.NODES, nodes_video.BytePlusVideoQueryTasks,
 ] if COMFY_ROOT else []
 
 

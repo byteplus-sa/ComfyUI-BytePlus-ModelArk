@@ -1,0 +1,431 @@
+{
+  "id": "cc66c5dd-9b01-483d-a85f-c212f62db534",
+  "revision": 0,
+  "last_node_id": 3,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "BytePlusHyper3D",
+      "pos": [
+        40,
+        100
+      ],
+      "size": [
+        400,
+        444
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "mesh_mode",
+          "name": "mesh_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mesh_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "material",
+          "name": "material",
+          "type": "COMBO",
+          "widget": {
+            "name": "material"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "file_format",
+          "name": "file_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "file_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "subdivision_level",
+          "name": "subdivision_level",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "subdivision_level"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "quality_override",
+          "name": "quality_override",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "quality_override"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "hd_texture",
+          "name": "hd_texture",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "hd_texture"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "high_pack",
+          "name": "high_pack",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "high_pack"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ta_pose",
+          "name": "ta_pose",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "ta_pose"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "use_original_alpha",
+          "name": "use_original_alpha",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "use_original_alpha"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "bbox_width",
+          "name": "bbox_width",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "bbox_width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "bbox_height",
+          "name": "bbox_height",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "bbox_height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "bbox_length",
+          "name": "bbox_length",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "bbox_length"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "FILE_3D",
+          "links": [
+            1
+          ]
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BytePlusHyper3D",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.6.0"
+      },
+      "widgets_values": [
+        "Quad",
+        "PBR",
+        "glb",
+        "Complete full-body quadrupedal mech robot, orange and black armored, rounded head with glowing blue sensors, 4 articulated mechanical legs, hard-surface sci-fi design, high-detail joints, fully assembled, no missing parts.",
+        0,
+        "randomize",
+        "medium",
+        0,
+        false,
+        false,
+        false,
+        false,
+        0,
+        0,
+        0
+      ],
+      "widgets_values_named": {
+        "mesh_mode": "Quad",
+        "material": "PBR",
+        "file_format": "glb",
+        "prompt": "Complete full-body quadrupedal mech robot, orange and black armored, rounded head with glowing blue sensors, 4 articulated mechanical legs, hard-surface sci-fi design, high-detail joints, fully assembled, no missing parts.",
+        "seed": 0,
+        "control_after_generate": "randomize",
+        "subdivision_level": "medium",
+        "quality_override": 0,
+        "hd_texture": false,
+        "high_pack": false,
+        "ta_pose": false,
+        "use_original_alpha": false,
+        "bbox_width": 0,
+        "bbox_height": 0,
+        "bbox_length": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": "Save3DAdvanced",
+      "pos": [
+        520,
+        100
+      ],
+      "size": [
+        400,
+        550
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model_3d",
+          "name": "model_3d",
+          "type": "FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_FBX,FILE_3D_OBJ,FILE_3D_STL,FILE_3D_USDZ,FILE_3D",
+          "link": 1
+        },
+        {
+          "localized_name": "model_3d_info",
+          "name": "model_3d_info",
+          "shape": 7,
+          "type": "LOAD3D_MODEL_INFO",
+          "link": null
+        },
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "shape": 7,
+          "type": "LOAD3D_CAMERA",
+          "link": null
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "viewport_state",
+          "name": "viewport_state",
+          "type": "LOAD_3D",
+          "widget": {
+            "name": "viewport_state"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model_3d",
+          "name": "model_3d",
+          "type": "FILE_3D",
+          "links": null
+        },
+        {
+          "localized_name": "model_3d_info",
+          "name": "model_3d_info",
+          "type": "LOAD3D_MODEL_INFO",
+          "links": null
+        },
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "type": "LOAD3D_CAMERA",
+          "links": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.2"
+      },
+      "widgets_values": [
+        "BytePlus/3D/Hyper3D",
+        "",
+        1024,
+        1024
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/3D/Hyper3D",
+        "viewport_state": "",
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "id": 3,
+      "type": "MarkdownNote",
+      "pos": [
+        980,
+        100
+      ],
+      "size": [
+        360,
+        420
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How text to 3D works",
+      "properties": {},
+      "widgets_values": [
+        "## Text to 3D with Hyper3D Gen2\n\n1. Describe the object in English (up to 400 characters): what it is, its materials and colors, and that it is complete and fully assembled.\n2. Run. Generation takes a few minutes and is billed per task.\n3. The model opens in the 3D viewer on **Save 3D (Advanced)**: orbit it, then use the viewer's export button to download it in another format. A copy is also saved to your ComfyUI output folder.\n\nmesh_mode **Quad** gives clean, editable topology; **Raw** gives triangles. Open the advanced inputs for exact face counts, HD textures, 4K textures (HighPack) and a T-pose for characters.\n\nNeeds a ModelArk key in Settings > BytePlus. Fixed seed reuses unchanged cached outputs."
+      ],
+      "widgets_values_named": {
+        "text": ""
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "FILE_3D"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Describe the object",
+      "bounding": [
+        20,
+        20,
+        460,
+        580
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "View and download",
+      "bounding": [
+        500,
+        20,
+        440,
+        640
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "How it works",
+      "bounding": [
+        960,
+        20,
+        400,
+        540
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        40,
+        40
+      ]
+    }
+  },
+  "version": 0.4
+}

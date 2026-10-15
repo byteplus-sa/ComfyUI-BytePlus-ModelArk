@@ -1,0 +1,53 @@
+---
+title: "Hyper3D and Hitem3D Image to 3D"
+description: "Turn one Seedream concept image into two 3D models, one from Hyper3D Gen2 and one from Hitem3D 2.0, and compare them in the viewer."
+template_file: Hyper3D and Hitem3D Image to 3D.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Hyper3D and Hitem3D Image to 3D.json" />
+
+## What it makes
+
+Two 3D models of the same object, built by different models from the same picture, so you can compare shape and texture side by side. Seedream draws the concept image first; you can swap in your own picture.
+
+## The workflow
+
+<Shot src="templates/hyper3d-and-hitem3d-image-to-3d-workflow.webp" alt="Seedream feeding both Hyper3D Gen2 and Hitem3D 2.0, each ending in its own Save 3D (Advanced)" caption="Seedream feeds two 3D models, and each model ends in its own viewer." />
+
+1. **[Seedream](../../nodes/seedream/)** draws one object, centered on a plain background, which suits 3D generation.
+2. **[Hyper3D Gen2](../../nodes/hyper3d/)** builds a textured model from the image.
+3. **[Hitem3D 2.0](../../nodes/hitem3d/)** builds a model from the same image, with geometry and texture.
+4. Two **Save 3D (Advanced)** nodes show each model in a viewer and save copies to `BytePlus/3D/Hyper3D` and `BytePlus/3D/Hitem3D`.
+
+## Run it
+
+1. Add your ModelArk API key in **Settings → BytePlus** if you have not yet ([API keys](../../get-started/api-keys/)).
+2. Open the template browser and choose **Hyper3D and Hitem3D Image to 3D** under BytePlus.
+3. Press **Run**. The image is made first, then both 3D tasks run in parallel.
+4. Orbit each model in its viewer, and use the export button to download another format.
+
+## Settings worth changing
+
+- **Seedream prompt:** describe one object on a plain background, fully in frame. Or replace Seedream with **Load Image** and your own picture.
+- **Hitem3D `resolution`:** `1536pro` is the second resolution option.
+- **Hitem3D `request_type`:** Geometry only skips the texture.
+- **Several views:** connect an image batch of up to four views to Hitem3D and set `views`, for example `1010` for front and left.
+- **Hyper3D `mesh_mode`:** Quad for editable topology, Raw for triangles.
+
+## Example result
+
+<Shot src="templates/hyper3d-and-hitem3d-image-to-3d-result.webp" alt="Two rendered orange and black mech robots on a gray background, Hyper3D Gen2 on the left and Hitem3D 2.0 on the right" caption="The two GLB results from the same Seedream image, rendered side by side." />
+
+Both results are GLB files. After a run each opens in its own viewer, and copies sit in your output folder under `BytePlus/3D/`.
+
+## Time and cost
+
+The run bills one Seedream image and two 3D tasks. Hitem3D takes much longer than Hyper3D, so the run ends when it finishes. Running again with an unchanged workflow reuses ComfyUI's cached results and does not bill.
+
+## Related
+
+- Nodes: [Hyper3D Gen2](../../nodes/hyper3d/), [Hitem3D 2.0](../../nodes/hitem3d/)
+- Previous step: [Hyper3D Text to 3D](../hyper3d-text-to-3d/) starts from a text prompt.

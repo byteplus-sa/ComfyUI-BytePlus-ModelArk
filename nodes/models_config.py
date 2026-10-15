@@ -282,3 +282,21 @@ SEED_LLM_AUDIO_MODELS = ("Seed 2.0 Lite", "Seed 2.0 Mini")
 # The docs only cap the total duration per request (120 minutes); 4 clips is this pack's slot count.
 SEED_LLM_MAX_AUDIOS = 4
 SEED_LLM_MAX_AUDIO_SECONDS = 120 * 60
+
+# 3D generation (nodes_3d.py): same /contents/generations/tasks endpoint as Seedance.
+HYPER3D_MODEL = "hyper3d-gen2-260112"
+HITEM3D_MODEL = "hitem3d-2-0-251223"
+HYPER3D_MAX_PROMPT_CHARS = 400
+HYPER3D_MAX_IMAGES = 5
+HYPER3D_MAX_SEED = 65535
+HYPER3D_MESH_MODES = ["Quad", "Raw"]
+HYPER3D_MATERIALS = ["PBR", "Shaded", "All", "None"]
+HYPER3D_FILE_FORMATS = ["glb", "obj", "fbx", "usdz", "stl"]
+HYPER3D_SUBDIVISION_LEVELS = ["medium", "high", "low"]
+HYPER3D_FACE_LIMITS = {"Raw": (500, 1000000), "Quad": (1000, 200000)}
+HITEM3D_MAX_IMAGES = 4
+HITEM3D_RESOLUTIONS = ["1536", "1536pro"]
+HITEM3D_REQUEST_TYPES = {"Geometry and texture": 3, "Geometry only": 1}
+HITEM3D_FILE_FORMAT_CODES = {"obj": 1, "glb": 2, "stl": 3, "fbx": 4, "usdz": 5}
+HITEM3D_MIN_FACE = 100000
+HITEM3D_MAX_FACE = 2000000

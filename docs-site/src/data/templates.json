@@ -616,6 +616,69 @@
   "has_thumbnail": true
  },
  {
+  "file": "Hyper3D Text to 3D.json",
+  "title": "Hyper3D Text to 3D",
+  "slug": "hyper3d-text-to-3d",
+  "group": "3D",
+  "nodes": [
+   {
+    "id": "BytePlusHyper3D",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "Save 3D (Advanced)"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "Describe the object",
+   "View and download",
+   "How it works"
+  ],
+  "note": "## Text to 3D with Hyper3D Gen2\n\n1. Describe the object in English (up to 400 characters): what it is, its materials and colors, and that it is complete and fully assembled.\n2. Run. Generation takes a few minutes and is billed per task.\n3. The model opens in the 3D viewer on **Save 3D (Advanced)**: orbit it, then use the viewer's export button to download it in another format. A copy is also saved to your ComfyUI output folder.\n\nmesh_mode **Quad** gives clean, editable topology; **Raw** gives triangles. Open the advanced inputs for exact face counts, HD textures, 4K textures (HighPack) and a T-pose for characters.\n\nNeeds a ModelArk key in Settings > BytePlus. Fixed seed reuses unchanged cached outputs.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "Hyper3D and Hitem3D Image to 3D.json",
+  "title": "Hyper3D and Hitem3D Image to 3D",
+  "slug": "hyper3d-and-hitem3d-image-to-3d",
+  "group": "3D",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   },
+   {
+    "id": "BytePlusHyper3D",
+    "count": 1
+   },
+   {
+    "id": "BytePlusHitem3D",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "Save 3D (Advanced)"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "groups": [
+   "Concept image",
+   "Hyper3D Gen2",
+   "Hitem3D 2.0",
+   "Hyper3D result",
+   "Hitem3D result",
+   "How it works"
+  ],
+  "note": "## Image to 3D: Hyper3D Gen2 vs Hitem3D 2.0\n\n1. Seedream draws one object on a plain background. Replace the prompt, or swap in **Load Image** with your own picture of a single object.\n2. Both models build a textured 3D model from that same image, so you can compare them side by side.\n3. Open each result in its **Save 3D (Advanced)** viewer; use the export button to download another format. GLB copies are saved to the ComfyUI output folder.\n\nFor better results use one clear object, centered, on a plain background. Hitem3D accepts up to four views (front, back, left, right): connect an image batch and set **views**. **1536pro** is the second resolution option.\n\nNeeds a ModelArk key in Settings > BytePlus. Each generation is billed.",
+  "has_thumbnail": true
+ },
+ {
   "file": "Seed Prompt Writer.json",
   "title": "Seed Prompt Writer",
   "slug": "seed-prompt-writer",
