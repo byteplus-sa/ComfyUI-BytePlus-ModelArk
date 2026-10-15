@@ -175,6 +175,14 @@ class ArchiveTests(unittest.TestCase):
         self.assertEqual(name("https://host/a/b/download?X-Sig=1", "fbx"), "result.fbx")
         self.assertEqual(name("https://host/a/model.zip", "glb"), "result.glb")
 
+    def test_usdz_result_is_the_model_even_though_it_is_a_zip(self):
+        path = self.write("result.download", make_zip({"model.usdc": b"usdc", "tex.png": b"p"}))
+        model, model_path = nodes_3d.load_result(path, self.folder, "t1", "usdz", "result.usdz")
+        self.assertEqual(model.format, "usdz")
+        self.assertTrue(model_path.endswith("result.usdz"))
+        self.assertTrue(zipfile.is_zipfile(model_path))
+        self.assertFalse(os.path.exists(os.path.join(self.folder, "model.usdc")))
+
     def test_plain_file_that_is_not_a_zip_is_used_as_is(self):
         path = self.write("model.glb", b"glTF....")
         model, _ = nodes_3d.load_result(path, self.folder, "t1", "glb")

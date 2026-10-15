@@ -372,13 +372,15 @@ def result_file_name(url, file_format):
 def load_result(download_path, folder, task_id, file_format, plain_name=None):
     """The result as a File3D plus the path of its model file.
 
-    A zip is extracted into folder. Any other file is the model itself and is
+    A zip is extracted into folder (a USDZ file is a zip but is the model itself). Any other file is the model itself and is
     renamed to plain_name (default result.<file_format>), so it has an extension.
     """
-    if is_zip_file(download_path):
+    plain_name = plain_name or f"result.{file_format}"
+    is_usdz = plain_name.lower().endswith(".usdz")
+    if is_zip_file(download_path) and not is_usdz:
         paths = extract_archive(download_path, folder)
     else:
-        model_file = os.path.join(folder, plain_name or f"result.{file_format}")
+        model_file = os.path.join(folder, plain_name)
         os.replace(download_path, model_file)
         paths = [model_file]
     model_path = pick_model_file(paths, file_format)
