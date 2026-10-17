@@ -891,3 +891,9 @@ def api_key_fingerprint(api_key):
     return hashlib.sha256(api_key.strip().encode("utf-8")).hexdigest()[:16]
 
 
+def client_owner(client):
+    """(key fingerprint, region): work started with one key and region only exists there."""
+    api_key = getattr(client, "api_key", None) or ""
+    return (api_key_fingerprint(api_key) if api_key else "", getattr(client, "region", None))
+
+

@@ -929,7 +929,8 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(Exception, "AbilityError.*between 0 and 8.*r2"):
             await self.run_node(image_url="https://cdn.example/in.jpg")
 
-    async def test_a_failed_image_cancels_the_rest_of_the_batch(self):
+    async def test_an_interrupt_cancels_the_rest_of_the_batch(self):
+        import comfy.model_management
         import torch
 
         started, cancelled = [], []
@@ -940,7 +941,7 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
             if number == 1:
                 while len(started) < 3:  # let the other two requests start first
                     await asyncio.sleep(0.01)
-                return 400, {"success": False, "error": {"code": "BadImage", "message": "nope"}}
+                raise comfy.model_management.InterruptProcessingException()
             try:
                 await asyncio.sleep(30)
             except asyncio.CancelledError:
@@ -949,7 +950,7 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
 
         batch = torch.cat([solid(40, 30, 0), solid(40, 30, 1), solid(40, 30, 2)])
         with mock.patch.object(nodes_mediakit, "_send", send):
-            with self.assertRaisesRegex(Exception, "BadImage"):
+            with self.assertRaises(comfy.model_management.InterruptProcessingException):
                 await asyncio.wait_for(self.node.execute(
                     self.client, tool_version={"tool_version": "standard"},
                     output_size={"output_size": "multiple", "multiple": 2.0}, image=batch), 5)

@@ -64,7 +64,7 @@ python3 -m unittest tests.test_workflow_templates tests.test_agent_files
 
 # Node behaviour tests (skipped unless COMFYUI_ROOT is set; the interpreter needs torch,
 # ComfyUI's requirements and this pack's requirements)
-COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed
+COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed tests.test_review_fixes tests.test_3d tests.test_interrupt_fixes
 ```
 
 CI (`.github/workflows/tests.yml`) runs all of these on every push and pull request, and weekly, against ComfyUI's latest release and `master` (CPU torch); a skipped test fails the run, because a skip means the core-parity comparison did not happen.

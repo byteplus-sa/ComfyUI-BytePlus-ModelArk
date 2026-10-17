@@ -7,6 +7,9 @@ REGION_BASE_URLS = {
 }
 DEFAULT_REGION = "ap-southeast-1"
 
+# generation_count on every node: each generation is a separate paid request.
+MAX_GENERATION_COUNT = 16
+
 # Asset library (virtual portraits / verified real people): signed OpenAPI,
 # service "ark", separate host per region, IAM AK/SK instead of the API key.
 ASSET_API_HOSTS = {
@@ -65,7 +68,6 @@ SPEECH_POLL_MAX_ERRORS = 5
 SPEECH_ASR_POLL_SECONDS = 2
 SEED_AUDIO_MAX_PROMPT_CHARS = 3000
 SEED_AUDIO_MAX_AUDIO_REFS = 3
-SEED_AUDIO_MAX_GENERATION_COUNT = 16
 SEED_AUDIO_REF_MAX_SECONDS = 30.0
 SEED_AUDIO_REF_MAX_BYTES = 10 * 1024 * 1024
 SEED_AUDIO_FORMATS = ["wav", "mp3", "ogg_opus", "pcm"]
@@ -551,6 +553,7 @@ MESSAGES = {
     "err_smooth_frame_indices": "insert_frame_indices takes distinct zero-based frame numbers separated by commas (for example 80, 120); got '{value}'.",
     "image_enhance_submitted": "Image Quality Enhance ({version}): image {index}/{count}",
     "image_enhance_done": "Image Quality Enhance: {width}x{height} {format} ({task_id}).",
+    "image_enhance_source_unavailable": "Image Quality Enhance: the source image could not be downloaded ({e}); the original output is skipped.",
     "image_enhance_max_slow": "Image Quality Enhance: a max-version output of {width}x{height} can time out; MediaKit recommends staying within 8000x8000.",
     "err_image_enhance_input_size": "The {version} version takes images with {rule}; this one is {width}x{height}.",
     "err_image_enhance_output_size": "The {version} output would be {width}x{height}, but {version} allows {rule}. Lower the scale.",
