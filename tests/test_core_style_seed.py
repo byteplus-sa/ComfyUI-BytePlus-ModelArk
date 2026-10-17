@@ -6,6 +6,7 @@ requests, core's validations, and the example workflows.
 Needs a ComfyUI checkout and a Python env with torch and the BytePlus SDK:
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_core_style_seed
 """
+
 import asyncio
 import base64
 import importlib
@@ -22,13 +23,9 @@ from types import SimpleNamespace
 COMFY_ROOT = os.environ.get("COMFYUI_ROOT")
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKFLOW_DIR = os.path.join(PLUGIN_ROOT, "example_workflows")
-requires_comfyui = unittest.skipUnless(
-    COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests."
-)
+requires_comfyui = unittest.skipUnless(COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests.")
 SEED_MAX = 2147483647
-SEED_TOOLTIP = (
-    "Seed controls whether the node should re-run; results are non-deterministic regardless of seed."
-)
+SEED_TOOLTIP = "Seed controls whether the node should re-run; results are non-deterministic regardless of seed."
 
 if COMFY_ROOT:
     if COMFY_ROOT not in sys.path:
@@ -141,6 +138,7 @@ def sine_audio(seconds=1.0, sample_rate=24000, channels=1):
 
 # --- Seed LLM -----------------------------------------------------------------
 
+
 @requires_comfyui
 class SeedSchemaTests(unittest.TestCase):
     def setUp(self):
@@ -200,12 +198,23 @@ class SeedSchemaTests(unittest.TestCase):
         self.assertFalse(self.schema.is_api_node)
 
     def test_input_order_core_then_extras(self):
-        self.assertEqual([i.id for i in ordered(self.schema.inputs)], [
-            "prompt", "model", "seed", "system_prompt",
-            "detail", "fps", "reasoning_mode", "reasoning_effort", "turns", "stream", "file_expire_seconds",
-        ])
-        for name in ("detail", "fps", "reasoning_mode", "reasoning_effort", "turns", "stream",
-                     "file_expire_seconds"):
+        self.assertEqual(
+            [i.id for i in ordered(self.schema.inputs)],
+            [
+                "prompt",
+                "model",
+                "seed",
+                "system_prompt",
+                "detail",
+                "fps",
+                "reasoning_mode",
+                "reasoning_effort",
+                "turns",
+                "stream",
+                "file_expire_seconds",
+            ],
+        )
+        for name in ("detail", "fps", "reasoning_mode", "reasoning_effort", "turns", "stream", "file_expire_seconds"):
             with self.subTest(extra=name):
                 self.assertTrue(self.inputs[name].optional)
                 self.assertTrue(self.inputs[name].advanced)
@@ -252,8 +261,14 @@ class SeedSchemaTests(unittest.TestCase):
         # Seed 1.8 / 1.6 / 1.6 Flash are deprecated by BytePlus (shut down on 2026-11-11).
         self.assertEqual(
             keys,
-            ["Seed 2.0 Pro", "Seed 2.0 Lite", "Seed 2.0 Mini", "Seed 2.1 Turbo",
-             "DeepSeek V4.1 Flash", "GLM 5.3 Flash"],
+            [
+                "Seed 2.0 Pro",
+                "Seed 2.0 Lite",
+                "Seed 2.0 Mini",
+                "Seed 2.1 Turbo",
+                "DeepSeek V4.1 Flash",
+                "GLM 5.3 Flash",
+            ],
         )
         for key in keys:
             with self.subTest(model=key):
@@ -273,14 +288,17 @@ class SeedSchemaTests(unittest.TestCase):
                 )
 
     def test_byteplus_model_ids(self):
-        self.assertEqual(models_config.SEED_LLM_MODEL_MAP, {
-            "Seed 2.0 Pro": "seed-2-0-pro-260328",
-            "Seed 2.0 Lite": "seed-2-0-lite-260428",
-            "Seed 2.0 Mini": "seed-2-0-mini-260428",
-            "Seed 2.1 Turbo": "dola-seed-2-1-turbo-260628",
-            "DeepSeek V4.1 Flash": "deepseek-v4-1-flash-260910",
-            "GLM 5.3 Flash": "glm-5-3-flash-260828",
-        })
+        self.assertEqual(
+            models_config.SEED_LLM_MODEL_MAP,
+            {
+                "Seed 2.0 Pro": "seed-2-0-pro-260328",
+                "Seed 2.0 Lite": "seed-2-0-lite-260428",
+                "Seed 2.0 Mini": "seed-2-0-mini-260428",
+                "Seed 2.1 Turbo": "dola-seed-2-1-turbo-260628",
+                "DeepSeek V4.1 Flash": "deepseek-v4-1-flash-260910",
+                "GLM 5.3 Flash": "glm-5-3-flash-260828",
+            },
+        )
         # Every current model accepts reasoning.effort (Seed 1.6 Flash was the last that did not).
         self.assertEqual(models_config.SEED_LLM_NO_REASONING_EFFORT, ())
 
@@ -333,7 +351,7 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.uploads = []
 
-        async def fake_upload(client, path, fps=None, expire_seconds=604800, return_meta=False, model=None):
+        async def fake_upload(client, path, fps=None, expire_seconds=604800, model=None):
             with open(path, "rb") as f:
                 head = f.read(3)
             self.uploads.append({"path": path, "fps": fps, "expire": expire_seconds, "head": head, "model": model})
@@ -380,22 +398,30 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(text, "A red square.")
         self.assertEqual(json.loads(raw)["id"], "resp-1")
-        call, = responses.calls
+        (call,) = responses.calls
         self.assertEqual(call["model"], "seed-2-0-lite-260428")
         self.assertEqual(call["instructions"], "Answer in one sentence.")
         self.assertEqual(call["temperature"], 0.3)
-        self.assertIs(call["store"], False)       # like core: single-turn responses are not stored
+        self.assertIs(call["store"], False)  # like core: single-turn responses are not stored
         self.assertIs(call["stream"], False)
         self.assertNotIn("previous_response_id", call)
-        self.assertNotIn("thinking", call)        # reasoning_mode auto: model default
+        self.assertNotIn("thinking", call)  # reasoning_mode auto: model default
         self.assertEqual(call["reasoning"], {"effort": "medium"})
-        self.assertEqual(call["input"], [{"role": "user", "content": [
-            {"type": "input_image", "file_id": "file-1", "detail": "low"},
-            {"type": "input_image", "file_id": "file-2", "detail": "low"},
-            {"type": "input_image", "file_id": "file-3", "detail": "low"},
-            {"type": "input_video", "file_id": "file-4"},
-            {"type": "input_text", "text": "What is shown?"},
-        ]}])
+        self.assertEqual(
+            call["input"],
+            [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_image", "file_id": "file-1", "detail": "low"},
+                        {"type": "input_image", "file_id": "file-2", "detail": "low"},
+                        {"type": "input_image", "file_id": "file-3", "detail": "low"},
+                        {"type": "input_video", "file_id": "file-4"},
+                        {"type": "input_text", "text": "What is shown?"},
+                    ],
+                }
+            ],
+        )
         # Every image of each batch is uploaded as JPEG; videos as MP4 with the fps.
         self.assertEqual([u["head"] for u in self.uploads[:3]], [b"\xff\xd8\xff"] * 3)
         self.assertEqual([u["fps"] for u in self.uploads], [None, None, None, 2.0])
@@ -437,13 +463,21 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
                     },
                     fps=2.0,
                 )
-                call, = responses.calls
+                (call,) = responses.calls
                 self.assertEqual(call["model"], model_id)
-                self.assertEqual(call["input"], [{"role": "user", "content": [
-                    {"type": "input_image", "file_id": "file-1", "detail": "high"},
-                    {"type": "input_video", "file_id": "file-2"},
-                    {"type": "input_text", "text": "What is shown?"},
-                ]}])
+                self.assertEqual(
+                    call["input"],
+                    [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_image", "file_id": "file-1", "detail": "high"},
+                                {"type": "input_video", "file_id": "file-2"},
+                                {"type": "input_text", "text": "What is shown?"},
+                            ],
+                        }
+                    ],
+                )
                 self.assertEqual(call["reasoning"], {"effort": "medium"})
                 # The video is preprocessed with this model's frame-sampling strategy.
                 self.assertEqual(self.uploads[-1]["model"], model_id)
@@ -467,14 +501,22 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
                         "audios": {"audio_1": sine_audio(1.0, 16000, 1), "audio_2": sine_audio(0.5, 44100, 2)},
                     },
                 )
-                call, = responses.calls
-                self.assertEqual(call["input"], [{"role": "user", "content": [
-                    {"type": "input_image", "file_id": "file-1", "detail": "high"},
-                    {"type": "input_video", "file_id": "file-2"},
-                    {"type": "input_audio", "file_id": "file-3"},
-                    {"type": "input_audio", "file_id": "file-4"},
-                    {"type": "input_text", "text": "List the words."},
-                ]}])
+                (call,) = responses.calls
+                self.assertEqual(
+                    call["input"],
+                    [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_image", "file_id": "file-1", "detail": "high"},
+                                {"type": "input_video", "file_id": "file-2"},
+                                {"type": "input_audio", "file_id": "file-3"},
+                                {"type": "input_audio", "file_id": "file-4"},
+                                {"type": "input_text", "text": "List the words."},
+                            ],
+                        }
+                    ],
+                )
                 audio_uploads = self.uploads[2:]
                 # 16-bit PCM WAV through the Files API, no video preprocessing.
                 self.assertEqual([u["head"] for u in audio_uploads], [b"RIF"] * 2)
@@ -507,15 +549,20 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         for label in models_config.SEED_LLM_UI_OPTIONS:
             with self.subTest(model=label):
                 client, responses = self.client(reply())
-                await self.run_node(client, model={"model": label, "temperature": 1.0},
-                                    reasoning_mode="enabled", reasoning_effort="max")
-                call, = responses.calls
+                await self.run_node(
+                    client, model={"model": label, "temperature": 1.0}, reasoning_mode="enabled", reasoning_effort="max"
+                )
+                (call,) = responses.calls
                 self.assertEqual(call["thinking"], {"type": "enabled"})
                 self.assertEqual(call["reasoning"], {"effort": "max"})
                 # Thinking off sends no effort at all, whatever the effort widget says.
                 client, responses = self.client(reply())
-                await self.run_node(client, model={"model": label, "temperature": 1.0},
-                                    reasoning_mode="disabled", reasoning_effort="max")
+                await self.run_node(
+                    client,
+                    model={"model": label, "temperature": 1.0},
+                    reasoning_mode="disabled",
+                    reasoning_effort="max",
+                )
                 self.assertNotIn("reasoning", responses.calls[0])
 
     async def test_reasoning_options(self):
@@ -530,8 +577,9 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         for label, mode, effort, thinking, reasoning in cases:
             with self.subTest(model=label, mode=mode):
                 client, responses = self.client(reply())
-                await self.run_node(client, model={"model": label, "temperature": 1.0},
-                                    reasoning_mode=mode, reasoning_effort=effort)
+                await self.run_node(
+                    client, model={"model": label, "temperature": 1.0}, reasoning_mode=mode, reasoning_effort=effort
+                )
                 call = responses.calls[0]
                 self.assertEqual(call["model"], models_config.SEED_LLM_MODEL_MAP[label])
                 self.assertEqual(call.get("thinking"), thinking)
@@ -545,16 +593,34 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         await self.run_node(client, "Look.", model, turns=2, system_prompt="Be brief.")
         await self.run_node(client, "And now?", model, turns=2, system_prompt="Be brief.")
         first, second = responses.calls
-        self.assertNotIn("store", first)          # stored so the next turn can continue it
+        self.assertNotIn("store", first)  # stored so the next turn can continue it
         self.assertNotIn("previous_response_id", first)
         self.assertEqual(second["previous_response_id"], "resp-a")
-        self.assertEqual(second["instructions"], "Be brief.")   # instructions are not carried over
+        self.assertEqual(second["instructions"], "Be brief.")  # instructions are not carried over
         self.assertEqual(second["input"][0]["content"], [{"type": "input_text", "text": "And now?"}])
         self.assertEqual(len(self.uploads), 1)
         # turns=1 starts over and forgets the conversation
         await self.run_node(client, "Fresh.", model, turns=1)
         self.assertNotIn("previous_response_id", responses.calls[2])
         self.assertNotIn("7", nodes_seed.SEED_LAST_RESPONSES)
+
+    async def test_turns_limits_the_conversation_length(self):
+        client, responses = self.client(*[reply(f"R{i}", f"resp-{i}") for i in range(1, 8)])
+        for _ in range(7):
+            await self.run_node(client, turns=3)
+        previous = [call.get("previous_response_id") for call in responses.calls]
+        # Three turns per conversation, then a new one: 3 behaves differently from 2 or 10.
+        self.assertEqual(previous, [None, "resp-1", "resp-2", None, "resp-4", "resp-5", None])
+        self.assertEqual(nodes_seed.SEED_LAST_RESPONSES["7"]["turn"], 1)
+
+    async def test_raising_turns_continues_the_current_conversation(self):
+        client, responses = self.client(*[reply(f"R{i}", f"resp-{i}") for i in range(1, 5)])
+        await self.run_node(client, turns=2)
+        await self.run_node(client, turns=2)
+        await self.run_node(client, turns=4)  # third turn of the same conversation
+        await self.run_node(client, turns=2)  # already past 2 turns: a new conversation
+        previous = [call.get("previous_response_id") for call in responses.calls]
+        self.assertEqual(previous, [None, "resp-1", "resp-2", None])
 
     async def test_conversation_is_scoped_to_key(self):
         client_a, responses_a = self.client(reply("A", "resp-a"))
@@ -571,8 +637,16 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("previous_response_id", responses.calls[1])
 
     async def test_output_text_joins_blocks_and_errors_raise(self):
-        joined = {"id": "r", "output": [{"type": "message", "role": "assistant", "content": [
-            {"type": "output_text", "text": "Line 1"}, {"type": "output_text", "text": "Line 2"}]}]}
+        joined = {
+            "id": "r",
+            "output": [
+                {
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [{"type": "output_text", "text": "Line 1"}, {"type": "output_text", "text": "Line 2"}],
+                }
+            ],
+        }
         client, _ = self.client(joined)
         text, _ = await self.run_node(client)
         self.assertEqual(text, "Line 1\nLine 2")
@@ -617,8 +691,13 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
             {"prompt": "   "},
             {"model": {"model": "Seed 9", "temperature": 1.0}},
             {"model": {"model": "Seed 2.0 Pro", "temperature": 1.0, "images": {"image_1": torch.zeros((21, 4, 4, 3))}}},
-            {"model": {"model": "Seed 2.0 Pro", "temperature": 1.0,
-                       "videos": {f"video_{i}": FakeVideo() for i in range(1, 6)}}},
+            {
+                "model": {
+                    "model": "Seed 2.0 Pro",
+                    "temperature": 1.0,
+                    "videos": {f"video_{i}": FakeVideo() for i in range(1, 6)},
+                }
+            },
         ]
         for kwargs in cases:
             with self.subTest(kwargs=list(kwargs)):
@@ -634,12 +713,14 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
 
         client, _ = self.client(reply())
         with self.assertRaisesRegex(BytePlusException, "video_1"):
-            await self.run_node(client, model={"model": "Seed 2.0 Pro", "temperature": 1.0,
-                                               "videos": {"video_1": BrokenVideo()}})
+            await self.run_node(
+                client, model={"model": "Seed 2.0 Pro", "temperature": 1.0, "videos": {"video_1": BrokenVideo()}}
+            )
         self.assertEqual(os.listdir(self.tmp.name), [])  # no partial file left behind
 
 
 # --- Seed Audio -----------------------------------------------------------------
+
 
 @requires_comfyui
 class SeedAudioSchemaTests(unittest.TestCase):
@@ -652,14 +733,39 @@ class SeedAudioSchemaTests(unittest.TestCase):
         self.assertEqual(self.schema.display_name, "BytePlus Seed Audio 1.0")
 
     def test_input_order_core_then_extras(self):
-        self.assertEqual([i.id for i in ordered(self.schema.inputs)], [
-            "text_prompt", "reference_mode", "sample_rate", "speech_rate",
-            "loudness_rate", "pitch_rate", "seed", "model",
-            "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
-            "content_producer", "produce_id", "content_propagator", "propagate_id", "generation_count",
-        ])
-        for name in ("generation_count", "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
-                     "content_producer", "produce_id", "content_propagator", "propagate_id"):
+        self.assertEqual(
+            [i.id for i in ordered(self.schema.inputs)],
+            [
+                "text_prompt",
+                "reference_mode",
+                "sample_rate",
+                "speech_rate",
+                "loudness_rate",
+                "pitch_rate",
+                "seed",
+                "model",
+                "audio_format",
+                "enable_subtitle",
+                "aigc_watermark",
+                "aigc_metadata",
+                "content_producer",
+                "produce_id",
+                "content_propagator",
+                "propagate_id",
+                "generation_count",
+            ],
+        )
+        for name in (
+            "generation_count",
+            "audio_format",
+            "enable_subtitle",
+            "aigc_watermark",
+            "aigc_metadata",
+            "content_producer",
+            "produce_id",
+            "content_propagator",
+            "propagate_id",
+        ):
             with self.subTest(extra=name):
                 self.assertTrue(self.inputs[name].optional)
                 self.assertTrue(self.inputs[name].advanced)
@@ -667,13 +773,21 @@ class SeedAudioSchemaTests(unittest.TestCase):
     def test_reference_mode_options(self):
         mode = self.inputs["reference_mode"]
         self.assertIsInstance(mode, comfy_io.DynamicCombo.Input)
-        self.assertEqual([o.key for o in mode.options],
-                         ["text only", "audio reference", "image reference", "preset voice"])
+        self.assertEqual(
+            [o.key for o in mode.options], ["text only", "audio reference", "image reference", "preset voice"]
+        )
         self.assertEqual(option_children(mode, "text only"), [])
-        self.assertEqual(option_children(mode, "audio reference"), [
-            "reference_audio_1", "reference_audio_2", "reference_audio_3",
-            "ref_audio_1_source", "ref_audio_2_source", "ref_audio_3_source",
-        ])
+        self.assertEqual(
+            option_children(mode, "audio reference"),
+            [
+                "reference_audio_1",
+                "reference_audio_2",
+                "reference_audio_3",
+                "ref_audio_1_source",
+                "ref_audio_2_source",
+                "ref_audio_3_source",
+            ],
+        )
         self.assertEqual(option_children(mode, "image reference"), ["reference_image", "ref_image_url"])
         self.assertEqual(option_children(mode, "preset voice"), ["preset_voice"])
         audio_option = by_id(next(o for o in mode.options if o.key == "audio reference").inputs)
@@ -782,16 +896,29 @@ class SeedAudioRequestTests(unittest.IsolatedAsyncioTestCase):
         fake = self.serve()
         await self.run_node(
             {"reference_mode": "preset voice", "preset_voice": "Tim (Male, American English)"},
-            "@Audio1 says hello.", sample_rate="48000", speech_rate=20, loudness_rate=-10, pitch_rate=3, seed=7,
+            "@Audio1 says hello.",
+            sample_rate="48000",
+            speech_rate=20,
+            loudness_rate=-10,
+            pitch_rate=3,
+            seed=7,
         )
         body = fake.calls[0].body
-        self.assertEqual(body, {
-            "model": "seed-audio-1.0",
-            "text_prompt": "@Audio1 says hello.",
-            "references": [{"speaker": "en_male_tim_uranus_bigtts"}],
-            "audio_config": {"format": "wav", "sample_rate": 48000, "speech_rate": 20, "loudness_rate": -10,
-                             "pitch_rate": 3},
-        })
+        self.assertEqual(
+            body,
+            {
+                "model": "seed-audio-1.0",
+                "text_prompt": "@Audio1 says hello.",
+                "references": [{"speaker": "en_male_tim_uranus_bigtts"}],
+                "audio_config": {
+                    "format": "wav",
+                    "sample_rate": 48000,
+                    "speech_rate": 20,
+                    "loudness_rate": -10,
+                    "pitch_rate": 3,
+                },
+            },
+        )
         self.assertNotIn("seed", body)  # like core, seed only re-runs the node
         self.assertNotIn("seed", body["audio_config"])
 
@@ -823,8 +950,10 @@ class SeedAudioRequestTests(unittest.IsolatedAsyncioTestCase):
         from PIL import Image
 
         fake = self.serve(2)
-        await self.run_node({"reference_mode": "image reference", "reference_image": torch.rand((1, 100, 200, 3))},
-                            "Hello from the picture.")
+        await self.run_node(
+            {"reference_mode": "image reference", "reference_image": torch.rand((1, 100, 200, 3))},
+            "Hello from the picture.",
+        )
         data = base64.b64decode(fake.calls[0].body["references"][0]["image_data"])
         width, height = Image.open(io.BytesIO(data)).size
         self.assertGreaterEqual(width * height, 160_000)
@@ -856,15 +985,31 @@ class SeedAudioRequestTests(unittest.IsolatedAsyncioTestCase):
             ({**audio_mode, "reference_audio_1": sine_audio(), "ref_audio_1_source": "voice"}, "Hi", "not both"),
             ({**audio_mode, "reference_audio_1": sine_audio(31.0, 8000)}, "Hi", "maximum is 30"),
             ({"reference_mode": "image reference"}, "Hi", "requires a reference_image"),
-            ({"reference_mode": "image reference", "reference_image": torch.ones((1, 8, 8, 3))}, "@Audio1 hi",
-             "not used in 'image reference'"),
-            ({"reference_mode": "image reference", "reference_image": torch.ones((1, 8, 8, 3)),
-              "ref_image_url": "https://x/i.png"}, "Hi", "not both"),
+            (
+                {"reference_mode": "image reference", "reference_image": torch.ones((1, 8, 8, 3))},
+                "@Audio1 hi",
+                "not used in 'image reference'",
+            ),
+            (
+                {
+                    "reference_mode": "image reference",
+                    "reference_image": torch.ones((1, 8, 8, 3)),
+                    "ref_image_url": "https://x/i.png",
+                },
+                "Hi",
+                "not both",
+            ),
             ({"reference_mode": "preset voice"}, "Hi", "requires selecting a preset voice"),
-            ({"reference_mode": "preset voice", "preset_voice": "Nobody (Male, Klingon)"}, "Hi",
-             "requires selecting a preset voice"),
-            ({"reference_mode": "preset voice", "preset_voice": "Tim (Male, American English)"},
-             "@Audio2 speaks", "single voice"),
+            (
+                {"reference_mode": "preset voice", "preset_voice": "Nobody (Male, Klingon)"},
+                "Hi",
+                "requires selecting a preset voice",
+            ),
+            (
+                {"reference_mode": "preset voice", "preset_voice": "Tim (Male, American English)"},
+                "@Audio2 speaks",
+                "single voice",
+            ),
             ({"reference_mode": "something else"}, "Hi", "Unknown reference mode"),
             ({"reference_mode": "text only"}, "x" * 3001, "maximum is 3000"),
             ({"reference_mode": "text only"}, "  ", "empty"),
@@ -879,8 +1024,9 @@ class SeedAudioRequestTests(unittest.IsolatedAsyncioTestCase):
     async def test_limits_that_pass(self):
         fake = self.serve(3)
         await self.run_node({"reference_mode": "text only"}, "x" * 3000)
-        await self.run_node({"reference_mode": "preset voice", "preset_voice": "Tim (Male, American English)"},
-                            "@audio1 speaks")  # one tag is fine, case-insensitive like core
+        await self.run_node(
+            {"reference_mode": "preset voice", "preset_voice": "Tim (Male, American English)"}, "@audio1 speaks"
+        )  # one tag is fine, case-insensitive like core
         await self.run_node({"reference_mode": "audio reference", "ref_audio_1_source": "voice"}, "No tags at all.")
         self.assertEqual(len(fake.calls), 3)
 
@@ -889,13 +1035,15 @@ class SeedAudioRequestTests(unittest.IsolatedAsyncioTestCase):
 
         pcm = struct.pack("<4h", 0, 1000, -1000, 0)
         speech_api._send = FakeSpeechHTTP([(200, {}, {"code": 0, "audio": base64.b64encode(pcm).decode()})])
-        audio = (await self.run_node({"reference_mode": "text only"}, audio_format="pcm",
-                                     sample_rate="8000")).result[0][0]
+        audio = (await self.run_node({"reference_mode": "text only"}, audio_format="pcm", sample_rate="8000")).result[
+            0
+        ][0]
         self.assertEqual(audio["sample_rate"], 8000)
         self.assertEqual(tuple(audio["waveform"].shape), (1, 1, 4))
 
 
 # --- templates and messages -----------------------------------------------------
+
 
 @requires_comfyui
 class TemplateTests(unittest.TestCase):

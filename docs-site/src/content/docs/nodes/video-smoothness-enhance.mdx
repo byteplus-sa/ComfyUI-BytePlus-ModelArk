@@ -37,7 +37,7 @@ Finds places where the motion rhythm jumps (periodic stutter), generates in-betw
 
 ### Notes on outputs
 
-- If MediaKit returns no repaired video, `VIDEO` is your source passed through. That happens with both steps on `detect only`, when nothing needed fixing, or when MediaKit's quality check skipped the repair. The node's log message then says the task is billed as detection only.
+- If MediaKit returns no repaired video, `VIDEO` is your source passed through. That happens with both steps on `detect only`, when nothing needed fixing, or when MediaKit's quality check skipped the repair. The node's log message then says the task is billed as detection only. If the source came from `video_url` and cannot be downloaded again, `VIDEO` is blocked with the reason, while the frame counts and `response` still reach their nodes.
 - In that case there is no comparison, and nodes using `comparison` are skipped.
 - `inserted_frame_count` is what the detector found. The repair may still have been skipped, so do not read it as frames added.
 

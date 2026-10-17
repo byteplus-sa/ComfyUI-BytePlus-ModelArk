@@ -26,7 +26,9 @@ class AgentFilesAreSymlinked(unittest.TestCase):
     def test_no_skill_only_in_agents(self):
         agents = os.path.join(PLUGIN_ROOT, ".agents")
         extra = [name for name in os.listdir(agents) if name not in ("AGENTS.md", "skills")]
-        self.assertEqual(extra, [], ".agents/ may only hold the AGENTS.md and skills symlinks; put real files in .claude/")
+        self.assertEqual(
+            extra, [], ".agents/ may only hold the AGENTS.md and skills symlinks; put real files in .claude/"
+        )
 
 
 if __name__ == "__main__":

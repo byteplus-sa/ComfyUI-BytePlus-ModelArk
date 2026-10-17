@@ -3,6 +3,7 @@ import io
 import functools
 import inspect
 import base64
+import contextlib
 import hashlib
 import json
 import re
@@ -16,6 +17,7 @@ import asyncio
 import threading
 import comfy.model_management
 from byteplussdkarkruntime import Ark
+from byteplussdkarkruntime._exceptions import ArkAPIConnectionError
 
 
 import logging
@@ -24,6 +26,7 @@ from .constants import MESSAGES, ERROR_TEXT_MATCH_RULES, REGION_BASE_URLS, DEFAU
 from . import credentials
 
 LOG_PREFIX = "[BytePlus] "
+
 
 def patch_log_messages():
     """
@@ -46,12 +49,13 @@ def patch_log_messages():
                 if not value.startswith(LOG_PREFIX):
                     MESSAGES[key] = LOG_PREFIX + value
 
+
 patch_log_messages()
 
 logger = logging.getLogger("BytePlus")
 if not logger.handlers:
     handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(message)s')
+    formatter = logging.Formatter("%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
@@ -71,7 +75,7 @@ def get_text(key, **kwargs):
     if kwargs:
         try:
             msg = msg.format(**kwargs)
-        except:
+        except Exception:
             pass
     # An inserted error text often ends with a full stop already ("...{e}. Log in ...").
     return re.sub(r"(?<!\.)\.\.(?=\s|$)", ".", msg)
@@ -87,7 +91,7 @@ def log_msg(key, default_msg="", **kwargs):
         rendered_msg = msg
         try:
             rendered_msg = msg.format(**kwargs)
-        except:
+        except Exception:
             pass
         logger.info(rendered_msg)
         if any(code in str(rendered_msg) for code in ("InvalidParameter", "MissingParameter")):
@@ -106,13 +110,14 @@ def get_node_count_in_workflow(class_type, prompt=None):
     try:
         if prompt is None:
             from server import PromptServer
+
             prompt = PromptServer.instance.prompt
-        
+
         if not prompt:
             return 0
-        
+
         count = 0
-        for key, value in prompt.items():
+        for value in prompt.values():
             if value.get("class_type") == class_type:
                 count += 1
         return count
@@ -188,6 +193,7 @@ def format_api_error(e):
 
         if matched_msg:
             if "%s" in matched_msg:
+
                 def _extract_account_model(text: str):
                     if not text:
                         return None, None
@@ -217,20 +223,21 @@ def format_api_error(e):
 
 def check_api_key(api_key: str, base_url: str):
     """
-    Ask the region's endpoint about the API key: True when it is accepted,
-    False when it is rejected (401), None when the endpoint could not be
-    reached (network error, timeout, proxy), so nothing is known about the key.
+    Ask the region's endpoint about the API key: False when it is rejected
+    (401/403), None when nothing is known about it (unreachable, 408, 429,
+    5xx), True for any other answer (the endpoint did not refuse it).
     """
     try:
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         response = requests.get(base_url, headers=headers, timeout=10)
     except Exception as e:
         logger.error(f"API Key validation error: {e}")
         return None
-    return response.status_code != 401
+    if response.status_code in (401, 403):
+        return False
+    if response.status_code in (408, 429) or response.status_code >= 500:
+        return None
+    return True
 
 
 def _normalize_expire_seconds(expire_seconds):
@@ -239,27 +246,23 @@ def _normalize_expire_seconds(expire_seconds):
 
 
 def _normalize_cache_key(cache_key):
+    """(account, file identity, fps, expire seconds), or None for anything else."""
     if isinstance(cache_key, str):
         try:
             cache_key = json.loads(cache_key)
-        except Exception:
+        except ValueError:
             return None
-    if isinstance(cache_key, list):
-        cache_key = tuple(cache_key)
-    if not isinstance(cache_key, tuple):
+    if not isinstance(cache_key, (list, tuple)) or len(cache_key) != 4:
         return None
-    if len(cache_key) == 2:
-        file_path, fps = cache_key
-        expire_seconds = 604800
-    elif len(cache_key) == 3:
-        file_path, fps, expire_seconds = cache_key
-    else:
+    account, file_identity, fps, expire_seconds = cache_key
+    if not (isinstance(account, str) and account and isinstance(file_identity, str) and file_identity):
         return None
-    if not isinstance(file_path, str) or not file_path:
+    try:
+        normalized_fps = float(fps) if fps is not None else None
+        normalized_expire_seconds = _normalize_expire_seconds(expire_seconds)
+    except (TypeError, ValueError):
         return None
-    normalized_fps = float(fps) if fps is not None else None
-    normalized_expire_seconds = _normalize_expire_seconds(expire_seconds)
-    return (file_path, normalized_fps, normalized_expire_seconds)
+    return (account, file_identity, normalized_fps, normalized_expire_seconds)
 
 
 def _serialize_cache_key(cache_key):
@@ -285,7 +288,7 @@ class UploadCacheStore:
         loaded_data = {}
         if os.path.exists(self.cache_file):
             try:
-                with open(self.cache_file, "r", encoding="utf-8") as f:
+                with open(self.cache_file, encoding="utf-8") as f:
                     cache_data = json.load(f)
                 if isinstance(cache_data, dict):
                     now_ts = int(time.time())
@@ -296,10 +299,7 @@ class UploadCacheStore:
                         file_id = entry.get("file_id")
                         expire_at = int(entry.get("expire_at", 0) or 0)
                         if file_id and expire_at > now_ts:
-                            loaded_data[cache_key] = {
-                                "file_id": file_id,
-                                "expire_at": expire_at
-                            }
+                            loaded_data[cache_key] = {"file_id": file_id, "expire_at": expire_at}
             except Exception as e:
                 logger.error(f"Failed to load upload cache: {e}")
         with self._lock:
@@ -316,10 +316,7 @@ class UploadCacheStore:
                 file_id = entry.get("file_id")
                 expire_at = int(entry.get("expire_at", 0) or 0)
                 if file_id and expire_at > now_ts:
-                    serializable_data[_serialize_cache_key(cache_key)] = {
-                        "file_id": file_id,
-                        "expire_at": expire_at
-                    }
+                    serializable_data[_serialize_cache_key(cache_key)] = {"file_id": file_id, "expire_at": expire_at}
         try:
             with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(serializable_data, f, indent=2, ensure_ascii=False)
@@ -337,10 +334,6 @@ class UploadCacheStore:
     def pop(self, cache_key, default=None):
         with self._lock:
             return self._data.pop(cache_key, default)
-
-    def contains(self, cache_key):
-        with self._lock:
-            return cache_key in self._data
 
     def keys(self):
         with self._lock:
@@ -361,115 +354,93 @@ def save_files_upload_cache():
 load_files_upload_cache()
 
 
-async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, return_meta=False, model=None):
+def _upload_account(client):
+    """Uploaded files belong to one account and region: a fingerprint of both, never the key."""
+    api_key = getattr(client, "api_key", None) or ""
+    region = getattr(client, "region", None) or ""
+    return f"{api_key_fingerprint(api_key) if api_key else 'no-key'}@{region}"
+
+
+def _retrieve_error_is_transient(error):
+    """Network errors, timeouts and 5xx say nothing about the file; a 4xx means it is gone or not ours."""
+    status = getattr(error, "status_code", None)
+    if isinstance(status, int):
+        return status >= 500 or status == 408
+    return isinstance(error, (ArkAPIConnectionError, asyncio.TimeoutError, TimeoutError, ConnectionError))
+
+
+async def _cached_file_id(client, cache_key, now_ts):
+    """The cached file ID when the file is still usable, else None (and the entry is dropped)."""
+    cached_entry = UPLOAD_CACHE_STORE.get(cache_key)
+    if cached_entry is None:
+        return None
+    cached_file_id = cached_entry.get("file_id") if isinstance(cached_entry, dict) else None
+    if cached_file_id:
+        try:
+            remote_file_info = await asyncio.to_thread(client.ark.files.retrieve, file_id=cached_file_id)
+        except Exception as e:
+            if _retrieve_error_is_transient(e) and int(cached_entry.get("expire_at", 0) or 0) > now_ts:
+                return cached_file_id
+        else:
+            remote_status = getattr(remote_file_info, "status", "unknown")
+            remote_expire_at = int(getattr(remote_file_info, "expire_at", 0) or 0)
+            if remote_status == "active" and remote_expire_at > now_ts:
+                cached_entry["expire_at"] = remote_expire_at
+                save_files_upload_cache()
+                return cached_file_id
+    UPLOAD_CACHE_STORE.pop(cache_key, None)
+    save_files_upload_cache()
+    return None
+
+
+async def _delete_stale_uploads(client, cache_key):
+    """Uploads of the same file with another lifetime are replaced by this one."""
+    account, file_identity, fps, expire_seconds = cache_key
+    stale_keys = [
+        existing_key
+        for existing_key in UPLOAD_CACHE_STORE.keys()  # noqa: SIM118
+        if existing_key[:3] == (account, file_identity, fps) and existing_key[3] != expire_seconds
+    ]
+    for stale_key in stale_keys:
+        stale_entry = UPLOAD_CACHE_STORE.pop(stale_key, None)
+        stale_file_id = stale_entry.get("file_id") if isinstance(stale_entry, dict) else None
+        if stale_file_id:
+            await _delete_file_quietly(client, stale_file_id)
+    if stale_keys:
+        save_files_upload_cache()
+
+
+async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, model=None):
     """
-    Upload a file with client.ark.files.create (cached by content). For videos
-    (fps set), `model` selects the frame-sampling strategy of that model; without
-    it ModelArk uses the strategy of models older than seed-1-8.
+    Upload a file with client.ark.files.create (cached by content, account and
+    region). For videos (fps set), `model` selects the frame-sampling strategy
+    of that model; without it ModelArk uses the strategy of models older than
+    seed-1-8.
     """
     expire_seconds = _normalize_expire_seconds(expire_seconds)
     if fps is None:
         model = None
         try:
             file_identity = f"sha256:{await asyncio.to_thread(_compute_file_sha256, file_path)}"
-        except Exception:
+        except OSError:
             file_identity = file_path
     else:
         file_identity = file_path
     if model:
         # Preprocessing depends on the model, so the upload is cached per model.
         file_identity = f"{file_identity}|model={model}"
-    cache_key = (file_identity, float(fps) if fps is not None else None, expire_seconds)
-    cache_fps = float(fps) if fps is not None else None
+    cache_key = (_upload_account(client), file_identity, float(fps) if fps is not None else None, expire_seconds)
     now_ts = int(time.time())
     expire_at = now_ts + expire_seconds
 
-    cached_entry = UPLOAD_CACHE_STORE.get(cache_key)
-    legacy_path_key = None
-    matched_cache_key = cache_key
-    if cached_entry is None and fps is None and file_identity != file_path:
-        legacy_path_key = (file_path, None, expire_seconds)
-        cached_entry = UPLOAD_CACHE_STORE.get(legacy_path_key)
-        if cached_entry is not None:
-            matched_cache_key = legacy_path_key
-    if isinstance(cached_entry, dict):
-        cached_file_id = cached_entry.get("file_id")
-        cached_expire_at = int(cached_entry.get("expire_at", 0) or 0)
-        if cached_file_id:
-            try:
-                remote_file_info = await asyncio.to_thread(
-                    client.ark.files.retrieve,
-                    file_id=cached_file_id
-                )
-                remote_status = getattr(remote_file_info, "status", "unknown")
-                remote_expire_at = int(getattr(remote_file_info, "expire_at", 0) or 0)
-                if remote_status == "active" and remote_expire_at > now_ts:
-                    cached_entry["expire_at"] = remote_expire_at
-                    if legacy_path_key is not None and UPLOAD_CACHE_STORE.contains(legacy_path_key):
-                        UPLOAD_CACHE_STORE.pop(legacy_path_key, None)
-                        UPLOAD_CACHE_STORE.set(cache_key, cached_entry)
-                    save_files_upload_cache()
-                    log_msg("visual_found_file", path=file_path)
-                    if return_meta:
-                        return {
-                            "file_id": cached_file_id,
-                            "expire_at": remote_expire_at
-                        }
-                    return cached_file_id
-            except Exception:
-                if cached_expire_at > now_ts:
-                    if legacy_path_key is not None and UPLOAD_CACHE_STORE.contains(legacy_path_key):
-                        UPLOAD_CACHE_STORE.pop(legacy_path_key, None)
-                        UPLOAD_CACHE_STORE.set(cache_key, cached_entry)
-                        save_files_upload_cache()
-                    log_msg("visual_found_file", path=file_path)
-                    if return_meta:
-                        return {
-                            "file_id": cached_file_id,
-                            "expire_at": cached_expire_at
-                        }
-                    return cached_file_id
-        UPLOAD_CACHE_STORE.pop(matched_cache_key, None)
-        save_files_upload_cache()
-    elif cached_entry is not None:
-        UPLOAD_CACHE_STORE.pop(cache_key, None)
-        save_files_upload_cache()
+    cached_file_id = await _cached_file_id(client, cache_key, now_ts)
+    if cached_file_id:
+        log_msg("visual_found_file", path=file_path)
+        return cached_file_id
 
-    identity_candidates = {file_identity}
-    if fps is None and file_identity != file_path:
-        identity_candidates.add(file_path)
-    stale_keys = []
-    for existing_key in UPLOAD_CACHE_STORE.keys():
-        normalized_existing_key = _normalize_cache_key(existing_key)
-        if normalized_existing_key is None:
-            continue
-        existing_identity, existing_fps, existing_expire_seconds = normalized_existing_key
-        if (
-            existing_identity in identity_candidates
-            and existing_fps == cache_fps
-            and existing_expire_seconds != expire_seconds
-        ):
-            stale_keys.append(existing_key)
+    if hasattr(client.ark, "files"):
+        await _delete_stale_uploads(client, cache_key)
 
-    if stale_keys and hasattr(client.ark, "files"):
-        cache_changed = False
-        for stale_key in stale_keys:
-            stale_entry = UPLOAD_CACHE_STORE.get(stale_key)
-            if isinstance(stale_entry, dict):
-                stale_file_id = stale_entry.get("file_id")
-                if stale_file_id:
-                    try:
-                        await asyncio.to_thread(
-                            client.ark.files.delete,
-                            file_id=stale_file_id
-                        )
-                    except Exception as e:
-                        logger.error(f"Delete stale file failed for {stale_file_id}: {e}")
-            UPLOAD_CACHE_STORE.pop(stale_key, None)
-            cache_changed = True
-        if cache_changed:
-            save_files_upload_cache()
-        
     try:
         log_msg("visual_uploading", path=file_path)
         if not hasattr(client.ark, "files"):
@@ -502,8 +473,6 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
 
         UPLOAD_CACHE_STORE.set(cache_key, {"file_id": file_id, "expire_at": expire_at})
         save_files_upload_cache()
-        if return_meta:
-            return {"file_id": file_id, "expire_at": expire_at}
         return file_id
     except BytePlusException:
         raise
@@ -511,7 +480,7 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
         logger.error(f"Upload failed for {file_path}: {e}")
         raise BytePlusException(
             get_text("err_file_upload_failed", e=format_api_error(e).replace(LOG_PREFIX, "", 1))
-        )
+        ) from e
 
 
 async def _delete_file_quietly(client, file_id):
@@ -543,7 +512,7 @@ async def wait_for_file_active(client, file_id, max_wait_seconds=FILE_ACTIVE_MAX
             retrieve_errors += 1
             logger.error(f"Error checking file status: {e}")
             if retrieve_errors >= FILE_ACTIVE_MAX_RETRIEVE_ERRORS:
-                raise BytePlusException(get_text("err_file_status_check", id=file_id, e=format_api_error(e)))
+                raise BytePlusException(get_text("err_file_status_check", id=file_id, e=format_api_error(e))) from e
         else:
             retrieve_errors = 0
             status = getattr(file_info, "status", "unknown")
@@ -556,9 +525,7 @@ async def wait_for_file_active(client, file_id, max_wait_seconds=FILE_ACTIVE_MAX
                 raise BytePlusException(get_text("err_file_processing_failed", id=file_id, reason=reason))
 
         if time.monotonic() >= deadline:
-            raise BytePlusException(
-                get_text("err_file_processing_timeout", id=file_id, seconds=max_wait_seconds)
-            )
+            raise BytePlusException(get_text("err_file_processing_timeout", id=file_id, seconds=max_wait_seconds))
         await asyncio.sleep(FILE_ACTIVE_POLL_SECONDS)
 
 
@@ -603,9 +570,7 @@ def safe_cat_tensors(tensors, dim=0):
     for t in tensors:
         if t.shape[1] != target_h or t.shape[2] != target_w:
             t_permuted = t.permute(0, 3, 1, 2)
-            t_resized = F.interpolate(
-                t_permuted, size=(target_h, target_w), mode="bilinear", align_corners=False
-            )
+            t_resized = F.interpolate(t_permuted, size=(target_h, target_w), mode="bilinear", align_corners=False)
             t_final = t_resized.permute(0, 2, 3, 1)
             processed_tensors.append(t_final)
         else:
@@ -669,6 +634,7 @@ class BytePlusException(Exception):
     Plugin exception whose traceback is suppressed in the console
     (byteplus_suppress_traceback = True); only the message is shown.
     """
+
     def __init__(self, message):
         super().__init__(message)
         self.byteplus_suppress_traceback = True
@@ -727,10 +693,31 @@ async def gather_cancelling(awaitables, return_exceptions=False):
     return [task.exception() or task.result() if return_exceptions else task.result() for task in tasks]
 
 
+@contextlib.asynccontextmanager
+async def keyed_lock(locks, key):
+    """
+    Hold the asyncio lock for key in the locks dict (waiting is interruptible).
+    The entry is dropped once nobody holds or waits for it, so the dict stays
+    small and no lock outlives the event loop it was used on.
+    """
+    entry = locks.setdefault(key, [asyncio.Lock(), 0])
+    entry[1] += 1
+    try:
+        await wait_interruptible(entry[0].acquire())
+        try:
+            yield
+        finally:
+            entry[0].release()
+    finally:
+        entry[1] -= 1
+        if not entry[1] and locks.get(key) is entry:
+            del locks[key]
+
+
 def plain_text(key, **kwargs):
     """A message without the console prefix, for use inside another message or on a node."""
     text = get_text(key, **kwargs)
-    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
+    return text[len(LOG_PREFIX) :] if text.startswith(LOG_PREFIX) else text
 
 
 def send_node_text(node_id, text, ps_instance=None):
@@ -748,8 +735,21 @@ def send_node_text(node_id, text, ps_instance=None):
         pass
 
 
-async def upload_bytes_to_comfy_storage(node_cls, data, filename, mime_type, cache, *, cache_key, ttl_seconds,
-                                        max_entries, unavailable_key, failed_key, done_key=None, **message_kwargs):
+async def upload_bytes_to_comfy_storage(
+    node_cls,
+    data,
+    filename,
+    mime_type,
+    cache,
+    *,
+    cache_key,
+    ttl_seconds,
+    max_entries,
+    unavailable_key,
+    failed_key,
+    done_key=None,
+    **message_kwargs,
+):
     """
     Comfy.org storage URL for media an API only takes as a public link,
     reused from `cache` for the same cache_key within ttl_seconds. Needs a
@@ -762,13 +762,13 @@ async def upload_bytes_to_comfy_storage(node_cls, data, filename, mime_type, cac
     try:
         from comfy_api_nodes.util import upload_file_to_comfyapi
     except Exception as e:
-        raise BytePlusException(get_text(unavailable_key, e=e, **message_kwargs))
+        raise BytePlusException(get_text(unavailable_key, e=e, **message_kwargs)) from e
     try:
         url = await upload_file_to_comfyapi(node_cls, io.BytesIO(data), filename, mime_type, wait_label=None)
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:
-        raise BytePlusException(get_text(failed_key, e=e, **message_kwargs))
+        raise BytePlusException(get_text(failed_key, e=e, **message_kwargs)) from e
     cache.pop(cache_key, None)
     cache[cache_key] = (url, time.time())
     while len(cache) > max_entries:
@@ -785,6 +785,7 @@ class BytePlusClients:
     billed_ark: the same client without automatic retries, for calls that
     start paid work (see call_billed).
     """
+
     def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION, asset_credentials=None, billed_ark=None):
         self.ark = ark_client
         self.billed_ark = billed_ark
@@ -832,6 +833,7 @@ def with_client(param, factory):
     client is not a node input, so ``factory()`` supplies it as ``param``.
     Tests pass their own client, positionally or by keyword.
     """
+
     def decorate(fn):
         def inject(args, kwargs):
             if args or kwargs.get(param) is not None:
@@ -839,14 +841,18 @@ def with_client(param, factory):
             return {**kwargs, param: factory()}
 
         if inspect.iscoroutinefunction(fn):
+
             @functools.wraps(fn)
             async def wrapper(cls, *args, **kwargs):
                 return await fn(cls, *args, **inject(args, kwargs))
         else:
+
             @functools.wraps(fn)
             def wrapper(cls, *args, **kwargs):
                 return fn(cls, *args, **inject(args, kwargs))
+
         return wrapper
+
     return decorate
 
 
@@ -862,6 +868,7 @@ BILLED_RATE_LIMIT_RETRIES = 2
 try:
     from byteplussdkarkruntime._exceptions import ArkRateLimitError
 except Exception:  # SDK layout changed: no 429 retry, never a duplicate
+
     class ArkRateLimitError(Exception):
         pass
 
@@ -883,7 +890,7 @@ def call_billed(create, /, **kwargs):
             if attempt >= BILLED_RATE_LIMIT_RETRIES:
                 raise
             comfy.model_management.throw_exception_if_processing_interrupted()
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
 
 
 def api_key_fingerprint(api_key):
@@ -891,3 +898,7 @@ def api_key_fingerprint(api_key):
     return hashlib.sha256(api_key.strip().encode("utf-8")).hexdigest()[:16]
 
 
+def client_owner(client):
+    """(key fingerprint, region): work started with one key and region only exists there."""
+    api_key = getattr(client, "api_key", None) or ""
+    return (api_key_fingerprint(api_key) if api_key else "", getattr(client, "region", None))

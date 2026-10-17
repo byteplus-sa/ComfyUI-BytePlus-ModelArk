@@ -31,7 +31,7 @@ Use it to describe pictures, write or rewrite prompts for other nodes, or answer
 - **Media slots:** `image_1`, `video_1` and so on appear as you connect them, up to 20 images and 4 videos.
 - **Audio:** only Seed 2.0 Lite and Mini show `audio_1` to `audio_4`. The other models cannot hear audio, so the node does not offer the input for them.
 - **Thinking:** `reasoning_mode` set to `auto` sends nothing, and the model uses its own default. `reasoning_effort` goes from `minimal` to `max`; `max` thinks the longest and costs the most. It is not sent when `reasoning_mode` is `disabled`.
-- **Several turns:** with `turns` at 1, every run starts a new conversation and nothing is stored. With 2 or more, each run continues this node's last conversation with the new prompt. Only the first turn sends media, which then stays in the conversation: media you connect later is not sent. Changing the model, the key or the region starts a new conversation.
+- **Several turns:** with `turns` at 1, every run starts a new conversation and nothing is stored. With 2 or more, `turns` is the length of a conversation: each run continues this node's last conversation with the new prompt until it has that many turns, and the next run starts a new one. Only the first turn sends media, which then stays in the conversation: media you connect later is not sent. Changing the model, the key or the region starts a new conversation.
 - **System prompt:** `system_prompt` is sent again on every turn.
 - **Streaming:** turn on `stream` to watch the answer appear in the console. The `STRING` output still arrives complete at the end.
 

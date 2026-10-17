@@ -166,7 +166,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        },
        {
         "name": "output_format",
@@ -310,7 +311,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        },
        {
         "name": "output_format",
@@ -485,7 +487,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        }
       ]
      },
@@ -620,7 +623,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        }
       ]
      },
@@ -764,7 +768,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        }
       ]
      }
@@ -1601,7 +1606,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -2139,7 +2145,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -3681,7 +3688,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -3757,7 +3765,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -3904,7 +3913,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -4059,7 +4069,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -4220,7 +4231,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -4271,7 +4283,9 @@
     "required": true,
     "advanced": false,
     "tooltip": "",
-    "default": 1
+    "default": 1,
+    "min": 1,
+    "max": 500
    },
    {
     "name": "page_size",
@@ -4279,7 +4293,9 @@
     "required": true,
     "advanced": false,
     "tooltip": "",
-    "default": 10
+    "default": 10,
+    "min": 1,
+    "max": 500
    },
    {
     "name": "status",
@@ -4888,7 +4904,7 @@
     "type": "integer",
     "required": false,
     "advanced": true,
-    "tooltip": "1: every run starts a new conversation (the response is not stored). 2 or more: each run continues this node's last conversation (with the same model) with the new prompt; images, videos and audio from the first turn stay in the conversation.",
+    "tooltip": "1: every run starts a new conversation (the response is not stored). 2 or more: the length of a conversation. Each run continues this node's last conversation (with the same model) with the new prompt until it has this many turns; the next run starts a new one. Images, videos and audio from the first turn stay in the conversation.",
     "default": 1,
     "min": 1,
     "max": 10

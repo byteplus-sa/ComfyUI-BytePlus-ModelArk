@@ -9,6 +9,7 @@ by BytePlus (shut down on 2026-11-11), so it and its generate_audio input are le
 node ends with this pack's extras (advanced). The request goes straight to
 BytePlus ModelArk: parameters as JSON body fields, frames as base64 data URIs.
 """
+
 from comfy_api.latest import io as comfy_io
 
 from .constants import (
@@ -83,10 +84,7 @@ def validate_seedance1_frame(helper, name, image):
     if image is None:
         raise BytePlusException(get_text("err_seedance1_image_missing", name=name))
     width, height = helper._extract_image_hw(image)
-    if not (
-        IMAGE_MIN_EDGE <= width <= IMAGE_MAX_EDGE
-        and IMAGE_MIN_EDGE <= height <= IMAGE_MAX_EDGE
-    ):
+    if not (IMAGE_MIN_EDGE <= width <= IMAGE_MAX_EDGE and IMAGE_MIN_EDGE <= height <= IMAGE_MAX_EDGE):
         raise BytePlusException(
             get_text(
                 "err_seedance1_image_size",
@@ -111,6 +109,7 @@ def validate_seedance1_frame(helper, name, image):
 
 
 # --- Inputs (core's definitions) ---
+
 
 def _model_input(options, default):
     return comfy_io.Combo.Input("model", options=list(options), default=default)
@@ -247,9 +246,7 @@ async def generate_seedance1_video(
     last_frame = images[1] if len(images) > 1 else None
     content = build_seedance1_frame_content(helper, first_frame, last_frame)
 
-    service_tier, execution_expires_after = helper._get_service_options(
-        enable_offline_inference, VIDEO_DEFAULT_TIMEOUT
-    )
+    service_tier, execution_expires_after = helper._get_service_options(enable_offline_inference, VIDEO_DEFAULT_TIMEOUT)
     return await helper._common_generation_logic(
         client,
         prompt,

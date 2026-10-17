@@ -89,9 +89,9 @@ Open **Settings** (gear icon, or Ctrl+, / Cmd+,), search for **BytePlus**, paste
 - Keys are written to `user/.env` in your ComfyUI folder and take effect immediately.
 - Settings only ever shows whether a key is set and its last four characters. The row also shows where the file is (*Saved in ~/…/user/.env*).
 
-![Settings → BytePlus with no key yet](docs/images/settings-byteplus-not-set.jpg)
+![Settings → BytePlus with no key yet](https://raw.githubusercontent.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/main/docs/images/settings-byteplus-not-set.jpg)
 
-![Settings → BytePlus after saving: "ModelArk API key: set (ends in abcd), from user/.env."](docs/images/settings-byteplus-key-set.jpg)
+![Settings → BytePlus after saving: "ModelArk API key: set (ends in abcd), from user/.env."](https://raw.githubusercontent.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/main/docs/images/settings-byteplus-key-set.jpg)
 
 ### Option B: Edit `user/.env`
 
@@ -129,7 +129,7 @@ The file doesn't exist until you save a key.
 
 Add **BytePlus LLM**, type `Reply with OK`, pick **Seed 2.0 Mini**, connect its output to **Preview as Text** (*Preview Any* in older ComfyUI) and press **Run**. It costs a few tokens.
 
-![A BytePlus LLM node connected to Preview as Text: no key and no client node on the canvas](docs/images/workflow-without-client-node.jpg)
+![A BytePlus LLM node connected to Preview as Text: no key and no client node on the canvas](https://raw.githubusercontent.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/main/docs/images/workflow-without-client-node.jpg)
 
 Change the prompt or seed between test runs: ComfyUI reuses the cached result of an unchanged node, so an identical run makes no new request.
 
@@ -346,14 +346,18 @@ Templates show current models only. The Seedance 1.0 nodes, the Seedream 4.5 / 4
 ## Development
 
 ```bash
-# Template tests (no ComfyUI needed)
-python3 -m unittest tests.test_workflow_templates
+# Template and docs tests (no ComfyUI needed)
+python3 -m unittest tests.test_workflow_templates tests.test_agent_files tests.test_docs_data
 
-# Node tests (need a ComfyUI checkout and a Python with torch and the BytePlus SDK; skipped otherwise)
-COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed tests.test_mediakit tests.test_credentials
+# All tests (node tests need a ComfyUI checkout and a Python with torch and the BytePlus SDK; skipped otherwise)
+COMFYUI_ROOT=/path/to/ComfyUI python -m unittest discover -s tests -t .
+
+# Lint
+uvx ruff@0.17.1 check .
+uvx ruff@0.17.1 format --check .
 ```
 
-CI runs both on every push and pull request, and weekly against ComfyUI's latest release and `master`, since the nodes are compared with ComfyUI's built-in ByteDance nodes. See [`CLAUDE.md`](./CLAUDE.md) for layout and conventions.
+CI runs these on every push and pull request, and weekly against ComfyUI's latest release and `master`, since the nodes are compared with ComfyUI's built-in ByteDance nodes. See [`CLAUDE.md`](./CLAUDE.md) for layout and conventions.
 
 **Planned:** optional reference video upload via your own object storage (TOS or S3, presigned URL).
 

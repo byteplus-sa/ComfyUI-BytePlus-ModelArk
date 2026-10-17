@@ -2,6 +2,7 @@
 Seedream helpers for nodes_seedream.py: ComfyUI core's size presets, reference
 image encoding, URL-result requests and layer output.
 """
+
 import asyncio
 import base64
 import io
@@ -167,9 +168,7 @@ def _image_to_png_data_uri(image, mask=None, with_alpha=False):
     size_mb = len(data_uri) / (1024.0 * 1024.0)
     if size_mb > REF_IMAGE_MAX_SIZE_MB:
         raise BytePlusException(
-            get_text("popup_ref_image_size_exceeded").format(
-                max_mb=REF_IMAGE_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}"
-            )
+            get_text("popup_ref_image_size_exceeded").format(max_mb=REF_IMAGE_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}")
         )
     return data_uri
 
@@ -187,20 +186,15 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
     every returned image. transparent keeps the alpha channel (RGBA tensor).
     Returns (tensor, metadata) for BytePlusGenerationExecutor.run_parallel_requests.
     """
-    download = (
-        download_url_to_rgba_tensor_async
-        if transparent
-        else download_url_to_image_tensor_async
-    )
+    download = download_url_to_rgba_tensor_async if transparent else download_url_to_image_tensor_async
     try:
         comfy.model_management.throw_exception_if_processing_interrupted()
-        response = await wait_interruptible(asyncio.to_thread(call_billed, ark_client.images.generate, **request_kwargs))
+        response = await wait_interruptible(
+            asyncio.to_thread(call_billed, ark_client.images.generate, **request_kwargs)
+        )
         comfy.model_management.throw_exception_if_processing_interrupted()
 
-        urls = [
-            getattr(item, "url", None)
-            for item in (getattr(response, "data", None) or [])
-        ]
+        urls = [getattr(item, "url", None) for item in (getattr(response, "data", None) or [])]
         urls = [url for url in urls if url]
         if not urls:
             raise BytePlusException(get_text("err_download_img"))
@@ -222,13 +216,14 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
     except Exception as exc:
         if isinstance(exc, BytePlusException):
             raise
-        raise BytePlusException(format_api_error(exc))
+        raise BytePlusException(format_api_error(exc)) from exc
 
 
 def _get_dynamic_input_order(name):
     match = None
     try:
         import re
+
         match = re.search(r"(\d+)$", str(name))
     except Exception:
         match = None
@@ -263,7 +258,7 @@ def _prepare_multi_image_inputs(images=None, **kwargs):
     elif isinstance(images, torch.Tensor):
         input_image_tensors.append(images)
 
-    for key in sorted([k for k in kwargs.keys() if k.startswith("image_")], key=_get_dynamic_input_order):
+    for key in sorted([k for k in kwargs if k.startswith("image_")], key=_get_dynamic_input_order):
         image_tensor = kwargs[key]
         if isinstance(image_tensor, torch.Tensor):
             input_image_tensors.append(image_tensor)
@@ -281,9 +276,7 @@ def _prepare_multi_image_inputs(images=None, **kwargs):
         if n_input_images == 1:
             image_param = f"data:image/jpeg;base64,{image_b64_list[0]}"
         else:
-            image_param = [
-                f"data:image/jpeg;base64,{image_b64}" for image_b64 in image_b64_list
-            ]
+            image_param = [f"data:image/jpeg;base64,{image_b64}" for image_b64 in image_b64_list]
 
     return n_input_images, image_param
 
@@ -304,22 +297,24 @@ def _bbox_dict(item):
     }
 
 
-def _save_layer_pngs(filename_prefix, base, layers, layer_items, output_format):
-    """Save the base image and the original layer PNGs; return {z_index: relative path}."""
+def _save_layer_pngs(filename_prefix, base, layers, output_format):
+    """
+    Save the base image and the original layer PNGs; return their relative
+    paths, the base first and then the layers in response order. Files are
+    named by position: z_index can be missing or repeated.
+    """
     output_dir = folder_paths.get_output_directory()
     full_folder, filename, counter, subfolder, _ = folder_paths.get_save_image_path(
         filename_prefix, output_dir, base.width, base.height
     )
     os.makedirs(full_folder, exist_ok=True)
-    saved = {}
     stem = f"{filename}_{counter:05}"
     base_ext = "png" if output_format == "png" else "jpg"
     base_name = f"{stem}_base.{base_ext}"
     (base if base_ext == "png" else base.convert("RGB")).save(os.path.join(full_folder, base_name))
-    saved[0] = os.path.join(subfolder, base_name)
-    for layer, item in zip(layers, layer_items):
-        z_index = getattr(item, "z_index", None) or 0
-        layer_name = f"{stem}_layer{z_index:02d}.png"
+    saved = [os.path.join(subfolder, base_name)]
+    for position, layer in enumerate(layers, start=1):
+        layer_name = f"{stem}_layer{position:02d}.png"
         layer.save(os.path.join(full_folder, layer_name))
-        saved[z_index] = os.path.join(subfolder, layer_name)
+        saved.append(os.path.join(subfolder, layer_name))
     return saved

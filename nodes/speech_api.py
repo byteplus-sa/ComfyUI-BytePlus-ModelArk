@@ -30,6 +30,7 @@ class SeedSpeechClient:
     Seed Speech API key and endpoint for the region. Never serialized into
     outputs.
     """
+
     def __init__(self, api_key, region=DEFAULT_SPEECH_REGION):
         self.api_key = api_key
         self.region = region if region in SPEECH_REGION_BASE_URLS else DEFAULT_SPEECH_REGION
@@ -114,21 +115,23 @@ def speech_error(operation, response=None, code=None, message=None):
         if message is None:
             message = response.headers.get("x-api-message") or response.text()[:300]
     logid = response.logid if response is not None else ""
-    return BytePlusException(get_text(
-        "speech_request_failed",
-        operation=operation,
-        status=status,
-        code=code if code is not None else "-",
-        message=describe_speech_error(code, message, status),
-        logid=f" (log ID: {logid})" if logid else "",
-    ))
+    return BytePlusException(
+        get_text(
+            "speech_request_failed",
+            operation=operation,
+            status=status,
+            code=code if code is not None else "-",
+            message=describe_speech_error(code, message, status),
+            logid=f" (log ID: {logid})" if logid else "",
+        )
+    )
 
 
 def b64decode_audio(data):
     try:
         return base64.b64decode(data, validate=False)
     except (binascii.Error, ValueError, TypeError) as e:
-        raise BytePlusException(get_text("speech_audio_decode_failed", e=e))
+        raise BytePlusException(get_text("speech_audio_decode_failed", e=e)) from e
 
 
 def check_code(operation, response, code, message=None):
@@ -153,8 +156,7 @@ class SpeechRequestError(BytePlusException):
         self.retryable = retryable
 
 
-async def speech_post(client, path, body, *, operation, headers=None,
-                      timeout=SPEECH_REQUEST_TIMEOUT_SECONDS):
+async def speech_post(client, path, body, *, operation, headers=None, timeout=SPEECH_REQUEST_TIMEOUT_SECONDS):
     """
     POST JSON to Seed Speech with the X-Api-Key header and a fresh
     X-Api-Request-Id (callers may override it). Raises BytePlusException for
@@ -167,13 +169,13 @@ async def speech_post(client, path, body, *, operation, headers=None,
     }
     request_headers.update(headers or {})
     try:
-        response = await wait_interruptible(
-            _send("POST", client.base_url + path, request_headers, body, timeout)
-        )
+        response = await wait_interruptible(_send("POST", client.base_url + path, request_headers, body, timeout))
     except asyncio.TimeoutError:
-        raise SpeechRequestError(get_text("speech_timeout", operation=operation, seconds=timeout), retryable=True)
+        raise SpeechRequestError(
+            get_text("speech_timeout", operation=operation, seconds=timeout), retryable=True
+        ) from None
     except aiohttp.ClientError as e:
-        raise SpeechRequestError(get_text("speech_network_error", operation=operation, e=e), retryable=True)
+        raise SpeechRequestError(get_text("speech_network_error", operation=operation, e=e), retryable=True) from e
     if response.status >= 400:
         raise SpeechRequestError(
             str(speech_error(operation, response)), retryable=response.status == 429 or response.status >= 500
@@ -202,9 +204,9 @@ async def download_bytes(url, operation, timeout=SPEECH_REQUEST_TIMEOUT_SECONDS)
     try:
         response = await wait_interruptible(_send("GET", url, {}, None, timeout))
     except asyncio.TimeoutError:
-        raise BytePlusException(get_text("speech_timeout", operation=operation, seconds=timeout))
+        raise BytePlusException(get_text("speech_timeout", operation=operation, seconds=timeout)) from None
     except aiohttp.ClientError as e:
-        raise BytePlusException(get_text("speech_network_error", operation=operation, e=e))
+        raise BytePlusException(get_text("speech_network_error", operation=operation, e=e)) from e
     if response.status >= 400:
         raise speech_error(operation, response, code=response.status, message=response.text()[:300])
     return response.body
@@ -227,7 +229,7 @@ def iter_json_objects(text):
             obj, index = decoder.raw_decode(text, index)
         except ValueError:
             # Failing beats returning silently truncated audio.
-            raise BytePlusException(get_text("speech_stream_unreadable", position=index))
+            raise BytePlusException(get_text("speech_stream_unreadable", position=index)) from None
         if isinstance(obj, dict):
             yield obj
         elif isinstance(obj, list):

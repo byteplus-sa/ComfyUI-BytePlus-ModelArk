@@ -7,6 +7,7 @@ widgets. Calls the ModelArk Responses API directly
 with the user's key; images, videos and audio go through the Ark Files API.
 Seed 2.0 Lite and Mini also take audio clips (the other models do not hear audio).
 """
+
 import asyncio
 import hashlib
 import io
@@ -30,7 +31,7 @@ from .models_config import (
     SEED_LLM_UI_OPTIONS,
 )
 from .nodes_shared import (
-    api_key_fingerprint,
+    client_owner,
     get_client,
     with_client,
     GLOBAL_CATEGORY,
@@ -47,15 +48,10 @@ FILE_EXPIRE_MAX_SECONDS = 2592000
 FILE_EXPIRE_DEFAULT_SECONDS = 604800
 
 # Last stored response per node, for multi-turn (previous_response_id). Keyed by
-# node id; the owner (key fingerprint, region) must match to continue.
+# node id; the owner (key fingerprint, region, model) must match to continue, and
+# "turn" counts the conversation's turns so far.
 SEED_LAST_RESPONSES = {}
 SEED_LAST_RESPONSES_MAX = 256
-
-
-def _conversation_owner(client):
-    """A response ID only exists in the account and region that made it (the key as a fingerprint)."""
-    api_key = getattr(client, "api_key", None) or ""
-    return (api_key_fingerprint(api_key) if api_key else "", getattr(client, "region", None))
 
 
 def _seed_model_inputs(max_images=SEED_LLM_MAX_IMAGES, max_videos=SEED_LLM_MAX_VIDEOS, max_audios=0):
@@ -171,9 +167,10 @@ def _extra_inputs():
             max=10,
             tooltip=(
                 "1: every run starts a new conversation (the response is not stored). "
-                "2 or more: each run continues this node's last conversation (with the same "
-                "model) with the new prompt; images, videos and audio from the first turn stay "
-                "in the conversation."
+                "2 or more: the length of a conversation. Each run continues this node's last "
+                "conversation (with the same model) with the new prompt until it has this many "
+                "turns; the next run starts a new one. Images, videos and audio from the first "
+                "turn stay in the conversation."
             ),
             optional=True,
             advanced=True,
@@ -265,9 +262,17 @@ def image_count(image_tensors):
     return sum(int(t.shape[0]) if getattr(t, "ndim", 0) == 4 else 1 for t in image_tensors)
 
 
-def build_seed_payload(model_id, content, temperature, system_prompt="", reasoning_mode="auto",
-                       reasoning_effort="medium", supports_effort=True, previous_response_id=None,
-                       store=None):
+def build_seed_payload(
+    model_id,
+    content,
+    temperature,
+    system_prompt="",
+    reasoning_mode="auto",
+    reasoning_effort="medium",
+    supports_effort=True,
+    previous_response_id=None,
+    store=None,
+):
     """Responses API request for the Seed node (SDK responses.create kwargs)."""
     payload = {
         "model": model_id,
@@ -398,15 +403,11 @@ class BytePlusSeed(comfy_io.ComfyNode):
             raise BytePlusException(get_text("seed_llm_too_many_images", max=SEED_LLM_MAX_IMAGES, count=count))
         videos = [v for v in (model.get("videos") or {}).values() if v is not None]
         if len(videos) > SEED_LLM_MAX_VIDEOS:
-            raise BytePlusException(
-                get_text("seed_llm_too_many_videos", max=SEED_LLM_MAX_VIDEOS, count=len(videos))
-            )
+            raise BytePlusException(get_text("seed_llm_too_many_videos", max=SEED_LLM_MAX_VIDEOS, count=len(videos)))
 
         audios = [a for a in (model.get("audios") or {}).values() if a is not None]
         if len(audios) > SEED_LLM_MAX_AUDIOS:
-            raise BytePlusException(
-                get_text("seed_llm_too_many_audios", max=SEED_LLM_MAX_AUDIOS, count=len(audios))
-            )
+            raise BytePlusException(get_text("seed_llm_too_many_audios", max=SEED_LLM_MAX_AUDIOS, count=len(audios)))
         total_audio_seconds = sum(audio_duration(a) for a in audios)
         if total_audio_seconds > SEED_LLM_MAX_AUDIO_SECONDS:
             raise BytePlusException(
@@ -419,19 +420,21 @@ class BytePlusSeed(comfy_io.ComfyNode):
 
         node_id = cls.hidden.unique_id
         # A conversation continues only on the same account, region and model.
-        owner = (*_conversation_owner(client), model_id)
+        owner = (*client_owner(client), model_id)
         turns = int(turns or 1)
         previous_response_id = None
+        turn = 1
         if turns > 1:
             last = SEED_LAST_RESPONSES.get(node_id)
-            if last and last.get("owner") == owner:
+            if last and last.get("owner") == owner and last.get("turn", 1) < turns:
                 previous_response_id = last["id"]
+                turn = last.get("turn", 1) + 1
         else:
             SEED_LAST_RESPONSES.pop(node_id, None)
 
         content = []
         if previous_response_id:
-            log_msg("visual_cont_conv", id=previous_response_id)
+            log_msg("visual_cont_conv", id=previous_response_id, turn=turn, turns=turns)
         else:
             log_msg("visual_new_conv")
             expire_seconds = max(
@@ -445,10 +448,8 @@ class BytePlusSeed(comfy_io.ComfyNode):
                 try:
                     path = await asyncio.to_thread(video_file, video)
                 except Exception as e:
-                    raise BytePlusException(get_text("seed_llm_video_convert_failed", index=index, e=e))
-                file_id = await upload_file_to_ark(
-                    client, path, fps=fps, expire_seconds=expire_seconds, model=model_id
-                )
+                    raise BytePlusException(get_text("seed_llm_video_convert_failed", index=index, e=e)) from e
+                file_id = await upload_file_to_ark(client, path, fps=fps, expire_seconds=expire_seconds, model=model_id)
                 content.append({"type": "input_video", "file_id": file_id})
             for path in await asyncio.to_thread(audio_files, audios):
                 file_id = await upload_file_to_ark(client, path, expire_seconds=expire_seconds)
@@ -488,7 +489,7 @@ class BytePlusSeed(comfy_io.ComfyNode):
 
         if turns > 1 and isinstance(response, dict) and response.get("id"):
             SEED_LAST_RESPONSES.pop(node_id, None)
-            SEED_LAST_RESPONSES[node_id] = {"id": response["id"], "owner": owner}
+            SEED_LAST_RESPONSES[node_id] = {"id": response["id"], "owner": owner, "turn": turn}
             while len(SEED_LAST_RESPONSES) > SEED_LAST_RESPONSES_MAX:
                 SEED_LAST_RESPONSES.pop(next(iter(SEED_LAST_RESPONSES)))
             log_msg("visual_cached_id", id=response["id"])

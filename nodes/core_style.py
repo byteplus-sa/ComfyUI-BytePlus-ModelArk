@@ -4,32 +4,46 @@ Shared pieces for nodes shaped like ComfyUI core's ByteDance partner nodes
 pack's extras as advanced inputs, the linked-output check, and resolving
 reference strings (asset IDs, asset:// URIs, https links) for Seedance.
 """
+
 import asyncio
 import ipaddress
 import os
+import socket
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
+import aiohttp.abc
 from comfy_api.latest import io as comfy_io
 
-from .constants import ASSET_URI_PREFIX
+from .constants import ASSET_URI_PREFIX, MAX_GENERATION_COUNT
 from .models_config import MODEL_REGION_EXCLUSIONS
 from .nodes_shared import BytePlusException, gather_cancelling, get_text, wait_interruptible
 
 SEED_MAX = 2147483647
 SEEDANCE_SEED_TOOLTIP = (
-    "Seed controls whether the node should re-run; "
-    "results are non-deterministic regardless of seed."
+    "Seed controls whether the node should re-run; results are non-deterministic regardless of seed."
 )
 
 REFERENCE_KINDS = ("image", "video", "audio")
 _URL_EXTENSION_KINDS = {
-    ".jpg": "image", ".jpeg": "image", ".png": "image", ".webp": "image",
-    ".bmp": "image", ".tif": "image", ".tiff": "image", ".gif": "image",
-    ".heic": "image", ".heif": "image",
-    ".mp4": "video", ".mov": "video",
-    ".mp3": "audio", ".wav": "audio", ".m4a": "audio", ".aac": "audio",
-    ".ogg": "audio", ".flac": "audio",
+    ".jpg": "image",
+    ".jpeg": "image",
+    ".png": "image",
+    ".webp": "image",
+    ".bmp": "image",
+    ".tif": "image",
+    ".tiff": "image",
+    ".gif": "image",
+    ".heic": "image",
+    ".heif": "image",
+    ".mp4": "video",
+    ".mov": "video",
+    ".mp3": "audio",
+    ".wav": "audio",
+    ".m4a": "audio",
+    ".aac": "audio",
+    ".ogg": "audio",
+    ".flac": "audio",
 }
 _ASSET_TYPE_KINDS = {"Image": "image", "Video": "video", "Audio": "audio"}
 _URL_PROBE_TIMEOUT_SECONDS = 15
@@ -73,6 +87,7 @@ def generation_count_input(seeded=True):
         "generation_count",
         default=1,
         min=1,
+        max=MAX_GENERATION_COUNT,
         tooltip=tooltip,
         advanced=True,
     )
@@ -100,10 +115,7 @@ def video_extra_inputs(include_offline=False, seeded=True):
             comfy_io.Boolean.Input(
                 "non_blocking",
                 default=False,
-                tooltip=(
-                    "Submit the task and return at once; run the node again to "
-                    "collect the finished video."
-                ),
+                tooltip=("Submit the task and return at once; run the node again to collect the finished video."),
                 advanced=True,
             ),
         ]
@@ -158,8 +170,7 @@ def video_list_output():
     """
     return comfy_io.Video.Output(
         is_output_list=True,
-        tooltip="The generated video, or every video of a generation_count batch "
-        "(the next node runs once per video).",
+        tooltip="The generated video, or every video of a generation_count batch (the next node runs once per video).",
     )
 
 
@@ -199,13 +210,9 @@ def get_output_consumers(prompt, node_id, output_index):
 
 def raise_if_output_linked(cls, output_index, reason):
     """Core's validate_output_unlinked, using the queued prompt."""
-    consumers = get_output_consumers(
-        getattr(cls.hidden, "prompt", None), cls.hidden.unique_id, output_index
-    )
+    consumers = get_output_consumers(getattr(cls.hidden, "prompt", None), cls.hidden.unique_id, output_index)
     if consumers:
-        raise BytePlusException(
-            get_text("err_output_linked", reason=reason, consumers=", ".join(consumers))
-        )
+        raise BytePlusException(get_text("err_output_linked", reason=reason, consumers=", ".join(consumers)))
 
 
 def split_reference_value(value):
@@ -223,7 +230,7 @@ def split_reference_value(value):
     if lowered.startswith("https://"):
         return ("url", text)
     if lowered.startswith(ASSET_URI_PREFIX):
-        asset_id = text[len(ASSET_URI_PREFIX):]
+        asset_id = text[len(ASSET_URI_PREFIX) :]
     elif "://" in text:
         raise BytePlusException(get_text("err_reference_value_invalid", value=text))
     else:
@@ -244,20 +251,44 @@ def _kind_from_content_type(content_type):
     return major if major in REFERENCE_KINDS else None
 
 
+def _is_global_address(text):
+    try:
+        return ipaddress.ip_address(str(text).split("%", 1)[0]).is_global
+    except ValueError:
+        return False
+
+
 async def _host_is_public(host):
     """False for hosts that resolve to a private, loopback or link-local address (or not at all)."""
     try:
         infos = await asyncio.get_running_loop().getaddrinfo(host, None)
     except OSError:
         return False
-    for info in infos:
-        try:
-            address = ipaddress.ip_address(info[4][0].split("%", 1)[0])
-        except ValueError:
-            return False
-        if not address.is_global:
-            return False
-    return bool(infos)
+    return bool(infos) and all(_is_global_address(info[4][0]) for info in infos)
+
+
+class PublicOnlyResolver(aiohttp.abc.AbstractResolver):
+    """
+    aiohttp's threaded resolver, refusing hosts with any non-global address.
+    The probe connects only to the addresses checked here, so a DNS answer that
+    changes after _host_is_public (DNS rebinding) cannot reach a private host.
+    """
+
+    def __init__(self):
+        self._resolver = aiohttp.ThreadedResolver()
+
+    async def resolve(self, host, port=0, family=socket.AF_INET):
+        infos = await self._resolver.resolve(host, port, family)
+        if not infos or not all(_is_global_address(info["host"]) for info in infos):
+            raise OSError(f"{host} does not resolve to a public address")
+        return infos
+
+    async def close(self):
+        await self._resolver.close()
+
+
+def _public_probe_session(timeout):
+    return aiohttp.ClientSession(timeout=timeout, connector=aiohttp.TCPConnector(resolver=PublicOnlyResolver()))
 
 
 async def _probe_request(session, method, url, headers=None):
@@ -281,7 +312,7 @@ async def _probe_url_kind(url):
     timeout = aiohttp.ClientTimeout(total=_URL_PROBE_TIMEOUT_SECONDS)
 
     async def probe():
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with _public_probe_session(timeout) as session:
             for method, headers in (("HEAD", None), ("GET", {"Range": "bytes=0-0"})):
                 target = url
                 for _hop in range(_MAX_PROBE_REDIRECTS + 1):
@@ -327,7 +358,7 @@ async def sniff_audio_format(url):
     timeout = aiohttp.ClientTimeout(total=_URL_PROBE_TIMEOUT_SECONDS)
 
     async def sniff():
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with _public_probe_session(timeout) as session:
             target = url
             for _hop in range(_MAX_PROBE_REDIRECTS + 1):
                 parsed = urlparse(target)
@@ -368,11 +399,7 @@ def _asset_library(client):
 
     stamp = asset_credentials_stamp(resolve_asset_credentials(client))
     cached = getattr(client, "_asset_library", None)
-    if (
-        cached is not None
-        and type(cached) is AssetLibrary
-        and getattr(cached, "credentials_stamp", None) == stamp
-    ):
+    if cached is not None and type(cached) is AssetLibrary and getattr(cached, "credentials_stamp", None) == stamp:
         return cached
     library = AssetLibrary(client)
     try:
@@ -383,9 +410,7 @@ def _asset_library(client):
 
 
 async def _lookup_asset_kind(library, asset_id, project_name):
-    asset = await asyncio.to_thread(
-        library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name}
-    )
+    asset = await asyncio.to_thread(library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name})
     status = str(asset.get("Status") or "")
     if status != "Active":
         raise BytePlusException(
@@ -393,9 +418,7 @@ async def _lookup_asset_kind(library, asset_id, project_name):
         )
     kind = _ASSET_TYPE_KINDS.get(str(asset.get("AssetType") or ""))
     if kind is None:
-        raise BytePlusException(
-            get_text("err_reference_asset_type_unknown", asset_id=asset_id)
-        )
+        raise BytePlusException(get_text("err_reference_asset_type_unknown", asset_id=asset_id))
     return kind
 
 
@@ -416,9 +439,7 @@ async def resolve_reference_values(client, values, project_name="default"):
     library = None
     if asset_ids:
         if not _has_asset_credentials(client):
-            raise BytePlusException(
-                get_text("err_reference_asset_needs_credentials", asset_id=asset_ids[0])
-            )
+            raise BytePlusException(get_text("err_reference_asset_needs_credentials", asset_id=asset_ids[0]))
         library = _asset_library(client)
     limit = asyncio.Semaphore(_REFERENCE_LOOKUP_CONCURRENCY)
 

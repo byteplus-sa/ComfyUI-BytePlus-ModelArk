@@ -19,16 +19,23 @@ This page is for people who change the pack or the docs. If you only use the nod
 
 ## Run the tests
 
-Template and agent-file tests need no ComfyUI:
+Template, agent-file and docs-data tests need no ComfyUI:
 
 ```bash
-python3 -m unittest tests.test_workflow_templates tests.test_agent_files
+python3 -m unittest tests.test_workflow_templates tests.test_agent_files tests.test_docs_data
 ```
 
 Node tests need a ComfyUI checkout and a Python with torch, ComfyUI's requirements and this pack's requirements. They are skipped without `COMFYUI_ROOT`, and CI treats a skip as a failure:
 
 ```bash
-COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed
+COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest discover -s tests -t .
+```
+
+Lint with ruff (settings in `pyproject.toml`):
+
+```bash
+uvx ruff@0.17.1 check .
+uvx ruff@0.17.1 format --check .
 ```
 
 The tests never call the real BytePlus API.

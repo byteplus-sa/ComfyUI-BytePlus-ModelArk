@@ -7,6 +7,7 @@ Needs a ComfyUI checkout and a Python env with torch and the BytePlus SDK:
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_credentials
 The BytePlus API is never called; key validation is faked.
 """
+
 import asyncio
 import importlib
 import inspect
@@ -22,9 +23,7 @@ from unittest import mock
 
 COMFY_ROOT = os.environ.get("COMFYUI_ROOT")
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-requires_comfyui = unittest.skipUnless(
-    COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests."
-)
+requires_comfyui = unittest.skipUnless(COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests.")
 
 if COMFY_ROOT:
     if COMFY_ROOT not in sys.path:
@@ -39,7 +38,6 @@ if COMFY_ROOT:
         package = types.ModuleType(PACKAGE_NAME)
         package.__path__ = [PLUGIN_ROOT]
         sys.modules[PACKAGE_NAME] = package
-
 
     credentials = importlib.import_module(f"{PACKAGE_NAME}.nodes.credentials")
     credentials_routes = importlib.import_module(f"{PACKAGE_NAME}.nodes.credentials_routes")
@@ -70,9 +68,15 @@ def constants_base(region):
 
 
 CREDENTIAL_ENV_VARS = (
-    "BYTEPLUS_API_KEY", "BYTEPLUS_REGION", "BYTEPLUS_SEED_SPEECH_API_KEY",
-    "BYTEPLUS_VOD_MEDIAKIT_API_KEY", "BYTEPLUS_ACCESS_KEY", "BYTEPLUS_ACCESSKEY",
-    "BYTEPLUS_SECRET_KEY", "BYTEPLUS_SECRETKEY", "BYTEPLUS_SESSION_TOKEN",
+    "BYTEPLUS_API_KEY",
+    "BYTEPLUS_REGION",
+    "BYTEPLUS_SEED_SPEECH_API_KEY",
+    "BYTEPLUS_VOD_MEDIAKIT_API_KEY",
+    "BYTEPLUS_ACCESS_KEY",
+    "BYTEPLUS_ACCESSKEY",
+    "BYTEPLUS_SECRET_KEY",
+    "BYTEPLUS_SECRETKEY",
+    "BYTEPLUS_SESSION_TOKEN",
 )
 
 
@@ -110,7 +114,7 @@ class TestIsolationTests(unittest.TestCase):
                 continue
             with open(os.path.join(tests_dir, name), encoding="utf-8") as file:
                 source = file.read()
-            if 'PACKAGE_NAME}.nodes.' in source:
+            if "PACKAGE_NAME}.nodes." in source:
                 with self.subTest(module=name):
                     self.assertIn("def setUpModule():", source)
                     self.assertIn("unittest.addModuleCleanup(isolate_credentials())", source)
@@ -255,8 +259,10 @@ class EnvFileTests(IsolatedCredentials):
     def test_the_new_file_is_on_disk_before_it_replaces_the_old_one(self):
         order = []
         real_fsync, real_replace = os.fsync, os.replace
-        with mock.patch.object(credentials.os, "fsync", lambda fd: (order.append("fsync"), real_fsync(fd))), \
-                mock.patch.object(credentials.os, "replace", lambda a, b: (order.append("replace"), real_replace(a, b))):
+        with (
+            mock.patch.object(credentials.os, "fsync", lambda fd: (order.append("fsync"), real_fsync(fd))),
+            mock.patch.object(credentials.os, "replace", lambda a, b: (order.append("replace"), real_replace(a, b))),
+        ):
             credentials.update_env_file({"BYTEPLUS_API_KEY": "k"})
         self.assertEqual(order, ["fsync", "replace"])
 
@@ -273,7 +279,9 @@ class EnvFileTests(IsolatedCredentials):
 
     def test_status_never_contains_a_key(self):
         secret = "sk-very-secret-value-9876"
-        self.write_env(f"BYTEPLUS_API_KEY={secret}\nBYTEPLUS_SECRET_KEY={secret}\nBYTEPLUS_ACCESS_KEY=AKIDEXAMPLE0001\n")
+        self.write_env(
+            f"BYTEPLUS_API_KEY={secret}\nBYTEPLUS_SECRET_KEY={secret}\nBYTEPLUS_ACCESS_KEY=AKIDEXAMPLE0001\n"
+        )
         os.environ["BYTEPLUS_SEED_SPEECH_API_KEY"] = secret
         status = credentials.credential_status()
         self.assertNotIn(secret, json.dumps(status))
@@ -288,8 +296,10 @@ class EnvFileTests(IsolatedCredentials):
 
     def test_the_path_is_shown_with_the_home_folder_as_a_tilde(self):
         home = os.path.expanduser("~")
-        self.assertEqual(credentials.display_path(os.path.join(home, "ComfyUI", "user", ".env")),
-                         os.path.join("~", "ComfyUI", "user", ".env"))
+        self.assertEqual(
+            credentials.display_path(os.path.join(home, "ComfyUI", "user", ".env")),
+            os.path.join("~", "ComfyUI", "user", ".env"),
+        )
         self.assertEqual(credentials.display_path(home + "-other/x"), home + "-other/x")
         self.assertEqual(credentials.display_path("/opt/ComfyUI/user/.env"), "/opt/ComfyUI/user/.env")
         status = credentials.credential_status()
@@ -312,6 +322,24 @@ class EnvFileTests(IsolatedCredentials):
         self.write_env("BYTEPLUS_ACCESSKEY=AK\nBYTEPLUS_SECRETKEY=SK\n")
         iam = credentials.credential_status()["credentials"]["iam"]
         self.assertEqual((iam["configured"], iam["in_file"], iam["source"]), (True, True, "file"))
+
+    def test_an_alias_in_the_environment_wins_over_the_file(self):
+        names = credentials.ACCESS_KEY_ENVS
+        self.write_env("BYTEPLUS_ACCESS_KEY=file-ak\n")
+        os.environ["BYTEPLUS_ACCESSKEY"] = "env-ak"
+        self.assertEqual(credentials.get_setting(*names), "env-ak")
+        self.assertEqual(credentials.setting_source(*names), "environment")
+
+    def test_name_order_decides_within_the_environment_and_within_the_file(self):
+        names = credentials.ACCESS_KEY_ENVS
+        self.write_env("BYTEPLUS_ACCESSKEY=file-alias\nBYTEPLUS_ACCESS_KEY=file-primary\n")
+        self.assertEqual(credentials.get_setting(*names), "file-primary")
+        self.write_env("BYTEPLUS_ACCESSKEY=file-alias\n")
+        self.assertEqual(credentials.get_setting(*names), "file-alias")
+        self.assertEqual(credentials.setting_source(*names), "file")
+        os.environ["BYTEPLUS_ACCESSKEY"] = "env-alias"
+        os.environ["BYTEPLUS_ACCESS_KEY"] = "env-primary"
+        self.assertEqual(credentials.get_setting(*names), "env-primary")
 
 
 @requires_comfyui
@@ -467,10 +495,21 @@ class WithClientTests(unittest.TestCase):
             asyncio.run(Node.run())
 
 
-ALL_NODES = [
-    *nodes_seedream.NODES, *nodes_seedance1.NODES, *nodes_seedance2.NODES, *nodes_seed.NODES,
-    *nodes_assets.NODES, *nodes_speech.NODES, *nodes_mediakit.NODES, *nodes_3d.NODES, nodes_video.BytePlusVideoQueryTasks,
-] if COMFY_ROOT else []
+ALL_NODES = (
+    [
+        *nodes_seedream.NODES,
+        *nodes_seedance1.NODES,
+        *nodes_seedance2.NODES,
+        *nodes_seed.NODES,
+        *nodes_assets.NODES,
+        *nodes_speech.NODES,
+        *nodes_mediakit.NODES,
+        *nodes_3d.NODES,
+        nodes_video.BytePlusVideoQueryTasks,
+    ]
+    if COMFY_ROOT
+    else []
+)
 
 
 @requires_comfyui
@@ -540,13 +579,16 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
             {},  # not from a web page (curl, local scripts)
         ):
             with self.subTest(headers=headers):
-                status, _ = await self.save(
-                    {"credential": "speech", "value": "proxied-key-1234"}, headers=headers
-                )
+                status, _ = await self.save({"credential": "speech", "value": "proxied-key-1234"}, headers=headers)
                 self.assertEqual(status, 200)
-        response = await credentials_routes.handle_status(self.request(headers={
-            "Origin": "https://comfy.example.com", "Sec-Fetch-Site": "same-origin",
-        }))
+        response = await credentials_routes.handle_status(
+            self.request(
+                headers={
+                    "Origin": "https://comfy.example.com",
+                    "Sec-Fetch-Site": "same-origin",
+                }
+            )
+        )
         self.assertEqual(response.status, 200)
 
     async def test_save_and_clear_a_speech_key(self):
@@ -585,8 +627,28 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(credentials_routes, "check_api_key", lambda key, url: None):
             status, body = await self.save({"credential": "modelark", "value": "key-0001"})
         self.assertEqual(status, 200)
-        self.assertIn("could not be reached", body["message"])
+        self.assertIn("could not be checked", body["message"])
         self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "key-0001")
+
+    async def test_the_endpoint_answer_decides_how_the_key_is_saved(self):
+        cases = (
+            (200, 200, "Saved."),
+            (403, 422, None),
+            (503, 200, "could not be checked"),
+            (429, 200, "could not be checked"),
+            (404, 200, "Saved."),
+        )
+        for endpoint_status, expected_status, message in cases:
+            with self.subTest(endpoint=endpoint_status):
+                answer = SimpleNamespace(status_code=endpoint_status)
+                with mock.patch.object(nodes_shared.requests, "get", lambda *a, answer=answer, **k: answer):
+                    status, body = await self.save({"credential": "modelark", "value": "key-0001"})
+                self.assertEqual(status, expected_status)
+                if message:
+                    self.assertIn(message, body["message"])
+                    self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "key-0001")
+                else:
+                    self.assertIn("rejected", body["error"])
 
     async def test_a_region_fixed_by_the_environment_is_not_overridden(self):
         os.environ["BYTEPLUS_REGION"] = "ap-southeast-1"
@@ -617,8 +679,9 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(credentials.get_asset_credentials()["session_token"], "sts-token")
         status, _ = await self.save({"credential": "iam", "access_key": "AK2", "secret_key": "SK2"})
         self.assertEqual(status, 200)
-        self.assertEqual(credentials.get_asset_credentials(),
-                         {"access_key": "AK2", "secret_key": "SK2", "session_token": ""})
+        self.assertEqual(
+            credentials.get_asset_credentials(), {"access_key": "AK2", "secret_key": "SK2", "session_token": ""}
+        )
 
     async def test_bad_requests(self):
         for body, expected in (

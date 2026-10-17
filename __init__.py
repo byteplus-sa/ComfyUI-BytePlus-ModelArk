@@ -9,6 +9,7 @@ _original_print_exception = traceback.print_exception
 _original_format_exception = traceback.format_exception
 _original_logging_error = logging.error
 
+
 def _byteplus_print_exception(*args, **kwargs):
     """
     Print only the message (no traceback) for plugin exceptions marked with
@@ -22,14 +23,15 @@ def _byteplus_print_exception(*args, **kwargs):
             exc = args[1]
 
     if exc and getattr(exc, "byteplus_suppress_traceback", False):
-        f = kwargs.get('file')
+        f = kwargs.get("file")
         if not f:
             f = sys.stderr
-        
+
         print(f"{exc}", file=f)
         return
 
     return _original_print_exception(*args, **kwargs)
+
 
 def _byteplus_format_exception(*args, **kwargs):
     """
@@ -49,8 +51,9 @@ def _byteplus_format_exception(*args, **kwargs):
 
     if exc and getattr(exc, "byteplus_suppress_traceback", False):
         return [f"{exc}\n"]
-    
+
     return _original_format_exception(*args, **kwargs)
+
 
 def _byteplus_logging_error(msg, *args, **kwargs):
     """
@@ -64,16 +67,17 @@ def _byteplus_logging_error(msg, *args, **kwargs):
 
     return _original_logging_error(msg, *args, **kwargs)
 
+
 traceback.print_exception = _byteplus_print_exception
 traceback.format_exception = _byteplus_format_exception
 logging.error = _byteplus_logging_error
 
-if sys.platform == 'win32':
+if sys.platform == "win32":
     try:
         from asyncio import proactor_events
-        
+
         _original_call_connection_lost = proactor_events._ProactorBasePipeTransport._call_connection_lost
-        
+
         def _silenced_call_connection_lost(self, exc):
             """
             Silence asyncio ConnectionResetError / OSError (winerror 10054) on Windows.
@@ -83,7 +87,7 @@ if sys.platform == 'win32':
             except ConnectionResetError:
                 pass
             except OSError as e:
-                if getattr(e, 'winerror', None) == 10054:
+                if getattr(e, "winerror", None) == 10054:
                     pass
                 else:
                     raise
@@ -94,6 +98,7 @@ if sys.platform == 'win32':
 
 from comfy_api.latest import ComfyExtension
 
+
 def get_init_text(key, **kwargs):
     """
     Return a startup message, formatted with kwargs.
@@ -102,7 +107,7 @@ def get_init_text(key, **kwargs):
 
     try:
         return msg.format(**kwargs)
-    except:
+    except Exception:
         return msg
 
 
@@ -140,13 +145,10 @@ def check_dependencies():
         print(get_init_text("init_sdk_version_unknown", min=minimum_version))
         return True
     if _numeric_version(current_version) < _numeric_version(minimum_version):
-        print(
-            get_init_text(
-                "init_sdk_ver_low", current=current_version, min=minimum_version, cmd=install_cmd
-            )
-        )
+        print(get_init_text("init_sdk_ver_low", current=current_version, min=minimum_version, cmd=install_cmd))
         return False
     return True
+
 
 _dependencies_ready = check_dependencies()
 
@@ -181,18 +183,22 @@ if _dependencies_ready:
 else:
     _registered_nodes = []
 
+
 class BytePlusExtension(ComfyExtension):
     """
     Registers the BytePlus ModelArk nodes.
     """
+
     async def get_node_list(self) -> list[type]:
         return _registered_nodes
+
 
 async def comfy_entrypoint() -> ComfyExtension:
     """
     ComfyUI extension entry point.
     """
     return BytePlusExtension()
+
 
 WEB_DIRECTORY = "./web"
 __all__ = ["WEB_DIRECTORY"]

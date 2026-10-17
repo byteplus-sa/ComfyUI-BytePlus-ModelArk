@@ -7,6 +7,9 @@ REGION_BASE_URLS = {
 }
 DEFAULT_REGION = "ap-southeast-1"
 
+# generation_count on every node: each generation is a separate paid request.
+MAX_GENERATION_COUNT = 16
+
 # Asset library (virtual portraits / verified real people): signed OpenAPI,
 # service "ark", separate host per region, IAM AK/SK instead of the API key.
 ASSET_API_HOSTS = {
@@ -34,7 +37,9 @@ MEDIAKIT_REGION_BASE_URLS = {
 }
 DEFAULT_MEDIAKIT_REGION = "ap-southeast-1"
 MEDIAKIT_API_KEY_ENV = "BYTEPLUS_VOD_MEDIAKIT_API_KEY"
-MEDIAKIT_API_KEYS_CONSOLE_URL = "https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey"
+MEDIAKIT_API_KEYS_CONSOLE_URL = (
+    "https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey"
+)
 MEDIAKIT_REQUEST_TIMEOUT_SECONDS = 60
 MEDIAKIT_POLL_SECONDS = 10
 # Synchronous tools (Image Quality Enhance) answer when done; max-version
@@ -65,7 +70,6 @@ SPEECH_POLL_MAX_ERRORS = 5
 SPEECH_ASR_POLL_SECONDS = 2
 SEED_AUDIO_MAX_PROMPT_CHARS = 3000
 SEED_AUDIO_MAX_AUDIO_REFS = 3
-SEED_AUDIO_MAX_GENERATION_COUNT = 16
 SEED_AUDIO_REF_MAX_SECONDS = 30.0
 SEED_AUDIO_REF_MAX_BYTES = 10 * 1024 * 1024
 SEED_AUDIO_FORMATS = ["wav", "mp3", "ogg_opus", "pcm"]
@@ -80,24 +84,107 @@ SEED_TTS_SAMPLE_RATES = ["24000", "16000", "8000", "22050", "32000", "44100", "4
 SEED_TTS_2_SAMPLE_RATES = ("24000", "16000", "8000")
 # explicit_language values of the TTS API ("auto" sends nothing).
 SEED_TTS_LANGUAGES = [
-    "auto", "en", "zh-cn", "ja", "ko", "id", "th", "vi", "ms", "fil", "es", "es-mx",
-    "pt", "pt-br", "de", "fr", "it", "ru", "pl", "tr", "sv", "ar",
+    "auto",
+    "en",
+    "zh-cn",
+    "ja",
+    "ko",
+    "id",
+    "th",
+    "vi",
+    "ms",
+    "fil",
+    "es",
+    "es-mx",
+    "pt",
+    "pt-br",
+    "de",
+    "fr",
+    "it",
+    "ru",
+    "pl",
+    "tr",
+    "sv",
+    "ar",
 ]
 # ASR audio.language values ("auto" sends nothing: Chinese, English and Chinese
 # dialects are recognized without a language).
 SEED_ASR_LANGUAGES = [
-    "auto", "en-US", "zh-CN", "yue-CN", "ja-JP", "ko-KR", "id-ID", "ms-MY", "th-TH",
-    "vi-VN", "fil-PH", "hi-IN", "bn-BD", "ur-PK", "pa-PK", "km-KH", "my-MM", "es-MX",
-    "pt-BR", "de-DE", "fr-FR", "it-IT", "nl-NL", "pl-PL", "ro-RO", "ru-RU", "uk-UA",
-    "tr-TR", "el-GR", "cs-CZ", "da-DK", "fi-FI", "hu-HU", "no-NO", "sv-SE", "bg-BG",
-    "ar-SA", "az-AZ", "kk-KZ", "sw-KE",
+    "auto",
+    "en-US",
+    "zh-CN",
+    "yue-CN",
+    "ja-JP",
+    "ko-KR",
+    "id-ID",
+    "ms-MY",
+    "th-TH",
+    "vi-VN",
+    "fil-PH",
+    "hi-IN",
+    "bn-BD",
+    "ur-PK",
+    "pa-PK",
+    "km-KH",
+    "my-MM",
+    "es-MX",
+    "pt-BR",
+    "de-DE",
+    "fr-FR",
+    "it-IT",
+    "nl-NL",
+    "pl-PL",
+    "ro-RO",
+    "ru-RU",
+    "uk-UA",
+    "tr-TR",
+    "el-GR",
+    "cs-CZ",
+    "da-DK",
+    "fi-FI",
+    "hu-HU",
+    "no-NO",
+    "sv-SE",
+    "bg-BG",
+    "ar-SA",
+    "az-AZ",
+    "kk-KZ",
+    "sw-KE",
     # Standard models (seed-asr-2.0 / 1.0) only:
-    "sk-SK", "sl-SI", "hr-HR", "sr-RS", "lt-LT", "lv-LV", "et-EE", "fa-IR", "af-ZA",
-    "is-IS", "sq-AL", "ca-ES", "ceb-PH", "ga-IE", "jv-ID", "uz-UZ",
+    "sk-SK",
+    "sl-SI",
+    "hr-HR",
+    "sr-RS",
+    "lt-LT",
+    "lv-LV",
+    "et-EE",
+    "fa-IR",
+    "af-ZA",
+    "is-IS",
+    "sq-AL",
+    "ca-ES",
+    "ceb-PH",
+    "ga-IE",
+    "jv-ID",
+    "uz-UZ",
 ]
 SEED_ASR_STANDARD_ONLY_LANGUAGES = (
-    "sk-SK", "sl-SI", "hr-HR", "sr-RS", "lt-LT", "lv-LV", "et-EE", "fa-IR", "af-ZA",
-    "is-IS", "sq-AL", "ca-ES", "ceb-PH", "ga-IE", "jv-ID", "uz-UZ",
+    "sk-SK",
+    "sl-SI",
+    "hr-HR",
+    "sr-RS",
+    "lt-LT",
+    "lv-LV",
+    "et-EE",
+    "fa-IR",
+    "af-ZA",
+    "is-IS",
+    "sq-AL",
+    "ca-ES",
+    "ceb-PH",
+    "ga-IE",
+    "jv-ID",
+    "uz-UZ",
 )
 # Hotwords and dialogue context only work with the Chinese-English model.
 SEED_ASR_CONTEXT_LANGUAGES = ("auto", "zh-CN")
@@ -106,8 +193,17 @@ SEED_ASR_CONTEXT_LANGUAGES = ("auto", "zh-CN")
 SEED_ASR_AUDIO_FORMATS = ["auto", "wav", "mp3", "ogg", "m4a", "aac", "amr", "spx", "pcm", "raw"]
 SEED_ASR_FAST_FORMATS = ("raw", "wav", "mp3", "ogg")
 SEED_ASR_EXTENSION_FORMATS = {
-    "wav": "wav", "mp3": "mp3", "ogg": "ogg", "opus": "ogg", "oga": "ogg", "m4a": "m4a",
-    "aac": "aac", "amr": "amr", "spx": "spx", "pcm": "pcm", "raw": "raw",
+    "wav": "wav",
+    "mp3": "mp3",
+    "ogg": "ogg",
+    "opus": "ogg",
+    "oga": "ogg",
+    "m4a": "m4a",
+    "aac": "aac",
+    "amr": "amr",
+    "spx": "spx",
+    "pcm": "pcm",
+    "raw": "raw",
 }
 # Standard-mode results arrive within 3 hours.
 SEED_ASR_MAX_WAIT_SECONDS = 12600
@@ -123,9 +219,27 @@ SEED_ASR_CONTEXT_IMAGE_MAX_PIXELS = 768 * 768
 # Voice Replication 2.0 (voice cloning for TTS / Seed Audio)
 SEED_VOICE_CLONE_MAX_BYTES = 10 * 1024 * 1024
 SEED_VOICE_CLONE_LANGUAGES = {
-    "en": 1, "zh": 0, "ja": 2, "es": 3, "id": 4, "pt": 5, "de": 6, "fr": 7, "ko": 8, "it": 9,
-    "th": 10, "vi": 11, "ru": 12, "fil": 13, "ms": 14, "ar": 15, "mx": 16, "pt-br": 17,
-    "pl": 19, "tr": 20, "sv": 21,
+    "en": 1,
+    "zh": 0,
+    "ja": 2,
+    "es": 3,
+    "id": 4,
+    "pt": 5,
+    "de": 6,
+    "fr": 7,
+    "ko": 8,
+    "it": 9,
+    "th": 10,
+    "vi": 11,
+    "ru": 12,
+    "fil": 13,
+    "ms": 14,
+    "ar": 15,
+    "mx": 16,
+    "pt-br": 17,
+    "pl": 19,
+    "tr": 20,
+    "sv": 21,
 }
 # Training status: 0 NotFound, 1 Training, 2 Success, 3 Failed, 4 Active.
 SEED_VOICE_READY_STATUSES = (2, 4)
@@ -172,6 +286,8 @@ MAX_ASPECT_RATIO = 16.0
 
 # Video limits
 VIDEO_MAX_SEED = 2147483647
+# List video generation tasks: page_num and page_size are both 1-500.
+VIDEO_TASK_LIST_MAX_PAGE = 500
 VIDEO_DEFAULT_TIMEOUT = 172800
 IMAGE_MIN_EDGE = 300
 IMAGE_MAX_EDGE = 6000
@@ -229,7 +345,6 @@ MESSAGES = {
     "upload_ref_video_start": "Uploading reference video (done: {done}, pending: {pending})...",
     "upload_ref_video_done": "Reference video upload completed.",
     "upload_ref_video_cache_hit": "Reference video cache hit; reused uploaded result.",
-    
     # Updated
     "polling_single": "Task {task_id}: Running... {elapsed}s / {max}s elapsed",
     "node_poll_long_wait": " Waiting for {minutes} min already. Interrupt to stop waiting: queued tasks are cancelled, running ones finish and are billed (find them with Video Query Tasks).",
@@ -237,7 +352,6 @@ MESSAGES = {
     "node_poll_remaining": " · about {seconds}s left",
     "polling_single_waiting": "Task {task_id}: Queued and waiting for resources... (Status: {status})",
     "polling_batch_stats": "Batch Progress: {done}/{total} done. {pending} pending... (Elapsed {elapsed}s / {max}s) [Run: {running}, Queue: {queued}]",
-
     "interrupted": "\n" + "Processing interrupted by user. Cancelling pending tasks...",
     "cancel_task_success": "Successfully cancelled task: {task_id}",
     "cancel_running_billed": "{count} task(s) were already running and cannot be cancelled: they will finish and be billed. Look them up with Video Query Tasks: {ids}",
@@ -246,8 +360,8 @@ MESSAGES = {
     "cancel_batch_reason": "  - {msg}",
     "task_finished_single": "Task completed successfully.",
     "batch_finished_stats": "Batch finished. Success: {success}, Failed: {failed}.",
-    "batch_handling": "Handling {count} successful tasks. Sorting by seed and downloading...",
-    "batch_last_frame_missing": "No last frame for {missing} of {total} videos; the last_frame batch leaves them out.",
+    "batch_handling": "Handling {count} successful tasks. Downloading...",
+    "batch_last_frame_missing": "No last frame for {missing} of {total} videos, so last_frame is blocked (its frames would no longer match the videos). The videos are not affected.",
     "err_download_url": "Async download failed, URL: {url}, Error: {e}",
     "err_video_download_failed": "The task(s) succeeded (and were billed) but their videos could not be downloaded: {task_ids}. The videos stay available for 24 hours: fetch them with the Video Query Tasks node or from the ModelArk console.",
     "batch_video_download_partial": "Downloaded {done} of {total} videos; could not download task(s) {task_ids}. They stay available for 24 hours (Video Query Tasks node or the ModelArk console).",
@@ -302,7 +416,6 @@ MESSAGES = {
     "err_request_body_too_large": "The final request body exceeds the 64 MiB limit (maximum {max_bytes} bytes; current {current_bytes} bytes). Reduce reference media.",
     "err_transparent_needs_one_image": "Transparent background needs exactly one reference image with an alpha channel (connect its mask to reference_mask). Current reference images: {n}.",
     "err_transparent_needs_png": "Transparent background returns PNG; set output_format to png.",
-
     # Visual Understanding
     "visual_found_file": "Found file in input directory: {path}",
     "visual_uploading": "Uploading file: {path}",
@@ -310,13 +423,12 @@ MESSAGES = {
     "visual_wait_active": "Waiting for file {id} to be active...",
     "visual_file_status": "File {id} status: {status}",
     "visual_new_conv": "Starting new conversation.",
-    "visual_cont_conv": "Continuing conversation {id}...",
+    "visual_cont_conv": "Continuing conversation {id} (turn {turn} of {turns})...",
     "visual_cached_id": "Cached response_id for next turn: {id}",
     "visual_stream_start": "Starting Streaming Response...",
     "visual_task_created": "Response Task Created",
     "visual_task_complete": "Task {id} completed.",
     "visual_task_failed": "Task {id} failed: {msg}",
-
     # Default credentials (Settings > BytePlus, BYTEPLUS_* variables, user/.env)
     "err_no_api_key": "No BytePlus API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_API_KEY=... in {path} (or set the BYTEPLUS_API_KEY environment variable).",
     "err_no_speech_key": "No Seed Speech API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_SEED_SPEECH_API_KEY=... in {path} (or set the environment variable).",
@@ -344,14 +456,14 @@ MESSAGES = {
     "cred_forbidden_origin": "Requests from another origin are not accepted.",
     "cred_empty": "Paste a key first.",
     "cred_key_rejected": "BytePlus rejected this API key for the selected region, so it was not saved.",
-    "cred_key_unchecked": "Saved, but BytePlus could not be reached to check the key; if the nodes report 401, check the key and region.",
+    "non_blocking_dropped": "This run does not collect the pending non_blocking task(s) {ids} (the inputs changed or non_blocking is off); they still run and are billed. Find their results with Video Query Tasks.",
+    "cred_key_unchecked": "Saved, but the key could not be checked (BytePlus was unreachable, rate-limited or returned a server error); if the nodes report 401, check the key and region.",
     "cred_region_env_conflict": "The BYTEPLUS_REGION environment variable is set to {region}, and it overrides the region picked here. Change or remove that variable (then restart ComfyUI), or pick {region}.",
     "cred_pair_incomplete": "The IAM access key and secret key go together: fill in both.",
     "cred_write_failed": "Could not write {path}: {e}",
     "cred_saved": "Saved.",
     "cred_cleared": "Removed.",
     "cred_saved_log": "Default credentials updated in {path}: {names}.",
-
     # Seed Speech (Seed Audio, TTS, ASR)
     "speech_request_failed": "Seed Speech {operation} failed (HTTP {status}, code {code}): {message}{logid}",
     "speech_network_error": "Could not reach Seed Speech ({operation}): {e}",
@@ -413,7 +525,6 @@ MESSAGES = {
     "asr_context_image_conflict": "Use context_image or context_image_url, not both.",
     "asr_silent_audio": "No speech was found in the audio.",
     "asr_task_submitted": "ASR task submitted: {task_id}",
-
     # Shared helpers in core_style.py
     "err_output_linked": "{reason} (currently linked: {consumers}).",
     "err_reference_value_invalid": "Not a valid reference: '{value}'. Use an asset ID, asset://<asset_id> or an https:// link.",
@@ -423,7 +534,6 @@ MESSAGES = {
     "err_reference_asset_not_active": "Reference asset {asset_id} is not Active (status: {status}).",
     "err_reference_asset_type_unknown": "Reference asset {asset_id} has an unknown asset type.",
     "err_reference_type_mismatch": "'{value}' is {kind}, but this input needs {expected}.",
-
     # Seedance 2 / 2.5 and asset creation (nodes_seedance2.py, nodes_assets.py)
     "err_seedance2_prompt_empty": "Enter a prompt.",
     "err_seedance2_draft_output_linked": "Only the Seedance 2.5 Draft and Seedance 2.5 Premium Draft models produce a draft_task_id. Select one of them as the model, or disconnect the draft_task_id output",
@@ -445,6 +555,7 @@ MESSAGES = {
     "err_draft_lookup_failed": "Could not look up draft task {task_id}: {e}",
     "err_query_tasks_not_found": "No task found for {ids}. Check the task ID: it is the Task ID line in the console or the draft_task_id output of a Seedance 2.5 Draft run, and ModelArk keeps tasks for 7 days.",
     "query_tasks_some_not_found": "Not found: {ids}.",
+    "query_tasks_partial_error": "Could not list some tasks: {e}",
     "err_draft_not_a_draft": "Task {task_id} is not a draft. Use the draft_task_id of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run.",
     "err_draft_is_final": "Task {task_id} is a final video rendered from draft {draft_task_id}, not a draft. Use the draft task ID.",
     "err_draft_expired": "Draft task {task_id} is more than 7 days old; drafts can only be rendered for 7 days. Generate a new draft.",
@@ -472,14 +583,12 @@ MESSAGES = {
     "err_comfy_audio_upload_unavailable_asset": "Connected audio is uploaded through Comfy.org storage to get the HTTPS URL CreateAsset needs, which is unavailable in this ComfyUI ({e}). Pass a public audio_url instead.",
     "err_comfy_audio_upload_failed_asset": "Uploading the audio to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or pass a public audio_url instead.",
     "asset_ids_saved_hint": "Save the asset_id and group_id for reuse.\n\nasset_id: {asset_id}\n\ngroup_id: {group_id}",
-
     # Seedance 1.x (nodes_seedance1.py)
     "err_model_region_unavailable": "{model} is not available in {region}. Pick another model, or another region in Settings > BytePlus.",
     "err_seedance1_prompt_empty": "prompt is empty. Describe the video to generate.",
     "err_seedance1_image_missing": "{name} is required.",
     "err_seedance1_image_size": "{name}: width and height must be between {min} and {max} pixels (got {width}x{height}).",
     "err_seedance1_image_ratio": "{name}: aspect ratio (width / height) must be between {min} and {max} (got {ratio}).",
-
     # Seedream and Layer Separation (nodes_seedream.py)
     "seedream_err_prompt_empty": "Prompt cannot be empty.",
     "seedream_err_unknown_model": "Unknown Seedream model: {model}.",
@@ -502,7 +611,6 @@ MESSAGES = {
     "seedream_layers_warn_base_bbox": "Seedream layer separation: base item unexpectedly carries a bounding_box; ignoring it.",
     "seedream_layers_warn_dropped": "Seedream layer separation: {dropped} of {count} returned elements had no image data and were dropped.",
     "seedream_layers_warn_flagged": "Seedream layer separation: layer {index} ({name}) flagged {flags}.",
-
     # Seed LLM and Seed Audio (nodes_seed.py, nodes_speech.py)
     "seed_llm_prompt_empty": "prompt is empty.",
     "seed_llm_unknown_model": "Unknown model: {model}.",
@@ -522,7 +630,6 @@ MESSAGES = {
     "seed_audio_tag_image_mode": "@AudioN tags are not used in 'image reference' mode; the prompt should contain only the text to synthesize.",
     "seed_audio_preset_required": "Reference mode 'preset voice' requires selecting a preset voice.",
     "seed_audio_tag_preset_mode": "'preset voice' mode uses a single voice, so @Audio{tag} is out of range. Remove the @AudioN tags; the whole prompt is read in the selected voice.",
-
     # BytePlus VOD AI MediaKit (nodes_mediakit.py)
     "mediakit_hint_auth": " Check the MediaKit API key (AI MediaKit console > Settings > API key: {url}); ModelArk and Seed Speech keys do not work here.",
     "err_mediakit_api": "MediaKit request failed: {code}{param}: {message}.{request_id}{hint}",
@@ -545,12 +652,14 @@ MESSAGES = {
     "err_vcube_bitrate": "bitrate must be 0 (use bitrate_level) or {min}-{max} kbps, got {value}.",
     "smooth_task_submitted": "Video Smoothness task submitted: {task_id}",
     "smooth_summary": "Video Smoothness: {inserted} frame(s) to insert for periodic stutter, {duplicates} duplicate frame(s).",
+    "err_smooth_source_unavailable": "Video Smoothness repaired nothing, so its video output is the source, but the source could not be downloaded ({reason}). The frame counts and response are still available.",
     "smooth_no_repair": "Video Smoothness returned no repaired video (repairs set to detect only, nothing to fix, or the repair was skipped by MediaKit's quality check), so the output is the source video. Billed as detection only.",
     "err_smooth_too_long": "The video is {duration}s long; Video Smoothness repairs videos up to {max}s. Set both repairs to 'detect only' to analyse a longer video.",
     "err_smooth_input_too_large": "Video resolution must be at most {max_w}x{max_h} (4K), got {width}x{height}.",
     "err_smooth_frame_indices": "insert_frame_indices takes distinct zero-based frame numbers separated by commas (for example 80, 120); got '{value}'.",
     "image_enhance_submitted": "Image Quality Enhance ({version}): image {index}/{count}",
     "image_enhance_done": "Image Quality Enhance: {width}x{height} {format} ({task_id}).",
+    "image_enhance_source_unavailable": "Image Quality Enhance: the source image could not be downloaded ({e}); the original output is skipped.",
     "image_enhance_max_slow": "Image Quality Enhance: a max-version output of {width}x{height} can time out; MediaKit recommends staying within 8000x8000.",
     "err_image_enhance_input_size": "The {version} version takes images with {rule}; this one is {width}x{height}.",
     "err_image_enhance_output_size": "The {version} output would be {width}x{height}, but {version} allows {rule}. Lower the scale.",
@@ -562,7 +671,6 @@ MESSAGES = {
     "err_comfy_image_upload_failed_mediakit": "Uploading the image to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set image_url to a public link instead.",
     "err_comfy_video_upload_unavailable_mediakit": "Connected videos are uploaded through Comfy.org storage to get the public URL MediaKit needs, which is unavailable in this ComfyUI ({e}). Set video_url to a public link instead.",
     "err_comfy_video_upload_failed_mediakit": "Uploading the video to Comfy.org storage failed: {e}. Log in to your Comfy.org account in ComfyUI (or set a Comfy.org API key), or set video_url to a public link instead.",
-
     "api_errors": {
         "AuthenticationError": "Invalid API Key (401). Check the key in Settings > BytePlus, and that the region there matches the region the key was created in.",
         "AccessDenied": "Access Denied (403). No permission or IP whitelist issue.",
@@ -594,7 +702,7 @@ MESSAGES = {
         "MissingParameter": "Missing Parameter (400).",
         "InvalidParameter": "Invalid Parameter (400).",
         "InvalidParameter.TaskTypeConstraint": "The task type is incompatible with the current parameters. Video editing requires the adaptive aspect ratio and auto duration; video extension requires the adaptive aspect ratio. With a reference video connected, set task_type to reference, edit or extend instead of auto.",
-    "InvalidParameter.TaskTypeMismatch": "The model detected a different task type than the one selected in task_type. Adjust the prompt or set task_type to auto.",
+        "InvalidParameter.TaskTypeMismatch": "The model detected a different task type than the one selected in task_type. Adjust the prompt or set task_type to auto.",
         "RequestBodyTooLarge": "Request body exceeds the service limit. Reduce reference media and try again.",
         "ModelParameterNotSupported": "One or more request parameters are not supported by the selected model.",
         "MediaInvalid": "Reference media violates a format, codec, size, duration, or frame-rate limit.",
@@ -602,13 +710,13 @@ MESSAGES = {
         "LastFrameNotSupported": "Last frame input is not supported by this model. Remove it or choose a model that supports first and last frames.",
         "RefImageNotSupported": "Reference image input is not supported by this model.",
         "PromptEmpty": "Prompt cannot be empty (400).",
-    }
+    },
 }
 
 ERROR_TEXT_MATCH_RULES = {
     "output image may contain sensitive information": "OutputImageSensitiveContentDetected",
     "input text may contain sensitive information": "InputTextSensitiveContentDetected",
-    "input image may contain sensitive information": "InputImageSensitiveContentDetected", 
+    "input image may contain sensitive information": "InputImageSensitiveContentDetected",
     "the request failed because the input video may contain real person": "InputMediaMayContainRealPerson",
     "the request failed because the input image may contain real person": "InputMediaMayContainRealPerson",
     "input video may contain sensitive information": "InputVideoSensitiveContentDetected",

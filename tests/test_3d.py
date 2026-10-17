@@ -4,7 +4,7 @@ archive extraction and outputs. Fake Ark clients only; nothing calls the API.
 
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_3d
 """
-import asyncio
+
 import importlib
 import io
 import os
@@ -59,9 +59,19 @@ def batch(count, channels=3):
 
 def hyper_request(**overrides):
     values = dict(
-        prompt="a robot", images=None, mesh_mode="Quad", material="PBR", file_format="glb",
-        subdivision_level="medium", quality_override=0, hd_texture=None, addons=False, ta_pose=None,
-        use_original_alpha=False, bbox=(0, 0, 0), seed=7,
+        prompt="a robot",
+        images=None,
+        mesh_mode="Quad",
+        material="PBR",
+        file_format="glb",
+        subdivision_level="medium",
+        quality_override=0,
+        hd_texture=None,
+        addons=False,
+        ta_pose=None,
+        use_original_alpha=False,
+        bbox=(0, 0, 0),
+        seed=7,
     )
     values.update(overrides)
     return nodes_3d.build_hyper3d_request(**values)
@@ -89,7 +99,9 @@ class Hyper3DRequestTests(unittest.TestCase):
     def test_face_count_is_checked_against_the_mesh_mode(self):
         with self.assertRaises(nodes_3d.BytePlusException):
             hyper_request(mesh_mode="Quad", quality_override=300000)
-        self.assertIn("--quality_override 300000", hyper_request(mesh_mode="Raw", quality_override=300000)["content"][0]["text"])
+        self.assertIn(
+            "--quality_override 300000", hyper_request(mesh_mode="Raw", quality_override=300000)["content"][0]["text"]
+        )
 
     def test_bbox_needs_all_three_sizes(self):
         self.assertNotIn("bbox", hyper_request(bbox=(100, 100, 0))["content"][0]["text"])
@@ -105,7 +117,10 @@ class Hyper3DRequestTests(unittest.TestCase):
 
     def test_rejects_empty_input_long_prompt_too_many_images_and_flags(self):
         for overrides in (
-            dict(prompt="  "), dict(prompt="x" * 401), dict(images=batch(6)), dict(prompt="a robot --material None"),
+            dict(prompt="  "),
+            dict(prompt="x" * 401),
+            dict(images=batch(6)),
+            dict(prompt="a robot --material None"),
         ):
             with self.subTest(overrides=overrides), self.assertRaises(nodes_3d.BytePlusException):
                 hyper_request(**overrides)
@@ -156,7 +171,9 @@ class ArchiveTests(unittest.TestCase):
         return path
 
     def test_zip_with_model_and_texture_returns_the_requested_format(self):
-        archive = self.write("result.download", make_zip({"a/model.glb": b"glb-data", "a/model.obj": b"o", "a/tex.png": b"p"}))
+        archive = self.write(
+            "result.download", make_zip({"a/model.glb": b"glb-data", "a/model.obj": b"o", "a/tex.png": b"p"})
+        )
         model, path = nodes_3d.load_result(archive, self.folder, "t1", "glb")
         self.assertEqual(model.format, "glb")
         self.assertEqual(model.get_bytes(), b"glb-data")
@@ -297,10 +314,14 @@ class TaskFlowTests(unittest.IsolatedAsyncioTestCase):
     async def test_interrupt_deletes_the_task_and_reraises(self):
         client, calls = fake_tasks(["running"])
         interrupt = nodes_3d.comfy.model_management.InterruptProcessingException
-        with mock.patch.object(
-            nodes_3d.comfy.model_management, "throw_exception_if_processing_interrupted",
-            side_effect=[None, interrupt()],
-        ), self.assertRaises(interrupt):
+        with (
+            mock.patch.object(
+                nodes_3d.comfy.model_management,
+                "throw_exception_if_processing_interrupted",
+                side_effect=[None, interrupt()],
+            ),
+            self.assertRaises(interrupt),
+        ):
             await nodes_3d.wait_for_task(client, "task-1")
         self.assertEqual(calls.deleted, ["task-1"])
 
@@ -314,8 +335,10 @@ class TaskFlowTests(unittest.IsolatedAsyncioTestCase):
             with open(destination, "wb") as handle:
                 handle.write(archive)
 
-        with mock.patch.object(nodes_3d.folder_paths, "get_temp_directory", return_value=temp), \
-                mock.patch.object(nodes_3d, "download_result", fake_download):
+        with (
+            mock.patch.object(nodes_3d.folder_paths, "get_temp_directory", return_value=temp),
+            mock.patch.object(nodes_3d, "download_result", fake_download),
+        ):
             output = await nodes_3d.BytePlusHyper3D.execute(client, prompt="a robot", seed=3)
         self.assertIsNone(output.ui)
         self.assertEqual(output.args[0].format, "glb")
@@ -331,8 +354,10 @@ class TaskFlowTests(unittest.IsolatedAsyncioTestCase):
             with open(destination, "wb") as handle:
                 handle.write(b"# Blender\no model\n")
 
-        with mock.patch.object(nodes_3d.folder_paths, "get_temp_directory", return_value=temp), \
-                mock.patch.object(nodes_3d, "download_result", fake_download):
+        with (
+            mock.patch.object(nodes_3d.folder_paths, "get_temp_directory", return_value=temp),
+            mock.patch.object(nodes_3d, "download_result", fake_download),
+        ):
             output = await nodes_3d.BytePlusHyper3D.execute(client, prompt="a chair", file_format="glb")
         self.assertEqual(output.args[0].format, "obj")
         self.assertEqual(output.args[0].get_bytes(), b"# Blender\no model\n")
@@ -345,9 +370,11 @@ class TaskFlowTests(unittest.IsolatedAsyncioTestCase):
         async def broken_download(url, destination, task_id):
             raise nodes_3d.BytePlusException("[BytePlus] download failed task-1")
 
-        with mock.patch.object(nodes_3d.folder_paths, "get_temp_directory", return_value=temp), \
-                mock.patch.object(nodes_3d, "download_result", broken_download), \
-                self.assertRaises(nodes_3d.BytePlusException):
+        with (
+            mock.patch.object(nodes_3d.folder_paths, "get_temp_directory", return_value=temp),
+            mock.patch.object(nodes_3d, "download_result", broken_download),
+            self.assertRaises(nodes_3d.BytePlusException),
+        ):
             await nodes_3d.BytePlusHitem3D.execute(client, batch(1))
         self.assertEqual(os.listdir(os.path.join(temp, "BytePlus", "3d")), [])
 
