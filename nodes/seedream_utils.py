@@ -16,6 +16,7 @@ import torch
 
 from .nodes_shared import (
     _image_to_base64,
+    slot_number,
     get_text,
     format_api_error,
     BytePlusException,
@@ -219,49 +220,28 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
         raise BytePlusException(format_api_error(exc)) from exc
 
 
-def _get_dynamic_input_order(name):
-    match = None
-    try:
-        import re
-
-        match = re.search(r"(\d+)$", str(name))
-    except Exception:
-        match = None
-    if match:
-        return int(match.group(1))
-    return 999
-
-
-def _collect_image_tensors(images=None, **kwargs):
+def _collect_image_tensors(images=None):
     """Connected reference images as a list of (1, H, W, 3) tensors, in input order."""
     tensors = []
     if isinstance(images, dict):
-        for _, tensor in sorted(images.items(), key=lambda item: _get_dynamic_input_order(item[0])):
+        for _, tensor in sorted(images.items(), key=lambda item: slot_number(item[0])):
             if isinstance(tensor, torch.Tensor):
                 tensors.append(tensor)
     elif isinstance(images, torch.Tensor):
         tensors.append(images)
-    for key in sorted([k for k in kwargs if k.startswith("image_")], key=_get_dynamic_input_order):
-        if isinstance(kwargs[key], torch.Tensor):
-            tensors.append(kwargs[key])
     return [tensor[i : i + 1] for tensor in tensors for i in range(tensor.shape[0])]
 
 
-def _prepare_multi_image_inputs(images=None, **kwargs):
+def _prepare_multi_image_inputs(images=None):
     input_image_tensors = []
 
     if isinstance(images, dict):
-        sorted_items = sorted(images.items(), key=lambda item: _get_dynamic_input_order(item[0]))
+        sorted_items = sorted(images.items(), key=lambda item: slot_number(item[0]))
         for _, image_tensor in sorted_items:
             if isinstance(image_tensor, torch.Tensor):
                 input_image_tensors.append(image_tensor)
     elif isinstance(images, torch.Tensor):
         input_image_tensors.append(images)
-
-    for key in sorted([k for k in kwargs if k.startswith("image_")], key=_get_dynamic_input_order):
-        image_tensor = kwargs[key]
-        if isinstance(image_tensor, torch.Tensor):
-            input_image_tensors.append(image_tensor)
 
     n_input_images = 0
     image_b64_list = []

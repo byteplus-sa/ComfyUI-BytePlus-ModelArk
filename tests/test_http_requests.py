@@ -198,3 +198,11 @@ class ComfyUploadCacheTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(self.nodes_shared.COMFY_UPLOAD_CACHE), 2)
             await self.upload(b"1", "mediakit-image")
         self.assertEqual(len(self.uploads), 4)
+
+
+@requires_comfyui
+class SlotNumberTests(unittest.TestCase):
+    def test_slots_sort_by_their_trailing_number_not_as_text(self):
+        slot_number = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared").slot_number
+        keys = ["image_10", "image_2", "image_1", "other"]
+        self.assertEqual(sorted(keys, key=slot_number), ["image_1", "image_2", "image_10", "other"])

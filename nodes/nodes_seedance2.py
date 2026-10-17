@@ -63,6 +63,7 @@ from .models_config import (
     VIDEO_MODEL_MAP,
 )
 from .nodes_shared import (
+    slot_number,
     get_client,
     with_client,
     GLOBAL_CATEGORY,
@@ -371,18 +372,11 @@ def validate_draft_output(cls, label):
         raise_if_output_linked(cls, 1, plain_text("err_seedance2_draft_output_linked"))
 
 
-def _slot_number(key):
-    try:
-        return int(str(key).rsplit("_", 1)[-1])
-    except ValueError:
-        return 10**6
-
-
 def _ordered_values(values):
     """Autogrow dict (connected slots only) -> values in slot order."""
     if not isinstance(values, dict):
         return []
-    return [values[key] for key in sorted(values, key=_slot_number) if values[key] is not None]
+    return [values[key] for key in sorted(values, key=slot_number) if values[key] is not None]
 
 
 def task_ids_from_response(response_text):
@@ -796,8 +790,8 @@ def rewrite_asset_refs(prompt, labels):
 async def _resolve_reference_assets(client, reference_assets):
     """[(slot, kind, uri)] for the filled asset slots, in slot order (resolved in parallel)."""
     slots = [
-        (_slot_number(key), reference_assets[key])
-        for key in sorted(reference_assets or {}, key=_slot_number)
+        (slot_number(key), reference_assets[key])
+        for key in sorted(reference_assets or {}, key=slot_number)
         if str(reference_assets[key] or "").strip()
     ]
     resolved = await resolve_reference_values(client, [value for _slot, value in slots])

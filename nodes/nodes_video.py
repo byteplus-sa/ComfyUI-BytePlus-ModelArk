@@ -201,13 +201,6 @@ def _raise_if_text_params(prompt: str, text_params: list[str]) -> None:
             raise BytePlusException(get_text("popup_param_not_allowed").format(param=i))
 
 
-def _get_dynamic_input_order(name: str) -> int:
-    parts = str(name).rsplit("_", 1)
-    if len(parts) == 2 and parts[1].isdigit():
-        return int(parts[1])
-    return 999
-
-
 def validate_seedance2_resolution(model_version, resolution, draft_mode=False):
     supported_resolutions = VIDEO_2_MODEL_RESOLUTIONS.get(model_version)
     if supported_resolutions is None:

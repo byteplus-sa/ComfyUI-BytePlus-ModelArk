@@ -642,6 +642,12 @@ class BytePlusException(Exception):
         self.byteplus_suppress_traceback = True
 
 
+def slot_number(key):
+    """The number an Autogrow slot key ends with (image_3 -> 3); keys without one sort last."""
+    match = re.search(r"(\d+)$", str(key))
+    return int(match.group(1)) if match else 10**6
+
+
 async def wait_interruptible(awaitable, poll_seconds=0.5):
     """Await while honouring ComfyUI interrupts (cancels the request, then re-raises)."""
     task = asyncio.ensure_future(awaitable)
