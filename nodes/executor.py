@@ -37,6 +37,7 @@ from .nodes_shared import (
     send_node_text,
     wait_interruptible,
 )
+from .ark_tasks import FAILED_TASK_STATUSES, poll_failure_is_final
 from .constants import SEEDANCE_REQUEST_MAX_BYTES, VIDEO_MAX_SEED
 from .models_config import VIDEO_MODEL_MAP, VIDEO_2_UI_OPTIONS
 from .utils_download import b64_image_to_tensor_async
@@ -55,12 +56,6 @@ def _task_error(task, fallback):
         message = error.get("message") if isinstance(error, dict) else getattr(error, "message", None)
         return {"code": code, "message": message or fallback}
     return fallback
-
-
-def _poll_error_is_permanent(error):
-    """A 4xx other than 408/409/429 (bad key, unknown or expired task) will not go away."""
-    status = getattr(error, "status_code", None)
-    return isinstance(status, int) and 400 <= status < 500 and status not in (408, 409, 429)
 
 
 DEFAULT_FALLBACK_PER_SEC = 12
@@ -508,7 +503,7 @@ class BytePlusGenerationExecutor:
                         failed_tasks_info.append((task_ids[i], raw_error, raw_error))
                     elif res.status == "succeeded":
                         successful_tasks.append(res)
-                    elif res.status in ["failed", "cancelled", "expired"]:
+                    elif res.status in FAILED_TASK_STATUSES:
                         fail_reason = "Failed"
                         if hasattr(res, "error") and res.error:
                             if hasattr(res.error, "message"):
@@ -745,7 +740,7 @@ class BytePlusGenerationExecutor:
                         # unknown or expired task) or too many in a row end the wait,
                         # instead of polling until the user interrupts.
                         poll_errors[current_task_id] = poll_errors.get(current_task_id, 0) + 1
-                        if _poll_error_is_permanent(res) or poll_errors[current_task_id] >= SEEDANCE_MAX_POLL_ERRORS:
+                        if poll_failure_is_final(res, poll_errors[current_task_id], SEEDANCE_MAX_POLL_ERRORS):
                             running_task_start_times.pop(current_task_id, None)
                             lost = get_text(
                                 "err_task_poll_failed",
@@ -764,7 +759,7 @@ class BytePlusGenerationExecutor:
                             successful_tasks.append(res)
                             if current_task_id in running_task_start_times:
                                 del running_task_start_times[current_task_id]
-                        elif res.status in ["failed", "cancelled", "expired"]:
+                        elif res.status in FAILED_TASK_STATUSES:
                             if current_task_id in running_task_start_times:
                                 del running_task_start_times[current_task_id]
 

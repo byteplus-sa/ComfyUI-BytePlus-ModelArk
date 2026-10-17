@@ -129,3 +129,27 @@ class RetryTransientTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await http_requests.retry_transient(request, max_errors=5, poll_seconds=1)
         self.sleep.assert_not_awaited()
+
+
+@requires_comfyui
+class ArkTaskPollTests(unittest.TestCase):
+    def setUp(self):
+        self.ark_tasks = importlib.import_module(f"{PACKAGE_NAME}.nodes.ark_tasks")
+
+    def test_client_errors_other_than_throttling_are_permanent(self):
+        for status, expected in ((401, True), (403, True), (404, True), (408, False), (409, False), (429, False)):
+            with self.subTest(status=status):
+                error = types.SimpleNamespace(status_code=status)
+                self.assertEqual(self.ark_tasks.poll_error_is_permanent(error), expected)
+
+    def test_server_and_network_errors_are_transient(self):
+        self.assertFalse(self.ark_tasks.poll_error_is_permanent(types.SimpleNamespace(status_code=503)))
+        self.assertFalse(self.ark_tasks.poll_error_is_permanent(ConnectionError("reset")))
+
+    def test_transient_failures_end_the_wait_only_at_the_limit(self):
+        error = ConnectionError("reset")
+        self.assertFalse(self.ark_tasks.poll_failure_is_final(error, 2, 3))
+        self.assertTrue(self.ark_tasks.poll_failure_is_final(error, 3, 3))
+
+    def test_permanent_failures_end_the_wait_at_once(self):
+        self.assertTrue(self.ark_tasks.poll_failure_is_final(types.SimpleNamespace(status_code=401), 1, 15))
