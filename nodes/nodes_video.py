@@ -46,11 +46,6 @@ from .constants import (
     REF_AUDIO_MIN_DURATION,
     REF_AUDIO_MAX_DURATION,
     REF_AUDIO_MAX_SIZE_MB,
-    VIDEO_FRAME_RATE,
-    VIDEO_MIN_FRAMES,
-    VIDEO_MAX_FRAMES,
-    VIDEO_FRAME_STEP,
-    VIDEO_BASE_FRAMES,
 )
 from .utils_download import (
     describe_download_error,
@@ -106,20 +101,6 @@ def resolve_query_models(model_version: str) -> list:
         target_models.append(model_version)
 
     return target_models
-
-
-def _calculate_duration_and_frames_args(duration: float):
-    """
-    Choose the API duration or frames argument.
-    Whole seconds use duration; fractional seconds are converted to frames.
-    """
-    if duration == int(duration):
-        return ("duration", int(duration), int(duration))
-    else:
-        target_frames = duration * VIDEO_FRAME_RATE
-        n = round((target_frames - VIDEO_BASE_FRAMES) / VIDEO_FRAME_STEP)
-        final_frames = int(max(VIDEO_MIN_FRAMES, min(VIDEO_MAX_FRAMES, VIDEO_BASE_FRAMES + VIDEO_FRAME_STEP * n)))
-        return ("frames", final_frames, int(round(final_frames / VIDEO_FRAME_RATE)))
 
 
 NON_BLOCKING_TASK_CACHE = {}
@@ -693,9 +674,8 @@ class BytePlusVideoBase:
             if is_auto_duration:
                 extra_api_params["duration"] = -1
             else:
-                key, val, est = _calculate_duration_and_frames_args(duration)
-                extra_api_params[key] = val
-                estimation_duration = est
+                extra_api_params["duration"] = int(duration)
+                estimation_duration = int(duration)
 
             if prompt:
                 content.insert(0, {"type": "text", "text": prompt})
@@ -1015,9 +995,6 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
             for item in all_items:
                 if "created_at_ts" in item:
                     del item["created_at_ts"]
-
-            if len(target_models) > 1:
-                all_items = all_items[:page_size]
 
             return comfy_io.NodeOutput(json.dumps(all_items, indent=2, ensure_ascii=False), total_count)
         except BytePlusException:

@@ -1209,10 +1209,10 @@ def video_model_key_for_id(model_id):
     return max(matches, key=len) if matches else None
 
 
-def draft_final_plan(model_key):
-    """(final resolution, service_tier, execution_expires_after) for drafts of this model."""
+def draft_final_resolution(model_key):
+    """The resolution the final of a draft of this model renders at, or None for models without drafts."""
     if model_key in SEEDANCE_DRAFT_FINAL_RESOLUTIONS:
-        return SEEDANCE_DRAFT_FINAL_RESOLUTIONS[model_key][0], None, None
+        return SEEDANCE_DRAFT_FINAL_RESOLUTIONS[model_key][0]
     return None
 
 
@@ -1253,7 +1253,7 @@ async def describe_drafts(client, draft_ids):
             raise BytePlusException(get_text("err_draft_not_ready", task_id=task_id, status=status))
         model_id = str(getattr(task, "model", "") or "")
         model_key = video_model_key_for_id(model_id)
-        if model_key is None or draft_final_plan(model_key) is None:
+        if model_key is None or draft_final_resolution(model_key) is None:
             raise BytePlusException(
                 get_text("err_draft_model_unsupported", task_id=task_id, model=model_id or "unknown")
             )
@@ -1319,7 +1319,7 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
         if not draft_ids:
             raise BytePlusException(get_text("err_draft_task_id_empty"))
         model_key, model_id, first_task = await describe_drafts(client, draft_ids)
-        resolution, service_tier, execution_expires_after = draft_final_plan(model_key)
+        resolution = draft_final_resolution(model_key)
         content, count = build_draft_final_content(draft_ids, int(generation_count or 1))
         extra_api_params = {"resolution": resolution, "watermark": bool(watermark)}
         output_format = str(getattr(first_task, "output_format", "") or "")
@@ -1341,8 +1341,6 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
             generation_count=count,
             non_blocking=bool(non_blocking),
             extra_api_params=extra_api_params,
-            service_tier=service_tier,
-            execution_expires_after=execution_expires_after,
             ignore_errors=node_count > 1,
         )
         return comfy_io.NodeOutput(*result.args)
