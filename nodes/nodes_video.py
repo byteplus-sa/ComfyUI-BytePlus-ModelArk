@@ -730,7 +730,6 @@ class BytePlusVideoBase:
             ignore_errors = False
             if node_class_type:
                 node_count = get_node_count_in_workflow(node_class_type, prompt=workflow_prompt)
-                # log_msg("debug_node_count", count=node_count, type=node_class_type)
                 ignore_errors = node_count > 1
 
             runner = BytePlusGenerationExecutor(client, node_id, ignore_errors=ignore_errors)

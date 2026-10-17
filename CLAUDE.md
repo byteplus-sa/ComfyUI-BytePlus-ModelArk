@@ -67,7 +67,7 @@ python3 -m unittest tests.test_workflow_templates tests.test_agent_files tests.t
 COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest discover -s tests -t .
 
 # Lint (ruff settings are in pyproject.toml; nothing to install with uv)
-uvx ruff check .
+uvx ruff@0.17.1 check .
 for file in web/js/*.js; do node --check "$file"; done
 ```
 

@@ -5,7 +5,7 @@ description: Test this node pack and maintain its example workflows. Use before 
 
 # Testing, templates and releases
 
-Registry/CLI facts verified 2026-09-27 against docs.comfy.org/registry, Comfy-Org/comfy-cli v1.21.0, Comfy-Org/publish-node-action, ComfyUI v0.37.0 and ComfyUI_frontend `main`.
+Registry/CLI facts verified 2026-09-27 against docs.comfy.org/registry, Comfy-Org/comfy-cli v1.21.0 (the publish workflow now pins 1.22.0), Comfy-Org/publish-node-action, ComfyUI v0.37.0 and ComfyUI_frontend `main`.
 
 ## 1. Run the tests
 
@@ -63,7 +63,7 @@ They appear in ComfyUI's template browser under the pack's folder name; the titl
 ## 5. Publishing
 
 - `.github/workflows/publish_action.yml` is **manual** (`workflow_dispatch`) and both jobs run only on `main`.
-- It runs the tests workflow first (ComfyUI latest release; a failure stops the release), then tags, then publishes with `Comfy-Org/publish-node-action` pinned by commit SHA and secret `REGISTRY_ACCESS_TOKEN`; only the tag job has `contents: write`. The action runs `comfy node publish` and publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.agents/`, `.claude/`, `tests/`, `docs/`, `docs-site/`, `assets/`, `CLAUDE.md`, `AGENTS.md` (the README's images and the icon load from raw GitHub URLs).
+- It runs the tests workflow first (ComfyUI latest release; a failure stops the release), then tags, then publishes: it installs comfy-cli from `.github/publish/requirements.txt` (pinned; Dependabot proposes updates) and runs the same steps as `Comfy-Org/publish-node-action` (`comfy --skip-prompt --no-enable-telemetry env`, then `comfy node publish --token "$REGISTRY_ACCESS_TOKEN"` from secret `REGISTRY_ACCESS_TOKEN`); only the tag job has `contents: write`. `comfy node publish` publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.agents/`, `.claude/`, `tests/`, `docs/`, `docs-site/`, `assets/`, `CLAUDE.md`, `AGENTS.md` (the README's images and the icon load from raw GitHub URLs).
 - Local equivalent: `comfy node validate`, `comfy node pack` (inspect `node.zip`), `comfy node publish --token …`.
 - `[project].name` is the immutable registry id and the install folder name for registry installs.
 - `pyproject.toml` declares `requires-python`, `classifiers = ["Operating System :: OS Independent"]` (API-only, no GPU classifier), `Issues` URL (comfy-cli reads only Homepage/Documentation/Repository/Issues), `requires-comfyui = ">=0.31.0"` (keep in sync with README), and a repository-hosted `[tool.comfy] Icon` (https URL, square ≤ 400 px).

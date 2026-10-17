@@ -90,9 +90,14 @@ def compact_json_size_bytes(payload) -> int:
 
 
 def request_fingerprint(client, request_kwargs, generation_count):
-    """One-way hash of a video request and the key and region sending it (never the key itself)."""
+    """
+    One-way hash of a video request and the key and region sending it (never the key itself).
+    The seed is left out: the seed widget's control_after_generate changes it after every run,
+    and the re-queue that collects a pending task would otherwise submit a new one.
+    """
+    request = {key: value for key, value in request_kwargs.items() if key != "seed"}
     payload = json.dumps(
-        [request_kwargs, generation_count, client_owner(client)],
+        [request, generation_count, client_owner(client)],
         sort_keys=True,
         ensure_ascii=False,
         separators=(",", ":"),
@@ -493,10 +498,15 @@ class BytePlusGenerationExecutor:
 
         # A pending non_blocking task is collected only by the same request from the
         # same key and region; a blocking run forgets it.
-        fingerprint = request_fingerprint(self.client, request_kwargs, generation_count)
         cached_data = non_blocking_cache_dict.get(node_id)
+        fingerprint = (
+            request_fingerprint(self.client, request_kwargs, generation_count)
+            if non_blocking or cached_data
+            else None
+        )
         if cached_data and (not non_blocking or cached_data.get("request") != fingerprint):
             del non_blocking_cache_dict[node_id]
+            log_msg("non_blocking_dropped", ids=", ".join(cached_data.get("task_ids", [])))
             cached_data = None
 
         if cached_data:

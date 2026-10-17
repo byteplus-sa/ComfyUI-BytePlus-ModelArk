@@ -44,7 +44,7 @@ def url_file_extension(url: str, default: str) -> str:
 def _download_error_is_retryable(error: BaseException) -> bool:
     if isinstance(error, aiohttp.ClientResponseError):
         return error.status >= 500 or error.status in RETRYABLE_CLIENT_STATUSES
-    return True
+    return not isinstance(error, aiohttp.InvalidURL)
 
 
 async def _with_download_retries(attempt_once, retries: int):

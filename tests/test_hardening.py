@@ -144,6 +144,21 @@ class DownloadLogTests(unittest.IsolatedAsyncioTestCase):
                         await download(session)
                     self.assertEqual(session.calls, 1)
 
+    async def test_an_invalid_link_is_not_retried(self):
+        import aiohttp
+
+        class InvalidLinkSession:
+            calls = 0
+
+            def get(self, url, timeout=None):
+                self.calls += 1
+                raise aiohttp.InvalidURL(url)
+
+        session = InvalidLinkSession()
+        with self.assertRaises(aiohttp.InvalidURL):
+            await utils_download._fetch_data_from_url_async(session, "not a link")
+        self.assertEqual(session.calls, 1)
+
     async def test_timeouts_and_rate_limits_are_retried(self):
         for status in (408, 429, 502):
             with self.subTest(status=status):
@@ -220,7 +235,7 @@ class DownloadExtensionTests(unittest.IsolatedAsyncioTestCase):
 
 @requires_comfyui
 class LeftoverDebugCodeTests(unittest.TestCase):
-    COMMENTED_DEBUG = re.compile(r"^\s*#\s*(print\(|t\d\s*=\s*time\.time\(\))")
+    COMMENTED_DEBUG = re.compile(r"^\s*#\s*(print\(|log_msg\(|t\d\s*=\s*time\.time\(\))")
 
     def read(self, name):
         with open(os.path.join(PLUGIN_ROOT, "nodes", name), encoding="utf-8") as handle:
@@ -424,8 +439,8 @@ class CheckApiKeyTests(unittest.TestCase):
                 self.assertLogs("BytePlus", level="INFO") if error is not None else contextlib.nullcontext():
             return nodes_shared.check_api_key("key", "https://ark.example/api/v3")
 
-    def test_success_is_accepted(self):
-        for status in (200, 204):
+    def test_any_answer_that_does_not_refuse_the_key_is_accepted(self):
+        for status in (200, 204, 301, 404):
             with self.subTest(status=status):
                 self.assertIs(self.check(status), True)
 
@@ -434,8 +449,8 @@ class CheckApiKeyTests(unittest.TestCase):
             with self.subTest(status=status):
                 self.assertIs(self.check(status), False)
 
-    def test_other_statuses_leave_the_key_unchecked(self):
-        for status in (301, 404, 408, 429, 500, 502, 503):
+    def test_timeouts_rate_limits_and_server_errors_leave_the_key_unchecked(self):
+        for status in (408, 429, 500, 502, 503):
             with self.subTest(status=status):
                 self.assertIsNone(self.check(status))
 

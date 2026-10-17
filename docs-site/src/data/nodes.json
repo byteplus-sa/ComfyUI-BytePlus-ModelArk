@@ -166,7 +166,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        },
        {
         "name": "output_format",
@@ -310,7 +311,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        },
        {
         "name": "output_format",
@@ -485,7 +487,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        }
       ]
      },
@@ -620,7 +623,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        }
       ]
      },
@@ -764,7 +768,8 @@
         "advanced": true,
         "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
         "default": 1,
-        "min": 1
+        "min": 1,
+        "max": 16
        }
       ]
      }
@@ -1601,7 +1606,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -2139,7 +2145,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -3681,7 +3688,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -3757,7 +3765,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -3904,7 +3913,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -4059,7 +4069,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",
@@ -4220,7 +4231,8 @@
     "advanced": true,
     "tooltip": "Number of separate generations to run in parallel. With several, generation N uses seed + N so the results differ.",
     "default": 1,
-    "min": 1
+    "min": 1,
+    "max": 16
    },
    {
     "name": "non_blocking",

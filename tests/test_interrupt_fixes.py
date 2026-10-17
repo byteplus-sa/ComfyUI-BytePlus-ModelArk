@@ -142,7 +142,7 @@ class ParallelImageRequestTests(ExecutorTestCase):
         self.assertEqual([m["batch_index"] for m in metadata], [0, 2])
 
 
-def run_videos(client, cache, non_blocking=True, generation_count=1, text="a cat", node_id="7"):
+def run_videos(client, cache, non_blocking=True, generation_count=1, text="a cat", node_id="7", seed=None):
     return executor.BytePlusGenerationExecutor(client, node_id).run_batch_tasks(
         model_name="dreamina-seedance-2-0-260128",
         content=[{"type": "text", "text": text}],
@@ -152,6 +152,7 @@ def run_videos(client, cache, non_blocking=True, generation_count=1, text="a cat
         non_blocking=non_blocking,
         non_blocking_cache_dict=cache,
         poll_interval=0,
+        extra_api_params={"seed": seed} if seed is not None else None,
     )
 
 
@@ -210,6 +211,24 @@ class NonBlockingCacheTests(ExecutorTestCase):
         cache = {}
         await run_videos(video_client(FakeVideoTasks(), api_key="secret-key-value"), cache)
         self.assertNotIn("secret-key-value", repr(cache))
+
+    async def test_a_new_seed_alone_still_collects_the_pending_task(self):
+        tasks = FakeVideoTasks()
+        cache = {}
+        await run_videos(video_client(tasks), cache, seed=111)
+        second = await run_videos(video_client(tasks), cache, seed=222)
+        self.assertEqual(len(tasks.created), 1)
+        self.assertEqual(second["task_ids"], ["task-1"])
+
+    async def test_a_dropped_pending_entry_names_its_tasks(self):
+        tasks = FakeVideoTasks()
+        cache = {}
+        await run_videos(video_client(tasks), cache, text="a cat")
+        with mock.patch.object(executor, "log_msg") as log:
+            await run_videos(video_client(tasks), cache, text="a dog")
+        dropped = [c for c in log.call_args_list if c.args and c.args[0] == "non_blocking_dropped"]
+        self.assertEqual(len(dropped), 1)
+        self.assertIn("task-1", dropped[0].kwargs["ids"])
 
     async def test_a_blocking_run_drops_the_pending_entry(self):
         tasks = FakeVideoTasks(status="succeeded")

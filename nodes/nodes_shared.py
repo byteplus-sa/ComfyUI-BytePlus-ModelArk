@@ -218,10 +218,9 @@ def format_api_error(e):
 
 def check_api_key(api_key: str, base_url: str):
     """
-    Ask the region's endpoint about the API key: True when it is accepted
-    (2xx), False when it is rejected (401/403), None for anything else
-    (unreachable, timeout, proxy, 404, 429, 5xx), so nothing is known about
-    the key.
+    Ask the region's endpoint about the API key: False when it is rejected
+    (401/403), None when nothing is known about it (unreachable, 408, 429,
+    5xx), True for any other answer (the endpoint did not refuse it).
     """
     try:
         headers = {
@@ -234,9 +233,9 @@ def check_api_key(api_key: str, base_url: str):
         return None
     if response.status_code in (401, 403):
         return False
-    if 200 <= response.status_code < 300:
-        return True
-    return None
+    if response.status_code in (408, 429) or response.status_code >= 500:
+        return None
+    return True
 
 
 def _normalize_expire_seconds(expire_seconds):

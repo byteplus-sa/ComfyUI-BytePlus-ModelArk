@@ -603,15 +603,16 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(credentials_routes, "check_api_key", lambda key, url: None):
             status, body = await self.save({"credential": "modelark", "value": "key-0001"})
         self.assertEqual(status, 200)
-        self.assertIn("could not be reached", body["message"])
+        self.assertIn("could not be checked", body["message"])
         self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "key-0001")
 
     async def test_the_endpoint_answer_decides_how_the_key_is_saved(self):
         cases = (
             (200, 200, "Saved."),
             (403, 422, None),
-            (503, 200, "could not be reached"),
-            (404, 200, "could not be reached"),
+            (503, 200, "could not be checked"),
+            (429, 200, "could not be checked"),
+            (404, 200, "Saved."),
         )
         for endpoint_status, expected_status, message in cases:
             with self.subTest(endpoint=endpoint_status):
