@@ -72,7 +72,7 @@ def get_text(key, **kwargs):
     if kwargs:
         try:
             msg = msg.format(**kwargs)
-        except:
+        except Exception:
             pass
     # An inserted error text often ends with a full stop already ("...{e}. Log in ...").
     return re.sub(r"(?<!\.)\.\.(?=\s|$)", ".", msg)
@@ -88,7 +88,7 @@ def log_msg(key, default_msg="", **kwargs):
         rendered_msg = msg
         try:
             rendered_msg = msg.format(**kwargs)
-        except:
+        except Exception:
             pass
         logger.info(rendered_msg)
         if any(code in str(rendered_msg) for code in ("InvalidParameter", "MissingParameter")):
@@ -108,12 +108,12 @@ def get_node_count_in_workflow(class_type, prompt=None):
         if prompt is None:
             from server import PromptServer
             prompt = PromptServer.instance.prompt
-        
+
         if not prompt:
             return 0
-        
+
         count = 0
-        for key, value in prompt.items():
+        for value in prompt.values():
             if value.get("class_type") == class_type:
                 count += 1
         return count
@@ -287,7 +287,7 @@ class UploadCacheStore:
         loaded_data = {}
         if os.path.exists(self.cache_file):
             try:
-                with open(self.cache_file, "r", encoding="utf-8") as f:
+                with open(self.cache_file, encoding="utf-8") as f:
                     cache_data = json.load(f)
                 if isinstance(cache_data, dict):
                     now_ts = int(time.time())
@@ -402,7 +402,7 @@ async def _delete_stale_uploads(client, cache_key):
     """Uploads of the same file with another lifetime are replaced by this one."""
     account, file_identity, fps, expire_seconds = cache_key
     stale_keys = [
-        existing_key for existing_key in UPLOAD_CACHE_STORE.keys()
+        existing_key for existing_key in UPLOAD_CACHE_STORE.keys()  # noqa: SIM118
         if existing_key[:3] == (account, file_identity, fps) and existing_key[3] != expire_seconds
     ]
     for stale_key in stale_keys:
@@ -486,7 +486,7 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
         logger.error(f"Upload failed for {file_path}: {e}")
         raise BytePlusException(
             get_text("err_file_upload_failed", e=format_api_error(e).replace(LOG_PREFIX, "", 1))
-        )
+        ) from e
 
 
 async def _delete_file_quietly(client, file_id):
@@ -518,7 +518,7 @@ async def wait_for_file_active(client, file_id, max_wait_seconds=FILE_ACTIVE_MAX
             retrieve_errors += 1
             logger.error(f"Error checking file status: {e}")
             if retrieve_errors >= FILE_ACTIVE_MAX_RETRIEVE_ERRORS:
-                raise BytePlusException(get_text("err_file_status_check", id=file_id, e=format_api_error(e)))
+                raise BytePlusException(get_text("err_file_status_check", id=file_id, e=format_api_error(e))) from e
         else:
             retrieve_errors = 0
             status = getattr(file_info, "status", "unknown")
@@ -737,13 +737,13 @@ async def upload_bytes_to_comfy_storage(node_cls, data, filename, mime_type, cac
     try:
         from comfy_api_nodes.util import upload_file_to_comfyapi
     except Exception as e:
-        raise BytePlusException(get_text(unavailable_key, e=e, **message_kwargs))
+        raise BytePlusException(get_text(unavailable_key, e=e, **message_kwargs)) from e
     try:
         url = await upload_file_to_comfyapi(node_cls, io.BytesIO(data), filename, mime_type, wait_label=None)
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:
-        raise BytePlusException(get_text(failed_key, e=e, **message_kwargs))
+        raise BytePlusException(get_text(failed_key, e=e, **message_kwargs)) from e
     cache.pop(cache_key, None)
     cache[cache_key] = (url, time.time())
     while len(cache) > max_entries:

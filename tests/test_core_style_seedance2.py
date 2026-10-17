@@ -506,7 +506,7 @@ class TemplateSchemaTests(unittest.TestCase):
             expected = self.frontend_order(node_cls, label)
             inputs = [i for i in node["inputs"] if not i["name"].startswith("model.reference_")]
             self.assertEqual([i["name"] for i in inputs], [name for name, _type in expected], node["type"])
-            for item, (_name, type_) in zip(inputs, expected):
+            for item, (_name, type_) in zip(inputs, expected, strict=True):
                 self.assertEqual("widget" in item, type_ not in self.SOCKET_TYPES, item["name"])
             info = node_cls.GET_NODE_INFO_V1()
             self.assertEqual([o["name"] for o in node["outputs"]], info["output_name"])

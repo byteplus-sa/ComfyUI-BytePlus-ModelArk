@@ -122,7 +122,7 @@ class AssetLibrary:
             api = self._create_api if action.startswith("Create") else self._api
             result = api.do_call(info, {k: v for k, v in body.items() if v is not None})
         except ApiException as e:
-            raise BytePlusException(_format_asset_error(action, e))
+            raise BytePlusException(_format_asset_error(action, e)) from e
         return result if isinstance(result, dict) else {}
 
 
@@ -184,7 +184,7 @@ async def upload_image_to_comfy_storage(node_cls, image):
     try:
         from comfy_api_nodes.util import upload_image_to_comfyapi
     except Exception as e:
-        raise BytePlusException(get_text("err_comfy_image_upload_unavailable", e=e))
+        raise BytePlusException(get_text("err_comfy_image_upload_unavailable", e=e)) from e
     try:
         return await upload_image_to_comfyapi(
             node_cls, image[:1], mime_type="image/png", wait_label=None, total_pixels=None
@@ -192,7 +192,7 @@ async def upload_image_to_comfy_storage(node_cls, image):
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:
-        raise BytePlusException(get_text("err_comfy_image_upload_failed", e=e))
+        raise BytePlusException(get_text("err_comfy_image_upload_failed", e=e)) from e
 
 
 async def find_or_create_group(library, name, project_name):

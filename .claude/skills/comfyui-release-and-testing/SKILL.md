@@ -13,11 +13,9 @@ Registry/CLI facts verified 2026-09-27 against docs.comfy.org/registry, Comfy-Or
 # Always: template/workflow JSON checks (stdlib only, no ComfyUI)
 python3 -m unittest tests.test_workflow_templates -v
 
-# Node behaviour: needs a ComfyUI checkout + an interpreter with torch,
+# Every test module (discovery, so new test files are included). Node behaviour needs a ComfyUI checkout + an interpreter with torch,
 # ComfyUI's requirements and this pack's requirements.txt
-COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit \
-  tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 \
-  tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed -v
+COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest discover -s tests -t . -v
 ```
 
 Without `COMFYUI_ROOT` the node tests report **skipped**, not passed — say so when reporting results. The local portable install's `standalone-env` python lacks torch and the Ark SDK, so it can't run them as-is; don't pip-install into the user's ComfyUI env without asking.
@@ -65,7 +63,7 @@ They appear in ComfyUI's template browser under the pack's folder name; the titl
 ## 5. Publishing
 
 - `.github/workflows/publish_action.yml` is **manual** (`workflow_dispatch`) and both jobs run only on `main`.
-- It uses `Comfy-Org/publish-node-action@main` with secret `REGISTRY_ACCESS_TOKEN`; the action runs `comfy node publish` and publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.agents/`, `.claude/`, `tests/`, `CLAUDE.md`, `AGENTS.md`.
+- It runs the tests workflow first (ComfyUI latest release; a failure stops the release), then tags, then publishes with `Comfy-Org/publish-node-action` pinned by commit SHA and secret `REGISTRY_ACCESS_TOKEN`; only the tag job has `contents: write`. The action runs `comfy node publish` and publishes **git-tracked files only**. Dev files are excluded by `.comfyignore` (gitignore syntax): `.github/`, `.agents/`, `.claude/`, `tests/`, `docs/`, `docs-site/`, `assets/`, `CLAUDE.md`, `AGENTS.md` (the README's images and the icon load from raw GitHub URLs).
 - Local equivalent: `comfy node validate`, `comfy node pack` (inspect `node.zip`), `comfy node publish --token …`.
 - `[project].name` is the immutable registry id and the install folder name for registry installs.
 - `pyproject.toml` declares `requires-python`, `classifiers = ["Operating System :: OS Independent"]` (API-only, no GPU classifier), `Issues` URL (comfy-cli reads only Homepage/Documentation/Repository/Issues), `requires-comfyui = ">=0.31.0"` (keep in sync with README), and a repository-hosted `[tool.comfy] Icon` (https URL, square ≤ 400 px).

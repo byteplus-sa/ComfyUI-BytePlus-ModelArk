@@ -5,6 +5,7 @@ they fail when a node or template is added or removed without regenerating the d
 
   python -m unittest tests.test_docs_data
 """
+import importlib.util
 import json
 import os
 import re
@@ -19,6 +20,14 @@ DEV_ONLY = {"BytePlusProgressTest"}
 def load(name):
     with open(os.path.join(DATA, name), encoding="utf-8") as file:
         return json.load(file)
+
+
+def generate_data_module():
+    path = os.path.join(ROOT, "docs-site", "scripts", "generate_data.py")
+    spec = importlib.util.spec_from_file_location("generate_data", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def node_classes():
@@ -41,6 +50,11 @@ class DocsDataTests(unittest.TestCase):
         files = {f for f in os.listdir(os.path.join(ROOT, "example_workflows")) if f.endswith(".json")}
         documented = {t["file"] for t in load("templates.json")}
         self.assertEqual(files, documented, "run docs-site/scripts/generate_data.py")
+
+    def test_the_model_table_matches_models_config(self):
+        self.assertEqual(
+            generate_data_module().build_models(), load("models.json"), "run docs-site/scripts/generate_data.py"
+        )
 
     def test_every_node_and_template_has_a_page(self):
         for node in load("nodes.json"):
@@ -65,7 +79,7 @@ class DocsDataTests(unittest.TestCase):
             self.assertTrue(
                 stem in slugs or stem.rsplit("-", 1)[0] in slugs, f"orphan sample media: {name}"
             )
-        self.assertEqual(set(json.load(open(os.path.join(DATA, "evidence.json")))), slugs)
+        self.assertEqual(set(load("evidence.json")), slugs)
 
     def test_the_site_is_left_out_of_the_registry_package(self):
         with open(os.path.join(ROOT, ".comfyignore"), encoding="utf-8") as file:

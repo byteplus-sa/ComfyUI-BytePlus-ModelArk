@@ -222,7 +222,7 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
     except Exception as exc:
         if isinstance(exc, BytePlusException):
             raise
-        raise BytePlusException(format_api_error(exc))
+        raise BytePlusException(format_api_error(exc)) from exc
 
 
 def _get_dynamic_input_order(name):
@@ -263,7 +263,7 @@ def _prepare_multi_image_inputs(images=None, **kwargs):
     elif isinstance(images, torch.Tensor):
         input_image_tensors.append(images)
 
-    for key in sorted([k for k in kwargs.keys() if k.startswith("image_")], key=_get_dynamic_input_order):
+    for key in sorted([k for k in kwargs if k.startswith("image_")], key=_get_dynamic_input_order):
         image_tensor = kwargs[key]
         if isinstance(image_tensor, torch.Tensor):
             input_image_tensors.append(image_tensor)

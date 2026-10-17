@@ -616,7 +616,7 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         for endpoint_status, expected_status, message in cases:
             with self.subTest(endpoint=endpoint_status):
                 answer = SimpleNamespace(status_code=endpoint_status)
-                with mock.patch.object(nodes_shared.requests, "get", lambda *a, **k: answer):
+                with mock.patch.object(nodes_shared.requests, "get", lambda *a, answer=answer, **k: answer):
                     status, body = await self.save({"credential": "modelark", "value": "key-0001"})
                 self.assertEqual(status, expected_status)
                 if message:

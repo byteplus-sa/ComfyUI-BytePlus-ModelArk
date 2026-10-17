@@ -121,7 +121,7 @@ def read_env_file():
         return dict(_read_cache["values"])
     try:
         # utf-8-sig: editors such as Notepad start the file with a BOM.
-        with open(path, "r", encoding="utf-8-sig") as handle:
+        with open(path, encoding="utf-8-sig") as handle:
             values = parse_env_text(handle.read())
     except (OSError, UnicodeDecodeError):
         return {}
@@ -200,7 +200,7 @@ def update_env_file(updates):
     drop = {alias for name in updates for alias in ALIASES.get(name, ())}
     with _write_lock:
         try:
-            with open(path, "r", encoding="utf-8-sig") as handle:
+            with open(path, encoding="utf-8-sig") as handle:
                 lines = handle.read().splitlines()
         except FileNotFoundError:
             lines = []

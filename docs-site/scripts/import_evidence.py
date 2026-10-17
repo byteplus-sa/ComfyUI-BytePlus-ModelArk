@@ -48,6 +48,11 @@ EXTRA = {
 }
 
 
+def load_json(path):
+    with open(path, encoding="utf-8") as file:
+        return json.load(file)
+
+
 def to_webp(src, dst, max_width):
     image = Image.open(src).convert("RGB")
     if image.width > max_width:
@@ -56,7 +61,7 @@ def to_webp(src, dst, max_width):
 
 
 def main(report):
-    templates = json.load(open(os.path.join(SITE, "src/data/templates.json")))
+    templates = load_json(os.path.join(SITE, "src/data/templates.json"))
     assets = os.path.join(SITE, "src/assets/templates")
     media_dir = os.path.join(SITE, "public/media")
     os.makedirs(media_dir, exist_ok=True)
@@ -64,7 +69,7 @@ def main(report):
     for t in templates:
         case = PRIMARY[t["title"]]
         folder = os.path.join(report, case)
-        result = json.load(open(os.path.join(folder, "result.json")))
+        result = load_json(os.path.join(folder, "result.json"))
         entry = {"case": case, "status": result["status"], "seconds": round(result.get("seconds") or 0),
                  "tested": TEST_DATE, "media": []}
         # The workflow screenshots (<slug>-workflow.webp) are taken from the template files, not from the run:
@@ -87,10 +92,11 @@ def main(report):
                 entry["media"].append({"type": "audio", "path": f"media/{t['slug']}-{i}.mp3"})
         entry["extra_runs"] = []
         for extra in EXTRA.get(t["slug"], []):
-            run = json.load(open(os.path.join(report, extra, "result.json")))
+            run = load_json(os.path.join(report, extra, "result.json"))
             entry["extra_runs"].append({"case": extra, "status": run["status"], "seconds": round(run.get("seconds") or 0)})
         evidence[t["slug"]] = entry
-    json.dump(evidence, open(os.path.join(SITE, "src/data/evidence.json"), "w"), indent=1)
+    with open(os.path.join(SITE, "src/data/evidence.json"), "w", encoding="utf-8") as file:
+        json.dump(evidence, file, indent=1)
     print(len(evidence), "templates;", sum(len(e["media"]) for e in evidence.values()), "media files")
 
 

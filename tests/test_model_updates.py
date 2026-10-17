@@ -579,7 +579,7 @@ class BilledCallTests(unittest.IsolatedAsyncioTestCase):
         for error in (self._status_error("ArkInternalServerError", 500), self._status_error("ArkConflictError", 409)):
             calls.clear()
 
-            def failing(**kwargs):
+            def failing(error=error, **kwargs):
                 calls.append(kwargs)
                 raise error
 

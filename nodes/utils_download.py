@@ -202,10 +202,7 @@ async def _download_to_file_stream_async(
     attempt, or an aiohttp.ClientTimeout (e.g. no total limit, only a stall
     limit, for large files).
     """
-    if isinstance(timeout, aiohttp.ClientTimeout):
-        client_timeout = timeout
-    else:
-        client_timeout = aiohttp.ClientTimeout(total=timeout)
+    client_timeout = timeout if isinstance(timeout, aiohttp.ClientTimeout) else aiohttp.ClientTimeout(total=timeout)
 
     async def attempt_once():
         async with session.get(url, timeout=client_timeout) as response:
