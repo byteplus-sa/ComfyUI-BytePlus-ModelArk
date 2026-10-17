@@ -90,6 +90,7 @@ def resolve_model_id(model_version: str) -> str:
 
     raise BytePlusException(get_text("err_model_not_supported", model=model_version))
 
+
 def resolve_query_models(model_version: str) -> list:
     """
     Model IDs to query in the task list node; [None] means all models.
@@ -105,6 +106,7 @@ def resolve_query_models(model_version: str) -> list:
         target_models.append(model_version)
 
     return target_models
+
 
 def _calculate_duration_and_frames_args(duration: float):
     """
@@ -209,9 +211,7 @@ def _get_dynamic_input_order(name: str) -> int:
 def validate_seedance2_resolution(model_version, resolution, draft_mode=False):
     supported_resolutions = VIDEO_2_MODEL_RESOLUTIONS.get(model_version)
     if supported_resolutions is None:
-        raise BytePlusException(
-            get_text("err_model_not_supported").format(model=model_version)
-        )
+        raise BytePlusException(get_text("err_model_not_supported").format(model=model_version))
     if draft_mode and model_version in SEEDANCE_2_5_FAMILY:
         supported_resolutions = [SEEDANCE_DRAFT_RESOLUTION]
     if resolution not in supported_resolutions:
@@ -228,20 +228,14 @@ def validate_seedance2_resolution(model_version, resolution, draft_mode=False):
 def validate_seedance2_duration(model_version, duration, auto_duration=False):
     max_duration = VIDEO_2_MODEL_MAX_DURATIONS.get(model_version)
     if max_duration is None:
-        raise BytePlusException(
-            get_text("err_model_not_supported").format(model=model_version)
-        )
+        raise BytePlusException(get_text("err_model_not_supported").format(model=model_version))
     if auto_duration:
         return -1
     try:
         duration_value = float(duration)
     except (TypeError, ValueError):
         duration_value = -1.0
-    if (
-        not duration_value.is_integer()
-        or duration_value < 4
-        or duration_value > max_duration
-    ):
+    if not duration_value.is_integer() or duration_value < 4 or duration_value > max_duration:
         raise BytePlusException(
             get_text("err_seedance2_duration_unsupported").format(
                 model=model_version,
@@ -258,6 +252,7 @@ class BytePlusVideoBase:
     Base class for the Seedance nodes.
     Shared task submission, result handling and reference-media helpers.
     """
+
     NON_BLOCKING_TASK_CACHE = NON_BLOCKING_TASK_CACHE
 
     def _get_service_options(self, enable_offline, timeout_seconds):
@@ -278,9 +273,7 @@ class BytePlusVideoBase:
             content_list.append(
                 {
                     "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_b64}"
-                    },
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"},
                     "role": role,
                 }
             )
@@ -289,27 +282,26 @@ class BytePlusVideoBase:
 
     def _extract_image_hw(self, image):
         if image is None or not isinstance(image, torch.Tensor):
-            raise BytePlusException(get_text("popup_ref_image_hw_out_of_range").format(
-                min=IMAGE_MIN_EDGE, max=IMAGE_MAX_EDGE, width=0, height=0
-            ))
+            raise BytePlusException(
+                get_text("popup_ref_image_hw_out_of_range").format(
+                    min=IMAGE_MIN_EDGE, max=IMAGE_MAX_EDGE, width=0, height=0
+                )
+            )
         if image.ndim == 4:
             return int(image.shape[2]), int(image.shape[1])
         if image.ndim == 3:
             return int(image.shape[1]), int(image.shape[0])
-        raise BytePlusException(get_text("popup_ref_image_hw_out_of_range").format(
-            min=IMAGE_MIN_EDGE, max=IMAGE_MAX_EDGE, width=0, height=0
-        ))
+        raise BytePlusException(
+            get_text("popup_ref_image_hw_out_of_range").format(
+                min=IMAGE_MIN_EDGE, max=IMAGE_MAX_EDGE, width=0, height=0
+            )
+        )
 
     def _validate_reference_image_constraints(self, image):
         if image is None:
             return
         width, height = self._extract_image_hw(image)
-        if (
-            width < IMAGE_MIN_EDGE
-            or width > IMAGE_MAX_EDGE
-            or height < IMAGE_MIN_EDGE
-            or height > IMAGE_MAX_EDGE
-        ):
+        if width < IMAGE_MIN_EDGE or width > IMAGE_MAX_EDGE or height < IMAGE_MIN_EDGE or height > IMAGE_MAX_EDGE:
             raise BytePlusException(
                 get_text("popup_ref_image_hw_out_of_range").format(
                     min=IMAGE_MIN_EDGE, max=IMAGE_MAX_EDGE, width=width, height=height
@@ -470,17 +462,13 @@ class BytePlusVideoBase:
         size_mb = float(len(base64_audio.encode("utf-8"))) / (1024.0 * 1024.0)
         if size_mb > REF_AUDIO_MAX_SIZE_MB:
             raise BytePlusException(
-                get_text("popup_ref_audio_size_exceeded").format(
-                    max_mb=REF_AUDIO_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}"
-                )
+                get_text("popup_ref_audio_size_exceeded").format(max_mb=REF_AUDIO_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}")
             )
 
         data_uri = f"data:audio/wav;base64,{base64_audio}"
         return data_uri, duration, len(data_uri.encode("utf-8"))
 
-    def _append_audio_content(
-        self, content_list, audio, role, max_duration=REF_AUDIO_MAX_DURATION
-    ):
+    def _append_audio_content(self, content_list, audio, role, max_duration=REF_AUDIO_MAX_DURATION):
         audio_data = self._audio_to_data_uri(audio, max_duration=max_duration)
         if audio_data is None:
             return None
@@ -513,9 +501,7 @@ class BytePlusVideoBase:
         and the other branches still run (no placeholder gets saved as a result).
         """
         message = runner.ignored_failure or get_text("err_batch_fail_all")
-        return comfy_io.NodeOutput(
-            ExecutionBlocker(message), ExecutionBlocker(message), json.dumps({"error": message})
-        )
+        return comfy_io.NodeOutput(ExecutionBlocker(message), ExecutionBlocker(message), json.dumps({"error": message}))
 
     async def _handle_batch_success_async(
         self,
@@ -540,15 +526,11 @@ class BytePlusVideoBase:
             last_frame_url = getattr(task.content, "last_frame_url", None)
             seed = getattr(task, "seed", random.randint(0, VIDEO_MAX_SEED))
 
-            v_coro = download_video_to_temp(
-                session, video_url, video_prefix, seed, temp_save_path
-            )
+            v_coro = download_video_to_temp(session, video_url, video_prefix, seed, temp_save_path)
 
             f_coro = None
             if last_frame_url:
-                f_coro = download_image_to_temp(
-                    session, last_frame_url, frame_prefix, seed, temp_save_path
-                )
+                f_coro = download_image_to_temp(session, last_frame_url, frame_prefix, seed, temp_save_path)
 
             if f_coro:
                 v_path, (f_tensor, f_path) = await asyncio.gather(v_coro, f_coro)
@@ -559,9 +541,7 @@ class BytePlusVideoBase:
             resp = task.model_dump()
             for k in ["created_at", "updated_at"]:
                 if k in resp and isinstance(resp[k], (int, float)):
-                    resp[k] = datetime.datetime.fromtimestamp(resp[k]).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
+                    resp[k] = datetime.datetime.fromtimestamp(resp[k]).strftime("%Y-%m-%d %H:%M:%S")
 
             return {
                 "task_id": getattr(task, "id", None),
@@ -672,9 +652,7 @@ class BytePlusVideoBase:
         if not successful_tasks and ignore_errors:
             return self._ignored_failure_outputs(runner)
 
-        async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(force_close=True)
-        ) as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
             ret_results = await self._handle_batch_success_async(successful_tasks, generation_count, session)
             await asyncio.sleep(0.25)
         return ret_results
@@ -751,9 +729,7 @@ class BytePlusVideoBase:
                 on_tasks_created=on_tasks_created,
             )
 
-            if isinstance(successful_tasks, dict) and successful_tasks.get(
-                "non_blocking"
-            ):
+            if isinstance(successful_tasks, dict) and successful_tasks.get("non_blocking"):
                 return self._pending_outputs(successful_tasks)
 
             if not successful_tasks and ignore_errors:
@@ -799,11 +775,10 @@ class BytePlusProgressTest(comfy_io.ComfyNode):
     Dev-only progress bar test node.
     Simulates progress events locally (no generation) to debug the frontend.
     """
+
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
-        test_model_options = (
-            ["None"] + VIDEO_1_UI_OPTIONS + VIDEO_2_UI_OPTIONS
-        )
+        test_model_options = ["None"] + VIDEO_1_UI_OPTIONS + VIDEO_2_UI_OPTIONS
 
         return comfy_io.Schema(
             node_id="BytePlusProgressTest",
@@ -871,10 +846,7 @@ class BytePlusProgressTest(comfy_io.ComfyNode):
                 )
                 if resp.items:
                     for item in resp.items:
-                        if not (
-                            hasattr(item, "resolution")
-                            and item.resolution == test_resolution
-                        ):
+                        if not (hasattr(item, "resolution") and item.resolution == test_resolution):
                             continue
 
                         item_dur = getattr(item, "duration", 0)
@@ -888,21 +860,12 @@ class BytePlusProgressTest(comfy_io.ComfyNode):
 
                         raw_diff = float(t_end) - float(t_start)
                         try:
-                            local_offset = (
-                                datetime.datetime.now()
-                                .astimezone()
-                                .utcoffset()
-                                .total_seconds()
-                            )
+                            local_offset = datetime.datetime.now().astimezone().utcoffset().total_seconds()
                         except Exception:
                             local_offset = 0
 
                         fixed_diff = raw_diff - local_offset
-                        task_time = (
-                            fixed_diff
-                            if fixed_diff > 0 and abs(fixed_diff) < abs(raw_diff)
-                            else raw_diff
-                        )
+                        task_time = fixed_diff if fixed_diff > 0 and abs(fixed_diff) < abs(raw_diff) else raw_diff
 
                         history_data.append(
                             {
@@ -932,9 +895,7 @@ class BytePlusProgressTest(comfy_io.ComfyNode):
         try:
             for i in range(total_steps + 1):
                 comfy.model_management.throw_exception_if_processing_interrupted()
-                _update_node_progress(
-                    node_id, int(elapsed), int(total_seconds), ps_instance
-                )
+                _update_node_progress(node_id, int(elapsed), int(total_seconds), ps_instance)
 
                 if i < total_steps:
                     await asyncio.sleep(step_interval)
@@ -949,6 +910,7 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
     """
     Lists video generation tasks and their status.
     """
+
     MODELS = QUERY_TASKS_MODEL_LIST
     STATUSES = [
         "all",
@@ -971,13 +933,9 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
                 comfy_io.Int.Input("page_num", default=1, min=1, max=VIDEO_TASK_LIST_MAX_PAGE),
                 comfy_io.Int.Input("page_size", default=10, min=1, max=VIDEO_TASK_LIST_MAX_PAGE),
                 comfy_io.Combo.Input("status", options=cls.STATUSES, default="all"),
-                comfy_io.Combo.Input(
-                    "service_tier", options=["default", "flex"], default="default"
-                ),
+                comfy_io.Combo.Input("service_tier", options=["default", "flex"], default="default"),
                 comfy_io.String.Input("task_ids", default=""),
-                comfy_io.Combo.Input(
-                    "model_version", options=cls.MODELS, default="all"
-                ),
+                comfy_io.Combo.Input("model_version", options=cls.MODELS, default="all"),
                 comfy_io.Int.Input("seed", default=0, min=0, max=VIDEO_MAX_SEED),
             ],
             outputs=[
@@ -1009,9 +967,7 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
             base_kwargs["service_tier"] = service_tier
 
         if task_ids and task_ids.strip():
-            base_kwargs["task_ids"] = [
-                tid.strip() for tid in task_ids.split("\n") if tid.strip()
-            ]
+            base_kwargs["task_ids"] = [tid.strip() for tid in task_ids.split("\n") if tid.strip()]
 
         target_models = resolve_query_models(model_version)
 
@@ -1021,9 +977,7 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
                 kw = base_kwargs.copy()
                 if mid is not None:
                     kw["model"] = mid
-                tasks.append(
-                    asyncio.to_thread(ark_client.content_generation.tasks.list, **kw)
-                )
+                tasks.append(asyncio.to_thread(ark_client.content_generation.tasks.list, **kw))
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
             all_items = []
@@ -1037,27 +991,21 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
                 if hasattr(res, "items") and res.items:
                     for item in res.items:
                         item_dict = item.model_dump()
-                        if "created_at" in item_dict and isinstance(
-                            item_dict["created_at"], (int, float)
-                        ):
+                        if "created_at" in item_dict and isinstance(item_dict["created_at"], (int, float)):
                             item_dict["created_at_ts"] = item_dict["created_at"]
-                            item_dict["created_at"] = datetime.datetime.fromtimestamp(
-                                item_dict["created_at"]
-                            ).strftime("%Y-%m-%d %H:%M:%S")
-                        if "updated_at" in item_dict and isinstance(
-                            item_dict["updated_at"], (int, float)
-                        ):
-                            item_dict["updated_at"] = datetime.datetime.fromtimestamp(
-                                item_dict["updated_at"]
-                            ).strftime("%Y-%m-%d %H:%M:%S")
+                            item_dict["created_at"] = datetime.datetime.fromtimestamp(item_dict["created_at"]).strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            )
+                        if "updated_at" in item_dict and isinstance(item_dict["updated_at"], (int, float)):
+                            item_dict["updated_at"] = datetime.datetime.fromtimestamp(item_dict["updated_at"]).strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            )
                         all_items.append(item_dict)
 
             if not all_items and any(isinstance(r, Exception) for r in results):
                 first_err = next(r for r in results if isinstance(r, Exception))
                 return comfy_io.NodeOutput(
-                    json.dumps(
-                        {"error": format_api_error(first_err)}, ensure_ascii=False
-                    ),
+                    json.dumps({"error": format_api_error(first_err)}, ensure_ascii=False),
                     0,
                 )
 
@@ -1066,9 +1014,7 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
                 found_ids = {item.get("id") for item in all_items}
                 missing_ids = [tid for tid in requested_ids if tid not in found_ids]
                 if missing_ids and not all_items:
-                    raise BytePlusException(
-                        get_text("err_query_tasks_not_found", ids=", ".join(missing_ids))
-                    )
+                    raise BytePlusException(get_text("err_query_tasks_not_found", ids=", ".join(missing_ids)))
                 if missing_ids:
                     log_msg("query_tasks_some_not_found", ids=", ".join(missing_ids))
 
@@ -1080,12 +1026,8 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
             if len(target_models) > 1:
                 all_items = all_items[:page_size]
 
-            return comfy_io.NodeOutput(
-                json.dumps(all_items, indent=2, ensure_ascii=False), total_count
-            )
+            return comfy_io.NodeOutput(json.dumps(all_items, indent=2, ensure_ascii=False), total_count)
         except BytePlusException:
             raise
         except Exception as e:
-            return comfy_io.NodeOutput(
-                json.dumps({"error": format_api_error(e)}, ensure_ascii=False), 0
-            )
+            return comfy_io.NodeOutput(json.dumps({"error": format_api_error(e)}, ensure_ascii=False), 0)

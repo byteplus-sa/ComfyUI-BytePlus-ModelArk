@@ -135,10 +135,7 @@ def subtitle_segments(items):
             text = "".join(str(w.get("word") or w.get("text") or "") for w in words)
         start = _time_ms(item, "start_time", "startTime")
         end = _time_ms(item, "end_time", "endTime")
-        timed = [
-            (_time_ms(w, "start_time", "startTime"), _time_ms(w, "end_time", "endTime"))
-            for w in words
-        ]
+        timed = [(_time_ms(w, "start_time", "startTime"), _time_ms(w, "end_time", "endTime")) for w in words]
         timed = [t for t in timed if t[0] is not None and t[1] is not None]
         if start is None and timed:
             start = timed[0][0]
@@ -148,13 +145,15 @@ def subtitle_segments(items):
         if start is None or end is None or not text:
             continue
         additions = item.get("additions") if isinstance(item.get("additions"), dict) else {}
-        segments.append({
-            "start_ms": start,
-            "end_ms": max(end, start),
-            "text": text,
-            "speaker": str(additions.get("speaker") or item.get("speaker") or ""),
-            "channel": str(additions.get("channel_id") or ""),
-        })
+        segments.append(
+            {
+                "start_ms": start,
+                "end_ms": max(end, start),
+                "text": text,
+                "speaker": str(additions.get("speaker") or item.get("speaker") or ""),
+                "channel": str(additions.get("channel_id") or ""),
+            }
+        )
     return segments
 
 
@@ -178,7 +177,5 @@ def build_srt(segments, with_speaker=False):
                 labels.append(f"Speaker {segment['speaker']}")
             if labels:
                 text = f"{' / '.join(labels)}: {text}"
-        blocks.append(
-            f"{index}\n{_srt_time(segment['start_ms'])} --> {_srt_time(segment['end_ms'])}\n{text}\n"
-        )
+        blocks.append(f"{index}\n{_srt_time(segment['start_ms'])} --> {_srt_time(segment['end_ms'])}\n{text}\n")
     return "\n".join(blocks)

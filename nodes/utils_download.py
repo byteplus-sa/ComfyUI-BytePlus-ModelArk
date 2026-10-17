@@ -78,9 +78,7 @@ def _image_bytes_to_rgba_tensor(image_data: bytes) -> torch.Tensor:
     return torch.from_numpy(array)[None,]
 
 
-async def download_url_to_rgba_tensor_async(
-    session: aiohttp.ClientSession, url: str
-) -> torch.Tensor | None:
+async def download_url_to_rgba_tensor_async(session: aiohttp.ClientSession, url: str) -> torch.Tensor | None:
     """
     Download an image and convert it to a (1, H, W, 4) RGBA tensor.
     """
@@ -135,9 +133,7 @@ async def _fetch_data_from_url_async(
     return await _with_download_retries(attempt_once, retries)
 
 
-async def download_url_to_image_tensor_async(
-    session: aiohttp.ClientSession, url: str
-) -> torch.Tensor | None:
+async def download_url_to_image_tensor_async(session: aiohttp.ClientSession, url: str) -> torch.Tensor | None:
     """
     Download an image and convert it to a (B, H, W, C) tensor.
     """
@@ -172,9 +168,7 @@ async def _download_to_temp_base(
     if save_path_name:
         output_dir = os.path.join(output_dir, save_path_name)
 
-    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(
-        prefix, output_dir
-    )
+    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(prefix, output_dir)
     os.makedirs(full_output_folder, exist_ok=True)
 
     final_filename = f"{filename}_{random.randint(1, 10000)}.{file_ext}"
@@ -239,9 +233,7 @@ async def download_video_to_temp(
     if save_path_name:
         output_dir = os.path.join(output_dir, save_path_name)
 
-    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(
-        prefix, output_dir
-    )
+    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(prefix, output_dir)
     os.makedirs(full_output_folder, exist_ok=True)
 
     final_filename = f"{filename}_{random.randint(1, 10000)}.{file_ext}"
@@ -273,14 +265,10 @@ async def download_image_to_temp(
         return (None, None)
 
     file_ext = url_file_extension(url, "jpg")
-    (path, data) = await _download_to_temp_base(
-        session, url, prefix, seed, save_path_name, file_ext
-    )
+    (path, data) = await _download_to_temp_base(session, url, prefix, seed, save_path_name, file_ext)
 
     tensor = None
     if path and data:
         tensor = await image_bytes_to_tensor_async(data)
 
     return (tensor, path)
-
-

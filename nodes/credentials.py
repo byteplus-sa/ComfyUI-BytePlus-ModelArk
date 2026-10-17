@@ -260,7 +260,7 @@ def display_path(path):
     """The path with the home folder shown as ~ (shorter, and no user name on screenshots)."""
     home = os.path.expanduser("~")
     if home and home != "~" and (path == home or path.startswith(home + os.sep)):
-        return "~" + path[len(home):]
+        return "~" + path[len(home) :]
     return path
 
 

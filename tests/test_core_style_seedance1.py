@@ -5,6 +5,7 @@ Needs a ComfyUI checkout and a Python env with torch and the BytePlus SDK:
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_core_style_seedance1
 The Ark client is faked; nothing here calls the real API.
 """
+
 import asyncio
 import importlib
 import json
@@ -19,9 +20,7 @@ from unittest import mock
 
 COMFY_ROOT = os.environ.get("COMFYUI_ROOT")
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-requires_comfyui = unittest.skipUnless(
-    COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests."
-)
+requires_comfyui = unittest.skipUnless(COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests.")
 
 if COMFY_ROOT:
     if COMFY_ROOT not in sys.path:
@@ -80,8 +79,14 @@ def _image(width, height):
 
 
 CORE_INPUTS = [
-    "model", "prompt", "resolution", "aspect_ratio", "duration",
-    "seed", "camera_fixed", "watermark",
+    "model",
+    "prompt",
+    "resolution",
+    "aspect_ratio",
+    "duration",
+    "seed",
+    "camera_fixed",
+    "watermark",
 ]
 EXTRA_INPUTS = ["enable_offline_inference", "generation_count", "non_blocking"]
 CORE_ADVANCED = {"camera_fixed", "watermark"}
@@ -255,9 +260,7 @@ class Seedance1SchemaTests(unittest.TestCase):
                 # model: core's options in core's order, minus Seedance 1.5 Pro.
                 core_model, model = core_inputs["model"][1], inputs["model"][1]
                 self.assertIn(DEPRECATED_MODEL, core_model["options"])
-                self.assertEqual(
-                    model["options"], [o for o in core_model["options"] if o != DEPRECATED_MODEL]
-                )
+                self.assertEqual(model["options"], [o for o in core_model["options"] if o != DEPRECATED_MODEL])
                 expected_default = core_model["default"]
                 if expected_default == DEPRECATED_MODEL:  # core's First-Last-Frame default
                     expected_default = "seedance-1-0-pro-250528"
@@ -430,9 +433,7 @@ class Seedance1RequestTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         )
         request = self.submitted[0]
         self.assertEqual(request["model"], "seedance-1-0-pro-250528")
-        self.assertEqual(
-            [item.get("role") for item in request["content"]], [None, "first_frame", "last_frame"]
-        )
+        self.assertEqual([item.get("role") for item in request["content"]], [None, "first_frame", "last_frame"])
         self.assertNotIn("generate_audio", request)
 
     async def test_offline_inference_and_batch(self):
@@ -471,15 +472,15 @@ class Seedance1ValidationTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
 
     async def test_prompt_must_not_be_empty(self):
         for prompt in ("", "   \n"):
-            await self._assert_rejected(
-                T2V, "prompt is empty", model="seedance-1-0-pro-250528", prompt=prompt
-            )
+            await self._assert_rejected(T2V, "prompt is empty", model="seedance-1-0-pro-250528", prompt=prompt)
 
     async def test_prompt_flags_are_rejected(self):
         for flag in ("--resolution 1080p", "--duration 5", "--watermark true", "--camerafixed true"):
             await self._assert_rejected(
-                T2V, "is not allowed in the prompt",
-                model="seedance-1-0-pro-250528", prompt=f"a fox {flag}",
+                T2V,
+                "is not allowed in the prompt",
+                model="seedance-1-0-pro-250528",
+                prompt=f"a fox {flag}",
             )
 
     async def test_deprecated_seedance_1_5_pro_is_rejected(self):
@@ -492,16 +493,20 @@ class Seedance1ValidationTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         for node in seedance1.NODES:
             with self.subTest(node=node.__name__):
                 error = await self._assert_rejected(
-                    node, f"does not support model {DEPRECATED_MODEL}",
-                    model=DEPRECATED_MODEL, **frames[node],
+                    node,
+                    f"does not support model {DEPRECATED_MODEL}",
+                    model=DEPRECATED_MODEL,
+                    **frames[node],
                 )
                 self.assertTrue(str(error).startswith("[BytePlus]"))
 
     async def test_first_last_frame_has_no_pro_fast(self):
         await self._assert_rejected(
-            FLF, "does not support model seedance-1-0-pro-fast-251015",
+            FLF,
+            "does not support model seedance-1-0-pro-fast-251015",
             model="seedance-1-0-pro-fast-251015",
-            first_frame=_image(640, 360), last_frame=_image(640, 360),
+            first_frame=_image(640, 360),
+            last_frame=_image(640, 360),
         )
 
     async def test_frame_size_and_aspect_limits(self):
@@ -511,13 +516,13 @@ class Seedance1ValidationTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             ((1040, 400), "image: aspect ratio (width / height) must be between 0.4 and 2.5"),
             ((400, 1040), "image: aspect ratio"),
         ):
-            await self._assert_rejected(
-                I2V, text, model="seedance-1-0-pro-250528", image=_image(*size)
-            )
+            await self._assert_rejected(I2V, text, model="seedance-1-0-pro-250528", image=_image(*size))
         await self._assert_rejected(
-            FLF, "last_frame: width and height",
+            FLF,
+            "last_frame: width and height",
             model="seedance-1-0-pro-250528",
-            first_frame=_image(640, 360), last_frame=_image(200, 200),
+            first_frame=_image(640, 360),
+            last_frame=_image(200, 200),
         )
         # Both limits are inclusive (core: strict=False).
         for size in ((300, 750), (750, 300), (6000, 6000)):
@@ -594,9 +599,15 @@ class NonBlockingRerunTests(unittest.TestCase):
     def test_non_blocking_runs_are_never_cached(self):
         import math
 
-        nodes = [T2V, I2V, FLF] + [getattr(seedance2, n) for n in (
-            "BytePlusSeedance2TextToVideo", "BytePlusSeedance2FirstLastFrame",
-            "BytePlusSeedance2Reference", "BytePlusSeedanceDraftToFinal")]
+        nodes = [T2V, I2V, FLF] + [
+            getattr(seedance2, n)
+            for n in (
+                "BytePlusSeedance2TextToVideo",
+                "BytePlusSeedance2FirstLastFrame",
+                "BytePlusSeedance2Reference",
+                "BytePlusSeedanceDraftToFinal",
+            )
+        ]
         for node in nodes:
             with self.subTest(node=node.__name__):
                 # "Run again to collect" must re-run the node even with a fixed seed.
@@ -629,8 +640,13 @@ class Seedance1PollingTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         )
 
     async def run_blocking(self, tasks):
-        return await self._run(T2V, client=self._client(tasks=tasks), model="seedance-1-0-pro-fast-251015",
-                               non_blocking=False, generation_count=1)
+        return await self._run(
+            T2V,
+            client=self._client(tasks=tasks),
+            model="seedance-1-0-pro-fast-251015",
+            non_blocking=False,
+            generation_count=1,
+        )
 
     async def test_permanent_poll_error_fails_at_once(self):
         tasks = self.FailingTasks(self.status_error("ArkNotFoundError", 404))
@@ -646,8 +662,10 @@ class Seedance1PollingTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             send_sync=lambda *_a, **_k: None,
         )
         tasks = self.FailingTasks(RuntimeError("connection reset"))
-        with mock.patch.object(executor, "SEEDANCE_POLL_SECONDS", 0), \
-                mock.patch.object(executor, "SEEDANCE_MAX_POLL_ERRORS", 3):
+        with (
+            mock.patch.object(executor, "SEEDANCE_POLL_SECONDS", 0),
+            mock.patch.object(executor, "SEEDANCE_MAX_POLL_ERRORS", 3),
+        ):
             with self.assertRaises(Exception):
                 await self.run_blocking(tasks)
         statuses = [text for _node, text in texts if "queued" in text]
@@ -697,13 +715,16 @@ class Seedance1PollingTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(deleted, ["cgt-1"])
 
     async def run_blocking_with(self, client):
-        return await self._run(T2V, client=client, model="seedance-1-0-pro-fast-251015",
-                               non_blocking=False, generation_count=1)
+        return await self._run(
+            T2V, client=client, model="seedance-1-0-pro-fast-251015", non_blocking=False, generation_count=1
+        )
 
     async def test_transient_poll_errors_are_capped(self):
         tasks = self.FailingTasks(RuntimeError("connection reset"))
-        with mock.patch.object(executor, "SEEDANCE_POLL_SECONDS", 0), \
-                mock.patch.object(executor, "SEEDANCE_MAX_POLL_ERRORS", 3):
+        with (
+            mock.patch.object(executor, "SEEDANCE_POLL_SECONDS", 0),
+            mock.patch.object(executor, "SEEDANCE_MAX_POLL_ERRORS", 3),
+        ):
             with self.assertRaisesRegex(Exception, "may still finish and be billed"):
                 await self.run_blocking(tasks)
         self.assertEqual(tasks.calls, 3)
@@ -745,9 +766,7 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         ]
 
     async def _handle(self, generation_count=3):
-        return await nodes_video.BytePlusVideoBase()._handle_batch_success_async(
-            self._tasks(), generation_count, None
-        )
+        return await nodes_video.BytePlusVideoBase()._handle_batch_success_async(self._tasks(), generation_count, None)
 
     async def test_every_video_with_its_last_frame_in_submission_order(self):
         video, last_frame, response = (await self._handle()).args
@@ -755,7 +774,7 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(video, [("video", f"/tmp/{tid}.mp4") for tid in order])
         self.assertEqual(tuple(last_frame.shape), (3, 8, 8, 3))
         for index, tid in enumerate(order):
-            self.assertTrue(torch.equal(last_frame[index:index + 1], self.frames[f"/tmp/{tid}.mp4"]))
+            self.assertTrue(torch.equal(last_frame[index : index + 1], self.frames[f"/tmp/{tid}.mp4"]))
         self.assertEqual([item["id"] for item in json.loads(response)], order)
 
     async def test_missing_last_frame_blocks_last_frame_instead_of_shifting_it(self):
@@ -765,7 +784,6 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
         # last_frame[i] must belong to VIDEO[i]: with a gap it is blocked, with the reason.
         self.assertIsInstance(last_frame, ExecutionBlocker)
         self.assertIn("1 of 3", last_frame.message)
-
 
     async def test_no_downloaded_video_blocks_the_list_outputs(self):
         async def no_video(*_args):
@@ -779,7 +797,6 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             self.assertIn("cgt-1", blocked.message)
             self.assertIn("24 hours", blocked.message)
         self.assertEqual(len(json.loads(response)), 3)  # the links are still in response
-
 
     async def _run_batch(self, prompt_graph):
         return await self._run(

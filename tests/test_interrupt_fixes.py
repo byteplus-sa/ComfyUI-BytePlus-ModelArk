@@ -5,6 +5,7 @@ and Image Enhance batches. Fake clients only; nothing calls the API.
 
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_interrupt_fixes
 """
+
 import asyncio
 import importlib
 import os
@@ -261,10 +262,14 @@ class ThreeDSubmitInterruptTests(unittest.IsolatedAsyncioTestCase):
             release.set()
             raise Interrupt()
 
-        with mock.patch.object(
-            nodes_3d.comfy.model_management, "throw_exception_if_processing_interrupted",
-            side_effect=interrupt_once,
-        ), self.assertRaises(Interrupt):
+        with (
+            mock.patch.object(
+                nodes_3d.comfy.model_management,
+                "throw_exception_if_processing_interrupted",
+                side_effect=interrupt_once,
+            ),
+            self.assertRaises(Interrupt),
+        ):
             await nodes_3d.submit_task(client, {"model": "hyper3d-gen2-260112", "content": [], "seed": 1})
         self.assertEqual(len(created), 1)
         self.assertEqual(deleted, ["task-3d"])
@@ -298,8 +303,12 @@ class GenerationCountCapTests(unittest.TestCase):
 
 @requires_comfyui
 class ImageEnhancePartialFailureTests(unittest.IsolatedAsyncioTestCase):
-    RESULT = {"image_url": "https://cdn.example/out.png?auth_key=x", "image_format": "png",
-              "image_width": 80, "image_height": 60}
+    RESULT = {
+        "image_url": "https://cdn.example/out.png?auth_key=x",
+        "image_format": "png",
+        "image_width": 80,
+        "image_height": 60,
+    }
 
     def setUp(self):
         from PIL import Image
@@ -327,8 +336,9 @@ class ImageEnhancePartialFailureTests(unittest.IsolatedAsyncioTestCase):
             mock.patch.object(nodes_mediakit, "_download", fake_download),
             mock.patch("comfy_api_nodes.util.upload_file_to_comfyapi", fake_upload, create=True),
             mock.patch.dict(nodes_mediakit.IMAGE_UPLOAD_CACHE, clear=True),
-            mock.patch.object(nodes_mediakit.BytePlusImageEnhance, "hidden",
-                              SimpleNamespace(unique_id="9", prompt={}), create=True),
+            mock.patch.object(
+                nodes_mediakit.BytePlusImageEnhance, "hidden", SimpleNamespace(unique_id="9", prompt={}), create=True
+            ),
         ):
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -348,8 +358,10 @@ class ImageEnhancePartialFailureTests(unittest.IsolatedAsyncioTestCase):
     async def run_node(self, send, **kwargs):
         args = dict(tool_version={"tool_version": "standard"}, output_size={"output_size": "multiple", "multiple": 2.0})
         args.update(kwargs)
-        with mock.patch.object(nodes_mediakit, "IMAGE_MAX_PARALLEL", 1), \
-                mock.patch.object(nodes_mediakit, "_send", send):
+        with (
+            mock.patch.object(nodes_mediakit, "IMAGE_MAX_PARALLEL", 1),
+            mock.patch.object(nodes_mediakit, "_send", send),
+        ):
             return await nodes_mediakit.BytePlusImageEnhance.execute(self.client, **args)
 
     async def test_a_failed_image_keeps_the_other_paid_results(self):

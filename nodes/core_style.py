@@ -4,6 +4,7 @@ Shared pieces for nodes shaped like ComfyUI core's ByteDance partner nodes
 pack's extras as advanced inputs, the linked-output check, and resolving
 reference strings (asset IDs, asset:// URIs, https links) for Seedance.
 """
+
 import asyncio
 import ipaddress
 import os
@@ -20,18 +21,29 @@ from .nodes_shared import BytePlusException, gather_cancelling, get_text, wait_i
 
 SEED_MAX = 2147483647
 SEEDANCE_SEED_TOOLTIP = (
-    "Seed controls whether the node should re-run; "
-    "results are non-deterministic regardless of seed."
+    "Seed controls whether the node should re-run; results are non-deterministic regardless of seed."
 )
 
 REFERENCE_KINDS = ("image", "video", "audio")
 _URL_EXTENSION_KINDS = {
-    ".jpg": "image", ".jpeg": "image", ".png": "image", ".webp": "image",
-    ".bmp": "image", ".tif": "image", ".tiff": "image", ".gif": "image",
-    ".heic": "image", ".heif": "image",
-    ".mp4": "video", ".mov": "video",
-    ".mp3": "audio", ".wav": "audio", ".m4a": "audio", ".aac": "audio",
-    ".ogg": "audio", ".flac": "audio",
+    ".jpg": "image",
+    ".jpeg": "image",
+    ".png": "image",
+    ".webp": "image",
+    ".bmp": "image",
+    ".tif": "image",
+    ".tiff": "image",
+    ".gif": "image",
+    ".heic": "image",
+    ".heif": "image",
+    ".mp4": "video",
+    ".mov": "video",
+    ".mp3": "audio",
+    ".wav": "audio",
+    ".m4a": "audio",
+    ".aac": "audio",
+    ".ogg": "audio",
+    ".flac": "audio",
 }
 _ASSET_TYPE_KINDS = {"Image": "image", "Video": "video", "Audio": "audio"}
 _URL_PROBE_TIMEOUT_SECONDS = 15
@@ -103,10 +115,7 @@ def video_extra_inputs(include_offline=False, seeded=True):
             comfy_io.Boolean.Input(
                 "non_blocking",
                 default=False,
-                tooltip=(
-                    "Submit the task and return at once; run the node again to "
-                    "collect the finished video."
-                ),
+                tooltip=("Submit the task and return at once; run the node again to collect the finished video."),
                 advanced=True,
             ),
         ]
@@ -161,8 +170,7 @@ def video_list_output():
     """
     return comfy_io.Video.Output(
         is_output_list=True,
-        tooltip="The generated video, or every video of a generation_count batch "
-        "(the next node runs once per video).",
+        tooltip="The generated video, or every video of a generation_count batch (the next node runs once per video).",
     )
 
 
@@ -202,13 +210,9 @@ def get_output_consumers(prompt, node_id, output_index):
 
 def raise_if_output_linked(cls, output_index, reason):
     """Core's validate_output_unlinked, using the queued prompt."""
-    consumers = get_output_consumers(
-        getattr(cls.hidden, "prompt", None), cls.hidden.unique_id, output_index
-    )
+    consumers = get_output_consumers(getattr(cls.hidden, "prompt", None), cls.hidden.unique_id, output_index)
     if consumers:
-        raise BytePlusException(
-            get_text("err_output_linked", reason=reason, consumers=", ".join(consumers))
-        )
+        raise BytePlusException(get_text("err_output_linked", reason=reason, consumers=", ".join(consumers)))
 
 
 def split_reference_value(value):
@@ -226,7 +230,7 @@ def split_reference_value(value):
     if lowered.startswith("https://"):
         return ("url", text)
     if lowered.startswith(ASSET_URI_PREFIX):
-        asset_id = text[len(ASSET_URI_PREFIX):]
+        asset_id = text[len(ASSET_URI_PREFIX) :]
     elif "://" in text:
         raise BytePlusException(get_text("err_reference_value_invalid", value=text))
     else:
@@ -395,11 +399,7 @@ def _asset_library(client):
 
     stamp = asset_credentials_stamp(resolve_asset_credentials(client))
     cached = getattr(client, "_asset_library", None)
-    if (
-        cached is not None
-        and type(cached) is AssetLibrary
-        and getattr(cached, "credentials_stamp", None) == stamp
-    ):
+    if cached is not None and type(cached) is AssetLibrary and getattr(cached, "credentials_stamp", None) == stamp:
         return cached
     library = AssetLibrary(client)
     try:
@@ -410,9 +410,7 @@ def _asset_library(client):
 
 
 async def _lookup_asset_kind(library, asset_id, project_name):
-    asset = await asyncio.to_thread(
-        library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name}
-    )
+    asset = await asyncio.to_thread(library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name})
     status = str(asset.get("Status") or "")
     if status != "Active":
         raise BytePlusException(
@@ -420,9 +418,7 @@ async def _lookup_asset_kind(library, asset_id, project_name):
         )
     kind = _ASSET_TYPE_KINDS.get(str(asset.get("AssetType") or ""))
     if kind is None:
-        raise BytePlusException(
-            get_text("err_reference_asset_type_unknown", asset_id=asset_id)
-        )
+        raise BytePlusException(get_text("err_reference_asset_type_unknown", asset_id=asset_id))
     return kind
 
 
@@ -443,9 +439,7 @@ async def resolve_reference_values(client, values, project_name="default"):
     library = None
     if asset_ids:
         if not _has_asset_credentials(client):
-            raise BytePlusException(
-                get_text("err_reference_asset_needs_credentials", asset_id=asset_ids[0])
-            )
+            raise BytePlusException(get_text("err_reference_asset_needs_credentials", asset_id=asset_ids[0]))
         library = _asset_library(client)
     limit = asyncio.Semaphore(_REFERENCE_LOOKUP_CONCURRENCY)
 

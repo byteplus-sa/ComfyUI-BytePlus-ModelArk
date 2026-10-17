@@ -15,6 +15,7 @@ sweeps across the frame plus a frame pair for ComfyUI's Compare Images slider;
 for Smoothness, the source and the repaired video side by side; for images,
 the original resized to the result for the Compare Images slider.
 """
+
 import asyncio
 import hashlib
 import io
@@ -239,13 +240,13 @@ def task_result(task):
 # vCube Video Enhance: inputs, request and source limits
 # --------------------------------------------------------------------------
 
+
 def _style_input():
     return comfy_io.Combo.Input(
         "enhance_style",
         options=VCUBE_STYLES,
         default="hd",
-        tooltip="'hd' applies a sharper enhancement; 'natural' reduces the strength "
-        "for a softer, less sharpened look.",
+        tooltip="'hd' applies a sharper enhancement; 'natural' reduces the strength for a softer, less sharpened look.",
     )
 
 
@@ -290,8 +291,7 @@ def _resolution_input():
                         default=1080,
                         min=VCUBE_MIN_SHORT_SIDE,
                         max=VCUBE_MAX_SHORT_SIDE,
-                        tooltip="Short side of the output in pixels; the long side follows "
-                        "the source aspect ratio.",
+                        tooltip="Short side of the output in pixels; the long side follows the source aspect ratio.",
                     ),
                 ],
             ),
@@ -303,8 +303,9 @@ def _resolution_input():
     )
 
 
-def build_enhance_request(video_url, tool_version, resolution, fps, bitrate_level, bitrate=0,
-                          source_size=None, source_fps=None):
+def build_enhance_request(
+    video_url, tool_version, resolution, fps, bitrate_level, bitrate=0, source_size=None, source_fps=None
+):
     """
     The POST /tools/enhance-video body, as core's node builds it: fps 'source'
     sends the source rate (when known and within 15-120), resolution 'source'
@@ -418,8 +419,10 @@ async def _download(url, prefix, ext="mp4"):
 
 # --- Source video and tasks (shared by the MediaKit tools) --------------------
 
-def check_source(media, url, name="video_url", both_key="err_mediakit_source_both",
-                 missing_key="err_mediakit_source_missing"):
+
+def check_source(
+    media, url, name="video_url", both_key="err_mediakit_source_both", missing_key="err_mediakit_source_missing"
+):
     """The url link ("" for connected media). Exactly one source is required."""
     link = str(url or "").strip()
     if media is not None and link:
@@ -472,7 +475,7 @@ async def submit_and_wait(client, path, body, node_id, submitted_key):
         except MediaKitRequestError as e:
             if not e.retryable or attempt >= MEDIAKIT_SUBMIT_RETRIES:
                 raise
-            await sleep_interruptible(2 ** attempt)
+            await sleep_interruptible(2**attempt)
     task_id = created.get("task_id")
     if not task_id:
         raise BytePlusException(get_text("err_mediakit_unexpected", status="no task_id"))
@@ -529,6 +532,7 @@ async def _pass_through_source(link):
 
 # --- Comparison --------------------------------------------------------------
 
+
 def _even(value):
     value = max(2, int(round(value)))
     return value - value % 2
@@ -573,7 +577,7 @@ def compose_side_by_side_frame(source_rgb, result_rgb, line_px=2):
 
     frame = numpy.hstack([source_rgb, result_rgb])
     x = source_rgb.shape[1]
-    frame[:, max(0, x - line_px // 2):x + (line_px + 1) // 2] = numpy.array([240, 240, 240], dtype=frame.dtype)
+    frame[:, max(0, x - line_px // 2) : x + (line_px + 1) // 2] = numpy.array([240, 240, 240], dtype=frame.dtype)
     return frame
 
 
@@ -765,6 +769,7 @@ def build_side_by_side(source_path, result_path, labels=("Original", "Smoothed")
 # vCube Video Enhance
 # --------------------------------------------------------------------------
 
+
 class BytePlusVideoEnhance(comfy_io.ComfyNode):
     """Core's ByteDanceVideoEnhanceNode (vCube) on BytePlus VOD AI MediaKit."""
 
@@ -923,6 +928,7 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
 # --------------------------------------------------------------------------
 # Video Smoothness Enhance
 # --------------------------------------------------------------------------
+
 
 def _periodic_stutter_input():
     return comfy_io.DynamicCombo.Input(
@@ -1158,20 +1164,38 @@ IMAGE_MAX_RECOMMENDED_SIDE = 8000  # max version: larger outputs can time out
 # original size), and the final magnification cap of a target size.
 IMAGE_VERSION_LIMITS = {
     "standard": {
-        "in_short": (16, 1440), "in_long": (16, 2160), "max_ratio": None, "multiple": 8.0,
-        "out_short": 6144, "out_long": 6144, "target": (None, 6144), "target_scale": 8.0,
+        "in_short": (16, 1440),
+        "in_long": (16, 2160),
+        "max_ratio": None,
+        "multiple": 8.0,
+        "out_short": 6144,
+        "out_long": 6144,
+        "target": (None, 6144),
+        "target_scale": 8.0,
         "in_rule": "16-1440 px on the short side and 16-2160 px on the long side",
         "out_rule": "at most 6144 px on each side",
     },
     "professional": {
-        "in_short": (256, None), "in_long": (None, 2048), "max_ratio": None, "multiple": 30.0,
-        "out_short": None, "out_long": 10240, "target": (64, 10240), "target_scale": None,
+        "in_short": (256, None),
+        "in_long": (None, 2048),
+        "max_ratio": None,
+        "multiple": 30.0,
+        "out_short": None,
+        "out_long": 10240,
+        "target": (64, 10240),
+        "target_scale": None,
         "in_rule": "a short side of at least 256 px and a long side of at most 2048 px",
         "out_rule": "a long side of at most 10240 px",
     },
     "max": {
-        "in_short": (64, None), "in_long": (None, 6240), "max_ratio": 32.0, "multiple": 30.0,
-        "out_short": None, "out_long": 10240, "target": (64, 10240), "target_scale": None,
+        "in_short": (64, None),
+        "in_long": (None, 6240),
+        "max_ratio": 32.0,
+        "multiple": 30.0,
+        "out_short": None,
+        "out_long": 10240,
+        "target": (64, 10240),
+        "target_scale": None,
         "in_rule": "a short side of at least 64 px, a long side of at most 6240 px and a ratio up to 32:1",
         "out_rule": "a long side of at most 10240 px",
     },
@@ -1202,8 +1226,7 @@ def _image_tool_version_input():
                     comfy_io.Boolean.Input(
                         "enable_correct_color",
                         default=True,
-                        tooltip="Keep the colours close to the original. Turn off if the result looks "
-                        "over-sharpened.",
+                        tooltip="Keep the colours close to the original. Turn off if the result looks over-sharpened.",
                     ),
                 ],
             ),
@@ -1228,8 +1251,7 @@ def _image_output_size_input():
                         min=1.0,
                         max=30.0,
                         step=0.01,
-                        tooltip="Scale factor for width and height: 1-8 for standard, 1-30 for professional "
-                        "and max.",
+                        tooltip="Scale factor for width and height: 1-8 for standard, 1-30 for professional and max.",
                     ),
                 ],
             ),
@@ -1301,8 +1323,14 @@ def plan_image_enhance(body, size=None):
             low, high = limits["target"]
             if not _in_range(value, (low, high)):
                 raise BytePlusException(
-                    get_text("err_image_enhance_target_range", name=name, min=low or 1, max=high,
-                             version=version, value=value)
+                    get_text(
+                        "err_image_enhance_target_range",
+                        name=name,
+                        min=low or 1,
+                        max=high,
+                        version=version,
+                        value=value,
+                    )
                 )
         return None
 
@@ -1311,7 +1339,9 @@ def plan_image_enhance(body, size=None):
     ratio_ok = limits["max_ratio"] is None or long_ / float(short) <= limits["max_ratio"]
     if not (_in_range(short, limits["in_short"]) and _in_range(long_, limits["in_long"]) and ratio_ok):
         raise BytePlusException(
-            get_text("err_image_enhance_input_size", version=version, rule=limits["in_rule"], width=width, height=height)
+            get_text(
+                "err_image_enhance_input_size", version=version, rule=limits["in_rule"], width=width, height=height
+            )
         )
     if "multiple" in body:
         scale = body["multiple"]
@@ -1322,8 +1352,9 @@ def plan_image_enhance(body, size=None):
             low = original if low is None else low
             if not _in_range(value, (low, high)):
                 raise BytePlusException(
-                    get_text("err_image_enhance_target_range", name=name, min=low, max=high,
-                             version=version, value=value)
+                    get_text(
+                        "err_image_enhance_target_range", name=name, min=low, max=high, version=version, value=value
+                    )
                 )
         scale = min(
             targets.get("target_width", float("inf")) / float(width),
@@ -1331,16 +1362,21 @@ def plan_image_enhance(body, size=None):
         )
         if limits["target_scale"] and scale > limits["target_scale"] + 1e-9:
             raise BytePlusException(
-                get_text("err_image_enhance_multiple", max=int(limits["target_scale"]), version=version,
-                         value=round(scale, 2))
+                get_text(
+                    "err_image_enhance_multiple",
+                    max=int(limits["target_scale"]),
+                    version=version,
+                    value=round(scale, 2),
+                )
             )
     out_w, out_h = int(round(width * scale)), int(round(height * scale))
     if (limits["out_long"] and max(out_w, out_h) > limits["out_long"]) or (
         limits["out_short"] and min(out_w, out_h) > limits["out_short"]
     ):
         raise BytePlusException(
-            get_text("err_image_enhance_output_size", version=version, width=out_w, height=out_h,
-                     rule=limits["out_rule"])
+            get_text(
+                "err_image_enhance_output_size", version=version, width=out_w, height=out_h, rule=limits["out_rule"]
+            )
         )
     return out_w, out_h
 
@@ -1471,7 +1507,7 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
         template = build_image_enhance_request(link, tool_version or {}, output_size or {})
         version = template["tool_version"]
         if image is not None:
-            sources = [image[i:i + 1] for i in range(image.shape[0])]
+            sources = [image[i : i + 1] for i in range(image.shape[0])]
             plans = [plan_image_enhance(template, (int(s.shape[2]), int(s.shape[1]))) for s in sources]
         else:
             sources, plans = [None], [plan_image_enhance(template)]
@@ -1492,7 +1528,10 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
                     plain_text("image_enhance_submitted", version=version, index=index + 1, count=len(sources)),
                 )
                 response = await mediakit_request(
-                    mediakit_client, "POST", "/tools-sync/enhance-image", body,
+                    mediakit_client,
+                    "POST",
+                    "/tools-sync/enhance-image",
+                    body,
                     timeout_seconds=MEDIAKIT_SYNC_TIMEOUT_SECONDS,
                 )
                 result = task_result(response)

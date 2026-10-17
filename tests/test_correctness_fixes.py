@@ -6,6 +6,7 @@ Query Tasks bounds and the link probe resolver. Fakes only; nothing calls an API
 
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_correctness_fixes
 """
+
 import asyncio
 import importlib
 import json
@@ -242,7 +243,6 @@ class AssetPollingErrorTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(str(ctx.exception).startswith("[BytePlus]"))
 
 
-
 def two_colour_clip(width=320, height=240, frames=12):
     """An MP4 whose left half is red and right half blue."""
     import io
@@ -358,9 +358,11 @@ class SubmissionOrderTests(unittest.IsolatedAsyncioTestCase):
 
         import torch
 
-        with mock.patch.object(nodes_video, "download_video_to_temp", fake_download), mock.patch.object(
-            nodes_video, "extract_last_frame_tensor", lambda path: torch.zeros(1, 4, 4, 3)
-        ), mock.patch.object(nodes_video, "VideoFromFile", lambda path: path):
+        with (
+            mock.patch.object(nodes_video, "download_video_to_temp", fake_download),
+            mock.patch.object(nodes_video, "extract_last_frame_tensor", lambda path: torch.zeros(1, 4, 4, 3)),
+            mock.patch.object(nodes_video, "VideoFromFile", lambda path: path),
+        ):
             video, _, response = (
                 await nodes_video.BytePlusVideoBase()._handle_batch_success_async(tasks, 3, None)
             ).args
@@ -376,7 +378,6 @@ class VideoQueryTasksBoundsTests(unittest.TestCase):
             self.assertEqual((inputs[name].min, inputs[name].max), (1, 500), name)
 
 
-
 def sine_audio(seconds=1.0, sample_rate=24000, channels=1):
     import math
 
@@ -390,8 +391,13 @@ def sine_audio(seconds=1.0, sample_rate=24000, channels=1):
 class SpeechMediaWorkOffTheLoopTests(unittest.IsolatedAsyncioTestCase):
     """Encoding and decoding audio and images runs in a worker thread, never on ComfyUI's event loop."""
 
-    HEAVY = ("audio_to_wav_bytes", "decode_audio_bytes", "pcm16_to_audio", "_image_to_jpeg_base64",
-             "context_image_jpeg")
+    HEAVY = (
+        "audio_to_wav_bytes",
+        "decode_audio_bytes",
+        "pcm16_to_audio",
+        "_image_to_jpeg_base64",
+        "context_image_jpeg",
+    )
 
     def setUp(self):
         self.loop_thread = threading.get_ident()
@@ -439,7 +445,8 @@ class SpeechMediaWorkOffTheLoopTests(unittest.IsolatedAsyncioTestCase):
     async def test_seed_audio_with_an_audio_reference(self):
         self.serve((200, {}, self.wav_payload()))
         await nodes_speech.BytePlusSeedAudio.execute(
-            self.client, "@Audio1 says hi",
+            self.client,
+            "@Audio1 says hi",
             {"reference_mode": "audio reference", "reference_audio_1": sine_audio(2.0, 48000)},
             model="seed-audio-1.0",
         )
@@ -450,7 +457,8 @@ class SpeechMediaWorkOffTheLoopTests(unittest.IsolatedAsyncioTestCase):
 
         self.serve((200, {}, self.wav_payload()))
         await nodes_speech.BytePlusSeedAudio.execute(
-            self.client, "A calm voice",
+            self.client,
+            "A calm voice",
             {"reference_mode": "image reference", "reference_image": torch.ones((1, 32, 32, 3))},
             model="seed-audio-1.0",
         )
@@ -459,10 +467,13 @@ class SpeechMediaWorkOffTheLoopTests(unittest.IsolatedAsyncioTestCase):
     async def test_tts(self):
         import base64
 
-        stream = "\n".join(json.dumps(item) for item in (
-            {"code": 0, "message": "", "data": base64.b64encode(b"\x00\x00\x00\x40").decode()},
-            {"code": 20000000, "message": "ok", "data": None},
-        ))
+        stream = "\n".join(
+            json.dumps(item)
+            for item in (
+                {"code": 0, "message": "", "data": base64.b64encode(b"\x00\x00\x00\x40").decode()},
+                {"code": 20000000, "message": "ok", "data": None},
+            )
+        )
         self.serve((200, {}, stream))
         await nodes_speech.BytePlusSeedTTS.execute(self.client, "seed-tts-2.0", "Hi", "en_female_stokie_uranus_bigtts")
         self.assert_off_the_loop("pcm16_to_audio")
@@ -484,20 +495,29 @@ class SpeechMediaWorkOffTheLoopTests(unittest.IsolatedAsyncioTestCase):
             (200, {"X-Api-Status-Code": "20000000"}, {}),
             (200, {"X-Api-Status-Code": "20000000"}, result),
         )
-        with mock.patch.object(nodes_speech, "upload_to_comfy_storage", self.fake_upload), \
-                mock.patch.object(nodes_speech, "SPEECH_ASR_POLL_SECONDS", 0):
+        with (
+            mock.patch.object(nodes_speech, "upload_to_comfy_storage", self.fake_upload),
+            mock.patch.object(nodes_speech, "SPEECH_ASR_POLL_SECONDS", 0),
+        ):
             await nodes_speech.BytePlusSeedASR.execute(self.client, "seed-asr-2.0", audio=sine_audio())
         self.assert_off_the_loop("audio_to_wav_bytes")
 
     async def test_voice_clone(self):
         self.serve(
-            (200, {}, {"code": 0, "speaker_id": "S_abc123", "status": 2,
-                       "speaker_status": [{"model_type": 5, "demo_audio": "https://cdn.example/demo.wav"}]}),
+            (
+                200,
+                {},
+                {
+                    "code": 0,
+                    "speaker_id": "S_abc123",
+                    "status": 2,
+                    "speaker_status": [{"model_type": 5, "demo_audio": "https://cdn.example/demo.wav"}],
+                },
+            ),
             (200, {}, audio_utils.audio_to_wav_bytes(sine_audio(0.2))),
         )
         await nodes_speech.BytePlusSeedVoiceClone.execute(self.client, "S_abc123", sine_audio(2.0, 48000))
         self.assert_off_the_loop("audio_to_wav_bytes", "decode_audio_bytes")
-
 
 
 @requires_comfyui
@@ -552,8 +572,10 @@ class LinkProbeRebindingTests(unittest.IsolatedAsyncioTestCase):
         import socket
 
         resolver = core_style.PublicOnlyResolver()
-        mixed = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
-                 (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 443))]
+        mixed = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 443)),
+        ]
         with mock.patch.object(asyncio.get_running_loop(), "getaddrinfo", mock.AsyncMock(return_value=mixed)):
             with self.assertRaises(OSError):
                 await resolver.resolve("mixed.example", 443)
@@ -564,8 +586,10 @@ class LinkProbeRebindingTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_probe_through_a_rebinding_host_returns_nothing(self):
         # The first lookup (_host_is_public) sees a public address; the connection's lookup gets loopback.
-        with mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)), \
-                self.resolve_to("127.0.0.1"):
+        with (
+            mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)),
+            self.resolve_to("127.0.0.1"),
+        ):
             self.assertIsNone(await core_style._probe_url_kind(f"https://rebind.example:{self.port}/x.png"))
             self.assertIsNone(await core_style.sniff_audio_format(f"https://rebind.example:{self.port}/a"))
         self.assertEqual(self.requests, [])

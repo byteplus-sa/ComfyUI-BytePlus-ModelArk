@@ -7,6 +7,7 @@ widgets. Calls the ModelArk Responses API directly
 with the user's key; images, videos and audio go through the Ark Files API.
 Seed 2.0 Lite and Mini also take audio clips (the other models do not hear audio).
 """
+
 import asyncio
 import hashlib
 import io
@@ -261,9 +262,17 @@ def image_count(image_tensors):
     return sum(int(t.shape[0]) if getattr(t, "ndim", 0) == 4 else 1 for t in image_tensors)
 
 
-def build_seed_payload(model_id, content, temperature, system_prompt="", reasoning_mode="auto",
-                       reasoning_effort="medium", supports_effort=True, previous_response_id=None,
-                       store=None):
+def build_seed_payload(
+    model_id,
+    content,
+    temperature,
+    system_prompt="",
+    reasoning_mode="auto",
+    reasoning_effort="medium",
+    supports_effort=True,
+    previous_response_id=None,
+    store=None,
+):
     """Responses API request for the Seed node (SDK responses.create kwargs)."""
     payload = {
         "model": model_id,
@@ -394,15 +403,11 @@ class BytePlusSeed(comfy_io.ComfyNode):
             raise BytePlusException(get_text("seed_llm_too_many_images", max=SEED_LLM_MAX_IMAGES, count=count))
         videos = [v for v in (model.get("videos") or {}).values() if v is not None]
         if len(videos) > SEED_LLM_MAX_VIDEOS:
-            raise BytePlusException(
-                get_text("seed_llm_too_many_videos", max=SEED_LLM_MAX_VIDEOS, count=len(videos))
-            )
+            raise BytePlusException(get_text("seed_llm_too_many_videos", max=SEED_LLM_MAX_VIDEOS, count=len(videos)))
 
         audios = [a for a in (model.get("audios") or {}).values() if a is not None]
         if len(audios) > SEED_LLM_MAX_AUDIOS:
-            raise BytePlusException(
-                get_text("seed_llm_too_many_audios", max=SEED_LLM_MAX_AUDIOS, count=len(audios))
-            )
+            raise BytePlusException(get_text("seed_llm_too_many_audios", max=SEED_LLM_MAX_AUDIOS, count=len(audios)))
         total_audio_seconds = sum(audio_duration(a) for a in audios)
         if total_audio_seconds > SEED_LLM_MAX_AUDIO_SECONDS:
             raise BytePlusException(
@@ -444,9 +449,7 @@ class BytePlusSeed(comfy_io.ComfyNode):
                     path = await asyncio.to_thread(video_file, video)
                 except Exception as e:
                     raise BytePlusException(get_text("seed_llm_video_convert_failed", index=index, e=e)) from e
-                file_id = await upload_file_to_ark(
-                    client, path, fps=fps, expire_seconds=expire_seconds, model=model_id
-                )
+                file_id = await upload_file_to_ark(client, path, fps=fps, expire_seconds=expire_seconds, model=model_id)
                 content.append({"type": "input_video", "file_id": file_id})
             for path in await asyncio.to_thread(audio_files, audios):
                 file_id = await upload_file_to_ark(client, path, expire_seconds=expire_seconds)

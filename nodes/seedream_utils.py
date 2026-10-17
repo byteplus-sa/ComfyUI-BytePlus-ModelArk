@@ -2,6 +2,7 @@
 Seedream helpers for nodes_seedream.py: ComfyUI core's size presets, reference
 image encoding, URL-result requests and layer output.
 """
+
 import asyncio
 import base64
 import io
@@ -167,9 +168,7 @@ def _image_to_png_data_uri(image, mask=None, with_alpha=False):
     size_mb = len(data_uri) / (1024.0 * 1024.0)
     if size_mb > REF_IMAGE_MAX_SIZE_MB:
         raise BytePlusException(
-            get_text("popup_ref_image_size_exceeded").format(
-                max_mb=REF_IMAGE_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}"
-            )
+            get_text("popup_ref_image_size_exceeded").format(max_mb=REF_IMAGE_MAX_SIZE_MB, size_mb=f"{size_mb:.3f}")
         )
     return data_uri
 
@@ -187,20 +186,15 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
     every returned image. transparent keeps the alpha channel (RGBA tensor).
     Returns (tensor, metadata) for BytePlusGenerationExecutor.run_parallel_requests.
     """
-    download = (
-        download_url_to_rgba_tensor_async
-        if transparent
-        else download_url_to_image_tensor_async
-    )
+    download = download_url_to_rgba_tensor_async if transparent else download_url_to_image_tensor_async
     try:
         comfy.model_management.throw_exception_if_processing_interrupted()
-        response = await wait_interruptible(asyncio.to_thread(call_billed, ark_client.images.generate, **request_kwargs))
+        response = await wait_interruptible(
+            asyncio.to_thread(call_billed, ark_client.images.generate, **request_kwargs)
+        )
         comfy.model_management.throw_exception_if_processing_interrupted()
 
-        urls = [
-            getattr(item, "url", None)
-            for item in (getattr(response, "data", None) or [])
-        ]
+        urls = [getattr(item, "url", None) for item in (getattr(response, "data", None) or [])]
         urls = [url for url in urls if url]
         if not urls:
             raise BytePlusException(get_text("err_download_img"))
@@ -229,6 +223,7 @@ def _get_dynamic_input_order(name):
     match = None
     try:
         import re
+
         match = re.search(r"(\d+)$", str(name))
     except Exception:
         match = None
@@ -281,9 +276,7 @@ def _prepare_multi_image_inputs(images=None, **kwargs):
         if n_input_images == 1:
             image_param = f"data:image/jpeg;base64,{image_b64_list[0]}"
         else:
-            image_param = [
-                f"data:image/jpeg;base64,{image_b64}" for image_b64 in image_b64_list
-            ]
+            image_param = [f"data:image/jpeg;base64,{image_b64}" for image_b64 in image_b64_list]
 
     return n_input_images, image_param
 

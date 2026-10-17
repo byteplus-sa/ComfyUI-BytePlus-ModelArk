@@ -113,7 +113,7 @@ def get_speech_client():
 
 
 USER_ID = "comfyui"
-SPEECH_MAX_SEED = 0xffffffffffffffff
+SPEECH_MAX_SEED = 0xFFFFFFFFFFFFFFFF
 
 
 def _is_url(value, schemes=("http://", "https://")):
@@ -160,10 +160,14 @@ def _image_to_jpeg_base64(image):
         _tensor2images(fit_image_pixels(image))[0].convert("RGB").save(buffer, format="JPEG", quality=95)
         data = buffer.getvalue()
     if len(data) > SEED_AUDIO_REF_MAX_BYTES:
-        raise BytePlusException(get_text(
-            "seed_audio_ref_too_large", kind="image", size_mb=_size_mb(len(data)),
-            max_mb=_size_mb(SEED_AUDIO_REF_MAX_BYTES),
-        ))
+        raise BytePlusException(
+            get_text(
+                "seed_audio_ref_too_large",
+                kind="image",
+                size_mb=_size_mb(len(data)),
+                max_mb=_size_mb(SEED_AUDIO_REF_MAX_BYTES),
+            )
+        )
     return base64.b64encode(data).decode("utf-8")
 
 
@@ -216,6 +220,7 @@ SEED_AUDIO_MODE_AUDIO = "audio reference"
 SEED_AUDIO_MODE_IMAGE = "image reference"
 SEED_AUDIO_MODE_PRESET = "preset voice"
 
+
 def _voice_name(speaker_id, name):
     """The listed name, or one derived from the ID when the official list has none."""
     if name:
@@ -266,9 +271,9 @@ def validate_seed_audio_inputs(text_prompt, mode, audio_slots, has_image, preset
     if not text:
         raise BytePlusException(get_text("seed_audio_prompt_empty"))
     if len(text) > SEED_AUDIO_MAX_PROMPT_CHARS:
-        raise BytePlusException(get_text(
-            "seed_audio_prompt_too_long", count=len(text), max=SEED_AUDIO_MAX_PROMPT_CHARS
-        ))
+        raise BytePlusException(
+            get_text("seed_audio_prompt_too_long", count=len(text), max=SEED_AUDIO_MAX_PROMPT_CHARS)
+        )
     max_tag = max_audio_tag(text)
     if mode == SEED_AUDIO_MODE_TEXT:
         if max_tag:
@@ -299,19 +304,27 @@ def validate_seed_audio_inputs(text_prompt, mode, audio_slots, has_image, preset
 def _audio_reference(slot, audio):
     duration = audio_duration(audio)
     if duration > SEED_AUDIO_REF_MAX_SECONDS:
-        raise BytePlusException(get_text(
-            "seed_audio_ref_too_long", slot=slot, duration=f"{duration:.1f}",
-            max=int(SEED_AUDIO_REF_MAX_SECONDS),
-        ))
+        raise BytePlusException(
+            get_text(
+                "seed_audio_ref_too_long",
+                slot=slot,
+                duration=f"{duration:.1f}",
+                max=int(SEED_AUDIO_REF_MAX_SECONDS),
+            )
+        )
     wav = audio_to_wav_bytes(audio)
     if len(wav) > SEED_AUDIO_REF_MAX_BYTES:
         # 16 kHz mono keeps 30 s of speech far below the limit.
         wav = audio_to_wav_bytes(audio, sample_rate=16000, mono=True)
     if len(wav) > SEED_AUDIO_REF_MAX_BYTES:
-        raise BytePlusException(get_text(
-            "seed_audio_ref_too_large", kind=f"audio {slot}", size_mb=_size_mb(len(wav)),
-            max_mb=_size_mb(SEED_AUDIO_REF_MAX_BYTES),
-        ))
+        raise BytePlusException(
+            get_text(
+                "seed_audio_ref_too_large",
+                kind=f"audio {slot}",
+                size_mb=_size_mb(len(wav)),
+                max_mb=_size_mb(SEED_AUDIO_REF_MAX_BYTES),
+            )
+        )
     return {"audio_data": base64.b64encode(wav).decode("utf-8")}
 
 
@@ -340,17 +353,30 @@ def build_seed_audio_references(mode, audio_slots=None, image=None, image_url=""
     return None
 
 
-def build_seed_audio_request(model, text_prompt, references, audio_format="wav",
-                             sample_rate=SEED_AUDIO_DEFAULT_SAMPLE_RATE, speech_rate=0, loudness_rate=0,
-                             pitch_rate=0, enable_subtitle=False, aigc_watermark=False, aigc_metadata=False,
-                             content_producer="", produce_id="", content_propagator="", propagate_id=""):
+def build_seed_audio_request(
+    model,
+    text_prompt,
+    references,
+    audio_format="wav",
+    sample_rate=SEED_AUDIO_DEFAULT_SAMPLE_RATE,
+    speech_rate=0,
+    loudness_rate=0,
+    pitch_rate=0,
+    enable_subtitle=False,
+    aigc_watermark=False,
+    aigc_metadata=False,
+    content_producer="",
+    produce_id="",
+    content_propagator="",
+    propagate_id="",
+):
     text_prompt = (text_prompt or "").strip()
     if not text_prompt:
         raise BytePlusException(get_text("seed_audio_prompt_empty"))
     if len(text_prompt) > SEED_AUDIO_MAX_PROMPT_CHARS:
-        raise BytePlusException(get_text(
-            "seed_audio_prompt_too_long", count=len(text_prompt), max=SEED_AUDIO_MAX_PROMPT_CHARS
-        ))
+        raise BytePlusException(
+            get_text("seed_audio_prompt_too_long", count=len(text_prompt), max=SEED_AUDIO_MAX_PROMPT_CHARS)
+        )
     audio_config = {
         "format": audio_format,
         "sample_rate": int(sample_rate),
@@ -563,14 +589,34 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
                     optional=True,
                     advanced=True,
                 ),
-                comfy_io.String.Input("content_producer", default="", optional=True, advanced=True,
-                                      tooltip="Implicit watermark: name or code of the synthesis provider."),
-                comfy_io.String.Input("produce_id", default="", optional=True, advanced=True,
-                                      tooltip="Implicit watermark: content production ID."),
-                comfy_io.String.Input("content_propagator", default="", optional=True, advanced=True,
-                                      tooltip="Implicit watermark: name or code of the distributor."),
-                comfy_io.String.Input("propagate_id", default="", optional=True, advanced=True,
-                                      tooltip="Implicit watermark: content distribution ID."),
+                comfy_io.String.Input(
+                    "content_producer",
+                    default="",
+                    optional=True,
+                    advanced=True,
+                    tooltip="Implicit watermark: name or code of the synthesis provider.",
+                ),
+                comfy_io.String.Input(
+                    "produce_id",
+                    default="",
+                    optional=True,
+                    advanced=True,
+                    tooltip="Implicit watermark: content production ID.",
+                ),
+                comfy_io.String.Input(
+                    "content_propagator",
+                    default="",
+                    optional=True,
+                    advanced=True,
+                    tooltip="Implicit watermark: name or code of the distributor.",
+                ),
+                comfy_io.String.Input(
+                    "propagate_id",
+                    default="",
+                    optional=True,
+                    advanced=True,
+                    tooltip="Implicit watermark: content distribution ID.",
+                ),
                 comfy_io.Int.Input(
                     "generation_count",
                     default=1,
@@ -597,11 +643,27 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
 
     @classmethod
     @with_client("speech_client", get_speech_client)
-    async def execute(cls, speech_client, text_prompt, reference_mode, sample_rate=SEED_AUDIO_DEFAULT_SAMPLE_RATE,
-                      speech_rate=0, loudness_rate=0, pitch_rate=0, seed=42, model=SEED_AUDIO_MODELS[0],
-                      audio_format="wav", enable_subtitle=False, aigc_watermark=False, aigc_metadata=False,
-                      content_producer="", produce_id="", content_propagator="",
-                      propagate_id="", generation_count=1) -> comfy_io.NodeOutput:
+    async def execute(
+        cls,
+        speech_client,
+        text_prompt,
+        reference_mode,
+        sample_rate=SEED_AUDIO_DEFAULT_SAMPLE_RATE,
+        speech_rate=0,
+        loudness_rate=0,
+        pitch_rate=0,
+        seed=42,
+        model=SEED_AUDIO_MODELS[0],
+        audio_format="wav",
+        enable_subtitle=False,
+        aigc_watermark=False,
+        aigc_metadata=False,
+        content_producer="",
+        produce_id="",
+        content_propagator="",
+        propagate_id="",
+        generation_count=1,
+    ) -> comfy_io.NodeOutput:
         reference_mode = reference_mode or {}
         mode = reference_mode.get("reference_mode")
         audio_slots = seed_audio_slots(reference_mode) if mode == SEED_AUDIO_MODE_AUDIO else {}
@@ -621,9 +683,21 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
         )
         # seed only makes ComfyUI re-run the node; the API has no seed parameter.
         body = build_seed_audio_request(
-            model or SEED_AUDIO_MODELS[0], text_prompt, references, audio_format, sample_rate, speech_rate,
-            loudness_rate, pitch_rate, enable_subtitle, aigc_watermark, aigc_metadata,
-            content_producer, produce_id, content_propagator, propagate_id,
+            model or SEED_AUDIO_MODELS[0],
+            text_prompt,
+            references,
+            audio_format,
+            sample_rate,
+            speech_rate,
+            loudness_rate,
+            pitch_rate,
+            enable_subtitle,
+            aigc_watermark,
+            aigc_metadata,
+            content_producer,
+            produce_id,
+            content_propagator,
+            propagate_id,
         )
         count = max(1, int(generation_count or 1))
         if count > 1:
@@ -690,13 +764,32 @@ async def _seed_audio_once(speech_client, body, audio_format, sample_rate):
 
 # TTS
 
-def build_tts_request(model, text, voice, custom_speaker_id="", context_text="", emotion="",
-                      emotion_scale=4, speech_rate=0, loudness_rate=0, pitch=0, sample_rate="24000",
-                      explicit_language="auto", silence_duration=0, filter_markdown=False,
-                      enable_subtitle=False, detect_language=False, context_language="default",
-                      read_emoji=False, read_latex=False, read_parentheses=False,
-                      unsupported_char_ratio=SEED_TTS_DEFAULT_UNSUPPORTED_CHAR_RATIO, use_cache=False,
-                      tone_fidelity=False):
+
+def build_tts_request(
+    model,
+    text,
+    voice,
+    custom_speaker_id="",
+    context_text="",
+    emotion="",
+    emotion_scale=4,
+    speech_rate=0,
+    loudness_rate=0,
+    pitch=0,
+    sample_rate="24000",
+    explicit_language="auto",
+    silence_duration=0,
+    filter_markdown=False,
+    enable_subtitle=False,
+    detect_language=False,
+    context_language="default",
+    read_emoji=False,
+    read_latex=False,
+    read_parentheses=False,
+    unsupported_char_ratio=SEED_TTS_DEFAULT_UNSUPPORTED_CHAR_RATIO,
+    use_cache=False,
+    tone_fidelity=False,
+):
     """
     (extra headers, body) for the unidirectional TTS HTTP API. Always asks for
     raw PCM: the node outputs decoded AUDIO, so the transfer format does not
@@ -834,7 +927,9 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
                 ),
                 comfy_io.Int.Input("emotion_scale", default=4, min=1, max=5),
                 comfy_io.Int.Input("speech_rate", default=0, min=-50, max=100, tooltip="100 = 2x speed, -50 = 0.5x."),
-                comfy_io.Int.Input("loudness_rate", default=0, min=-50, max=100, tooltip="100 = 2x volume, -50 = 0.5x."),
+                comfy_io.Int.Input(
+                    "loudness_rate", default=0, min=-50, max=100, tooltip="100 = 2x volume, -50 = 0.5x."
+                ),
                 comfy_io.Int.Input("pitch", default=0, min=-12, max=12, tooltip="Pitch shift in semitones."),
                 comfy_io.Combo.Input(
                     "sample_rate",
@@ -866,8 +961,9 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
                     default=False,
                     tooltip="Return timestamps (Chinese and English): subtitles for 2.0 voices, word timestamps for 1.0 voices.",
                 ),
-                comfy_io.Boolean.Input("detect_language", default=False, advanced=True,
-                                       tooltip="Detect the text language automatically."),
+                comfy_io.Boolean.Input(
+                    "detect_language", default=False, advanced=True, tooltip="Detect the text language automatically."
+                ),
                 comfy_io.Combo.Input(
                     "context_language",
                     options=SEED_TTS_CONTEXT_LANGUAGES,
@@ -875,12 +971,24 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
                     advanced=True,
                     tooltip="Reference language for Western European text: default English, id Indonesian, es Mexican Spanish, pt Brazilian Portuguese.",
                 ),
-                comfy_io.Boolean.Input("read_emoji", default=False, advanced=True,
-                                       tooltip="Keep emoji in the text instead of filtering them out."),
-                comfy_io.Boolean.Input("read_latex", default=False, advanced=True,
-                                       tooltip="Read LaTeX formulas aloud (also enables filter_markdown)."),
-                comfy_io.Boolean.Input("read_parentheses", default=False, advanced=True,
-                                       tooltip="Read text inside parentheses (filtered out by default)."),
+                comfy_io.Boolean.Input(
+                    "read_emoji",
+                    default=False,
+                    advanced=True,
+                    tooltip="Keep emoji in the text instead of filtering them out.",
+                ),
+                comfy_io.Boolean.Input(
+                    "read_latex",
+                    default=False,
+                    advanced=True,
+                    tooltip="Read LaTeX formulas aloud (also enables filter_markdown).",
+                ),
+                comfy_io.Boolean.Input(
+                    "read_parentheses",
+                    default=False,
+                    advanced=True,
+                    tooltip="Read text inside parentheses (filtered out by default).",
+                ),
                 comfy_io.Float.Input(
                     "unsupported_char_ratio",
                     default=SEED_TTS_DEFAULT_UNSUPPORTED_CHAR_RATIO,
@@ -890,10 +998,18 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
                     advanced=True,
                     tooltip="Fail when more than this share of the text is in an unsupported language.",
                 ),
-                comfy_io.Boolean.Input("use_cache", default=False, advanced=True,
-                                       tooltip="Reuse audio synthesized for identical text in the last hour (no timestamps from cache)."),
-                comfy_io.Boolean.Input("tone_fidelity", default=False, advanced=True,
-                                       tooltip="seed-icl-2.0 only: stay as close as possible to the training audio's voice, emotion and accent (same language only)."),
+                comfy_io.Boolean.Input(
+                    "use_cache",
+                    default=False,
+                    advanced=True,
+                    tooltip="Reuse audio synthesized for identical text in the last hour (no timestamps from cache).",
+                ),
+                comfy_io.Boolean.Input(
+                    "tone_fidelity",
+                    default=False,
+                    advanced=True,
+                    tooltip="seed-icl-2.0 only: stay as close as possible to the training audio's voice, emotion and accent (same language only).",
+                ),
                 comfy_io.Int.Input(
                     "seed",
                     default=0,
@@ -912,18 +1028,58 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
 
     @classmethod
     @with_client("speech_client", get_speech_client)
-    async def execute(cls, speech_client, model, text, voice, custom_speaker_id="", context_text="",
-                      emotion="", emotion_scale=4, speech_rate=0, loudness_rate=0, pitch=0,
-                      sample_rate="24000", explicit_language="auto", silence_duration=0,
-                      filter_markdown=False, enable_subtitle=False, detect_language=False,
-                      context_language="default", read_emoji=False, read_latex=False,
-                      read_parentheses=False, unsupported_char_ratio=SEED_TTS_DEFAULT_UNSUPPORTED_CHAR_RATIO,
-                      use_cache=False, tone_fidelity=False, seed=0) -> comfy_io.NodeOutput:
+    async def execute(
+        cls,
+        speech_client,
+        model,
+        text,
+        voice,
+        custom_speaker_id="",
+        context_text="",
+        emotion="",
+        emotion_scale=4,
+        speech_rate=0,
+        loudness_rate=0,
+        pitch=0,
+        sample_rate="24000",
+        explicit_language="auto",
+        silence_duration=0,
+        filter_markdown=False,
+        enable_subtitle=False,
+        detect_language=False,
+        context_language="default",
+        read_emoji=False,
+        read_latex=False,
+        read_parentheses=False,
+        unsupported_char_ratio=SEED_TTS_DEFAULT_UNSUPPORTED_CHAR_RATIO,
+        use_cache=False,
+        tone_fidelity=False,
+        seed=0,
+    ) -> comfy_io.NodeOutput:
         headers, body = build_tts_request(
-            model, text, voice, custom_speaker_id, context_text, emotion, emotion_scale,
-            speech_rate, loudness_rate, pitch, sample_rate, explicit_language, silence_duration,
-            filter_markdown, enable_subtitle, detect_language, context_language, read_emoji,
-            read_latex, read_parentheses, unsupported_char_ratio, use_cache, tone_fidelity,
+            model,
+            text,
+            voice,
+            custom_speaker_id,
+            context_text,
+            emotion,
+            emotion_scale,
+            speech_rate,
+            loudness_rate,
+            pitch,
+            sample_rate,
+            explicit_language,
+            silence_duration,
+            filter_markdown,
+            enable_subtitle,
+            detect_language,
+            context_language,
+            read_emoji,
+            read_latex,
+            read_parentheses,
+            unsupported_char_ratio,
+            use_cache,
+            tone_fidelity,
         )
         operation = "TTS"
         response = await speech_post(speech_client, SEED_TTS_PATH, body, operation=operation, headers=headers)
@@ -939,6 +1095,7 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
 
 
 # ASR
+
 
 def _word_list(text):
     words = []
@@ -1000,13 +1157,30 @@ def _url_audio_format(model, mode, audio_url, audio_format):
     return inferred
 
 
-def build_asr_request(model, audio=None, audio_url="", language="auto", enable_punc=True,
-                      enable_itn=True, enable_ddc=False, enable_speaker_info=False, hotwords="",
-                      context_text="", context_image_url="", enable_auto_lang=False,
-                      enable_lid=False, enable_channel_split=False, vad_segment=False,
-                      end_window_size=0, output_zh_variant="none",
-                      filter_system_sensitive_words=False, remove_words="", mask_words="",
-                      wrap_sensitive_words=False, audio_format="auto"):
+def build_asr_request(
+    model,
+    audio=None,
+    audio_url="",
+    language="auto",
+    enable_punc=True,
+    enable_itn=True,
+    enable_ddc=False,
+    enable_speaker_info=False,
+    hotwords="",
+    context_text="",
+    context_image_url="",
+    enable_auto_lang=False,
+    enable_lid=False,
+    enable_channel_split=False,
+    vad_segment=False,
+    end_window_size=0,
+    output_zh_variant="none",
+    filter_system_sensitive_words=False,
+    remove_words="",
+    mask_words="",
+    wrap_sensitive_words=False,
+    audio_format="auto",
+):
     """(mode, extra headers, body) for Seed Speech ASR. URL-only options take URLs here;
     the node uploads connected media first."""
     mode, resource_id = SEED_ASR_MODELS[model]
@@ -1035,9 +1209,9 @@ def build_asr_request(model, audio=None, audio_url="", language="auto", enable_p
         channels = asr_channel_count(audio, enable_channel_split)
         wav = audio_to_wav_bytes(audio, sample_rate=SEED_ASR_SAMPLE_RATE, mono=channels == 1)
         if len(wav) > SEED_ASR_FAST_MAX_BYTES:
-            raise BytePlusException(get_text(
-                "asr_audio_too_large", size_mb=_size_mb(len(wav)), max_mb=_size_mb(SEED_ASR_FAST_MAX_BYTES)
-            ))
+            raise BytePlusException(
+                get_text("asr_audio_too_large", size_mb=_size_mb(len(wav)), max_mb=_size_mb(SEED_ASR_FAST_MAX_BYTES))
+            )
         audio_config = {
             "data": base64.b64encode(wav).decode("utf-8"),
             "format": "wav",
@@ -1078,9 +1252,7 @@ def build_asr_request(model, audio=None, audio_url="", language="auto", enable_p
         request["end_window_size"] = end_window_size
     if output_zh_variant and output_zh_variant != "none":
         request["output_zh_variant"] = output_zh_variant
-    sensitive = _sensitive_words_filter(
-        filter_system_sensitive_words, remove_words, mask_words, wrap_sensitive_words
-    )
+    sensitive = _sensitive_words_filter(filter_system_sensitive_words, remove_words, mask_words, wrap_sensitive_words)
     if sensitive:
         request["sensitive_words_filter"] = sensitive
     if context:
@@ -1110,13 +1282,11 @@ def _first_dict(value):
 def _asr_outputs(operation, response, with_labels):
     result_body = response.json()
     if not isinstance(result_body, dict):
-        raise BytePlusException(get_text(
-            "speech_unexpected_response", operation=operation, body=response.text()[:200]
-        ))
+        raise BytePlusException(get_text("speech_unexpected_response", operation=operation, body=response.text()[:200]))
     if "result" not in result_body:
-        raise BytePlusException(get_text(
-            "speech_unexpected_response", operation=operation, body=response.text()[:200] or "(empty)"
-        ))
+        raise BytePlusException(
+            get_text("speech_unexpected_response", operation=operation, body=response.text()[:200] or "(empty)")
+        )
     result = _first_dict(result_body.get("result"))
     utterances = result.get("utterances") or []
     segments = subtitle_segments(utterances)
@@ -1175,7 +1345,9 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
                     ),
                 ),
                 comfy_io.Boolean.Input("enable_punc", default=True, tooltip="Add punctuation."),
-                comfy_io.Boolean.Input("enable_itn", default=True, tooltip="Write numbers in digits (inverse text normalization)."),
+                comfy_io.Boolean.Input(
+                    "enable_itn", default=True, tooltip="Write numbers in digits (inverse text normalization)."
+                ),
                 comfy_io.Boolean.Input("enable_ddc", default=False, tooltip="Remove filler words and repetitions."),
                 comfy_io.Boolean.Input(
                     "enable_speaker_info",
@@ -1208,26 +1380,70 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
                     advanced=True,
                     tooltip="ASR 2.0 visual context: public JPEG/PNG URL (up to 500 KB). Or connect context_image.",
                 ),
-                comfy_io.Boolean.Input("enable_auto_lang", default=False, advanced=True,
-                                       tooltip="Detect the spoken language automatically (overrides language)."),
-                comfy_io.Boolean.Input("enable_lid", default=False, advanced=True,
-                                       tooltip="seed-asr-2.0 / 1.0: add a detected-language label (lid_lang) to each utterance."),
-                comfy_io.Boolean.Input("enable_channel_split", default=False, advanced=True,
-                                       tooltip="Recognize the left and right channels of stereo audio separately (channel_id 1 / 2)."),
-                comfy_io.Boolean.Input("vad_segment", default=False, advanced=True,
-                                       tooltip="Split sentences on silence (VAD) instead of meaning."),
-                comfy_io.Int.Input("end_window_size", default=0, min=0, max=5000, step=100, advanced=True,
-                                   tooltip="Silence in ms that ends a sentence (300-5000; 0 = semantic segmentation)."),
-                comfy_io.Combo.Input("output_zh_variant", options=SEED_ASR_ZH_VARIANTS, default="none", advanced=True,
-                                     tooltip="Convert Chinese output to Traditional Chinese: traditional, tw (Taiwan) or hk (Hong Kong)."),
-                comfy_io.Boolean.Input("filter_system_sensitive_words", default=False, advanced=True,
-                                       tooltip="Mask words from the built-in sensitive word list with *."),
-                comfy_io.String.Input("remove_words", default="", advanced=True,
-                                      tooltip="Words to delete from the transcript, comma-separated."),
-                comfy_io.String.Input("mask_words", default="", advanced=True,
-                                      tooltip="Words to replace with * in the transcript, comma-separated."),
-                comfy_io.Boolean.Input("wrap_sensitive_words", default=False, advanced=True,
-                                       tooltip="Wrap filtered words in backticks instead of hiding them silently."),
+                comfy_io.Boolean.Input(
+                    "enable_auto_lang",
+                    default=False,
+                    advanced=True,
+                    tooltip="Detect the spoken language automatically (overrides language).",
+                ),
+                comfy_io.Boolean.Input(
+                    "enable_lid",
+                    default=False,
+                    advanced=True,
+                    tooltip="seed-asr-2.0 / 1.0: add a detected-language label (lid_lang) to each utterance.",
+                ),
+                comfy_io.Boolean.Input(
+                    "enable_channel_split",
+                    default=False,
+                    advanced=True,
+                    tooltip="Recognize the left and right channels of stereo audio separately (channel_id 1 / 2).",
+                ),
+                comfy_io.Boolean.Input(
+                    "vad_segment",
+                    default=False,
+                    advanced=True,
+                    tooltip="Split sentences on silence (VAD) instead of meaning.",
+                ),
+                comfy_io.Int.Input(
+                    "end_window_size",
+                    default=0,
+                    min=0,
+                    max=5000,
+                    step=100,
+                    advanced=True,
+                    tooltip="Silence in ms that ends a sentence (300-5000; 0 = semantic segmentation).",
+                ),
+                comfy_io.Combo.Input(
+                    "output_zh_variant",
+                    options=SEED_ASR_ZH_VARIANTS,
+                    default="none",
+                    advanced=True,
+                    tooltip="Convert Chinese output to Traditional Chinese: traditional, tw (Taiwan) or hk (Hong Kong).",
+                ),
+                comfy_io.Boolean.Input(
+                    "filter_system_sensitive_words",
+                    default=False,
+                    advanced=True,
+                    tooltip="Mask words from the built-in sensitive word list with *.",
+                ),
+                comfy_io.String.Input(
+                    "remove_words",
+                    default="",
+                    advanced=True,
+                    tooltip="Words to delete from the transcript, comma-separated.",
+                ),
+                comfy_io.String.Input(
+                    "mask_words",
+                    default="",
+                    advanced=True,
+                    tooltip="Words to replace with * in the transcript, comma-separated.",
+                ),
+                comfy_io.Boolean.Input(
+                    "wrap_sensitive_words",
+                    default=False,
+                    advanced=True,
+                    tooltip="Wrap filtered words in backticks instead of hiding them silently.",
+                ),
                 comfy_io.Combo.Input(
                     "audio_format",
                     options=SEED_ASR_AUDIO_FORMATS,
@@ -1304,13 +1520,17 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
         waited = 0
         while True:
             if waited >= SEED_ASR_MAX_WAIT_SECONDS:
-                raise BytePlusException(get_text(
-                    "asr_wait_timeout", task_id=task_id, seconds=SEED_ASR_MAX_WAIT_SECONDS
-                ))
+                raise BytePlusException(
+                    get_text("asr_wait_timeout", task_id=task_id, seconds=SEED_ASR_MAX_WAIT_SECONDS)
+                )
             await sleep_interruptible(SPEECH_ASR_POLL_SECONDS)
             waited += max(SPEECH_ASR_POLL_SECONDS, 1)
             response = await speech_poll(
-                speech_client, SEED_ASR_QUERY_PATH, {}, operation=operation, headers=headers,
+                speech_client,
+                SEED_ASR_QUERY_PATH,
+                {},
+                operation=operation,
+                headers=headers,
                 poll_seconds=SPEECH_ASR_POLL_SECONDS,
             )
             status = response.status_code
@@ -1326,6 +1546,7 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
 
 # Voice cloning (Voice Replication 2.0)
 
+
 def _voice_ids(speaker_id):
     """Request IDs: voice slot (S_...) as speaker_id, or a postpaid custom voice ID."""
     speaker = (speaker_id or "").strip()
@@ -1338,17 +1559,20 @@ def _voice_ids(speaker_id):
     return speaker, {"speaker_id": "custom_speaker_id", "custom_speaker_id": speaker}
 
 
-def build_voice_clone_request(speaker_id, audio, language="en", reference_text="", demo_text="",
-                              disable_volume_normalization=False):
+def build_voice_clone_request(
+    speaker_id, audio, language="en", reference_text="", demo_text="", disable_volume_normalization=False
+):
     """(voice ID, clone body, status-query body) for voice_clone / get_voice."""
     speaker, ids = _voice_ids(speaker_id)
     wav = audio_to_wav_bytes(audio)
     if len(wav) > SEED_VOICE_CLONE_MAX_BYTES:
         wav = audio_to_wav_bytes(audio, sample_rate=24000, mono=True)
     if len(wav) > SEED_VOICE_CLONE_MAX_BYTES:
-        raise BytePlusException(get_text(
-            "voice_clone_audio_too_large", size_mb=_size_mb(len(wav)), max_mb=_size_mb(SEED_VOICE_CLONE_MAX_BYTES)
-        ))
+        raise BytePlusException(
+            get_text(
+                "voice_clone_audio_too_large", size_mb=_size_mb(len(wav)), max_mb=_size_mb(SEED_VOICE_CLONE_MAX_BYTES)
+            )
+        )
     body = {
         **ids,
         "audio": {"data": base64.b64encode(wav).decode("utf-8"), "format": "wav"},
@@ -1440,11 +1664,24 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
 
     @classmethod
     @with_client("speech_client", get_speech_client)
-    async def execute(cls, speech_client, speaker_id, audio, language="en", reference_text="", demo_text="",
-                      disable_volume_normalization=False) -> comfy_io.NodeOutput:
+    async def execute(
+        cls,
+        speech_client,
+        speaker_id,
+        audio,
+        language="en",
+        reference_text="",
+        demo_text="",
+        disable_volume_normalization=False,
+    ) -> comfy_io.NodeOutput:
         speaker, body, ids = await asyncio.to_thread(
             build_voice_clone_request,
-            speaker_id, audio, language, reference_text, demo_text, disable_volume_normalization,
+            speaker_id,
+            audio,
+            language,
+            reference_text,
+            demo_text,
+            disable_volume_normalization,
         )
         operation = "Voice clone"
         response = await speech_post(speech_client, SEED_VOICE_CLONE_PATH, body, operation=operation)
@@ -1455,15 +1692,15 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
         while result.get("status") not in SEED_VOICE_READY_STATUSES:
             status = result.get("status")
             if status == SEED_VOICE_FAILED_STATUS:
-                raise BytePlusException(get_text(
-                    "voice_clone_failed", speaker=speaker, message=result.get("message") or "training failed"
-                ))
+                raise BytePlusException(
+                    get_text("voice_clone_failed", speaker=speaker, message=result.get("message") or "training failed")
+                )
             if status == SEED_VOICE_NOT_FOUND_STATUS and waited:
                 raise BytePlusException(get_text("voice_clone_not_found", speaker=speaker))
             if waited >= SEED_VOICE_TRAINING_TIMEOUT_SECONDS:
-                raise BytePlusException(get_text(
-                    "voice_clone_timeout", speaker=speaker, seconds=SEED_VOICE_TRAINING_TIMEOUT_SECONDS
-                ))
+                raise BytePlusException(
+                    get_text("voice_clone_timeout", speaker=speaker, seconds=SEED_VOICE_TRAINING_TIMEOUT_SECONDS)
+                )
             await sleep_interruptible(SEED_VOICE_POLL_SECONDS)
             waited += max(SEED_VOICE_POLL_SECONDS, 1)
             response = await speech_poll(

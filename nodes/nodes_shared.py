@@ -27,6 +27,7 @@ from . import credentials
 
 LOG_PREFIX = "[BytePlus] "
 
+
 def patch_log_messages():
     """
     Prefix console messages with LOG_PREFIX.
@@ -48,12 +49,13 @@ def patch_log_messages():
                 if not value.startswith(LOG_PREFIX):
                     MESSAGES[key] = LOG_PREFIX + value
 
+
 patch_log_messages()
 
 logger = logging.getLogger("BytePlus")
 if not logger.handlers:
     handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(message)s')
+    formatter = logging.Formatter("%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
@@ -108,6 +110,7 @@ def get_node_count_in_workflow(class_type, prompt=None):
     try:
         if prompt is None:
             from server import PromptServer
+
             prompt = PromptServer.instance.prompt
 
         if not prompt:
@@ -190,6 +193,7 @@ def format_api_error(e):
 
         if matched_msg:
             if "%s" in matched_msg:
+
                 def _extract_account_model(text: str):
                     if not text:
                         return None, None
@@ -224,10 +228,7 @@ def check_api_key(api_key: str, base_url: str):
     5xx), True for any other answer (the endpoint did not refuse it).
     """
     try:
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         response = requests.get(base_url, headers=headers, timeout=10)
     except Exception as e:
         logger.error(f"API Key validation error: {e}")
@@ -298,10 +299,7 @@ class UploadCacheStore:
                         file_id = entry.get("file_id")
                         expire_at = int(entry.get("expire_at", 0) or 0)
                         if file_id and expire_at > now_ts:
-                            loaded_data[cache_key] = {
-                                "file_id": file_id,
-                                "expire_at": expire_at
-                            }
+                            loaded_data[cache_key] = {"file_id": file_id, "expire_at": expire_at}
             except Exception as e:
                 logger.error(f"Failed to load upload cache: {e}")
         with self._lock:
@@ -318,10 +316,7 @@ class UploadCacheStore:
                 file_id = entry.get("file_id")
                 expire_at = int(entry.get("expire_at", 0) or 0)
                 if file_id and expire_at > now_ts:
-                    serializable_data[_serialize_cache_key(cache_key)] = {
-                        "file_id": file_id,
-                        "expire_at": expire_at
-                    }
+                    serializable_data[_serialize_cache_key(cache_key)] = {"file_id": file_id, "expire_at": expire_at}
         try:
             with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(serializable_data, f, indent=2, ensure_ascii=False)
@@ -402,7 +397,8 @@ async def _delete_stale_uploads(client, cache_key):
     """Uploads of the same file with another lifetime are replaced by this one."""
     account, file_identity, fps, expire_seconds = cache_key
     stale_keys = [
-        existing_key for existing_key in UPLOAD_CACHE_STORE.keys()  # noqa: SIM118
+        existing_key
+        for existing_key in UPLOAD_CACHE_STORE.keys()  # noqa: SIM118
         if existing_key[:3] == (account, file_identity, fps) and existing_key[3] != expire_seconds
     ]
     for stale_key in stale_keys:
@@ -433,9 +429,7 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
     if model:
         # Preprocessing depends on the model, so the upload is cached per model.
         file_identity = f"{file_identity}|model={model}"
-    cache_key = (
-        _upload_account(client), file_identity, float(fps) if fps is not None else None, expire_seconds
-    )
+    cache_key = (_upload_account(client), file_identity, float(fps) if fps is not None else None, expire_seconds)
     now_ts = int(time.time())
     expire_at = now_ts + expire_seconds
 
@@ -531,9 +525,7 @@ async def wait_for_file_active(client, file_id, max_wait_seconds=FILE_ACTIVE_MAX
                 raise BytePlusException(get_text("err_file_processing_failed", id=file_id, reason=reason))
 
         if time.monotonic() >= deadline:
-            raise BytePlusException(
-                get_text("err_file_processing_timeout", id=file_id, seconds=max_wait_seconds)
-            )
+            raise BytePlusException(get_text("err_file_processing_timeout", id=file_id, seconds=max_wait_seconds))
         await asyncio.sleep(FILE_ACTIVE_POLL_SECONDS)
 
 
@@ -578,9 +570,7 @@ def safe_cat_tensors(tensors, dim=0):
     for t in tensors:
         if t.shape[1] != target_h or t.shape[2] != target_w:
             t_permuted = t.permute(0, 3, 1, 2)
-            t_resized = F.interpolate(
-                t_permuted, size=(target_h, target_w), mode="bilinear", align_corners=False
-            )
+            t_resized = F.interpolate(t_permuted, size=(target_h, target_w), mode="bilinear", align_corners=False)
             t_final = t_resized.permute(0, 2, 3, 1)
             processed_tensors.append(t_final)
         else:
@@ -644,6 +634,7 @@ class BytePlusException(Exception):
     Plugin exception whose traceback is suppressed in the console
     (byteplus_suppress_traceback = True); only the message is shown.
     """
+
     def __init__(self, message):
         super().__init__(message)
         self.byteplus_suppress_traceback = True
@@ -726,7 +717,7 @@ async def keyed_lock(locks, key):
 def plain_text(key, **kwargs):
     """A message without the console prefix, for use inside another message or on a node."""
     text = get_text(key, **kwargs)
-    return text[len(LOG_PREFIX):] if text.startswith(LOG_PREFIX) else text
+    return text[len(LOG_PREFIX) :] if text.startswith(LOG_PREFIX) else text
 
 
 def send_node_text(node_id, text, ps_instance=None):
@@ -744,8 +735,21 @@ def send_node_text(node_id, text, ps_instance=None):
         pass
 
 
-async def upload_bytes_to_comfy_storage(node_cls, data, filename, mime_type, cache, *, cache_key, ttl_seconds,
-                                        max_entries, unavailable_key, failed_key, done_key=None, **message_kwargs):
+async def upload_bytes_to_comfy_storage(
+    node_cls,
+    data,
+    filename,
+    mime_type,
+    cache,
+    *,
+    cache_key,
+    ttl_seconds,
+    max_entries,
+    unavailable_key,
+    failed_key,
+    done_key=None,
+    **message_kwargs,
+):
     """
     Comfy.org storage URL for media an API only takes as a public link,
     reused from `cache` for the same cache_key within ttl_seconds. Needs a
@@ -781,6 +785,7 @@ class BytePlusClients:
     billed_ark: the same client without automatic retries, for calls that
     start paid work (see call_billed).
     """
+
     def __init__(self, ark_client, api_key=None, region=DEFAULT_REGION, asset_credentials=None, billed_ark=None):
         self.ark = ark_client
         self.billed_ark = billed_ark
@@ -828,6 +833,7 @@ def with_client(param, factory):
     client is not a node input, so ``factory()`` supplies it as ``param``.
     Tests pass their own client, positionally or by keyword.
     """
+
     def decorate(fn):
         def inject(args, kwargs):
             if args or kwargs.get(param) is not None:
@@ -835,14 +841,18 @@ def with_client(param, factory):
             return {**kwargs, param: factory()}
 
         if inspect.iscoroutinefunction(fn):
+
             @functools.wraps(fn)
             async def wrapper(cls, *args, **kwargs):
                 return await fn(cls, *args, **inject(args, kwargs))
         else:
+
             @functools.wraps(fn)
             def wrapper(cls, *args, **kwargs):
                 return fn(cls, *args, **inject(args, kwargs))
+
         return wrapper
+
     return decorate
 
 
@@ -858,6 +868,7 @@ BILLED_RATE_LIMIT_RETRIES = 2
 try:
     from byteplussdkarkruntime._exceptions import ArkRateLimitError
 except Exception:  # SDK layout changed: no 429 retry, never a duplicate
+
     class ArkRateLimitError(Exception):
         pass
 
@@ -879,7 +890,7 @@ def call_billed(create, /, **kwargs):
             if attempt >= BILLED_RATE_LIMIT_RETRIES:
                 raise
             comfy.model_management.throw_exception_if_processing_interrupted()
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
 
 
 def api_key_fingerprint(api_key):
@@ -891,5 +902,3 @@ def client_owner(client):
     """(key fingerprint, region): work started with one key and region only exists there."""
     api_key = getattr(client, "api_key", None) or ""
     return (api_key_fingerprint(api_key) if api_key else "", getattr(client, "region", None))
-
-

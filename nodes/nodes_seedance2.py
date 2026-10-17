@@ -8,6 +8,7 @@ straight to BytePlus ModelArk with the user's key through the shared video
 executor. Local images and audio are sent inline as base64; local reference
 videos are uploaded to Comfy.org storage (needs a Comfy.org login).
 """
+
 import asyncio
 import json
 import math
@@ -149,6 +150,7 @@ _ASSET_REF_RE = re.compile(r"\basset ?(\d{1,2})\b", re.IGNORECASE)
 # --------------------------------------------------------------------------
 # Schema helpers (copies of core's _seedance2_text_inputs & co.)
 # --------------------------------------------------------------------------
+
 
 def _model_key(label):
     return SEEDANCE2_CORE_MODEL_OPTIONS[label]
@@ -330,10 +332,7 @@ def _reference_option_inputs(label):
 def _model_input(option_inputs):
     return comfy_io.DynamicCombo.Input(
         "model",
-        options=[
-            comfy_io.DynamicCombo.Option(label, option_inputs(label))
-            for label in SEEDANCE2_CORE_MODEL_OPTIONS
-        ],
+        options=[comfy_io.DynamicCombo.Option(label, option_inputs(label)) for label in SEEDANCE2_CORE_MODEL_OPTIONS],
         tooltip=SEEDANCE_MODEL_TOOLTIP,
     )
 
@@ -350,6 +349,7 @@ def _generation_outputs():
 # --------------------------------------------------------------------------
 # Request helpers
 # --------------------------------------------------------------------------
+
 
 def _selected_label(model):
     label = model.get("model") if isinstance(model, dict) else None
@@ -428,12 +428,8 @@ def build_seedance2_request_params(model, label, ratio, watermark):
 async def _generate(cls, client, model, label, content, prompt, ratio, seed, watermark, extras):
     """Submit, poll and collect through BytePlusVideoBase; returns core's outputs plus ours."""
     model_key = _model_key(label)
-    duration, auto_duration, ratio, extra_api_params = build_seedance2_request_params(
-        model, label, ratio, watermark
-    )
-    resolution = validate_seedance2_resolution(
-        model_key, model.get("resolution"), draft_mode=_is_draft(label)
-    )
+    duration, auto_duration, ratio, extra_api_params = build_seedance2_request_params(model, label, ratio, watermark)
+    resolution = validate_seedance2_resolution(model_key, model.get("resolution"), draft_mode=_is_draft(label))
     duration = validate_seedance2_duration(model_key, duration, auto_duration)
     helper = BytePlusVideoBase()
     result = await helper._common_generation_logic(
@@ -469,6 +465,7 @@ def _extras(generation_count, non_blocking):
 # --------------------------------------------------------------------------
 # Image helpers (core's _prepare_seedance_image / FLF frame sizing)
 # --------------------------------------------------------------------------
+
 
 def _image_size(image):
     """(width, height) of an IMAGE tensor [B, H, W, C]."""
@@ -552,6 +549,7 @@ def resize_to_exact(image, width, height):
 # --------------------------------------------------------------------------
 # Reference video helpers (pixel limits, PyAV rescaling)
 # --------------------------------------------------------------------------
+
 
 def ref_video_pixel_limits(model_key, resolution):
     """
@@ -810,6 +808,7 @@ async def _resolve_reference_assets(client, reference_assets):
 # Nodes
 # --------------------------------------------------------------------------
 
+
 class BytePlusSeedance2TextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance2TextToVideoNode on BytePlus ModelArk."""
 
@@ -881,9 +880,7 @@ class BytePlusSeedance2FirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
             description="Generate video using Seedance 2.5 or 2.0 from a first frame image "
             "and optional last frame image. Calls BytePlus ModelArk directly with your API key.",
             inputs=[
-                _model_input(
-                    lambda label: _text_option_inputs(label, with_ratio=False, default_ratio="adaptive")
-                ),
+                _model_input(lambda label: _text_option_inputs(label, with_ratio=False, default_ratio="adaptive")),
                 comfy_io.Image.Input(
                     "first_frame",
                     tooltip="First frame image for the video.",
@@ -1183,12 +1180,7 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
             helper._append_media_url_content(asset_items[kind], uri, media_type, f"reference_{kind}")
 
         content = (
-            image_items
-            + video_items
-            + audio_items
-            + asset_items["image"]
-            + asset_items["video"]
-            + asset_items["audio"]
+            image_items + video_items + audio_items + asset_items["image"] + asset_items["video"] + asset_items["audio"]
         )
         return await _generate(
             cls,
@@ -1252,9 +1244,7 @@ async def describe_drafts(client, draft_ids):
             raise BytePlusException(get_text("err_draft_not_a_draft", task_id=task_id))
         source_draft = getattr(task, "draft_task_id", None)
         if source_draft:
-            raise BytePlusException(
-                get_text("err_draft_is_final", task_id=task_id, draft_task_id=source_draft)
-            )
+            raise BytePlusException(get_text("err_draft_is_final", task_id=task_id, draft_task_id=source_draft))
         task_resolution = str(getattr(task, "resolution", "") or "")
         if task_resolution and task_resolution != SEEDANCE_DRAFT_RESOLUTION:
             raise BytePlusException(get_text("err_draft_not_a_draft", task_id=task_id))

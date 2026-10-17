@@ -5,6 +5,7 @@ they fail when a node or template is added or removed without regenerating the d
 
   python -m unittest tests.test_docs_data
 """
+
 import importlib.util
 import json
 import os
@@ -60,12 +61,16 @@ class DocsDataTests(unittest.TestCase):
         for node in load("nodes.json"):
             self.assertTrue(os.path.exists(os.path.join(PAGES, "nodes", node["slug"] + ".mdx")), node["id"])
         for template in load("templates.json"):
-            self.assertTrue(os.path.exists(os.path.join(PAGES, "templates", template["slug"] + ".mdx")), template["file"])
+            self.assertTrue(
+                os.path.exists(os.path.join(PAGES, "templates", template["slug"] + ".mdx")), template["file"]
+            )
 
     def test_a_removed_template_leaves_nothing_behind(self):
         slugs = {t["slug"] for t in load("templates.json")}
         site = os.path.join(ROOT, "docs-site")
-        pages = {f[:-4] for f in os.listdir(os.path.join(PAGES, "templates")) if f.endswith(".mdx") and f != "index.mdx"}
+        pages = {
+            f[:-4] for f in os.listdir(os.path.join(PAGES, "templates")) if f.endswith(".mdx") and f != "index.mdx"
+        }
         downloads = {f[:-5] for f in os.listdir(os.path.join(site, "public", "workflows"))}
         images = {
             f.rsplit("-workflow.", 1)[0].rsplit("-result.", 1)[0].rsplit(".jpg", 1)[0]
@@ -76,9 +81,7 @@ class DocsDataTests(unittest.TestCase):
         self.assertEqual(images, slugs)
         for name in os.listdir(os.path.join(site, "public", "media")):
             stem = name.rsplit(".", 1)[0]
-            self.assertTrue(
-                stem in slugs or stem.rsplit("-", 1)[0] in slugs, f"orphan sample media: {name}"
-            )
+            self.assertTrue(stem in slugs or stem.rsplit("-", 1)[0] in slugs, f"orphan sample media: {name}")
         self.assertEqual(set(load("evidence.json")), slugs)
 
     def test_the_site_is_left_out_of_the_registry_package(self):

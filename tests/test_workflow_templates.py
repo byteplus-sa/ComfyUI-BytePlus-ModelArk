@@ -80,7 +80,13 @@ NEW_TEMPLATES = {
         "edges": [("BytePlusHyper3D", 0, "Save3DAdvanced", "model_3d")],
     },
     "Hyper3D and Hitem3D Image to 3D.json": {
-        "nodes": {"BytePlusHitem3D": 1, "BytePlusHyper3D": 1, "BytePlusSeedream": 1, "MarkdownNote": 1, "Save3DAdvanced": 2},
+        "nodes": {
+            "BytePlusHitem3D": 1,
+            "BytePlusHyper3D": 1,
+            "BytePlusSeedream": 1,
+            "MarkdownNote": 1,
+            "Save3DAdvanced": 2,
+        },
         "edges": [
             ("BytePlusHitem3D", 0, "Save3DAdvanced", "model_3d"),
             ("BytePlusHyper3D", 0, "Save3DAdvanced", "model_3d"),
@@ -89,193 +95,320 @@ NEW_TEMPLATES = {
         ],
     },
     "Seedance Video Extension.json": {
-        "nodes": {"BytePlusSeedance2Reference": 2, "BytePlusSeedance2TextToVideo": 1, "ConcatenateVideo": 1, "MarkdownNote": 1, "SaveVideo": 1},
+        "nodes": {
+            "BytePlusSeedance2Reference": 2,
+            "BytePlusSeedance2TextToVideo": 1,
+            "ConcatenateVideo": 1,
+            "MarkdownNote": 1,
+            "SaveVideo": 1,
+        },
         "edges": [
-            ('BytePlusSeedance2Reference', 0, 'BytePlusSeedance2Reference', 'model.reference_videos.video_1'),
-            ('BytePlusSeedance2Reference', 0, 'ConcatenateVideo', 'videos.video1'),
-            ('BytePlusSeedance2Reference', 0, 'ConcatenateVideo', 'videos.video2'),
-            ('BytePlusSeedance2TextToVideo', 0, 'BytePlusSeedance2Reference', 'model.reference_videos.video_1'),
-            ('BytePlusSeedance2TextToVideo', 0, 'ConcatenateVideo', 'videos.video0'),
-            ('ConcatenateVideo', 0, 'SaveVideo', 'video'),
+            ("BytePlusSeedance2Reference", 0, "BytePlusSeedance2Reference", "model.reference_videos.video_1"),
+            ("BytePlusSeedance2Reference", 0, "ConcatenateVideo", "videos.video1"),
+            ("BytePlusSeedance2Reference", 0, "ConcatenateVideo", "videos.video2"),
+            ("BytePlusSeedance2TextToVideo", 0, "BytePlusSeedance2Reference", "model.reference_videos.video_1"),
+            ("BytePlusSeedance2TextToVideo", 0, "ConcatenateVideo", "videos.video0"),
+            ("ConcatenateVideo", 0, "SaveVideo", "video"),
         ],
     },
     "Image to UGC Video.json": {
-        "nodes": {"BytePlusSeed": 1, "BytePlusSeedTTS": 1, "BytePlusSeedance2Reference": 1, "CreateVideo": 1, "GetVideoComponents": 1, "LoadImage": 1, "MarkdownNote": 1, "PreviewAny": 2, "PrimitiveString": 1, "RegexExtract": 2, "SaveVideo": 1},
+        "nodes": {
+            "BytePlusSeed": 1,
+            "BytePlusSeedTTS": 1,
+            "BytePlusSeedance2Reference": 1,
+            "CreateVideo": 1,
+            "GetVideoComponents": 1,
+            "LoadImage": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 2,
+            "PrimitiveString": 1,
+            "RegexExtract": 2,
+            "SaveVideo": 1,
+        },
         "edges": [
-            ('BytePlusSeed', 0, 'RegexExtract', 'string'),
-            ('BytePlusSeedTTS', 0, 'CreateVideo', 'audio'),
-            ('BytePlusSeedance2Reference', 0, 'GetVideoComponents', 'video'),
-            ('CreateVideo', 0, 'SaveVideo', 'video'),
-            ('GetVideoComponents', 0, 'CreateVideo', 'images'),
-            ('GetVideoComponents', 2, 'CreateVideo', 'fps'),
-            ('LoadImage', 0, 'BytePlusSeed', 'model.images.image_1'),
-            ('LoadImage', 0, 'BytePlusSeedance2Reference', 'model.reference_images.image_1'),
-            ('PrimitiveString', 0, 'BytePlusSeed', 'prompt'),
-            ('RegexExtract', 0, 'BytePlusSeedTTS', 'text'),
-            ('RegexExtract', 0, 'BytePlusSeedance2Reference', 'model.prompt'),
-            ('RegexExtract', 0, 'PreviewAny', 'source'),
+            ("BytePlusSeed", 0, "RegexExtract", "string"),
+            ("BytePlusSeedTTS", 0, "CreateVideo", "audio"),
+            ("BytePlusSeedance2Reference", 0, "GetVideoComponents", "video"),
+            ("CreateVideo", 0, "SaveVideo", "video"),
+            ("GetVideoComponents", 0, "CreateVideo", "images"),
+            ("GetVideoComponents", 2, "CreateVideo", "fps"),
+            ("LoadImage", 0, "BytePlusSeed", "model.images.image_1"),
+            ("LoadImage", 0, "BytePlusSeedance2Reference", "model.reference_images.image_1"),
+            ("PrimitiveString", 0, "BytePlusSeed", "prompt"),
+            ("RegexExtract", 0, "BytePlusSeedTTS", "text"),
+            ("RegexExtract", 0, "BytePlusSeedance2Reference", "model.prompt"),
+            ("RegexExtract", 0, "PreviewAny", "source"),
         ],
     },
     "Product Ad in One Click.json": {
-        "nodes": {"BytePlusSeed": 1, "BytePlusSeedance2FirstLastFrame": 1, "BytePlusSeedream": 1, "BytePlusVideoEnhance": 1, "MarkdownNote": 1, "PreviewAny": 2, "PrimitiveStringMultiline": 1, "RegexExtract": 3, "SaveVideo": 1},
+        "nodes": {
+            "BytePlusSeed": 1,
+            "BytePlusSeedance2FirstLastFrame": 1,
+            "BytePlusSeedream": 1,
+            "BytePlusVideoEnhance": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 2,
+            "PrimitiveStringMultiline": 1,
+            "RegexExtract": 3,
+            "SaveVideo": 1,
+        },
         "edges": [
-            ('BytePlusSeed', 0, 'RegexExtract', 'string'),
-            ('BytePlusSeedance2FirstLastFrame', 3, 'RegexExtract', 'string'),
-            ('BytePlusSeedream', 0, 'BytePlusSeedance2FirstLastFrame', 'first_frame'),
-            ('BytePlusVideoEnhance', 0, 'SaveVideo', 'video'),
-            ('PrimitiveStringMultiline', 0, 'BytePlusSeed', 'prompt'),
-            ('RegexExtract', 0, 'BytePlusSeedance2FirstLastFrame', 'model.prompt'),
-            ('RegexExtract', 0, 'BytePlusSeedream', 'prompt'),
-            ('RegexExtract', 0, 'BytePlusVideoEnhance', 'video_url'),
-            ('RegexExtract', 0, 'PreviewAny', 'source'),
+            ("BytePlusSeed", 0, "RegexExtract", "string"),
+            ("BytePlusSeedance2FirstLastFrame", 3, "RegexExtract", "string"),
+            ("BytePlusSeedream", 0, "BytePlusSeedance2FirstLastFrame", "first_frame"),
+            ("BytePlusVideoEnhance", 0, "SaveVideo", "video"),
+            ("PrimitiveStringMultiline", 0, "BytePlusSeed", "prompt"),
+            ("RegexExtract", 0, "BytePlusSeedance2FirstLastFrame", "model.prompt"),
+            ("RegexExtract", 0, "BytePlusSeedream", "prompt"),
+            ("RegexExtract", 0, "BytePlusVideoEnhance", "video_url"),
+            ("RegexExtract", 0, "PreviewAny", "source"),
         ],
     },
     "Old Photo to Living Memory.json": {
-        "nodes": {"BytePlusImageEnhance": 1, "BytePlusSeedance2FirstLastFrame": 1, "BytePlusSeedream": 1, "BytePlusVideoSmoothness": 1, "MarkdownNote": 1, "RegexExtract": 2, "SaveImage": 1, "SaveVideo": 1},
+        "nodes": {
+            "BytePlusImageEnhance": 1,
+            "BytePlusSeedance2FirstLastFrame": 1,
+            "BytePlusSeedream": 1,
+            "BytePlusVideoSmoothness": 1,
+            "MarkdownNote": 1,
+            "RegexExtract": 2,
+            "SaveImage": 1,
+            "SaveVideo": 1,
+        },
         "edges": [
-            ('BytePlusImageEnhance', 0, 'BytePlusSeedance2FirstLastFrame', 'first_frame'),
-            ('BytePlusImageEnhance', 0, 'SaveImage', 'images'),
-            ('BytePlusSeedance2FirstLastFrame', 3, 'RegexExtract', 'string'),
-            ('BytePlusSeedream', 1, 'RegexExtract', 'string'),
-            ('BytePlusVideoSmoothness', 0, 'SaveVideo', 'video'),
-            ('RegexExtract', 0, 'BytePlusImageEnhance', 'image_url'),
-            ('RegexExtract', 0, 'BytePlusVideoSmoothness', 'video_url'),
+            ("BytePlusImageEnhance", 0, "BytePlusSeedance2FirstLastFrame", "first_frame"),
+            ("BytePlusImageEnhance", 0, "SaveImage", "images"),
+            ("BytePlusSeedance2FirstLastFrame", 3, "RegexExtract", "string"),
+            ("BytePlusSeedream", 1, "RegexExtract", "string"),
+            ("BytePlusVideoSmoothness", 0, "SaveVideo", "video"),
+            ("RegexExtract", 0, "BytePlusImageEnhance", "image_url"),
+            ("RegexExtract", 0, "BytePlusVideoSmoothness", "video_url"),
         ],
     },
     "Podcast Clip.json": {
-        "nodes": {"AudioConcat": 1, "BytePlusSeed": 1, "BytePlusSeedASR": 1, "BytePlusSeedTTS": 2, "BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 3, "PrimitiveStringMultiline": 1, "RegexExtract": 3, "SaveAudioAdvanced": 1, "SaveImage": 1},
+        "nodes": {
+            "AudioConcat": 1,
+            "BytePlusSeed": 1,
+            "BytePlusSeedASR": 1,
+            "BytePlusSeedTTS": 2,
+            "BytePlusSeedream": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 3,
+            "PrimitiveStringMultiline": 1,
+            "RegexExtract": 3,
+            "SaveAudioAdvanced": 1,
+            "SaveImage": 1,
+        },
         "edges": [
-            ('AudioConcat', 0, 'BytePlusSeedASR', 'audio'),
-            ('AudioConcat', 0, 'SaveAudioAdvanced', 'audio'),
-            ('BytePlusSeed', 0, 'RegexExtract', 'string'),
-            ('BytePlusSeedASR', 2, 'PreviewAny', 'source'),
-            ('BytePlusSeedTTS', 0, 'AudioConcat', 'audio1'),
-            ('BytePlusSeedTTS', 0, 'AudioConcat', 'audio2'),
-            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
-            ('PrimitiveStringMultiline', 0, 'BytePlusSeed', 'prompt'),
-            ('RegexExtract', 0, 'BytePlusSeedTTS', 'text'),
-            ('RegexExtract', 0, 'BytePlusSeedream', 'prompt'),
-            ('RegexExtract', 0, 'PreviewAny', 'source'),
+            ("AudioConcat", 0, "BytePlusSeedASR", "audio"),
+            ("AudioConcat", 0, "SaveAudioAdvanced", "audio"),
+            ("BytePlusSeed", 0, "RegexExtract", "string"),
+            ("BytePlusSeedASR", 2, "PreviewAny", "source"),
+            ("BytePlusSeedTTS", 0, "AudioConcat", "audio1"),
+            ("BytePlusSeedTTS", 0, "AudioConcat", "audio2"),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("PrimitiveStringMultiline", 0, "BytePlusSeed", "prompt"),
+            ("RegexExtract", 0, "BytePlusSeedTTS", "text"),
+            ("RegexExtract", 0, "BytePlusSeedream", "prompt"),
+            ("RegexExtract", 0, "PreviewAny", "source"),
         ],
     },
     "Multilingual Dubbing.json": {
-        "nodes": {"BytePlusSeed": 1, "BytePlusSeedASR": 1, "BytePlusSeedTTS": 1, "LoadAudio": 1, "MarkdownNote": 1, "PreviewAny": 2, "SaveAudioAdvanced": 1},
+        "nodes": {
+            "BytePlusSeed": 1,
+            "BytePlusSeedASR": 1,
+            "BytePlusSeedTTS": 1,
+            "LoadAudio": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 2,
+            "SaveAudioAdvanced": 1,
+        },
         "edges": [
-            ('BytePlusSeed', 0, 'BytePlusSeedTTS', 'text'),
-            ('BytePlusSeed', 0, 'PreviewAny', 'source'),
-            ('BytePlusSeedASR', 0, 'BytePlusSeed', 'prompt'),
-            ('BytePlusSeedASR', 0, 'PreviewAny', 'source'),
-            ('BytePlusSeedTTS', 0, 'SaveAudioAdvanced', 'audio'),
-            ('LoadAudio', 0, 'BytePlusSeedASR', 'audio'),
+            ("BytePlusSeed", 0, "BytePlusSeedTTS", "text"),
+            ("BytePlusSeed", 0, "PreviewAny", "source"),
+            ("BytePlusSeedASR", 0, "BytePlusSeed", "prompt"),
+            ("BytePlusSeedASR", 0, "PreviewAny", "source"),
+            ("BytePlusSeedTTS", 0, "SaveAudioAdvanced", "audio"),
+            ("LoadAudio", 0, "BytePlusSeedASR", "audio"),
         ],
     },
     "Product Lookbook.json": {
         "nodes": {"BytePlusSeedream": 1, "LoadImage": 1, "MarkdownNote": 1, "SaveImage": 1},
         "edges": [
-            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
-            ('LoadImage', 0, 'BytePlusSeedream', 'model.images.image_1'),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("LoadImage", 0, "BytePlusSeedream", "model.images.image_1"),
         ],
     },
     "Sound Design.json": {
-        "nodes": {"BytePlusSeed": 1, "BytePlusSeedAudio": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 1, "SaveAudioAdvanced": 1},
+        "nodes": {
+            "BytePlusSeed": 1,
+            "BytePlusSeedAudio": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 1,
+            "PrimitiveStringMultiline": 1,
+            "SaveAudioAdvanced": 1,
+        },
         "edges": [
-            ('BytePlusSeed', 0, 'BytePlusSeedAudio', 'text_prompt'),
-            ('BytePlusSeed', 0, 'PreviewAny', 'source'),
-            ('BytePlusSeedAudio', 0, 'SaveAudioAdvanced', 'audio'),
-            ('PrimitiveStringMultiline', 0, 'BytePlusSeed', 'prompt'),
+            ("BytePlusSeed", 0, "BytePlusSeedAudio", "text_prompt"),
+            ("BytePlusSeed", 0, "PreviewAny", "source"),
+            ("BytePlusSeedAudio", 0, "SaveAudioAdvanced", "audio"),
+            ("PrimitiveStringMultiline", 0, "BytePlusSeed", "prompt"),
         ],
     },
     "Consistent Character Shots.json": {
-        "nodes": {"BytePlusCreateImageAsset": 1, "BytePlusSeedance2Reference": 3, "BytePlusSeedream": 1, "ConcatenateVideo": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 1, "RegexExtract": 1, "SaveVideo": 1},
+        "nodes": {
+            "BytePlusCreateImageAsset": 1,
+            "BytePlusSeedance2Reference": 3,
+            "BytePlusSeedream": 1,
+            "ConcatenateVideo": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 1,
+            "PrimitiveStringMultiline": 1,
+            "RegexExtract": 1,
+            "SaveVideo": 1,
+        },
         "edges": [
-            ('BytePlusCreateImageAsset', 2, 'BytePlusSeedance2Reference', 'model.reference_assets.asset_1'),
-            ('BytePlusCreateImageAsset', 2, 'PreviewAny', 'source'),
-            ('BytePlusSeedance2Reference', 0, 'ConcatenateVideo', 'videos.video0'),
-            ('BytePlusSeedance2Reference', 0, 'ConcatenateVideo', 'videos.video1'),
-            ('BytePlusSeedance2Reference', 0, 'ConcatenateVideo', 'videos.video2'),
-            ('BytePlusSeedream', 1, 'RegexExtract', 'string'),
-            ('ConcatenateVideo', 0, 'SaveVideo', 'video'),
-            ('PrimitiveStringMultiline', 0, 'BytePlusSeedream', 'prompt'),
-            ('RegexExtract', 0, 'BytePlusCreateImageAsset', 'image_url'),
+            ("BytePlusCreateImageAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"),
+            ("BytePlusCreateImageAsset", 2, "PreviewAny", "source"),
+            ("BytePlusSeedance2Reference", 0, "ConcatenateVideo", "videos.video0"),
+            ("BytePlusSeedance2Reference", 0, "ConcatenateVideo", "videos.video1"),
+            ("BytePlusSeedance2Reference", 0, "ConcatenateVideo", "videos.video2"),
+            ("BytePlusSeedream", 1, "RegexExtract", "string"),
+            ("ConcatenateVideo", 0, "SaveVideo", "video"),
+            ("PrimitiveStringMultiline", 0, "BytePlusSeedream", "prompt"),
+            ("RegexExtract", 0, "BytePlusCreateImageAsset", "image_url"),
         ],
     },
     "Seedance Task Query.json": {
-        "nodes": {"BytePlusVideoQueryTasks": 1, "MarkdownNote": 1, "PreviewAny": 3, "PrimitiveString": 1, "RegexExtract": 2},
+        "nodes": {
+            "BytePlusVideoQueryTasks": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 3,
+            "PrimitiveString": 1,
+            "RegexExtract": 2,
+        },
         "edges": [
-            ('BytePlusVideoQueryTasks', 0, 'RegexExtract', 'string'),
-            ('BytePlusVideoQueryTasks', 1, 'PreviewAny', 'source'),
-            ('PrimitiveString', 0, 'BytePlusVideoQueryTasks', 'task_ids'),
-            ('RegexExtract', 0, 'PreviewAny', 'source'),
+            ("BytePlusVideoQueryTasks", 0, "RegexExtract", "string"),
+            ("BytePlusVideoQueryTasks", 1, "PreviewAny", "source"),
+            ("PrimitiveString", 0, "BytePlusVideoQueryTasks", "task_ids"),
+            ("RegexExtract", 0, "PreviewAny", "source"),
         ],
     },
     "Video and Audio Assets.json": {
-        "nodes": {"BytePlusAssetLibrary": 1, "BytePlusCreateAudioAsset": 1, "BytePlusCreateVideoAsset": 1, "BytePlusSeedAudio": 1, "BytePlusSeedance2Reference": 1, "BytePlusSeedance2TextToVideo": 1, "MarkdownNote": 1, "PreviewAny": 3, "RegexExtract": 1, "SaveVideo": 1},
+        "nodes": {
+            "BytePlusAssetLibrary": 1,
+            "BytePlusCreateAudioAsset": 1,
+            "BytePlusCreateVideoAsset": 1,
+            "BytePlusSeedAudio": 1,
+            "BytePlusSeedance2Reference": 1,
+            "BytePlusSeedance2TextToVideo": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 3,
+            "RegexExtract": 1,
+            "SaveVideo": 1,
+        },
         "edges": [
-            ('BytePlusAssetLibrary', 0, 'PreviewAny', 'source'),
-            ('BytePlusCreateAudioAsset', 2, 'BytePlusSeedance2Reference', 'model.reference_assets.asset_2'),
-            ('BytePlusCreateAudioAsset', 3, 'PreviewAny', 'source'),
-            ('BytePlusCreateVideoAsset', 2, 'BytePlusSeedance2Reference', 'model.reference_assets.asset_1'),
-            ('BytePlusCreateVideoAsset', 3, 'PreviewAny', 'source'),
-            ('BytePlusSeedAudio', 4, 'BytePlusCreateAudioAsset', 'audio_url'),
-            ('BytePlusSeedance2Reference', 0, 'SaveVideo', 'video'),
-            ('BytePlusSeedance2TextToVideo', 3, 'RegexExtract', 'string'),
-            ('RegexExtract', 0, 'BytePlusCreateVideoAsset', 'video_url'),
+            ("BytePlusAssetLibrary", 0, "PreviewAny", "source"),
+            ("BytePlusCreateAudioAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_2"),
+            ("BytePlusCreateAudioAsset", 3, "PreviewAny", "source"),
+            ("BytePlusCreateVideoAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"),
+            ("BytePlusCreateVideoAsset", 3, "PreviewAny", "source"),
+            ("BytePlusSeedAudio", 4, "BytePlusCreateAudioAsset", "audio_url"),
+            ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
+            ("BytePlusSeedance2TextToVideo", 3, "RegexExtract", "string"),
+            ("RegexExtract", 0, "BytePlusCreateVideoAsset", "video_url"),
         ],
     },
     "Character Sheet.json": {
-        "nodes": {"BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 2, "SaveImage": 1, "StringFormat": 1},
+        "nodes": {
+            "BytePlusSeedream": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 1,
+            "PrimitiveStringMultiline": 2,
+            "SaveImage": 1,
+            "StringFormat": 1,
+        },
         "edges": [
-            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.a'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.b'),
-            ('StringFormat', 0, 'BytePlusSeedream', 'prompt'),
-            ('StringFormat', 0, 'PreviewAny', 'source'),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.a"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.b"),
+            ("StringFormat", 0, "BytePlusSeedream", "prompt"),
+            ("StringFormat", 0, "PreviewAny", "source"),
         ],
     },
     "Location Sheet.json": {
-        "nodes": {"BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 6, "SaveImage": 1, "StringFormat": 1},
+        "nodes": {
+            "BytePlusSeedream": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 1,
+            "PrimitiveStringMultiline": 6,
+            "SaveImage": 1,
+            "StringFormat": 1,
+        },
         "edges": [
-            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.a'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.b'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.c'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.d'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.e'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.f'),
-            ('StringFormat', 0, 'BytePlusSeedream', 'prompt'),
-            ('StringFormat', 0, 'PreviewAny', 'source'),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.a"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.b"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.c"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.d"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.e"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.f"),
+            ("StringFormat", 0, "BytePlusSeedream", "prompt"),
+            ("StringFormat", 0, "PreviewAny", "source"),
         ],
     },
     "Prop Sheet.json": {
-        "nodes": {"BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 5, "SaveImage": 1, "StringFormat": 1},
+        "nodes": {
+            "BytePlusSeedream": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 1,
+            "PrimitiveStringMultiline": 5,
+            "SaveImage": 1,
+            "StringFormat": 1,
+        },
         "edges": [
-            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.a'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.b'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.c'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.d'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.e'),
-            ('StringFormat', 0, 'BytePlusSeedream', 'prompt'),
-            ('StringFormat', 0, 'PreviewAny', 'source'),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.a"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.b"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.c"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.d"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.e"),
+            ("StringFormat", 0, "BytePlusSeedream", "prompt"),
+            ("StringFormat", 0, "PreviewAny", "source"),
         ],
     },
     "Character Sheet Cleanup.json": {
-        "nodes": {"BytePlusSeedream": 1, "LoadImage": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 1, "SaveImage": 1, "StringFormat": 1},
+        "nodes": {
+            "BytePlusSeedream": 1,
+            "LoadImage": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 1,
+            "PrimitiveStringMultiline": 1,
+            "SaveImage": 1,
+            "StringFormat": 1,
+        },
         "edges": [
-            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
-            ('LoadImage', 0, 'BytePlusSeedream', 'model.images.image_1'),
-            ('PrimitiveStringMultiline', 0, 'StringFormat', 'values.a'),
-            ('StringFormat', 0, 'BytePlusSeedream', 'prompt'),
-            ('StringFormat', 0, 'PreviewAny', 'source'),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("LoadImage", 0, "BytePlusSeedream", "model.images.image_1"),
+            ("PrimitiveStringMultiline", 0, "StringFormat", "values.a"),
+            ("StringFormat", 0, "BytePlusSeedream", "prompt"),
+            ("StringFormat", 0, "PreviewAny", "source"),
         ],
     },
     "Storyboard Grid.json": {
-        "nodes": {"BytePlusSeed": 1, "BytePlusSeedream": 1, "MarkdownNote": 1, "PreviewAny": 1, "PrimitiveStringMultiline": 1, "SaveImage": 1},
+        "nodes": {
+            "BytePlusSeed": 1,
+            "BytePlusSeedream": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 1,
+            "PrimitiveStringMultiline": 1,
+            "SaveImage": 1,
+        },
         "edges": [
-            ('BytePlusSeed', 0, 'BytePlusSeedream', 'prompt'),
-            ('BytePlusSeed', 0, 'PreviewAny', 'source'),
-            ('BytePlusSeedream', 0, 'SaveImage', 'images'),
-            ('PrimitiveStringMultiline', 0, 'BytePlusSeed', 'prompt'),
+            ("BytePlusSeed", 0, "BytePlusSeedream", "prompt"),
+            ("BytePlusSeed", 0, "PreviewAny", "source"),
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("PrimitiveStringMultiline", 0, "BytePlusSeed", "prompt"),
         ],
     },
 }
@@ -296,30 +429,54 @@ def load_models_config():
 
 
 class WorkflowTemplateTests(unittest.TestCase):
-
     # Models that no template shows (their nodes stay; see test_templates_show_current_models_only).
     LEGACY_MODEL_PREFIXES = (
-        "seedance-1-", "seedream-4-", "seed-tts-1.0", "seed-icl-1.0", "seed-asr-1.0",
+        "seedance-1-",
+        "seedream-4-",
+        "seed-tts-1.0",
+        "seed-icl-1.0",
+        "seed-asr-1.0",
     )
 
     # BytePlusSeedream / BytePlusSeedreamLayerSeparation (core-style): inputs per
     # selected model; widgets_values index of the model value.
     SEEDREAM_INPUTS_HEAD = [
-        "prompt", "model", "model.size_preset", "model.width", "model.height",
+        "prompt",
+        "model",
+        "model.size_preset",
+        "model.width",
+        "model.height",
     ]
     SEEDREAM_BATCH_INPUTS = SEEDREAM_INPUTS_HEAD + [
-        "model.max_images", "model.images.image_1", "model.fail_on_partial", "model.seed",
-        "model.watermark", "model.thinking", "model.generation_count",
+        "model.max_images",
+        "model.images.image_1",
+        "model.fail_on_partial",
+        "model.seed",
+        "model.watermark",
+        "model.thinking",
+        "model.generation_count",
     ]
     SEEDREAM_INPUT_ORDERS = {
-        "seedream 5.0 pro": SEEDREAM_INPUTS_HEAD + [
-            "model.images.image_1", "model.prompt_optimization", "model.seed",
-            "model.watermark", "model.thinking", "model.generation_count",
-            "model.output_format", "model.background", "model.reference_mask",
+        "seedream 5.0 pro": SEEDREAM_INPUTS_HEAD
+        + [
+            "model.images.image_1",
+            "model.prompt_optimization",
+            "model.seed",
+            "model.watermark",
+            "model.thinking",
+            "model.generation_count",
+            "model.output_format",
+            "model.background",
+            "model.reference_mask",
         ],
-        "seedream 5.0 flash": SEEDREAM_INPUTS_HEAD + [
-            "model.images.image_1", "model.seed", "model.watermark",
-            "model.generation_count", "model.output_format", "model.background",
+        "seedream 5.0 flash": SEEDREAM_INPUTS_HEAD
+        + [
+            "model.images.image_1",
+            "model.seed",
+            "model.watermark",
+            "model.generation_count",
+            "model.output_format",
+            "model.background",
             "model.reference_mask",
         ],
         "seedream 5.0 lite": SEEDREAM_BATCH_INPUTS,
@@ -328,14 +485,29 @@ class WorkflowTemplateTests(unittest.TestCase):
     }
     LAYER_SEPARATION_INPUT_ORDERS = {
         "seedream 5.0 pro": [
-            "model", "model.image", "model.prompt", "model.size", "model.seed",
-            "model.prompt_optimization", "model.watermark", "model.crop_layers",
-            "model.output_format", "model.save_layers", "model.filename_prefix",
+            "model",
+            "model.image",
+            "model.prompt",
+            "model.size",
+            "model.seed",
+            "model.prompt_optimization",
+            "model.watermark",
+            "model.crop_layers",
+            "model.output_format",
+            "model.save_layers",
+            "model.filename_prefix",
         ],
         "seedream 5.0 flash": [
-            "model", "model.image", "model.prompt", "model.size", "model.seed",
-            "model.watermark", "model.crop_layers", "model.output_format",
-            "model.save_layers", "model.filename_prefix",
+            "model",
+            "model.image",
+            "model.prompt",
+            "model.size",
+            "model.seed",
+            "model.watermark",
+            "model.crop_layers",
+            "model.output_format",
+            "model.save_layers",
+            "model.filename_prefix",
         ],
     }
     MODEL_KEYED_INPUT_ORDERS = {
@@ -350,9 +522,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         "BytePlusSeedance2FirstLastFrame",
         "BytePlusSeedance2Reference",
     }
-    AUTOGROW_SOCKET_PATTERN = (
-        r"^model\.reference_(images\.image|videos\.video|audios\.audio|assets\.asset)_\d+$"
-    )
+    AUTOGROW_SOCKET_PATTERN = r"^model\.reference_(images\.image|videos\.video|audios\.audio|assets\.asset)_\d+$"
 
     @classmethod
     def core_style_seedance2_inputs(cls, node_type, label):
@@ -361,11 +531,16 @@ class WorkflowTemplateTests(unittest.TestCase):
         if node_type == "BytePlusSeedance2FirstLastFrame":
             if is_25:
                 text = [name for name in text if name != "model.ratio"] + ["model.output_format"]
-            return (
-                ["model", *text, "seed", "watermark", "first_frame", "last_frame",
-                 "first_frame_asset_id", "last_frame_asset_id"]
-                + cls.CORE_STYLE_EXTRAS
-            )
+            return [
+                "model",
+                *text,
+                "seed",
+                "watermark",
+                "first_frame",
+                "last_frame",
+                "first_frame_asset_id",
+                "last_frame_asset_id",
+            ] + cls.CORE_STYLE_EXTRAS
         if node_type == "BytePlusSeedance2Reference":
             if is_25:
                 text = text + ["model.task_type", "model.output_format"]
@@ -377,77 +552,178 @@ class WorkflowTemplateTests(unittest.TestCase):
 
     CURRENT_INPUT_ORDERS = {
         "BytePlusHyper3D": [
-            "images", "mesh_mode", "material", "file_format", "prompt", "seed", "subdivision_level",
-            "quality_override", "hd_texture", "high_pack", "ta_pose", "use_original_alpha",
-            "bbox_width", "bbox_height", "bbox_length",
+            "images",
+            "mesh_mode",
+            "material",
+            "file_format",
+            "prompt",
+            "seed",
+            "subdivision_level",
+            "quality_override",
+            "hd_texture",
+            "high_pack",
+            "ta_pose",
+            "use_original_alpha",
+            "bbox_width",
+            "bbox_height",
+            "bbox_length",
         ],
         "BytePlusHitem3D": ["images", "resolution", "request_type", "file_format", "face", "views"],
         # As the frontend saves it: sockets, then the DynamicCombo children before their parent.
         "BytePlusVideoEnhance": [
-            "video", "tool_version.scene", "tool_version.enhance_style",
-            "tool_version", "resolution", "fps", "bitrate_level", "video_url", "bitrate",
-            "comparison", "compare_time",
+            "video",
+            "tool_version.scene",
+            "tool_version.enhance_style",
+            "tool_version",
+            "resolution",
+            "fps",
+            "bitrate_level",
+            "video_url",
+            "bitrate",
+            "comparison",
+            "compare_time",
         ],
         "BytePlusVideoSmoothness": [
-            "video", "periodic_stutter.align_source_fps",
-            "periodic_stutter.insert_frame_indices", "periodic_stutter", "duplicate_frames",
-            "video_url", "comparison",
+            "video",
+            "periodic_stutter.align_source_fps",
+            "periodic_stutter.insert_frame_indices",
+            "periodic_stutter",
+            "duplicate_frames",
+            "video_url",
+            "comparison",
         ],
         "BytePlusImageEnhance": [
-            "image", "tool_version", "output_size.multiple", "output_size", "image_url",
+            "image",
+            "tool_version",
+            "output_size.multiple",
+            "output_size",
+            "image_url",
         ],
         "BytePlusSeedAudio": [
-            "text_prompt", "reference_mode", "reference_mode.preset_voice",
-            "sample_rate", "speech_rate", "loudness_rate", "pitch_rate", "seed", "model",
-            "audio_format", "enable_subtitle", "aigc_watermark", "aigc_metadata",
-            "content_producer", "produce_id", "content_propagator", "propagate_id", "generation_count",
+            "text_prompt",
+            "reference_mode",
+            "reference_mode.preset_voice",
+            "sample_rate",
+            "speech_rate",
+            "loudness_rate",
+            "pitch_rate",
+            "seed",
+            "model",
+            "audio_format",
+            "enable_subtitle",
+            "aigc_watermark",
+            "aigc_metadata",
+            "content_producer",
+            "produce_id",
+            "content_propagator",
+            "propagate_id",
+            "generation_count",
         ],
         "BytePlusSeed": [
-            "prompt", "model", "model.images.image_1", "model.videos.video_1",
-            "model.temperature", "seed", "system_prompt", "detail", "fps", "reasoning_mode",
-            "reasoning_effort", "turns", "stream", "file_expire_seconds",
+            "prompt",
+            "model",
+            "model.images.image_1",
+            "model.videos.video_1",
+            "model.temperature",
+            "seed",
+            "system_prompt",
+            "detail",
+            "fps",
+            "reasoning_mode",
+            "reasoning_effort",
+            "turns",
+            "stream",
+            "file_expire_seconds",
         ],
         "BytePlusSeedTTS": [
-            "model", "text", "voice", "custom_speaker_id", "context_text",
-            "emotion", "emotion_scale", "speech_rate", "loudness_rate", "pitch",
-            "sample_rate", "explicit_language", "silence_duration", "filter_markdown",
-            "enable_subtitle", "detect_language", "context_language", "read_emoji",
-            "read_latex", "read_parentheses", "unsupported_char_ratio", "use_cache",
-            "tone_fidelity", "seed",
+            "model",
+            "text",
+            "voice",
+            "custom_speaker_id",
+            "context_text",
+            "emotion",
+            "emotion_scale",
+            "speech_rate",
+            "loudness_rate",
+            "pitch",
+            "sample_rate",
+            "explicit_language",
+            "silence_duration",
+            "filter_markdown",
+            "enable_subtitle",
+            "detect_language",
+            "context_language",
+            "read_emoji",
+            "read_latex",
+            "read_parentheses",
+            "unsupported_char_ratio",
+            "use_cache",
+            "tone_fidelity",
+            "seed",
         ],
         "BytePlusSeedASR": [
-            "model", "audio_url", "language", "enable_punc", "enable_itn",
-            "enable_ddc", "enable_speaker_info", "hotwords", "context_text",
-            "context_image_url", "enable_auto_lang", "enable_lid", "enable_channel_split",
-            "vad_segment", "end_window_size", "output_zh_variant",
-            "filter_system_sensitive_words", "remove_words", "mask_words",
-            "wrap_sensitive_words", "audio_format", "audio", "context_image",
+            "model",
+            "audio_url",
+            "language",
+            "enable_punc",
+            "enable_itn",
+            "enable_ddc",
+            "enable_speaker_info",
+            "hotwords",
+            "context_text",
+            "context_image_url",
+            "enable_auto_lang",
+            "enable_lid",
+            "enable_channel_split",
+            "vad_segment",
+            "end_window_size",
+            "output_zh_variant",
+            "filter_system_sensitive_words",
+            "remove_words",
+            "mask_words",
+            "wrap_sensitive_words",
+            "audio_format",
+            "audio",
+            "context_image",
         ],
         "BytePlusSeedVoiceClone": [
-            "speaker_id", "language", "reference_text", "demo_text",
-            "disable_volume_normalization", "audio",
+            "speaker_id",
+            "language",
+            "reference_text",
+            "demo_text",
+            "disable_volume_normalization",
+            "audio",
         ],
         "BytePlusCreateImageAsset": [
-            "image", "group_id", "image_url", "group_name", "asset_name", "project_name", "wait_until_active",
+            "image",
+            "group_id",
+            "image_url",
+            "group_name",
+            "asset_name",
+            "project_name",
+            "wait_until_active",
         ],
         "BytePlusAssetLibrary": ["group_type", "group_id", "status", "name", "max_results", "project_name"],
         "BytePlusSeedanceDraftToFinal": [
-            "draft_task_id", "watermark", "generation_count", "non_blocking",
+            "draft_task_id",
+            "watermark",
+            "generation_count",
+            "non_blocking",
         ],
     }
 
     def test_template_set_is_current_and_has_no_third_party_nodes(self):
-        actual = {
-            name
-            for name in os.listdir(WORKFLOW_DIR)
-            if name.lower().endswith(".json")
-        }
+        actual = {name for name in os.listdir(WORKFLOW_DIR) if name.lower().endswith(".json")}
         self.assertEqual(actual, EXPECTED_WORKFLOWS)
 
         forbidden_types = {
-            "Fast Groups Bypasser (rgthree)", "ShowText|pysssss", "Note",
+            "Fast Groups Bypasser (rgthree)",
+            "ShowText|pysssss",
+            "Note",
             # Keys come from Settings > BytePlus; there are no client nodes.
-            "BytePlusAPIClient", "BytePlusSpeechClient", "BytePlusMediaKitClient",
+            "BytePlusAPIClient",
+            "BytePlusSpeechClient",
+            "BytePlusMediaKitClient",
         }
         for name in sorted(actual):
             with self.subTest(workflow=name):
@@ -482,9 +758,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                         self.assertIn(link_type, target["inputs"][target_slot]["type"].split(","))
                     self.assertIn(link_id, origin["outputs"][origin_slot]["links"])
 
-                self.assertGreaterEqual(
-                    workflow["last_link_id"], max(link_ids, default=0)
-                )
+                self.assertGreaterEqual(workflow["last_link_id"], max(link_ids, default=0))
                 for node in workflow["nodes"]:
                     if node["type"].startswith("BytePlus"):
                         self.assertEqual(node["properties"]["cnr_id"], "ComfyUI-BytePlus-ModelArk")
@@ -503,9 +777,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 inputs = node["inputs"]
                 model_input = next(item for item in inputs if item["name"] == combo)
                 self.assertEqual(model_input["type"], "COMFY_DYNAMICCOMBO_V3")
-                self.assertTrue(
-                    any(item["name"].startswith(combo + ".") for item in inputs)
-                )
+                self.assertTrue(any(item["name"].startswith(combo + ".") for item in inputs))
                 self.assertFalse(any(item["name"] == "prompt" for item in inputs))
 
     def test_plugin_input_order_matches_current_schema(self):
@@ -518,9 +790,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                     index, orders = self.MODEL_KEYED_INPUT_ORDERS[node["type"]]
                     expected = orders[node["widgets_values"][index]]
                 elif node["type"] in self.CORE_STYLE_SEEDANCE2_NODES:
-                    expected = self.core_style_seedance2_inputs(
-                        node["type"], node["widgets_values"][0]
-                    )
+                    expected = self.core_style_seedance2_inputs(node["type"], node["widgets_values"][0])
                     sockets = [n for n in names if n.startswith("model.reference_")]
                     for socket in sockets:
                         self.assertRegex(socket, self.AUTOGROW_SOCKET_PATTERN)
@@ -533,27 +803,20 @@ class WorkflowTemplateTests(unittest.TestCase):
                 if name in NEW_TEMPLATE_FILES | FRONTEND_SAVED_IMAGE_TEMPLATES:
                     # Saved by frontend 1.53.6, which lists only the sockets and the linked
                     # widget inputs (sockets first): every saved name must belong to the schema.
-                    names = [
-                        n for n in names
-                        if not re.search(r"_(?!1$)\d+$", n) and not n.startswith("model.audios.")
-                    ]
+                    names = [n for n in names if not re.search(r"_(?!1$)\d+$", n) and not n.startswith("model.audios.")]
                     self.assertLessEqual(set(names), set(expected), msg=f"{name}: {node['type']}")
                     continue
                 self.assertEqual(names, expected, msg=f"{name}: {node['type']}")
         self.assertEqual(
             found_types,
-            set(self.CURRENT_INPUT_ORDERS)
-            | set(self.MODEL_KEYED_INPUT_ORDERS)
-            | self.CORE_STYLE_SEEDANCE2_NODES,
+            set(self.CURRENT_INPUT_ORDERS) | set(self.MODEL_KEYED_INPUT_ORDERS) | self.CORE_STYLE_SEEDANCE2_NODES,
         )
 
     def test_core_style_seedream_templates(self):
-        seedream = next(
-            node for node in load_workflow("Seedream.json")["nodes"]
-            if node["type"] == "BytePlusSeedream"
-        )
+        seedream = next(node for node in load_workflow("Seedream.json")["nodes"] if node["type"] == "BytePlusSeedream")
         layers = next(
-            node for node in load_workflow("Seedream Layer Separation.json")["nodes"]
+            node
+            for node in load_workflow("Seedream Layer Separation.json")["nodes"]
             if node["type"] == "BytePlusSeedreamLayerSeparation"
         )
         for node in (seedream, layers):
@@ -570,14 +833,23 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertEqual(values[5], "standard")  # prompt_optimization
         self.assertEqual(values[6:8], [42, "randomize"])  # seed + control value
         self.assertEqual(values[8:], [False, True, 1, "jpeg", "opaque"])
-        self.assertEqual(
-            [output["name"] for output in seedream["outputs"]], ["IMAGE", "response", "mask"]
-        )
+        self.assertEqual([output["name"] for output in seedream["outputs"]], ["IMAGE", "response", "mask"])
 
         self.assertEqual(
             layers["widgets_values"],
-            ["seedream 5.0 pro", "", "auto", 42, "randomize", "standard", False, False,
-             "png", False, "BytePlus/Layers/Seedream"],
+            [
+                "seedream 5.0 pro",
+                "",
+                "auto",
+                42,
+                "randomize",
+                "standard",
+                False,
+                False,
+                "png",
+                False,
+                "BytePlus/Layers/Seedream",
+            ],
         )
         self.assertEqual(
             [output["name"] for output in layers["outputs"]],
@@ -649,15 +921,12 @@ class WorkflowTemplateTests(unittest.TestCase):
         nodes = {node["id"]: node for node in workflow["nodes"]}
         types = {node["type"] for node in nodes.values()}
         self.assertTrue(
-            {"BytePlusSeedanceDraftToFinal", "SaveVideo",
-             "LoadImage", "LoadVideo", "LoadAudio"}
+            {"BytePlusSeedanceDraftToFinal", "SaveVideo", "LoadImage", "LoadVideo", "LoadAudio"}
             | self.CORE_STYLE_SEEDANCE2_NODES
             <= types
         )
         labels = {
-            node["widgets_values"][0]
-            for node in nodes.values()
-            if node["type"] in self.CORE_STYLE_SEEDANCE2_NODES
+            node["widgets_values"][0] for node in nodes.values() if node["type"] in self.CORE_STYLE_SEEDANCE2_NODES
         }
         self.assertTrue(any(label.startswith("Seedance 2.0") for label in labels))
         self.assertTrue(any(label.startswith("Seedance 2.5") for label in labels))
@@ -682,19 +951,14 @@ class WorkflowTemplateTests(unittest.TestCase):
         for node in nodes.values():
             if node["type"] in self.CORE_STYLE_SEEDANCE2_NODES:
                 values = node["widgets_values"]
-                control = next(
-                    i for i, v in enumerate(values)
-                    if v in ("fixed", "increment", "decrement", "randomize")
-                )
+                control = next(i for i, v in enumerate(values) if v in ("fixed", "increment", "decrement", "randomize"))
                 self.assertIsInstance(values[control - 1], int)
 
     def test_updates_template_uses_core_style_nodes(self):
         updates = load_workflow("2.5 Model Updates.json")
         nodes = {node["type"]: node for node in updates["nodes"]}
         # model, prompt, resolution, ratio, duration, generate_audio
-        self.assertEqual(
-            nodes["BytePlusSeedance2TextToVideo"]["widgets_values"][0:6:2], ["Seedance 2.5", "720p", 30]
-        )
+        self.assertEqual(nodes["BytePlusSeedance2TextToVideo"]["widgets_values"][0:6:2], ["Seedance 2.5", "720p", 30])
         self.assertEqual(nodes["BytePlusSeedream"]["widgets_values"][1], "seedream 5.0 pro")
         self.assertEqual(nodes["BytePlusSeed"]["widgets_values"][1], "Seed 2.1 Turbo")
 
@@ -721,7 +985,9 @@ class WorkflowTemplateTests(unittest.TestCase):
         workflow = load_workflow("vCube Video Enhance.json")
         nodes = {node["id"]: node for node in workflow["nodes"]}
         enhance = next(node for node in nodes.values() if node["type"] == "BytePlusVideoEnhance")
-        self.assertEqual(enhance["widgets_values"], ["standard", "aigc", "hd", "1080p", "source", "medium", "", 0, True, -1])
+        self.assertEqual(
+            enhance["widgets_values"], ["standard", "aigc", "hd", "1080p", "source", "medium", "", 0, True, -1]
+        )
         # Enhanced video and comparison to Save Video; the frame pair to ComfyUI's Compare Images.
         targets = {(link[2], nodes[link[3]]["type"]) for link in workflow["links"] if link[1] == enhance["id"]}
         self.assertEqual(targets, {(0, "SaveVideo"), (1, "SaveVideo"), (2, "ImageCompare"), (3, "ImageCompare")})
@@ -757,36 +1023,61 @@ class WorkflowTemplateTests(unittest.TestCase):
         for name, count in (("Image Edit.json", 1), ("Image Variations.json", 3)):
             with self.subTest(workflow=name):
                 workflow = load_workflow(name)
-                self.assertEqual(self.edges(workflow), {
-                    ("LoadImage", 0, "BytePlusSeedream", "model.images.image_1"),
-                    ("BytePlusSeedream", 0, "SaveImage", "images"),
-                })
+                self.assertEqual(
+                    self.edges(workflow),
+                    {
+                        ("LoadImage", 0, "BytePlusSeedream", "model.images.image_1"),
+                        ("BytePlusSeedream", 0, "SaveImage", "images"),
+                    },
+                )
                 generation = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeedream")
-                self.assertEqual(generation["widgets_values"][1:], [
-                    "seedream 5.0 flash", "(1K) 1024x1024 (1:1)", 1024, 1024,
-                    42, "fixed", False, count, "png", "opaque", "fixed",
-                ])
+                self.assertEqual(
+                    generation["widgets_values"][1:],
+                    [
+                        "seedream 5.0 flash",
+                        "(1K) 1024x1024 (1:1)",
+                        1024,
+                        1024,
+                        42,
+                        "fixed",
+                        False,
+                        count,
+                        "png",
+                        "opaque",
+                        "fixed",
+                    ],
+                )
                 self.assertEqual(generation["mode"], 0)
                 self.assertTrue(generation["widgets_values"][0].strip())
                 self.assertEqual(generation["widgets_values_named"]["model"], "seedream 5.0 flash")
                 self.assertEqual(generation["widgets_values_named"]["model.generation_count"], count)
                 source = next(node for node in workflow["nodes"] if node["type"] == "LoadImage")
                 self.assertEqual(source["widgets_values_named"]["image"], source["widgets_values"][0])
-                self.assertEqual([item["name"] for item in generation["inputs"]], [
-                    "model.images.image_1", "model.images.image_2", "model.reference_mask",
-                ])
+                self.assertEqual(
+                    [item["name"] for item in generation["inputs"]],
+                    [
+                        "model.images.image_1",
+                        "model.images.image_2",
+                        "model.reference_mask",
+                    ],
+                )
                 save = next(node for node in workflow["nodes"] if node["type"] == "SaveImage")
                 self.assertEqual(save["mode"], 0)
-                self.assertEqual(save["widgets_values"], ["BytePlus/Image/" + name.removesuffix(".json").replace(" ", "")])
+                self.assertEqual(
+                    save["widgets_values"], ["BytePlus/Image/" + name.removesuffix(".json").replace(" ", "")]
+                )
 
     def test_text_to_image_to_video_template(self):
         workflow = load_workflow("Text to Image to Video.json")
         # Seedream's image is saved and is the first frame of the Seedance clip.
-        self.assertEqual(self.edges(workflow), {
-            ("BytePlusSeedream", 0, "SaveImage", "images"),
-            ("BytePlusSeedream", 0, "BytePlusSeedance2FirstLastFrame", "first_frame"),
-            ("BytePlusSeedance2FirstLastFrame", 0, "SaveVideo", "video"),
-        })
+        self.assertEqual(
+            self.edges(workflow),
+            {
+                ("BytePlusSeedream", 0, "SaveImage", "images"),
+                ("BytePlusSeedream", 0, "BytePlusSeedance2FirstLastFrame", "first_frame"),
+                ("BytePlusSeedance2FirstLastFrame", 0, "SaveVideo", "video"),
+            },
+        )
 
     def test_video_extension_template(self):
         workflow = load_workflow("Seedance Video Extension.json")
@@ -817,8 +1108,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         # An extension holds only the new seconds, so all three videos are joined, in order.
         concat = next(n for n in nodes.values() if n["type"] == "ConcatenateVideo")
         joined = {
-            nodes[t]["inputs"][ts]["name"]: o
-            for _id, o, _slot, t, ts, _type in workflow["links"] if t == concat["id"]
+            nodes[t]["inputs"][ts]["name"]: o for _id, o, _slot, t, ts, _type in workflow["links"] if t == concat["id"]
         }
         self.assertEqual(
             joined, {"videos.video0": clip1["id"], "videos.video1": first["id"], "videos.video2": second["id"]}
@@ -828,11 +1118,14 @@ class WorkflowTemplateTests(unittest.TestCase):
     def test_seed_prompt_writer_template(self):
         workflow = load_workflow("Seed Prompt Writer.json")
         # The LLM text is Seedream's prompt (its widget is replaced by the link) and is shown.
-        self.assertEqual(self.edges(workflow), {
-            ("BytePlusSeed", 0, "PreviewAny", "source"),
-            ("BytePlusSeed", 0, "BytePlusSeedream", "prompt"),
-            ("BytePlusSeedream", 0, "SaveImage", "images"),
-        })
+        self.assertEqual(
+            self.edges(workflow),
+            {
+                ("BytePlusSeed", 0, "PreviewAny", "source"),
+                ("BytePlusSeed", 0, "BytePlusSeedream", "prompt"),
+                ("BytePlusSeedream", 0, "SaveImage", "images"),
+            },
+        )
 
     def test_generate_and_enhance_template(self):
         workflow = load_workflow("Generate and Enhance.json")
@@ -853,12 +1146,15 @@ class WorkflowTemplateTests(unittest.TestCase):
     def test_virtual_portrait_existing_asset_template(self):
         workflow = load_workflow("Virtual Portrait - Existing Asset.json")
         # Option A: a pasted asset ID; option B: Asset Library looks it up by name (one result).
-        self.assertEqual(self.edges(workflow), {
-            ("PrimitiveString", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
-            ("BytePlusAssetLibrary", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
-            ("BytePlusAssetLibrary", 1, "PreviewAny", "source"),
-            ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
-        })
+        self.assertEqual(
+            self.edges(workflow),
+            {
+                ("PrimitiveString", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
+                ("BytePlusAssetLibrary", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
+                ("BytePlusAssetLibrary", 1, "PreviewAny", "source"),
+                ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
+            },
+        )
         nodes = {node["type"]: node for node in workflow["nodes"]}
         library = nodes["BytePlusAssetLibrary"]
         # group_type, group_id, status, name, max_results: an asset_N slot takes one asset.
@@ -867,9 +1163,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         option_b = [node for node in workflow["nodes"] if node["pos"][1] >= 740]
         self.assertEqual(len(option_b), 4)
         self.assertEqual({node["mode"] for node in option_b}, {4})
-        self.assertEqual(
-            {node["mode"] for node in workflow["nodes"] if node["pos"][1] < 740}, {0}
-        )
+        self.assertEqual({node["mode"] for node in workflow["nodes"] if node["pos"][1] < 740}, {0})
         for node in workflow["nodes"]:
             if node["type"] == "BytePlusSeedance2Reference":
                 self.assertIn("asset1", node["widgets_values"][1])
@@ -877,12 +1171,15 @@ class WorkflowTemplateTests(unittest.TestCase):
     def test_virtual_portrait_new_asset_template(self):
         workflow = load_workflow("Virtual Portrait - New Asset.json")
         # The image becomes a virtual portrait asset, and its ID is the Seedance reference.
-        self.assertEqual(self.edges(workflow), {
-            ("LoadImage", 0, "BytePlusCreateImageAsset", "image"),
-            ("BytePlusCreateImageAsset", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
-            ("BytePlusCreateImageAsset", 3, "PreviewAny", "source"),
-            ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
-        })
+        self.assertEqual(
+            self.edges(workflow),
+            {
+                ("LoadImage", 0, "BytePlusCreateImageAsset", "image"),
+                ("BytePlusCreateImageAsset", 0, "BytePlusSeedance2Reference", self.ASSET_SLOT),
+                ("BytePlusCreateImageAsset", 3, "PreviewAny", "source"),
+                ("BytePlusSeedance2Reference", 0, "SaveVideo", "video"),
+            },
+        )
         asset = next(n for n in workflow["nodes"] if n["type"] == "BytePlusCreateImageAsset")
         # group_id empty -> the "ComfyUI Virtual Portraits" group is found or created; wait until Active.
         self.assertEqual(asset["widgets_values"], ["", "", "ComfyUI Virtual Portraits", "My portrait", "default", True])
@@ -906,8 +1203,17 @@ class WorkflowTemplateTests(unittest.TestCase):
 
     # Nodes ComfyUI runs on their own; every other node runs only when one of these uses its output.
     OUTPUT_NODE_TYPES = {
-        "SaveImage", "PreviewImage", "SaveVideo", "PreviewAny", "PreviewAudio", "SaveAudio",
-        "ImageCompare", "SaveAudioAdvanced", "Save3DAdvanced", "BytePlusVideoQueryTasks", "BytePlusAssetLibrary",
+        "SaveImage",
+        "PreviewImage",
+        "SaveVideo",
+        "PreviewAny",
+        "PreviewAudio",
+        "SaveAudio",
+        "ImageCompare",
+        "SaveAudioAdvanced",
+        "Save3DAdvanced",
+        "BytePlusVideoQueryTasks",
+        "BytePlusAssetLibrary",
     }
 
     def test_every_node_leads_to_an_output_node(self):
@@ -920,7 +1226,9 @@ class WorkflowTemplateTests(unittest.TestCase):
             for _link_id, origin, _slot, target, _target_slot, _type in workflow["links"]:
                 consumers.setdefault(origin, set()).add(target)
             runs = {node_id for node_id, node_type in types.items() if node_type in self.OUTPUT_NODE_TYPES}
-            runs |= {node_id for node_id, node_type in types.items() if node_type == "MarkdownNote"}  # documentation only
+            runs |= {
+                node_id for node_id, node_type in types.items() if node_type == "MarkdownNote"
+            }  # documentation only
             grew = True
             while grew:
                 grew = False
@@ -955,9 +1263,22 @@ class WorkflowTemplateTests(unittest.TestCase):
     # ---- showcase and coverage templates -------------------------------------------------
 
     ALLOWED_CORE_TYPES = {
-        "LoadImage", "LoadAudio", "PrimitiveString", "PrimitiveStringMultiline", "RegexExtract",
-        "PreviewAny", "GetVideoComponents", "CreateVideo", "SaveVideo", "SaveImage",
-        "SaveAudioAdvanced", "AudioConcat", "ConcatenateVideo", "MarkdownNote", "StringFormat", "Save3DAdvanced",
+        "LoadImage",
+        "LoadAudio",
+        "PrimitiveString",
+        "PrimitiveStringMultiline",
+        "RegexExtract",
+        "PreviewAny",
+        "GetVideoComponents",
+        "CreateVideo",
+        "SaveVideo",
+        "SaveImage",
+        "SaveAudioAdvanced",
+        "AudioConcat",
+        "ConcatenateVideo",
+        "MarkdownNote",
+        "StringFormat",
+        "Save3DAdvanced",
     }
 
     SHEET_TEMPLATES = {
@@ -976,11 +1297,20 @@ class WorkflowTemplateTests(unittest.TestCase):
         },
         "Prop Sheet.json": {
             "size": "(2K) 2048x2048 (1:1)",
-            "contains": ["Prop reference of one", "pure white seamless background", "no hands, no people, no other objects"],
+            "contains": [
+                "Prop reference of one",
+                "pure white seamless background",
+                "no hands, no people, no other objects",
+            ],
         },
         "Character Sheet Cleanup.json": {
             "size": "(2K) 2848x1600 (16:9)",
-            "contains": ["<bbox>", "Deletion, positioned with", "so the figure is headless", "the close-up face panel unchanged"],
+            "contains": [
+                "<bbox>",
+                "Deletion, positioned with",
+                "so the figure is headless",
+                "the close-up face panel unchanged",
+            ],
         },
     }
 
@@ -1014,7 +1344,10 @@ class WorkflowTemplateTests(unittest.TestCase):
                 for text in values.values():
                     self.assertTrue(text.strip())
                 seedream = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeedream")
-                self.assertEqual(seedream["widgets_values"][1:5], ["seedream 5.0 pro", expected["size"], *map(int, expected["size"].split(" ")[1].split("x"))])
+                self.assertEqual(
+                    seedream["widgets_values"][1:5],
+                    ["seedream 5.0 pro", expected["size"], *map(int, expected["size"].split(" ")[1].split("x"))],
+                )
                 self.assertIn(("StringFormat", 0, "BytePlusSeedream", "prompt"), self.edges(workflow))
 
     def test_character_sheet_keeps_held_props_off_the_sheet(self):
@@ -1038,7 +1371,13 @@ class WorkflowTemplateTests(unittest.TestCase):
         workflow = load_workflow("Storyboard Grid.json")
         llm = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeed")
         system_prompt = llm["widgets_values"][5]
-        for phrase in ("single-image storyboard grid", "thin divider lines", "panel number", "pencil sketch", "one frozen, decisive moment"):
+        for phrase in (
+            "single-image storyboard grid",
+            "thin divider lines",
+            "panel number",
+            "pencil sketch",
+            "one frozen, decisive moment",
+        ):
             self.assertIn(phrase, system_prompt)
         self.assertEqual(llm["widgets_values"][1], "Seed 2.1 Turbo")
         beats = next(node for node in workflow["nodes"] if node["type"] == "PrimitiveStringMultiline")
@@ -1094,9 +1433,9 @@ class WorkflowTemplateTests(unittest.TestCase):
         while i < len(data):
             assert data[i] == 0xFF
             marker = data[i + 1]
-            length = int.from_bytes(data[i + 2:i + 4], "big")
+            length = int.from_bytes(data[i + 2 : i + 4], "big")
             if marker in (0xC0, 0xC1, 0xC2):
-                return int.from_bytes(data[i + 7:i + 9], "big"), int.from_bytes(data[i + 5:i + 7], "big")
+                return int.from_bytes(data[i + 7 : i + 9], "big"), int.from_bytes(data[i + 5 : i + 7], "big")
             i += 2 + length
         raise AssertionError("no SOF marker")
 
@@ -1185,11 +1524,17 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertEqual(self.node_values(query, "PrimitiveString"), [[""]])  # empty ID lists the latest tasks
         assets = load_workflow("Video and Audio Assets.json")
         edges = self.edges(assets)
-        self.assertIn(("BytePlusCreateVideoAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"), edges)
-        self.assertIn(("BytePlusCreateAudioAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_2"), edges)
+        self.assertIn(
+            ("BytePlusCreateVideoAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_1"), edges
+        )
+        self.assertIn(
+            ("BytePlusCreateAudioAsset", 2, "BytePlusSeedance2Reference", "model.reference_assets.asset_2"), edges
+        )
         self.assertIn(("BytePlusSeedAudio", 4, "BytePlusCreateAudioAsset", "audio_url"), edges)
         (reference,) = self.node_values(assets, "BytePlusSeedance2Reference")
-        self.assertIn("reference", reference)  # task_type is explicit: with a video asset 'auto' lets the API infer edit/extend
+        self.assertIn(
+            "reference", reference
+        )  # task_type is explicit: with a video asset 'auto' lets the API infer edit/extend
 
 
 if __name__ == "__main__":

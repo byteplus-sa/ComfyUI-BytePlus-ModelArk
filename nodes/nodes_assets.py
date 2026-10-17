@@ -10,6 +10,7 @@ reference_assets on the Seedance 2.5 nodes (bare IDs work there).
 Nodes: BytePlusCreateImageAsset / VideoAsset / AudioAsset (shaped like core's
 ByteDance Create Image / Video Asset) and BytePlusAssetLibrary (ListAssets).
 """
+
 import ast
 import asyncio
 import contextlib
@@ -276,9 +277,7 @@ async def wait_for_asset(library, asset_id, project_name, timeout=ASSET_ACTIVE_T
     while True:
         comfy.model_management.throw_exception_if_processing_interrupted()
         try:
-            asset = await asyncio.to_thread(
-                library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name}
-            )
+            asset = await asyncio.to_thread(library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name})
         except AssetApiError as e:
             # Throttling, a network error or a 5xx: keep waiting, the asset is still processing.
             status_errors += 1
@@ -320,9 +319,7 @@ async def reuse_cached_asset(library, cache_key, project_name, wait_until_active
     if not cached_id:
         return None
     try:
-        asset = await asyncio.to_thread(
-            library.call, "GetAsset", {"Id": cached_id, "ProjectName": project_name}
-        )
+        asset = await asyncio.to_thread(library.call, "GetAsset", {"Id": cached_id, "ProjectName": project_name})
     except BytePlusException:
         # Deleted in the console, or not visible to these credentials: create it again.
         asset = {}
@@ -551,8 +548,7 @@ def check_asset_source(media, url, media_name, url_input, expected_kind):
 def validate_asset_image(image):
     width, height = int(image.shape[-2]), int(image.shape[-3])
     if not (
-        ASSET_IMAGE_MIN_EDGE <= width <= ASSET_IMAGE_MAX_EDGE
-        and ASSET_IMAGE_MIN_EDGE <= height <= ASSET_IMAGE_MAX_EDGE
+        ASSET_IMAGE_MIN_EDGE <= width <= ASSET_IMAGE_MAX_EDGE and ASSET_IMAGE_MIN_EDGE <= height <= ASSET_IMAGE_MAX_EDGE
     ):
         raise BytePlusException(
             get_text(
@@ -583,8 +579,7 @@ def validate_asset_video(video):
         )
     width, height = video.get_dimensions()
     if not (
-        ASSET_IMAGE_MIN_EDGE <= width <= ASSET_IMAGE_MAX_EDGE
-        and ASSET_IMAGE_MIN_EDGE <= height <= ASSET_IMAGE_MAX_EDGE
+        ASSET_IMAGE_MIN_EDGE <= width <= ASSET_IMAGE_MAX_EDGE and ASSET_IMAGE_MIN_EDGE <= height <= ASSET_IMAGE_MAX_EDGE
     ):
         raise BytePlusException(
             get_text(
@@ -752,9 +747,7 @@ async def register_core_asset(
     project_name = (project_name or "").strip() or "default"
     group_id = (group_id or "").strip()
     if not group_id:
-        group_id = await find_or_create_group(
-            library, (group_name or "").strip() or DEFAULT_GROUP_NAME, project_name
-        )
+        group_id = await find_or_create_group(library, (group_name or "").strip() or DEFAULT_GROUP_NAME, project_name)
     cache_key = None
     if upload is not None and digest:
         cache_key = _asset_cache_key(digest, library, project_name, group_id, asset_name)

@@ -5,6 +5,7 @@ Needs a ComfyUI checkout and a Python env with torch, PyAV and the BytePlus SDK:
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_core_style_seedance2
 The Ark SDK and the asset library are faked; nothing reaches the network.
 """
+
 import asyncio
 import base64
 import importlib
@@ -22,9 +23,7 @@ from unittest import mock
 
 COMFY_ROOT = os.environ.get("COMFYUI_ROOT")
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-requires_comfyui = unittest.skipUnless(
-    COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests."
-)
+requires_comfyui = unittest.skipUnless(COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests.")
 
 if COMFY_ROOT:
     if COMFY_ROOT not in sys.path:
@@ -61,13 +60,21 @@ def setUpModule():
 
 
 ASSET_ENV_KEYS = (
-    "BYTEPLUS_ACCESS_KEY", "BYTEPLUS_SECRET_KEY", "BYTEPLUS_ACCESSKEY", "BYTEPLUS_SECRETKEY",
+    "BYTEPLUS_ACCESS_KEY",
+    "BYTEPLUS_SECRET_KEY",
+    "BYTEPLUS_ACCESSKEY",
+    "BYTEPLUS_SECRETKEY",
     "BYTEPLUS_SESSION_TOKEN",
 )
 EXTRAS = ["generation_count", "non_blocking"]
 MODEL_LABELS = [
-    "Seedance 2.5", "Seedance 2.5 Draft", "Seedance 2.5 Premium", "Seedance 2.5 Premium Draft",
-    "Seedance 2.0", "Seedance 2.0 Fast", "Seedance 2.0 Mini",
+    "Seedance 2.5",
+    "Seedance 2.5 Draft",
+    "Seedance 2.5 Premium",
+    "Seedance 2.5 Premium Draft",
+    "Seedance 2.0",
+    "Seedance 2.0 Fast",
+    "Seedance 2.0 Mini",
 ]
 SEEDANCE25_TEXT = ["prompt", "resolution", "ratio", "duration", "generate_audio", "output_format"]
 SEEDANCE20_TEXT = ["prompt", "resolution", "ratio", "duration", "generate_audio"]
@@ -141,6 +148,7 @@ class FakeVideo:
 # Schema
 # --------------------------------------------------------------------------
 
+
 @requires_comfyui
 class GatherCancellingTests(unittest.IsolatedAsyncioTestCase):
     """Cancel must stop every parallel request, not only the one that saw the interrupt flag."""
@@ -196,9 +204,7 @@ class GatherCancellingTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_outer_cancellation_cancels_every_request(self):
         log = []
-        task = asyncio.ensure_future(
-            nodes_shared.gather_cancelling([self._slow(log, "a"), self._slow(log, "b")])
-        )
+        task = asyncio.ensure_future(nodes_shared.gather_cancelling([self._slow(log, "a"), self._slow(log, "b")]))
         await asyncio.sleep(0.01)
         task.cancel()
         with self.assertRaises(asyncio.CancelledError):
@@ -210,10 +216,22 @@ class GatherCancellingTests(unittest.IsolatedAsyncioTestCase):
 class SchemaTests(unittest.TestCase):
     def test_node_ids_and_display_names(self):
         expected = {
-            nodes_seedance2.BytePlusSeedance2TextToVideo: ("BytePlusSeedance2TextToVideo", "BytePlus Seedance 2.5 Text to Video"),
-            nodes_seedance2.BytePlusSeedance2FirstLastFrame: ("BytePlusSeedance2FirstLastFrame", "BytePlus Seedance 2.5 First-Last-Frame to Video"),
-            nodes_seedance2.BytePlusSeedance2Reference: ("BytePlusSeedance2Reference", "BytePlus Seedance 2.5 Reference to Video"),
-            nodes_seedance2.BytePlusSeedanceDraftToFinal: ("BytePlusSeedanceDraftToFinal", "BytePlus Seedance 2.5 Draft to Final Video"),
+            nodes_seedance2.BytePlusSeedance2TextToVideo: (
+                "BytePlusSeedance2TextToVideo",
+                "BytePlus Seedance 2.5 Text to Video",
+            ),
+            nodes_seedance2.BytePlusSeedance2FirstLastFrame: (
+                "BytePlusSeedance2FirstLastFrame",
+                "BytePlus Seedance 2.5 First-Last-Frame to Video",
+            ),
+            nodes_seedance2.BytePlusSeedance2Reference: (
+                "BytePlusSeedance2Reference",
+                "BytePlus Seedance 2.5 Reference to Video",
+            ),
+            nodes_seedance2.BytePlusSeedanceDraftToFinal: (
+                "BytePlusSeedanceDraftToFinal",
+                "BytePlus Seedance 2.5 Draft to Final Video",
+            ),
             nodes_assets.BytePlusCreateImageAsset: ("BytePlusCreateImageAsset", "BytePlus Create Image Asset"),
             nodes_assets.BytePlusCreateVideoAsset: ("BytePlusCreateVideoAsset", "BytePlus Create Video Asset"),
             nodes_assets.BytePlusCreateAudioAsset: ("BytePlusCreateAudioAsset", "BytePlus Create Audio Asset"),
@@ -278,7 +296,8 @@ class SchemaTests(unittest.TestCase):
                 ref = option_inputs(nodes_seedance2.BytePlusSeedance2Reference, label)
                 text = (
                     ["prompt", "resolution", "ratio", "duration", "generate_audio", "task_type", "output_format"]
-                    if is_25 else SEEDANCE20_TEXT
+                    if is_25
+                    else SEEDANCE20_TEXT
                 )
                 self.assertEqual(list(ref["required"]), text + REFERENCE_TAIL)
                 self.assertEqual(list(ref["optional"]), ["auto_downscale", "auto_upscale"])
@@ -379,8 +398,15 @@ class SchemaTests(unittest.TestCase):
                     if not schema.is_deprecated:
                         core_names.add(schema.display_name)
         ours = {}
-        for module_name in ("nodes_seedream", "nodes_seedance1", "nodes_seedance2", "nodes_assets",
-                            "nodes_seed", "nodes_speech", "nodes_mediakit"):
+        for module_name in (
+            "nodes_seedream",
+            "nodes_seedance1",
+            "nodes_seedance2",
+            "nodes_assets",
+            "nodes_seed",
+            "nodes_speech",
+            "nodes_mediakit",
+        ):
             module = importlib.import_module(f"{PACKAGE_NAME}.nodes.{module_name}")
             for node in getattr(module, "NODES", []):
                 ours[node.define_schema().node_id] = node.define_schema()
@@ -518,6 +544,7 @@ class TemplateSchemaTests(unittest.TestCase):
 # Requests through the real executor with a fake Ark client
 # --------------------------------------------------------------------------
 
+
 class _ExecutorHarness(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         from byteplussdkarkruntime.resources.content_generation.tasks import Tasks as SdkTasks
@@ -598,8 +625,14 @@ class TextToVideoTests(_ExecutorHarness):
         self.T2V = nodes_seedance2.BytePlusSeedance2TextToVideo
 
     def model(self, label="Seedance 2.5", **overrides):
-        values = {"model": label, "prompt": "a fox in the snow", "resolution": "720p", "ratio": "16:9",
-                  "duration": 5, "generate_audio": True}
+        values = {
+            "model": label,
+            "prompt": "a fox in the snow",
+            "resolution": "720p",
+            "ratio": "16:9",
+            "duration": 5,
+            "generate_audio": True,
+        }
         if "2.5" in label:
             values["output_format"] = "mp4"
         values.update(overrides)
@@ -611,9 +644,19 @@ class TextToVideoTests(_ExecutorHarness):
         self.assertEqual(request["model"], "dreamina-seedance-2-5-260628")
         self.assertEqual(request["content"], [{"type": "text", "text": "a fox in the snow"}])
         self.assertEqual(
-            {k: request[k] for k in ("resolution", "ratio", "duration", "seed", "watermark", "generate_audio", "output_format")},
-            {"resolution": "720p", "ratio": "16:9", "duration": 5, "seed": 42, "watermark": False,
-             "generate_audio": True, "output_format": "mp4"},
+            {
+                k: request[k]
+                for k in ("resolution", "ratio", "duration", "seed", "watermark", "generate_audio", "output_format")
+            },
+            {
+                "resolution": "720p",
+                "ratio": "16:9",
+                "duration": 5,
+                "seed": 42,
+                "watermark": False,
+                "generate_audio": True,
+                "output_format": "mp4",
+            },
         )
         self.assertTrue(request["return_last_frame"])
         for absent in ("draft", "omni_reference_task_type", "service_tier", "execution_expires_after"):
@@ -652,8 +695,14 @@ class TextToVideoTests(_ExecutorHarness):
             await self.run_node(self.T2V, model=self.model("Seedance 2.5 Premium", resolution="1080p"), seed=1)
 
     async def test_seedance20_request(self):
-        model = {"model": "Seedance 2.0", "prompt": "city", "resolution": "4k", "ratio": "adaptive",
-                 "duration": 7, "generate_audio": False}
+        model = {
+            "model": "Seedance 2.0",
+            "prompt": "city",
+            "resolution": "4k",
+            "ratio": "adaptive",
+            "duration": 7,
+            "generate_audio": False,
+        }
         await self.run_node(self.T2V, model=model, seed=3)
         request = self.submitted[0]
         self.assertEqual(request["model"], "dreamina-seedance-2-0-260128")
@@ -705,14 +754,15 @@ class TextToVideoTests(_ExecutorHarness):
         )
 
         async def fake_success(_self, successful, *_args, **_kwargs):
-            return nodes_video.comfy_io.NodeOutput(
-                "video", "frame", json.dumps([{"id": t.id} for t in successful])
-            )
+            return nodes_video.comfy_io.NodeOutput("video", "frame", json.dumps([{"id": t.id} for t in successful]))
 
         with mock.patch.object(nodes_video.BytePlusVideoBase, "_handle_batch_success_async", fake_success):
             result = await self.run_node(
-                self.T2V, model=self.model("Seedance 2.5 Draft", resolution="480p"), seed=1,
-                generation_count=2, non_blocking=False,
+                self.T2V,
+                model=self.model("Seedance 2.5 Draft", resolution="480p"),
+                seed=1,
+                generation_count=2,
+                non_blocking=False,
             )
         self.assertEqual(result.args[0], "video")
         self.assertEqual(result.args[1], "cgt-1\ncgt-2")
@@ -769,8 +819,11 @@ class FirstLastFrameTests(_ExecutorHarness):
 
     async def test_asset_ids_and_links(self):
         await self.run_node(
-            self.FLF, model=self.model(ratio="9:16"), seed=1,
-            first_frame_asset_id=" asset-20260101-abc ", last_frame_asset_id="https://cdn.example/end.png",
+            self.FLF,
+            model=self.model(ratio="9:16"),
+            seed=1,
+            first_frame_asset_id=" asset-20260101-abc ",
+            last_frame_asset_id="https://cdn.example/end.png",
         )
         request = self.submitted[0]
         self.assertEqual(request["ratio"], "9:16")  # core: asset frames keep the chosen ratio
@@ -804,7 +857,10 @@ class FirstLastFrameTests(_ExecutorHarness):
         cases = [
             ({"first_frame": image(640, 640), "first_frame_asset_id": "asset-1"}, "not both"),
             ({}, "is required"),
-            ({"first_frame": image(640, 640), "last_frame": image(640, 640), "last_frame_asset_id": "asset-2"}, "not both"),
+            (
+                {"first_frame": image(640, 640), "last_frame": image(640, 640), "last_frame_asset_id": "asset-2"},
+                "not both",
+            ),
             ({"first_frame": image(200, 640)}, "ratio"),
             ({"first_frame": image(640, 200)}, "ratio"),
             ({"first_frame": image(280, 280)}, "between"),
@@ -857,10 +913,20 @@ class ReferenceTests(_ExecutorHarness):
         super().tearDown()
 
     def model(self, label="Seedance 2.5", **overrides):
-        values = {"model": label, "prompt": "asset1 dances with the girl from Image 1", "resolution": "720p",
-                  "ratio": "16:9", "duration": 5, "generate_audio": True, "auto_downscale": True,
-                  "auto_upscale": False, "reference_images": {}, "reference_videos": {},
-                  "reference_audios": {}, "reference_assets": {}}
+        values = {
+            "model": label,
+            "prompt": "asset1 dances with the girl from Image 1",
+            "resolution": "720p",
+            "ratio": "16:9",
+            "duration": 5,
+            "generate_audio": True,
+            "auto_downscale": True,
+            "auto_upscale": False,
+            "reference_images": {},
+            "reference_videos": {},
+            "reference_audios": {},
+            "reference_assets": {},
+        }
         if "2.5" in label:
             values.update(task_type="auto", output_format="mp4")
         values.update(overrides)
@@ -890,8 +956,9 @@ class ReferenceTests(_ExecutorHarness):
                 self.client, [f"asset-{n}" for n in range(6)] + ["https://cdn.example/x.mp3"]
             )
         self.assertEqual(len(created), 1)
-        self.assertEqual([item["uri"] for item in resolved],
-                         [f"asset://asset-{n}" for n in range(6)] + ["https://cdn.example/x.mp3"])
+        self.assertEqual(
+            [item["uri"] for item in resolved], [f"asset://asset-{n}" for n in range(6)] + ["https://cdn.example/x.mp3"]
+        )
         self.assertEqual([item["kind"] for item in resolved], ["image"] * 6 + ["audio"])
 
     def _probe_session(self, responses):
@@ -927,12 +994,16 @@ class ReferenceTests(_ExecutorHarness):
 
     async def test_link_kind_falls_back_to_ranged_get(self):
         url = "https://bucket.example/obj?X-Signature=abc"
-        session, calls = self._probe_session({
-            ("HEAD", url): (403, {"Content-Type": "application/xml"}),  # presigned GET-only URL
-            ("GET", url): (206, {"Content-Type": "video/mp4"}),
-        })
-        with mock.patch.object(core_style.aiohttp, "ClientSession", session), \
-                mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)):
+        session, calls = self._probe_session(
+            {
+                ("HEAD", url): (403, {"Content-Type": "application/xml"}),  # presigned GET-only URL
+                ("GET", url): (206, {"Content-Type": "video/mp4"}),
+            }
+        )
+        with (
+            mock.patch.object(core_style.aiohttp, "ClientSession", session),
+            mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)),
+        ):
             kind = await core_style._probe_url_kind(url)
         self.assertEqual(kind, "video")
         self.assertEqual([method for method, _url, _kw in calls], ["HEAD", "GET"])
@@ -941,41 +1012,51 @@ class ReferenceTests(_ExecutorHarness):
 
     async def test_link_probe_follows_only_public_https_redirects(self):
         start, final = "https://short.example/a", "https://cdn.example/a.bin"
-        session, calls = self._probe_session({
-            ("HEAD", start): (302, {"Location": final}),
-            ("HEAD", final): (200, {"Content-Type": "audio/mpeg"}),
-        })
-        with mock.patch.object(core_style.aiohttp, "ClientSession", session), \
-                mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)):
+        session, calls = self._probe_session(
+            {
+                ("HEAD", start): (302, {"Location": final}),
+                ("HEAD", final): (200, {"Content-Type": "audio/mpeg"}),
+            }
+        )
+        with (
+            mock.patch.object(core_style.aiohttp, "ClientSession", session),
+            mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)),
+        ):
             self.assertEqual(await core_style._probe_url_kind(start), "audio")
         self.assertEqual([url for _m, url, _kw in calls], [start, final])
 
         # A redirect to a plain-http or internal address is never requested.
         for location in ("http://cdn.example/a.bin", "https://internal.example/a.bin"):
-            session, calls = self._probe_session({
-                ("HEAD", start): (302, {"Location": location}),
-                ("GET", start): (302, {"Location": location}),
-            })
+            session, calls = self._probe_session(
+                {
+                    ("HEAD", start): (302, {"Location": location}),
+                    ("GET", start): (302, {"Location": location}),
+                }
+            )
             public = mock.AsyncMock(side_effect=lambda host: host != "internal.example")
-            with mock.patch.object(core_style.aiohttp, "ClientSession", session), \
-                    mock.patch.object(core_style, "_host_is_public", public):
+            with (
+                mock.patch.object(core_style.aiohttp, "ClientSession", session),
+                mock.patch.object(core_style, "_host_is_public", public),
+            ):
                 self.assertIsNone(await core_style._probe_url_kind(start))
             self.assertEqual({url for _m, url, _kw in calls}, {start})
 
     async def test_link_probe_skips_non_public_hosts(self):
         session, calls = self._probe_session({})
         with mock.patch.object(core_style.aiohttp, "ClientSession", session):
-            for host, addresses in (("localhost", "127.0.0.1"), ("meta.example", "169.254.169.254"),
-                                    ("lan.example", "10.0.0.5"), ("v6.example", "::1")):
+            for host, addresses in (
+                ("localhost", "127.0.0.1"),
+                ("meta.example", "169.254.169.254"),
+                ("lan.example", "10.0.0.5"),
+                ("v6.example", "::1"),
+            ):
                 family = socket.AF_INET6 if ":" in addresses else socket.AF_INET
                 infos = [(family, 1, 6, "", (addresses, 443))]
-                with mock.patch.object(asyncio.get_running_loop(), "getaddrinfo",
-                                       mock.AsyncMock(return_value=infos)):
+                with mock.patch.object(asyncio.get_running_loop(), "getaddrinfo", mock.AsyncMock(return_value=infos)):
                     self.assertFalse(await core_style._host_is_public(host))
                     self.assertIsNone(await core_style._probe_url_kind(f"https://{host}/x"))
             infos = [(socket.AF_INET, 1, 6, "", ("93.184.216.34", 443))]
-            with mock.patch.object(asyncio.get_running_loop(), "getaddrinfo",
-                                   mock.AsyncMock(return_value=infos)):
+            with mock.patch.object(asyncio.get_running_loop(), "getaddrinfo", mock.AsyncMock(return_value=infos)):
                 self.assertTrue(await core_style._host_is_public("example.com"))
         self.assertEqual(calls, [])
 
@@ -1026,9 +1107,7 @@ class ReferenceTests(_ExecutorHarness):
                 await self.run_node(self.REF, model=self.model(label, reference_assets=links(*caps)), seed=1)
                 content = self.submitted[-1]["content"]
                 kinds = [item["type"] for item in content if item["type"] != "text"]
-                self.assertEqual(
-                    (kinds.count("image_url"), kinds.count("video_url"), kinds.count("audio_url")), caps
-                )
+                self.assertEqual((kinds.count("image_url"), kinds.count("video_url"), kinds.count("audio_url")), caps)
                 self.assertEqual(len(kinds), 50 if label == "Seedance 2.5" else 15)
                 for index in range(3):
                     over = list(caps)
@@ -1038,14 +1117,21 @@ class ReferenceTests(_ExecutorHarness):
 
     async def test_content_order_labels_and_asset_resolution(self):
         self.client.asset_credentials = {"access_key": "AK", "secret_key": "SK"}
-        self.asset_types = {"asset-img": ("Image", "Active"), "asset-vid": ("Video", "Active"),
-                            "asset-aud": ("Audio", "Active")}
+        self.asset_types = {
+            "asset-img": ("Image", "Active"),
+            "asset-vid": ("Video", "Active"),
+            "asset-aud": ("Audio", "Active"),
+        }
         model = self.model(
             prompt="asset1 and ASSET 3 talk over asset2; keep asset 4 and asset9",
             reference_images={"image_2": image(640, 640, 0.2), "image_1": image(640, 640, 0.8)},
             reference_audios={"audio_1": sine_audio(3)},
-            reference_assets={"asset_2": "asset://asset-aud", "asset_1": "asset-img",
-                              "asset_3": "asset-vid", "asset_4": "https://cdn.example/pose.PNG"},
+            reference_assets={
+                "asset_2": "asset://asset-aud",
+                "asset_1": "asset-img",
+                "asset_3": "asset-vid",
+                "asset_4": "https://cdn.example/pose.PNG",
+            },
         )
         await self.run_node(self.REF, model=model, seed=7)
         request = self.submitted[0]
@@ -1114,8 +1200,11 @@ class ReferenceTests(_ExecutorHarness):
         with self.assertRaises(Exception) as ctx:
             await self.run_node(
                 self.REF,
-                model=self.model("Seedance 2.0 Fast", reference_images=images,
-                                 reference_assets={"asset_1": "https://cdn.example/extra.jpg"}),
+                model=self.model(
+                    "Seedance 2.0 Fast",
+                    reference_images=images,
+                    reference_assets={"asset_1": "https://cdn.example/extra.jpg"},
+                ),
                 seed=1,
             )
         self.assertIn("Too many reference images: 10", str(ctx.exception))
@@ -1123,8 +1212,12 @@ class ReferenceTests(_ExecutorHarness):
         with self.assertRaises(Exception) as ctx:
             await self.run_node(
                 self.REF,
-                model=self.model("Seedance 2.0", reference_images={"image_1": image(320, 320)}, reference_audios=audios,
-                                 reference_assets={"asset_1": "https://cdn.example/a.mp3"}),
+                model=self.model(
+                    "Seedance 2.0",
+                    reference_images={"image_1": image(320, 320)},
+                    reference_audios=audios,
+                    reference_assets={"asset_1": "https://cdn.example/a.mp3"},
+                ),
                 seed=1,
             )
         self.assertIn("Too many reference audios: 4", str(ctx.exception))
@@ -1141,24 +1234,37 @@ class ReferenceTests(_ExecutorHarness):
             seed=1,
         )
         request = self.submitted[-1]
-        self.assertEqual((request["ratio"], request["duration"], request["omni_reference_task_type"]), ("adaptive", -1, "edit"))
+        self.assertEqual(
+            (request["ratio"], request["duration"], request["omni_reference_task_type"]), ("adaptive", -1, "edit")
+        )
         nodes_video.NON_BLOCKING_TASK_CACHE.clear()
         await self.run_node(
-            self.REF, model=self.model(task_type="extend", duration=8, reference_videos={"video_1": FakeVideo()}), seed=1
+            self.REF,
+            model=self.model(task_type="extend", duration=8, reference_videos={"video_1": FakeVideo()}),
+            seed=1,
         )
         request = self.submitted[-1]
-        self.assertEqual((request["ratio"], request["duration"], request["omni_reference_task_type"]), ("adaptive", 8, "extend"))
+        self.assertEqual(
+            (request["ratio"], request["duration"], request["omni_reference_task_type"]), ("adaptive", 8, "extend")
+        )
         nodes_video.NON_BLOCKING_TASK_CACHE.clear()
         await self.run_node(
-            self.REF, model=self.model("Seedance 2.5 Draft", resolution="480p", task_type="reference",
-                                       reference_videos={"video_1": FakeVideo()}), seed=1
+            self.REF,
+            model=self.model(
+                "Seedance 2.5 Draft",
+                resolution="480p",
+                task_type="reference",
+                reference_videos={"video_1": FakeVideo()},
+            ),
+            seed=1,
         )
         request = self.submitted[-1]
         self.assertEqual(request["omni_reference_task_type"], "reference")
         self.assertTrue(request["draft"])
         nodes_video.NON_BLOCKING_TASK_CACHE.clear()
         await self.run_node(
-            self.REF, model=self.model("Seedance 2.0", ratio="adaptive", reference_videos={"video_1": FakeVideo(854, 480)}),
+            self.REF,
+            model=self.model("Seedance 2.0", ratio="adaptive", reference_videos={"video_1": FakeVideo(854, 480)}),
             seed=1,
         )
         request = self.submitted[-1]
@@ -1168,7 +1274,9 @@ class ReferenceTests(_ExecutorHarness):
     async def test_local_videos_are_uploaded_to_comfy_storage(self):
         await self.run_node(
             self.REF,
-            model=self.model(reference_videos={"video_2": FakeVideo(1280, 720, 3), "video_1": FakeVideo(1920, 1080, 4)}),
+            model=self.model(
+                reference_videos={"video_2": FakeVideo(1280, 720, 3), "video_1": FakeVideo(1920, 1080, 4)}
+            ),
             seed=1,
         )
         videos = [item for item in self.submitted[0]["content"] if item["type"] == "video_url"]
@@ -1197,7 +1305,9 @@ class ReferenceTests(_ExecutorHarness):
             # Without auto_downscale only the documented range applies: 1080p passes...
             await self.run_node(
                 self.REF,
-                model=self.model("Seedance 2.0", auto_downscale=False, reference_videos={"video_1": FakeVideo(1920, 1080)}),
+                model=self.model(
+                    "Seedance 2.0", auto_downscale=False, reference_videos={"video_1": FakeVideo(1920, 1080)}
+                ),
                 seed=1,
             )
             nodes_video.NON_BLOCKING_TASK_CACHE.clear()
@@ -1205,7 +1315,9 @@ class ReferenceTests(_ExecutorHarness):
             with self.assertRaises(Exception) as ctx:
                 await self.run_node(
                     self.REF,
-                    model=self.model("Seedance 2.0", auto_downscale=False, reference_videos={"video_1": FakeVideo(4096, 2160)}),
+                    model=self.model(
+                        "Seedance 2.0", auto_downscale=False, reference_videos={"video_1": FakeVideo(4096, 2160)}
+                    ),
                     seed=1,
                 )
             self.assertIn("too large", str(ctx.exception))
@@ -1222,15 +1334,25 @@ class ReferenceTests(_ExecutorHarness):
             self.assertEqual((width % 2, height % 2), (0, 0))
         cases = [
             (self.model(reference_videos={"video_1": FakeVideo(duration=1.5)}), "too short"),
-            (self.model("Seedance 2.0", reference_videos={"video_1": FakeVideo(854, 480, 8), "video_2": FakeVideo(854, 480, 8)}),
-             "Total reference video duration"),
+            (
+                self.model(
+                    "Seedance 2.0",
+                    reference_videos={"video_1": FakeVideo(854, 480, 8), "video_2": FakeVideo(854, 480, 8)},
+                ),
+                "Total reference video duration",
+            ),
             (self.model(reference_videos={"video_1": FakeVideo(fps=20)}), "frame rate"),
             (self.model(reference_videos={"video_1": FakeVideo(200, 2000)}), "width/height"),
             (self.model(task_type="edit", reference_videos={"video_1": FakeVideo(duration=3)}), "at least 4.0 seconds"),
             (self.model(reference_audios={"audio_1": sine_audio(1)}), "audio duration"),
-            (self.model("Seedance 2.0", reference_images={"image_1": image(320, 320)},
-                        reference_audios={"audio_1": sine_audio(8), "audio_2": sine_audio(8)}),
-             "Total reference audio duration"),
+            (
+                self.model(
+                    "Seedance 2.0",
+                    reference_images={"image_1": image(320, 320)},
+                    reference_audios={"audio_1": sine_audio(8), "audio_2": sine_audio(8)},
+                ),
+                "Total reference audio duration",
+            ),
         ]
         for model, message in cases:
             with self.subTest(message=message):
@@ -1253,8 +1375,11 @@ class ReferenceTests(_ExecutorHarness):
                 with self.assertRaises(Exception) as ctx:
                     await self.run_node(
                         self.REF,
-                        model=self.model(label, reference_images={"image_1": image(640, 640)},
-                                         reference_audios={"audio_1": sine_audio(1.9)}),
+                        model=self.model(
+                            label,
+                            reference_images={"image_1": image(640, 640)},
+                            reference_audios={"audio_1": sine_audio(1.9)},
+                        ),
                         seed=1,
                     )
                 self.assertIn("audio duration must be between 2.0s", str(ctx.exception))
@@ -1264,7 +1389,9 @@ class ReferenceTests(_ExecutorHarness):
         nodes_video.NON_BLOCKING_TASK_CACHE.clear()
         await self.run_node(
             self.REF,
-            model=self.model(reference_images={"image_1": image(640, 640)}, reference_audios={"audio_1": sine_audio(2.0)}),
+            model=self.model(
+                reference_images={"image_1": image(640, 640)}, reference_audios={"audio_1": sine_audio(2.0)}
+            ),
             seed=1,
         )
         self.assertEqual(len(self.submitted), 2)
@@ -1303,9 +1430,7 @@ class ReferenceTests(_ExecutorHarness):
             audio = container.add_stream("aac", rate=16000)
             audio.layout = "mono"
             for i in range(24):
-                frame = av.VideoFrame.from_ndarray(
-                    numpy.full((240, 320, 3), i * 8, dtype=numpy.uint8), format="rgb24"
-                )
+                frame = av.VideoFrame.from_ndarray(numpy.full((240, 320, 3), i * 8, dtype=numpy.uint8), format="rgb24")
                 for packet in stream.encode(frame):
                     container.mux(packet)
             for packet in stream.encode():
@@ -1374,7 +1499,10 @@ class DraftToFinalTests(_ExecutorHarness):
         # Tasks are submitted in parallel threads, so their order is not fixed.
         self.assertCountEqual(
             [r["content"] for r in self.submitted],
-            [[{"type": "draft_task", "draft_task": {"id": "cgt-a"}}], [{"type": "draft_task", "draft_task": {"id": "cgt-b"}}]],
+            [
+                [{"type": "draft_task", "draft_task": {"id": "cgt-a"}}],
+                [{"type": "draft_task", "draft_task": {"id": "cgt-b"}}],
+            ],
         )
 
     async def test_errors(self):
@@ -1407,8 +1535,11 @@ class DraftToFinalTests(_ExecutorHarness):
             ("cgt-20", "dreamina-seedance-2-0-260128"),
             ("cgt-ok, cgt-premium", "different models"),
             # Seedance 1.5 Pro drafts are no longer rendered (model deprecated by BytePlus).
-            ("cgt-15", "made with seedance-1-5-pro-251215, which cannot render a final from a draft. "
-             "Supported: Seedance 2.5 and Seedance 2.5 Premium drafts."),
+            (
+                "cgt-15",
+                "made with seedance-1-5-pro-251215, which cannot render a final from a draft. "
+                "Supported: Seedance 2.5 and Seedance 2.5 Premium drafts.",
+            ),
             ("cgt-ok, cgt-15", "seedance-1-5-pro-251215"),
             ("cgt-missing", "Could not look up draft task cgt-missing"),
         ]
@@ -1423,6 +1554,7 @@ class DraftToFinalTests(_ExecutorHarness):
 # --------------------------------------------------------------------------
 # Create Image / Video / Audio Asset
 # --------------------------------------------------------------------------
+
 
 @requires_comfyui
 class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
@@ -1513,8 +1645,13 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.calls[1][1]["GroupType"], "AIGC")
         self.assertEqual(
             {k: self.created()[k] for k in ("GroupId", "URL", "AssetType", "Name", "ProjectName")},
-            {"GroupId": "group-new", "URL": "https://storage.example/portrait.png", "AssetType": "Image",
-             "Name": "Neon", "ProjectName": "default"},
+            {
+                "GroupId": "group-new",
+                "URL": "https://storage.example/portrait.png",
+                "AssetType": "Image",
+                "Name": "Neon",
+                "ProjectName": "default",
+            },
         )
         asset_id, group_id, asset_uri, info = result.args
         self.assertEqual((asset_id, group_id, asset_uri), ("asset-1", "group-new", "asset://asset-1"))
@@ -1528,7 +1665,9 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_existing_group_id_skips_group_lookup(self):
         result = await self.create(
-            nodes_assets.BytePlusCreateImageAsset, image=image(640, 640), group_id=" group-liveness-1 ",
+            nodes_assets.BytePlusCreateImageAsset,
+            image=image(640, 640),
+            group_id=" group-liveness-1 ",
             project_name="team-a",
         )
         self.assertEqual(self.actions()[0], "CreateAsset")
@@ -1538,7 +1677,9 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_url_goes_straight_to_create_asset(self):
         await self.create(
-            nodes_assets.BytePlusCreateImageAsset, image_url=" https://cdn.example/portrait.jpg ", group_id="g1",
+            nodes_assets.BytePlusCreateImageAsset,
+            image_url=" https://cdn.example/portrait.jpg ",
+            group_id="g1",
             wait_until_active=False,
         )
         self.assertEqual(self.uploads, [])
@@ -1548,14 +1689,22 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
     async def test_source_rules(self):
         cases = [
             (nodes_assets.BytePlusCreateImageAsset, {}, "Connect the image input or set image_url"),
-            (nodes_assets.BytePlusCreateImageAsset, {"image": image(640, 640), "image_url": "https://x/a.png"}, "not both"),
+            (
+                nodes_assets.BytePlusCreateImageAsset,
+                {"image": image(640, 640), "image_url": "https://x/a.png"},
+                "not both",
+            ),
             (nodes_assets.BytePlusCreateImageAsset, {"image_url": "http://x/a.png"}, "HTTPS"),
             (nodes_assets.BytePlusCreateImageAsset, {"image_url": "https://x/a.mp4"}, "needs image"),
             (nodes_assets.BytePlusCreateVideoAsset, {}, "Connect the video input or set video_url"),
             (nodes_assets.BytePlusCreateVideoAsset, {"video": FakeVideo(), "video_url": "https://x/a.mp4"}, "not both"),
             (nodes_assets.BytePlusCreateVideoAsset, {"video_url": "https://x/a.png"}, "needs video"),
             (nodes_assets.BytePlusCreateAudioAsset, {}, "Connect the audio input or set audio_url"),
-            (nodes_assets.BytePlusCreateAudioAsset, {"audio": sine_audio(3), "audio_url": "https://x/a.mp3"}, "not both"),
+            (
+                nodes_assets.BytePlusCreateAudioAsset,
+                {"audio": sine_audio(3), "audio_url": "https://x/a.mp3"},
+                "not both",
+            ),
             (nodes_assets.BytePlusCreateAudioAsset, {"audio_url": "https://x/a.ogg"}, ".wav or .mp3"),
             (nodes_assets.BytePlusCreateAudioAsset, {"audio_url": "https://x/a.mp4"}, "needs audio"),
         ]
@@ -1585,7 +1734,9 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first.args[0], second.args[0])
         self.assertEqual(self.actions().count("CreateAsset"), 1)
         self.assertEqual(self.uploads, ["image"])
-        await self.create(nodes_assets.BytePlusCreateImageAsset, image=image(640, 640), group_id="g1", asset_name="other")
+        await self.create(
+            nodes_assets.BytePlusCreateImageAsset, image=image(640, 640), group_id="g1", asset_name="other"
+        )
         self.assertEqual(self.actions().count("CreateAsset"), 2)
 
     async def test_video_asset(self):
@@ -1602,13 +1753,21 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
                     await self.create(nodes_assets.BytePlusCreateVideoAsset, video=video, group_id="g1")
                 self.assertIn(message, str(ctx.exception))
         self.assertEqual(self.calls, [])
-        result = await self.create(nodes_assets.BytePlusCreateVideoAsset, video=FakeVideo(1280, 720, 5, 30), group_id="g1")
+        result = await self.create(
+            nodes_assets.BytePlusCreateVideoAsset, video=FakeVideo(1280, 720, 5, 30), group_id="g1"
+        )
         self.assertEqual(self.uploads, ["video"])
-        self.assertEqual((self.created()["AssetType"], self.created()["URL"]), ("Video", "https://storage.example/clip.mp4"))
+        self.assertEqual(
+            (self.created()["AssetType"], self.created()["URL"]), ("Video", "https://storage.example/clip.mp4")
+        )
         self.assertEqual(result.args[2], "asset://asset-1")
         self.calls.clear()
-        await self.create(nodes_assets.BytePlusCreateVideoAsset, video_url="https://cdn.example/clip.mov", group_id="g1")
-        self.assertEqual((self.created()["AssetType"], self.created()["URL"]), ("Video", "https://cdn.example/clip.mov"))
+        await self.create(
+            nodes_assets.BytePlusCreateVideoAsset, video_url="https://cdn.example/clip.mov", group_id="g1"
+        )
+        self.assertEqual(
+            (self.created()["AssetType"], self.created()["URL"]), ("Video", "https://cdn.example/clip.mov")
+        )
         self.assertEqual(self.uploads, ["video"])
 
     async def test_audio_asset(self):
@@ -1624,19 +1783,25 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.calls, [])
         result = await self.create(nodes_assets.BytePlusCreateAudioAsset, audio=sine_audio(5), group_id="g1")
         self.assertEqual(self.uploads, [("audio", b"RIFF")])
-        self.assertEqual((self.created()["AssetType"], self.created()["URL"]), ("Audio", "https://storage.example/voice.wav"))
+        self.assertEqual(
+            (self.created()["AssetType"], self.created()["URL"]), ("Audio", "https://storage.example/voice.wav")
+        )
         self.assertEqual(result.args[:3], ("asset-1", "g1", "asset://asset-1"))
         await self.create(nodes_assets.BytePlusCreateAudioAsset, audio=sine_audio(5), group_id="g1")
         self.assertEqual(self.actions().count("CreateAsset"), 1)  # deduped
         self.calls.clear()
         await self.create(nodes_assets.BytePlusCreateAudioAsset, audio_url="https://cdn.example/voice.MP3", group_id="")
         self.assertEqual(self.actions()[:2], ["ListAssetGroups", "CreateAssetGroup"])
-        self.assertEqual((self.created()["AssetType"], self.created()["URL"]), ("Audio", "https://cdn.example/voice.MP3"))
+        self.assertEqual(
+            (self.created()["AssetType"], self.created()["URL"]), ("Audio", "https://cdn.example/voice.MP3")
+        )
 
     async def test_missing_credentials_point_to_settings(self):
         self.client.asset_credentials = None
         with self.assertRaises(Exception) as ctx:
-            await self.create(nodes_assets.BytePlusCreateImageAsset, image_url="https://cdn.example/a.png", group_id="g1")
+            await self.create(
+                nodes_assets.BytePlusCreateImageAsset, image_url="https://cdn.example/a.png", group_id="g1"
+            )
         self.assertIn("Settings > BytePlus", str(ctx.exception))
         self.assertIn("BYTEPLUS_ACCESS_KEY", str(ctx.exception))
 
@@ -1646,6 +1811,7 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
         self._patches[2].stop()
         self._patches[3].stop()
         try:
+
             async def failing_file_upload(*_args, **_kwargs):
                 raise RuntimeError("401 Unauthorized")
 
@@ -1684,9 +1850,7 @@ class CreateAssetTests(unittest.IsolatedAsyncioTestCase):
             from comfy_api_nodes.util import upload_file_to_comfyapi
         except Exception as e:  # pragma: no cover - depends on the ComfyUI checkout
             self.skipTest(f"comfy_api_nodes unavailable: {e}")
-        inspect.signature(upload_file_to_comfyapi).bind(
-            object, io.BytesIO(b""), "a.wav", "audio/wav", wait_label=None
-        )
+        inspect.signature(upload_file_to_comfyapi).bind(object, io.BytesIO(b""), "a.wav", "audio/wav", wait_label=None)
 
 
 if __name__ == "__main__":

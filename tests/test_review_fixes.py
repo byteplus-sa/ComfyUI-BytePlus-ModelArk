@@ -6,6 +6,7 @@ hints (running tasks cannot be cancelled, long waits, intermittent content filte
 
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_review_fixes
 """
+
 import asyncio
 import importlib
 import importlib.util
@@ -20,9 +21,7 @@ from unittest import mock
 
 COMFY_ROOT = os.environ.get("COMFYUI_ROOT")
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-requires_comfyui = unittest.skipUnless(
-    COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests."
-)
+requires_comfyui = unittest.skipUnless(COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests.")
 
 if COMFY_ROOT:
     if COMFY_ROOT not in sys.path:
@@ -144,14 +143,18 @@ class MessageTests(unittest.TestCase):
 
     def test_new_hints_exist(self):
         for key in (
-            "err_query_tasks_not_found", "query_tasks_some_not_found", "cancel_running_billed",
-            "node_poll_long_wait", "seed_audio_no_subtitles",
+            "err_query_tasks_not_found",
+            "query_tasks_some_not_found",
+            "cancel_running_billed",
+            "node_poll_long_wait",
+            "seed_audio_no_subtitles",
         ):
             self.assertIn(key, constants.MESSAGES)
         errors = constants.MESSAGES["api_errors"]
         self.assertIn("billed", errors["TaskRunningCannotCancel"])
         for code in (
-            "OutputImageSensitiveContentDetected", "OutputVideoSensitiveContentDetected",
+            "OutputImageSensitiveContentDetected",
+            "OutputVideoSensitiveContentDetected",
             "OutputAudioSensitiveContentDetected",
         ):
             self.assertIn("another seed", errors[code])

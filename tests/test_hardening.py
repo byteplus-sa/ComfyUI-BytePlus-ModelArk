@@ -7,6 +7,7 @@ non-401 status as accepted, and leftover debug code.
 
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_hardening
 """
+
 import asyncio
 import contextlib
 import importlib
@@ -24,9 +25,7 @@ from unittest import mock
 
 COMFY_ROOT = os.environ.get("COMFYUI_ROOT")
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-requires_comfyui = unittest.skipUnless(
-    COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests."
-)
+requires_comfyui = unittest.skipUnless(COMFY_ROOT, "Set COMFYUI_ROOT to a ComfyUI checkout to run these tests.")
 
 if COMFY_ROOT:
     if COMFY_ROOT not in sys.path:
@@ -164,9 +163,7 @@ class DownloadLogTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(status=status):
                 session = FakeSession([status, 200])
                 with self.assertLogs("BytePlus", level="INFO"):
-                    self.assertTrue(
-                        await utils_download._download_to_file_stream_async(session, SIGNED_URL, self.path)
-                    )
+                    self.assertTrue(await utils_download._download_to_file_stream_async(session, SIGNED_URL, self.path))
                 self.assertEqual(session.calls, 2)
 
     async def test_retries_stop_after_the_last_attempt(self):
@@ -180,8 +177,10 @@ class DownloadLogTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failure_logs_hide_the_signed_query(self):
         session = FakeSession([403] * 3)
-        with self.assertLogs("BytePlus", level="INFO") as logs, \
-                mock.patch.object(utils_download.folder_paths, "get_temp_directory", lambda: self.tmp.name):
+        with (
+            self.assertLogs("BytePlus", level="INFO") as logs,
+            mock.patch.object(utils_download.folder_paths, "get_temp_directory", lambda: self.tmp.name),
+        ):
             self.assertIsNone(await utils_download.download_url_to_image_tensor_async(session, SIGNED_URL))
             self.assertIsNone(await utils_download.download_url_to_rgba_tensor_async(session, SIGNED_URL))
             tensor, path = await utils_download.download_image_to_temp(session, SIGNED_URL, "img", 1, "")
@@ -219,10 +218,12 @@ class DownloadExtensionTests(unittest.IsolatedAsyncioTestCase):
         async def fake_fetch(session, url, timeout=None, retries=3):
             return b"not an image"
 
-        with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.object(utils_download.folder_paths, "get_temp_directory", lambda: tmp), \
-                mock.patch.object(utils_download, "_download_to_file_stream_async", fake_stream), \
-                mock.patch.object(utils_download, "_fetch_data_from_url_async", fake_fetch):
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(utils_download.folder_paths, "get_temp_directory", lambda: tmp),
+            mock.patch.object(utils_download, "_download_to_file_stream_async", fake_stream),
+            mock.patch.object(utils_download, "_fetch_data_from_url_async", fake_fetch),
+        ):
             video = await utils_download.download_video_to_temp(
                 None, "https://cdn.example.com/v/abc?X-Tos-Signature=a.b", "video", 7, ""
             )
@@ -250,17 +251,15 @@ class LeftoverDebugCodeTests(unittest.TestCase):
     def test_unknown_video_model_uses_the_message_table(self):
         with self.assertRaises(nodes_shared.BytePlusException) as ctx:
             nodes_video.resolve_model_id("no-such-model")
-        self.assertEqual(
-            str(ctx.exception), nodes_shared.get_text("err_model_not_supported", model="no-such-model")
-        )
+        self.assertEqual(str(ctx.exception), nodes_shared.get_text("err_model_not_supported", model="no-such-model"))
 
     def test_query_errors_are_logged_not_printed(self):
         def failing_list(**_kwargs):
             raise RuntimeError("listing failed")
 
-        client = SimpleNamespace(ark=SimpleNamespace(content_generation=SimpleNamespace(
-            tasks=SimpleNamespace(list=failing_list)
-        )))
+        client = SimpleNamespace(
+            ark=SimpleNamespace(content_generation=SimpleNamespace(tasks=SimpleNamespace(list=failing_list)))
+        )
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout), self.assertLogs("BytePlus", level="INFO") as logs:
             asyncio.run(nodes_video.BytePlusVideoQueryTasks.execute(client, 1, 10, "all", "", "", "all", 0))
@@ -368,7 +367,8 @@ class UploadCacheTests(unittest.IsolatedAsyncioTestCase):
         files = FakeFiles()
         await self.upload(self.client(files))
         for error in (
-            StatusError(500), StatusError(503),
+            StatusError(500),
+            StatusError(503),
             ArkAPIConnectionError(request=request, request_id="r"),
             ArkAPITimeoutError(request=request, request_id="r"),
         ):
@@ -435,8 +435,10 @@ class CheckApiKeyTests(unittest.TestCase):
                 raise error
             return SimpleNamespace(status_code=status)
 
-        with mock.patch.object(nodes_shared.requests, "get", fake_get), \
-                self.assertLogs("BytePlus", level="INFO") if error is not None else contextlib.nullcontext():
+        with (
+            mock.patch.object(nodes_shared.requests, "get", fake_get),
+            self.assertLogs("BytePlus", level="INFO") if error is not None else contextlib.nullcontext(),
+        ):
             return nodes_shared.check_api_key("key", "https://ark.example/api/v3")
 
     def test_any_answer_that_does_not_refuse_the_key_is_accepted(self):
