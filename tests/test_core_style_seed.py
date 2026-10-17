@@ -732,6 +732,11 @@ class SeedAudioSchemaTests(unittest.TestCase):
         self.assertEqual(self.schema.node_id, "BytePlusSeedAudio")
         self.assertEqual(self.schema.display_name, "BytePlus Seed Audio 1.0")
 
+    def test_model_options_leave_out_core_multilingual_alias(self):
+        # Checked live 2026-10-18: the API ignores the model name, so core's
+        # "seed-audio-1.0-multilingual" would be a second name for the same model.
+        self.assertEqual(list(self.inputs["model"].options), ["seed-audio-1.0"])
+
     def test_input_order_core_then_extras(self):
         self.assertEqual(
             [i.id for i in ordered(self.schema.inputs)],
