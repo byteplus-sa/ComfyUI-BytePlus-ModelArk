@@ -58,6 +58,28 @@ def _task_error(task, fallback):
     return fallback
 
 
+def _task_fail_reason(task, name_status=False):
+    """The reason a finished-unsuccessfully task gives; name_status falls back to Cancelled / Expired."""
+    error = getattr(task, "error", None)
+    if error:
+        if hasattr(error, "message"):
+            return error.message
+        if isinstance(error, dict) and "message" in error:
+            return error["message"]
+        return str(error)
+    if name_status and task.status == "cancelled":
+        return "Cancelled"
+    if name_status and task.status == "expired":
+        return "Expired"
+    return "Failed"
+
+
+def _failed_task_info(task_id, task, name_status=False):
+    """(task ID, message for the user, reason) of a failed, cancelled or expired task."""
+    reason = _task_fail_reason(task, name_status)
+    return (task_id, format_api_error(_task_error(task, reason)), reason)
+
+
 DEFAULT_FALLBACK_PER_SEC = 12
 DEFAULT_FALLBACK_BASE = 20
 HISTORY_PAGE_SIZE = 50
@@ -315,6 +337,46 @@ async def _get_api_estimated_time_async(
 LONG_WAIT_HINT_SECONDS = 20 * 60
 
 
+def _poll_console_text(
+    generation_count, pending_ids, done, total, running, queued, elapsed, estimated_total, waiting_status=None
+):
+    """The console progress line: estimated_total is known only while tasks run, waiting_status only when none do."""
+    if generation_count == 1 and running > 0:
+        return get_text("polling_single").format(task_id=pending_ids[0], elapsed=elapsed, max=estimated_total)
+    if generation_count == 1:
+        return get_text("polling_single_waiting").format(task_id=pending_ids[0], status=waiting_status, queued=queued)
+    return get_text("polling_batch_stats").format(
+        done=done,
+        total=total,
+        pending=len(pending_ids),
+        elapsed=elapsed,
+        max=estimated_total if running > 0 else elapsed + 10,
+        running=running,
+        queued=queued,
+    )
+
+
+def _poll_node_status_text(running, queued, done, total, waited_seconds, remaining_seconds):
+    remaining = get_text("node_poll_remaining", seconds=remaining_seconds) if remaining_seconds > 0 else ""
+    long_wait = (
+        get_text("node_poll_long_wait", minutes=waited_seconds // 60)
+        if waited_seconds >= LONG_WAIT_HINT_SECONDS
+        else ""
+    )
+    return (
+        get_text(
+            "node_poll_status",
+            running=running,
+            queued=queued,
+            done=done,
+            total=total,
+            elapsed=waited_seconds,
+            remaining=remaining,
+        )
+        + long_wait
+    )
+
+
 class BytePlusGenerationExecutor:
     """
     Runs generation requests.
@@ -432,6 +494,27 @@ class BytePlusGenerationExecutor:
             log_msg("cancel_running_billed", count=len(running_ids), ids=", ".join(running_ids))
             send_node_text(self.node_id, note, self.ps_instance)
 
+    def _build_task_request(
+        self, model_name, content, service_tier, execution_expires_after, extra_api_params, return_last_frame
+    ):
+        request_kwargs = {
+            "model": model_name,
+            "content": content,
+            "return_last_frame": return_last_frame,
+        }
+        if service_tier:
+            request_kwargs["service_tier"] = service_tier
+        if execution_expires_after is not None:
+            request_kwargs["execution_expires_after"] = execution_expires_after
+
+        if extra_api_params:
+            request_kwargs.update(extra_api_params)
+
+        if "seedance-2-" in str(model_name).lower():
+            request_kwargs.pop("service_tier", None)
+            request_kwargs.pop("execution_expires_after", None)
+        return request_kwargs
+
     async def run_batch_tasks(
         self,
         model_name,
@@ -458,22 +541,9 @@ class BytePlusGenerationExecutor:
         ps_instance = self.ps_instance
         node_id = self.node_id
 
-        request_kwargs = {
-            "model": model_name,
-            "content": content,
-            "return_last_frame": return_last_frame,
-        }
-        if service_tier:
-            request_kwargs["service_tier"] = service_tier
-        if execution_expires_after is not None:
-            request_kwargs["execution_expires_after"] = execution_expires_after
-
-        if extra_api_params:
-            request_kwargs.update(extra_api_params)
-
-        if "seedance-2-" in str(model_name).lower():
-            request_kwargs.pop("service_tier", None)
-            request_kwargs.pop("execution_expires_after", None)
+        request_kwargs = self._build_task_request(
+            model_name, content, service_tier, execution_expires_after, extra_api_params, return_last_frame
+        )
 
         # A pending non_blocking task is collected only by the same request from the
         # same key and region; a blocking run forgets it.
@@ -487,76 +557,122 @@ class BytePlusGenerationExecutor:
             cached_data = None
 
         if cached_data:
-            task_ids = cached_data["task_ids"]
-            log_msg("check_status", count=len(task_ids))
+            return await self._collect_pending_tasks(cached_data, non_blocking_cache_dict)
+
+        tasks_to_poll = await self._create_tasks(model_name, content, request_kwargs, generation_count)
+        if not tasks_to_poll:
+            return []
+
+        if on_tasks_created:
             try:
-                comfy.model_management.throw_exception_if_processing_interrupted()
-                get_coroutines = [
-                    asyncio.to_thread(ark_client.content_generation.tasks.get, task_id=tid) for tid in task_ids
-                ]
-                results = await asyncio.gather(*get_coroutines, return_exceptions=True)
+                on_tasks_created(tasks_to_poll)
+            except Exception as e:
+                log_msg("err_on_tasks_created", e=e)
 
-                successful_tasks, failed_tasks_info, pending_tasks = [], [], []
-                for i, res in enumerate(results):
-                    if isinstance(res, Exception):
-                        raw_error = str(res)
-                        failed_tasks_info.append((task_ids[i], raw_error, raw_error))
-                    elif res.status == "succeeded":
-                        successful_tasks.append(res)
-                    elif res.status in FAILED_TASK_STATUSES:
-                        fail_reason = "Failed"
-                        if hasattr(res, "error") and res.error:
-                            if hasattr(res.error, "message"):
-                                fail_reason = res.error.message
-                            elif isinstance(res.error, dict) and "message" in res.error:
-                                fail_reason = res.error["message"]
-                            else:
-                                fail_reason = str(res.error)
-                        elif res.status == "cancelled":
-                            fail_reason = "Cancelled"
-                        elif res.status == "expired":
-                            fail_reason = "Expired"
-                        failed_tasks_info.append((res.id, format_api_error(_task_error(res, fail_reason)), fail_reason))
-                    else:
-                        pending_tasks.append(res)
+        poll_interval = SEEDANCE_POLL_SECONDS if poll_interval is None else poll_interval
 
-                if pending_tasks:
+        est_resolution = resolution
+        if extra_api_params and extra_api_params.get("draft"):
+            est_resolution = "480p"
+
+        estimated_single_task_time, method_key = await _get_api_estimated_time_async(
+            ark_client, model_name, estimation_duration, est_resolution, content=content
+        )
+        if estimated_single_task_time <= 0:
+            estimated_single_task_time = 1
+
+        if non_blocking:
+            task_ids = [t.id for t in tasks_to_poll]
+            non_blocking_cache_dict[node_id] = {"task_ids": task_ids, "request": fingerprint}
+            if node_id and ps_instance:
+                ps_instance.send_progress_text(
+                    get_text("progress_non_blocking_submitted").format(task_ids=", ".join(task_ids)),
+                    node_id,
+                )
+            return {
+                "non_blocking": True,
+                "status": "submitted",
+                "task_ids": task_ids,
+                "pending_count": len(task_ids),
+            }
+
+        method_name = get_text(method_key)
+        if tasks_to_poll:
+            log_msg("task_submitted_est", time=estimated_single_task_time, method=method_name)
+
+        if generation_count == 1 and tasks_to_poll:
+            log_msg("task_info_simple", task_id=tasks_to_poll[0].id, model=model_name)
+
+        successful_tasks, failed_tasks_info = await self._poll_tasks(
+            tasks_to_poll, generation_count, poll_interval, estimated_single_task_time
+        )
+        return self._finish_batch(tasks_to_poll, successful_tasks, failed_tasks_info, generation_count)
+
+    async def _collect_pending_tasks(self, cached_data, non_blocking_cache_dict):
+        """Check the tasks a previous non_blocking run left pending: their videos, or the same pending status."""
+        ark_client = self.ark_client
+        ps_instance = self.ps_instance
+        node_id = self.node_id
+        task_ids = cached_data["task_ids"]
+        log_msg("check_status", count=len(task_ids))
+        try:
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            get_coroutines = [
+                asyncio.to_thread(ark_client.content_generation.tasks.get, task_id=tid) for tid in task_ids
+            ]
+            results = await asyncio.gather(*get_coroutines, return_exceptions=True)
+
+            successful_tasks, failed_tasks_info, pending_tasks = [], [], []
+            for i, res in enumerate(results):
+                if isinstance(res, Exception):
+                    raw_error = str(res)
+                    failed_tasks_info.append((task_ids[i], raw_error, raw_error))
+                elif res.status == "succeeded":
+                    successful_tasks.append(res)
+                elif res.status in FAILED_TASK_STATUSES:
+                    failed_tasks_info.append(_failed_task_info(res.id, res, name_status=True))
+                else:
+                    pending_tasks.append(res)
+
+            if pending_tasks:
+                for tid, error_msg, raw_api_response in failed_tasks_info:
+                    self._log_batch_task_failure(error_msg, tid, raw_api_response)
+                pending_ids = [task.id for task in pending_tasks]
+                if node_id and ps_instance:
+                    ps_instance.send_progress_text(
+                        get_text("progress_non_blocking_pending").format(task_ids=", ".join(pending_ids)),
+                        node_id,
+                    )
+                return {
+                    "non_blocking": True,
+                    "status": pending_tasks[0].status,
+                    "task_ids": pending_ids,
+                    "pending_count": len(pending_ids),
+                }
+            else:
+                del non_blocking_cache_dict[node_id]
+                if not self._should_skip_failure_log_before_raise(successful_tasks, failed_tasks_info):
                     for tid, error_msg, raw_api_response in failed_tasks_info:
                         self._log_batch_task_failure(error_msg, tid, raw_api_response)
-                    pending_ids = [task.id for task in pending_tasks]
-                    if node_id and ps_instance:
-                        ps_instance.send_progress_text(
-                            get_text("progress_non_blocking_pending").format(task_ids=", ".join(pending_ids)),
-                            node_id,
-                        )
-                    return {
-                        "non_blocking": True,
-                        "status": pending_tasks[0].status,
-                        "task_ids": pending_ids,
-                        "pending_count": len(pending_ids),
-                    }
-                else:
-                    del non_blocking_cache_dict[node_id]
-                    if not self._should_skip_failure_log_before_raise(successful_tasks, failed_tasks_info):
-                        for tid, error_msg, raw_api_response in failed_tasks_info:
-                            self._log_batch_task_failure(error_msg, tid, raw_api_response)
-                    if not successful_tasks:
-                        if failed_tasks_info:
-                            first_tid, first_msg, _ = failed_tasks_info[0]
-                            self._create_failure_json(first_msg, task_id=first_tid)
-                        else:
-                            self._create_failure_json(get_text("err_batch_fail_all"))
+                if not successful_tasks:
+                    if failed_tasks_info:
+                        first_tid, first_msg, _ = failed_tasks_info[0]
+                        self._create_failure_json(first_msg, task_id=first_tid)
+                    else:
+                        self._create_failure_json(get_text("err_batch_fail_all"))
 
-                    return successful_tasks
+                return successful_tasks
 
-            except Exception as e:
-                if str(e).startswith("[BytePlus]"):
-                    raise e
-                del non_blocking_cache_dict[node_id]
-                log_msg("err_check_status_batch", e=e)
-                self._create_failure_json(format_api_error(e))
-                return []
+        except Exception as e:
+            if isinstance(e, BytePlusException):
+                raise e
+            del non_blocking_cache_dict[node_id]
+            log_msg("err_check_status_batch", e=e)
+            self._create_failure_json(format_api_error(e))
+            return []
 
+    async def _create_tasks(self, model_name, content, request_kwargs, generation_count):
+        """Create the batch's tasks; returns the created ones ([] when every creation failed and errors are ignored)."""
         if generation_count > 1:
             log_msg("batch_submit_start", count=generation_count, model=model_name)
 
@@ -659,46 +775,13 @@ class BytePlusGenerationExecutor:
                 final_error_msg = format_api_error(creation_errors[0])
             self._create_failure_json(final_error_msg)
             return []
+        return tasks_to_poll
 
-        if on_tasks_created:
-            try:
-                on_tasks_created(tasks_to_poll)
-            except Exception as e:
-                log_msg("err_on_tasks_created", e=e)
-
-        poll_interval = SEEDANCE_POLL_SECONDS if poll_interval is None else poll_interval
-
-        est_resolution = resolution
-        if extra_api_params and extra_api_params.get("draft"):
-            est_resolution = "480p"
-
-        estimated_single_task_time, method_key = await _get_api_estimated_time_async(
-            ark_client, model_name, estimation_duration, est_resolution, content=content
-        )
-        if estimated_single_task_time <= 0:
-            estimated_single_task_time = 1
-
-        if non_blocking:
-            task_ids = [t.id for t in tasks_to_poll]
-            non_blocking_cache_dict[node_id] = {"task_ids": task_ids, "request": fingerprint}
-            if node_id and ps_instance:
-                ps_instance.send_progress_text(
-                    get_text("progress_non_blocking_submitted").format(task_ids=", ".join(task_ids)),
-                    node_id,
-                )
-            return {
-                "non_blocking": True,
-                "status": "submitted",
-                "task_ids": task_ids,
-                "pending_count": len(task_ids),
-            }
-
-        method_name = get_text(method_key)
-        if tasks_to_poll:
-            log_msg("task_submitted_est", time=estimated_single_task_time, method=method_name)
-
-        if generation_count == 1 and tasks_to_poll:
-            log_msg("task_info_simple", task_id=tasks_to_poll[0].id, model=model_name)
+    async def _poll_tasks(self, tasks_to_poll, generation_count, poll_interval, estimated_single_task_time):
+        """Poll until every task has finished: (succeeded tasks, failure infos); cancels them on interrupt."""
+        ark_client = self.ark_client
+        ps_instance = self.ps_instance
+        node_id = self.node_id
 
         accumulated_running_time = 0.0
         max_concurrency_seen = 0
@@ -763,21 +846,7 @@ class BytePlusGenerationExecutor:
                             if current_task_id in running_task_start_times:
                                 del running_task_start_times[current_task_id]
 
-                            fail_reason = "Failed"
-                            if hasattr(res, "error") and res.error:
-                                if hasattr(res.error, "message"):
-                                    fail_reason = res.error.message
-                                elif isinstance(res.error, dict) and "message" in res.error:
-                                    fail_reason = res.error["message"]
-                                else:
-                                    fail_reason = str(res.error)
-                            failed_tasks_info.append(
-                                (
-                                    current_task_id,
-                                    format_api_error(_task_error(res, fail_reason)),
-                                    fail_reason,
-                                )
-                            )
+                            failed_tasks_info.append(_failed_task_info(current_task_id, res))
                         else:
                             next_poll_ids.append(current_task_id)
                             if res.status == "running":
@@ -835,79 +904,48 @@ class BytePlusGenerationExecutor:
                         ps_instance,
                     )
 
-                    if generation_count == 1:
-                        print(
-                            get_text("polling_single").format(
-                                task_id=tasks_to_poll_ids[0],
-                                elapsed=int(accumulated_running_time),
-                                max=current_max,
-                            ),
-                            end="\r",
-                        )
-                    else:
-                        done_count = len(successful_tasks) + len(failed_tasks_info)
-                        print(
-                            get_text("polling_batch_stats").format(
-                                done=done_count,
-                                total=total_tasks_count,
-                                pending=len(tasks_to_poll_ids),
-                                elapsed=int(accumulated_running_time),
-                                max=current_max,
-                                running=running_count,
-                                queued=current_queued_count,
-                            ),
-                            end="\r",
-                        )
+                    print(
+                        _poll_console_text(
+                            generation_count,
+                            tasks_to_poll_ids,
+                            len(successful_tasks) + len(failed_tasks_info),
+                            total_tasks_count,
+                            running_count,
+                            current_queued_count,
+                            int(accumulated_running_time),
+                            current_max,
+                        ),
+                        end="\r",
+                    )
                 else:
-                    if generation_count == 1:
-                        print(
-                            get_text("polling_single_waiting").format(
-                                task_id=tasks_to_poll_ids[0],
-                                status=single_task_status_for_display,
-                                queued=current_queued_count,
-                            ),
-                            end="\r",
-                        )
-                    else:
-                        done_count = len(successful_tasks) + len(failed_tasks_info)
-                        print(
-                            get_text("polling_batch_stats").format(
-                                done=done_count,
-                                total=total_tasks_count,
-                                pending=len(tasks_to_poll_ids),
-                                elapsed=int(accumulated_running_time),
-                                max=int(accumulated_running_time + 10),
-                                running=0,
-                                queued=current_queued_count,
-                            ),
-                            end="\r",
-                        )
+                    print(
+                        _poll_console_text(
+                            generation_count,
+                            tasks_to_poll_ids,
+                            len(successful_tasks) + len(failed_tasks_info),
+                            total_tasks_count,
+                            0,
+                            current_queued_count,
+                            int(accumulated_running_time),
+                            None,
+                            single_task_status_for_display,
+                        ),
+                        end="\r",
+                    )
 
                 # Status on the node itself: queued tasks show no progress bar, and
                 # the Flex tier can queue for hours.
-                remaining = ""
-                if running_count > 0:
-                    left = int(current_max - accumulated_running_time)
-                    if left > 0:
-                        remaining = get_text("node_poll_remaining", seconds=left)
-                waited_seconds = int(time.time() - poll_started)
-                long_wait = (
-                    get_text("node_poll_long_wait", minutes=waited_seconds // 60)
-                    if waited_seconds >= LONG_WAIT_HINT_SECONDS
-                    else ""
-                )
+                remaining_seconds = int(current_max - accumulated_running_time) if running_count > 0 else 0
                 send_node_text(
                     node_id,
-                    get_text(
-                        "node_poll_status",
-                        running=running_count,
-                        queued=current_queued_count,
-                        done=len(successful_tasks) + len(failed_tasks_info),
-                        total=total_tasks_count,
-                        elapsed=waited_seconds,
-                        remaining=remaining,
-                    )
-                    + long_wait,
+                    _poll_node_status_text(
+                        running_count,
+                        current_queued_count,
+                        len(successful_tasks) + len(failed_tasks_info),
+                        total_tasks_count,
+                        int(time.time() - poll_started),
+                        remaining_seconds,
+                    ),
                     ps_instance,
                 )
 
@@ -922,6 +960,9 @@ class BytePlusGenerationExecutor:
             print()
             _finish_node_progress(node_id, ps_instance)
 
+        return successful_tasks, failed_tasks_info
+
+    def _finish_batch(self, tasks_to_poll, successful_tasks, failed_tasks_info, generation_count):
         if not self._should_skip_failure_log_before_raise(successful_tasks, failed_tasks_info):
             for tid, error_msg, raw_api_response in failed_tasks_info:
                 self._log_batch_task_failure(error_msg, tid, raw_api_response)
