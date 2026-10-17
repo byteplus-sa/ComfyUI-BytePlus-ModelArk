@@ -302,7 +302,9 @@ class GenerationCountCapTests(unittest.TestCase):
 
 
 @requires_comfyui
-class ImageEnhancePartialFailureTests(unittest.IsolatedAsyncioTestCase):
+class ImageEnhanceFixtures(unittest.IsolatedAsyncioTestCase):
+    """Fake MediaKit client, downloads and uploads for the Image Enhance tests (no tests of its own)."""
+
     RESULT = {
         "image_url": "https://cdn.example/out.png?auth_key=x",
         "image_format": "png",
@@ -344,6 +346,9 @@ class ImageEnhancePartialFailureTests(unittest.IsolatedAsyncioTestCase):
             self.addCleanup(patcher.stop)
         self.client = nodes_mediakit.MediaKitClient("test-key")
 
+
+@requires_comfyui
+class ImageEnhancePartialFailureTests(ImageEnhanceFixtures):
     def send_failing(self, failing_calls):
         calls = []
 
@@ -390,6 +395,76 @@ class ImageEnhancePartialFailureTests(unittest.IsolatedAsyncioTestCase):
         ).args
         self.assertEqual(tuple(enhanced.shape), (1, 60, 80, 3))
         self.assertIsInstance(original, ExecutionBlocker)
+
+
+@requires_comfyui
+class ImageEnhanceRateLimitTests(ImageEnhanceFixtures):
+    """MediaKit answers parallel sync calls with 429 RequestLimitExceeded (checked live 2026-10-18)."""
+
+    def setUp(self):
+        super().setUp()
+
+        async def no_wait(seconds):
+            return None
+
+        patcher = mock.patch.object(nodes_mediakit, "sleep_interruptible", no_wait)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def send_scripted(self, statuses):
+        calls = []
+        active = {"now": 0, "max": 0}
+
+        async def send(client, method, path, body=None, timeout_seconds=None):
+            calls.append(body)
+            active["now"] += 1
+            active["max"] = max(active["max"], active["now"])
+            try:
+                await asyncio.sleep(0.01)
+                status = statuses[len(calls) - 1] if len(calls) <= len(statuses) else 200
+                if status == 429:
+                    error = {"code": "RequestLimitExceeded", "type": "TooManyRequests", "message": "rate limit"}
+                    return 429, {"success": False, "error": error}
+                if status >= 400:
+                    return status, {"success": False, "error": {"code": "InternalError", "message": "boom"}}
+                return 200, {"success": True, "task_id": f"amk-{len(calls)}", "request_id": "r", "result": self.RESULT}
+            finally:
+                active["now"] -= 1
+
+        return send, calls, active
+
+    async def run_node(self, send, **kwargs):
+        args = dict(tool_version={"tool_version": "standard"}, output_size={"output_size": "multiple", "multiple": 2.0})
+        args.update(kwargs)
+        with mock.patch.object(nodes_mediakit, "_send", send):
+            return await nodes_mediakit.BytePlusImageEnhance.execute(self.client, **args)
+
+    async def test_rate_limited_calls_are_retried_until_accepted(self):
+        send, calls, _ = self.send_scripted([429, 429, 200])
+        enhanced, _, _ = (await self.run_node(send, image_url="https://cdn.example/in.jpg")).args
+        self.assertEqual(tuple(enhanced.shape), (1, 60, 80, 3))
+        self.assertEqual(len(calls), 3)
+
+    async def test_a_batch_sends_one_enhance_call_at_a_time(self):
+        import torch
+
+        send, calls, active = self.send_scripted([])
+        batch = torch.cat([solid(40, 30, 0), solid(40, 30, 1), solid(40, 30, 2)])
+        enhanced, _, _ = (await self.run_node(send, image=batch)).args
+        self.assertEqual(tuple(enhanced.shape), (3, 60, 80, 3))
+        self.assertEqual(active["max"], 1)
+
+    async def test_rate_limit_retries_give_up_after_the_cap(self):
+        send, calls, _ = self.send_scripted([429] * 50)
+        with self.assertRaisesRegex(Exception, "RequestLimitExceeded"):
+            await self.run_node(send, image_url="https://cdn.example/in.jpg")
+        self.assertEqual(len(calls), nodes_mediakit.IMAGE_RATE_LIMIT_RETRIES + 1)
+
+    async def test_a_server_error_is_not_retried_because_the_image_may_be_billed(self):
+        send, calls, _ = self.send_scripted([503, 200])
+        with self.assertRaisesRegex(Exception, "InternalError"):
+            await self.run_node(send, image_url="https://cdn.example/in.jpg")
+        self.assertEqual(len(calls), 1)
 
 
 if __name__ == "__main__":

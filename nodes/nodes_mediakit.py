@@ -55,6 +55,7 @@ from .nodes_shared import (
     BytePlusException,
     gather_cancelling,
     get_text,
+    keyed_lock,
     log_msg,
     plain_text,
     send_node_text,
@@ -153,11 +154,12 @@ async def _send(client, method, path, body=None, timeout_seconds=None):
 
 
 class MediaKitRequestError(BytePlusException):
-    """A failed MediaKit call. retryable: network errors, timeouts, 429 and 5xx."""
+    """A failed MediaKit call. retryable: network errors, timeouts, 429 and 5xx. status: the HTTP status, if any."""
 
-    def __init__(self, message, retryable=False):
+    def __init__(self, message, retryable=False, status=None):
         super().__init__(message)
         self.retryable = retryable
+        self.status = status
 
 
 def _retryable_status(status):
@@ -180,12 +182,16 @@ async def mediakit_request(client, method, path, body=None, timeout_seconds=None
     except aiohttp.ClientError as e:
         raise MediaKitRequestError(get_text("err_mediakit_network", e=e), retryable=True) from e
     if not isinstance(data, dict):
-        raise MediaKitRequestError(get_text("err_mediakit_unexpected", status=status), _retryable_status(status))
+        raise MediaKitRequestError(
+            get_text("err_mediakit_unexpected", status=status), _retryable_status(status), status=status
+        )
     if accept_failed_task and data.get("status") == "failed":
         return data
     if status >= 400 or data.get("success") is False:
         raise MediaKitRequestError(
-            describe_mediakit_error(data.get("error"), status, data.get("request_id")), _retryable_status(status)
+            describe_mediakit_error(data.get("error"), status, data.get("request_id")),
+            _retryable_status(status),
+            status=status,
         )
     return data
 
@@ -1157,6 +1163,12 @@ IMAGE_SIZE_MULTIPLE = "multiple"
 IMAGE_SIZE_TARGET = "target size"
 IMAGE_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 IMAGE_MAX_PARALLEL = 3
+# MediaKit takes one sync image call at a time: parallel calls get 429
+# RequestLimitExceeded at once (checked live 2026-10-18). A 429 is a refusal
+# that bills nothing, so it is retried; other failures are not (the image may
+# have been processed and billed).
+IMAGE_SYNC_LOCKS = {}
+IMAGE_RATE_LIMIT_RETRIES = 5
 IMAGE_MAX_RECOMMENDED_SIDE = 8000  # max version: larger outputs can time out
 
 # Per tool_version (AI MediaKit docs): input short/long side, long:short ratio,
@@ -1527,13 +1539,7 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
                     cls.hidden.unique_id,
                     plain_text("image_enhance_submitted", version=version, index=index + 1, count=len(sources)),
                 )
-                response = await mediakit_request(
-                    mediakit_client,
-                    "POST",
-                    "/tools-sync/enhance-image",
-                    body,
-                    timeout_seconds=MEDIAKIT_SYNC_TIMEOUT_SECONDS,
-                )
+                response = await enhance_image_request(mediakit_client, body)
                 result = task_result(response)
                 if not result.get("image_url"):
                     raise BytePlusException(get_text("err_mediakit_unexpected", status="no result image_url"))
@@ -1577,6 +1583,20 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
             originals,
             json.dumps(responses[0] if len(responses) == 1 else responses, ensure_ascii=False),
         )
+
+
+async def enhance_image_request(client, body):
+    """POST /tools-sync/enhance-image, one call at a time, retrying only 429 (nothing billed)."""
+    for attempt in range(IMAGE_RATE_LIMIT_RETRIES + 1):
+        try:
+            async with keyed_lock(IMAGE_SYNC_LOCKS, "enhance-image"):
+                return await mediakit_request(
+                    client, "POST", "/tools-sync/enhance-image", body, timeout_seconds=MEDIAKIT_SYNC_TIMEOUT_SECONDS
+                )
+        except MediaKitRequestError as e:
+            if e.status != 429 or attempt >= IMAGE_RATE_LIMIT_RETRIES:
+                raise
+        await sleep_interruptible(2**attempt)
 
 
 async def _load_linked_source(link):
