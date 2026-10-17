@@ -8,14 +8,60 @@ import numpy
 import PIL.Image
 import folder_paths
 import random
+import urllib.parse
 import comfy.model_management
 from .nodes_shared import log_msg
 
 DEFAULT_DOWNLOAD_TIMEOUT = 60
 DEFAULT_DOWNLOAD_RETRIES = 3
+DOWNLOAD_RETRY_DELAY_SECONDS = 2
+RETRYABLE_CLIENT_STATUSES = (408, 429)
 # Generated videos can be large: no total time limit, only a stalled connection
 # times out (like ComfyUI core's download_url_to_video_output).
 VIDEO_DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=None, sock_connect=60, sock_read=120)
+
+
+def link_without_query(url: str) -> str:
+    """The link for logs: signed result links carry their token in the query."""
+    return str(url).split("?", 1)[0]
+
+
+def describe_download_error(error: BaseException) -> str:
+    """A short reason without the link (aiohttp's text includes the full signed URL)."""
+    if isinstance(error, aiohttp.ClientResponseError):
+        return f"HTTP {error.status}"
+    if isinstance(error, asyncio.TimeoutError):
+        return "timed out"
+    return type(error).__name__
+
+
+def url_file_extension(url: str, default: str) -> str:
+    """The extension of the link's path (never its query), letters and digits only."""
+    extension = os.path.splitext(urllib.parse.urlparse(url or "").path)[1][1:]
+    return extension if extension.isascii() and extension.isalnum() else default
+
+
+def _download_error_is_retryable(error: BaseException) -> bool:
+    if isinstance(error, aiohttp.ClientResponseError):
+        return error.status >= 500 or error.status in RETRYABLE_CLIENT_STATUSES
+    return True
+
+
+async def _with_download_retries(attempt_once, retries: int):
+    for attempt in range(1, retries + 2):
+        try:
+            return await attempt_once()
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            if attempt > retries or not _download_error_is_retryable(e):
+                raise
+            log_msg(
+                "download_retry",
+                attempt=attempt,
+                total=retries + 1,
+                delay=DOWNLOAD_RETRY_DELAY_SECONDS,
+                e=describe_download_error(e),
+            )
+            await asyncio.sleep(DOWNLOAD_RETRY_DELAY_SECONDS)
 
 
 def _image_bytes_to_tensor(image_data: bytes) -> torch.Tensor:
@@ -44,7 +90,7 @@ async def download_url_to_rgba_tensor_async(
         image_data = await _fetch_data_from_url_async(session, url)
         return await asyncio.to_thread(_image_bytes_to_rgba_tensor, image_data)
     except Exception as e:
-        log_msg("err_download_url", url=url, e=e)
+        log_msg("err_download_url", url=link_without_query(url), e=describe_download_error(e))
         return None
 
 
@@ -76,31 +122,17 @@ async def _fetch_data_from_url_async(
     retries: int = DEFAULT_DOWNLOAD_RETRIES,
 ) -> bytes:
     """
-    Fetch a URL asynchronously, with retries.
+    Fetch a URL asynchronously, retrying network errors, timeouts, 408, 429
+    and 5xx.
     """
-    for attempt in range(1, retries + 2):
-        try:
-            client_timeout = aiohttp.ClientTimeout(total=timeout)
-            # t0 = time.time()
-            async with session.get(url, timeout=client_timeout) as response:
-                response.raise_for_status()
-                data = await response.read()
-                # t1 = time.time()
-                # print(f"[BytePlus Debug] Downloaded {len(data)} bytes from {url} in {t1 - t0:.2f}s")
-                return data
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            if attempt > retries:
-                raise e
-            retry_delay = 2
-            log_msg(
-                "download_retry",
-                attempt=attempt,
-                total=retries + 1,
-                delay=retry_delay,
-                e=e,
-            )
-            await asyncio.sleep(retry_delay)
-    return b""
+    client_timeout = aiohttp.ClientTimeout(total=timeout)
+
+    async def attempt_once():
+        async with session.get(url, timeout=client_timeout) as response:
+            response.raise_for_status()
+            return await response.read()
+
+    return await _with_download_retries(attempt_once, retries)
 
 
 async def download_url_to_image_tensor_async(
@@ -115,7 +147,7 @@ async def download_url_to_image_tensor_async(
         image_data = await _fetch_data_from_url_async(session, url)
         return await image_bytes_to_tensor_async(image_data)
     except Exception as e:
-        log_msg("err_download_url", url=url, e=e)
+        log_msg("err_download_url", url=link_without_query(url), e=describe_download_error(e))
         return None
 
 
@@ -149,16 +181,12 @@ async def _download_to_temp_base(
     final_path = os.path.join(full_output_folder, final_filename)
 
     try:
-        # t0 = time.time()
         data = await _fetch_data_from_url_async(session, url)
-        # t1 = time.time()
         with open(final_path, "wb") as f:
             f.write(data)
-        # t2 = time.time()
-        # print(f"[BytePlus Debug] Saved to {final_path}. Fetch: {t1 - t0:.2f}s, Write: {t2 - t1:.2f}s")
         return (final_path, data)
     except Exception as e:
-        log_msg("err_download_url", url=url, e=e)
+        log_msg("err_download_url", url=link_without_query(url), e=describe_download_error(e))
         return (None, None)
 
 
@@ -174,37 +202,24 @@ async def _download_to_file_stream_async(
     attempt, or an aiohttp.ClientTimeout (e.g. no total limit, only a stall
     limit, for large files).
     """
-    for attempt in range(1, retries + 2):
-        try:
-            if isinstance(timeout, aiohttp.ClientTimeout):
-                client_timeout = timeout
-            else:
-                client_timeout = aiohttp.ClientTimeout(total=timeout)
-            # t0 = time.time()
-            async with session.get(url, timeout=client_timeout) as response:
-                response.raise_for_status()
-                with open(file_path, "wb") as f:
-                    while True:
-                        chunk = await response.content.read(1024 * 1024)  # 1MB chunk
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                # t1 = time.time()
-                # print(f"[BytePlus Debug] Stream downloaded to {file_path} in {t1 - t0:.2f}s")
-                return True
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            if attempt > retries:
-                raise e
-            retry_delay = 2
-            log_msg(
-                "download_retry",
-                attempt=attempt,
-                total=retries + 1,
-                delay=retry_delay,
-                e=e,
-            )
-            await asyncio.sleep(retry_delay)
-    return False
+    if isinstance(timeout, aiohttp.ClientTimeout):
+        client_timeout = timeout
+    else:
+        client_timeout = aiohttp.ClientTimeout(total=timeout)
+
+    async def attempt_once():
+        async with session.get(url, timeout=client_timeout) as response:
+            response.raise_for_status()
+            with open(file_path, "wb") as f:
+                while True:
+                    chunk = await response.content.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+        return True
+
+    return await _with_download_retries(attempt_once, retries)
+
 
 async def download_video_to_temp(
     session: aiohttp.ClientSession,
@@ -218,7 +233,7 @@ async def download_video_to_temp(
     """
     if not url:
         return None
-    file_ext = url.split(".")[-1].split("?")[0] or "mp4"
+    file_ext = url_file_extension(url, "mp4")
 
     if seed is not None:
         prefix = f"{prefix}_seed_{seed}"
@@ -243,7 +258,7 @@ async def download_video_to_temp(
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:
-        log_msg("err_download_url", url=url.split("?", 1)[0], e=type(e).__name__)
+        log_msg("err_download_url", url=link_without_query(url), e=describe_download_error(e))
         return None
 
 
@@ -260,7 +275,7 @@ async def download_image_to_temp(
     if not url:
         return (None, None)
 
-    file_ext = url.split(".")[-1].split("?")[0] or "jpg"
+    file_ext = url_file_extension(url, "jpg")
     (path, data) = await _download_to_temp_base(
         session, url, prefix, seed, save_path_name, file_ext
     )

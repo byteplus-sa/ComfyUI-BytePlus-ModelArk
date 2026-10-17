@@ -902,6 +902,24 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(info[0]["file"].endswith("_base.png"))
             self.assertTrue(info[1]["file"].endswith("_layer01.png"))
 
+    async def test_saved_layers_without_z_index_do_not_overwrite_each_other(self):
+        first = self.layer_item((4, 4), (0, 255, 0, 255), None, [0, 0, 4, 4], name="first")
+        second = self.layer_item((4, 4), (0, 0, 255, 255), None, [4, 4, 8, 8], name="second")
+        old_output = seedream_utils.folder_paths.get_output_directory
+        with tempfile.TemporaryDirectory() as tmp:
+            seedream_utils.folder_paths.get_output_directory = lambda: tmp
+            try:
+                _calls, _client, result = await self.run_node(
+                    [self.base_item(), first, second], save_layers=True, filename_prefix="BytePlus/Test/Layers"
+                )
+            finally:
+                seedream_utils.folder_paths.get_output_directory = old_output
+            files = [item["file"] for item in json.loads(result[6])["layers"]]
+            self.assertEqual(len(set(files)), 3)
+            self.assertTrue(files[0].endswith("_base.png"))
+            for relative in files:
+                self.assertTrue(os.path.exists(os.path.join(tmp, relative)))
+
     async def test_api_error_in_response_is_raised(self):
         error = SimpleNamespace(code="OutputImageSensitiveContentDetected", message="output image may contain sensitive information")
 

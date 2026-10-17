@@ -333,7 +333,7 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.uploads = []
 
-        async def fake_upload(client, path, fps=None, expire_seconds=604800, return_meta=False, model=None):
+        async def fake_upload(client, path, fps=None, expire_seconds=604800, model=None):
             with open(path, "rb") as f:
                 head = f.read(3)
             self.uploads.append({"path": path, "fps": fps, "expire": expire_seconds, "head": head, "model": model})

@@ -988,14 +988,13 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
             assemble_layer_outputs, base_rgba, layers_rgba, layer_items, crop_layers
         )
 
-        saved = {}
+        saved = []
         if model.get("save_layers", False):
             saved = await asyncio.to_thread(
                 _save_layer_pngs,
                 model.get("filename_prefix", "BytePlus/Layers/Seedream"),
                 base_rgba,
                 layers_rgba,
-                layer_items,
                 output_format,
             )
         layers_info = [
@@ -1005,10 +1004,10 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
                 "description": None,
                 "size": getattr(base_item, "size", None),
                 "bounding_box": None,
-                "file": saved.get(0),
+                "file": saved[0] if saved else None,
             }
         ]
-        for item, layer_flags in zip(layer_items, flags):
+        for position, (item, layer_flags) in enumerate(zip(layer_items, flags), start=1):
             z_index = _z_index_of(item)
             layers_info.append(
                 {
@@ -1018,7 +1017,7 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
                     "size": getattr(item, "size", None),
                     "bounding_box": _bbox_dict(item),
                     "flags": layer_flags,
-                    "file": saved.get(getattr(item, "z_index", None) or 0),
+                    "file": saved[position] if position < len(saved) else None,
                 }
             )
         layers_json = json.dumps(
