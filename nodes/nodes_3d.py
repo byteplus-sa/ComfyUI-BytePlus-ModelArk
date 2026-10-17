@@ -72,7 +72,7 @@ from .nodes_shared import (
     wait_interruptible,
     with_client,
 )
-from .utils_download import VIDEO_DOWNLOAD_TIMEOUT, _download_to_file_stream_async
+from .utils_download import download_to_file
 
 THREE_D_CATEGORY = f"{GLOBAL_CATEGORY}/3D"
 THREE_D_POLL_SECONDS = 4
@@ -331,9 +331,7 @@ def new_result_dir(task_id):
 async def download_result(url, destination, task_id):
     async with aiohttp.ClientSession() as session:
         try:
-            await wait_interruptible(
-                _download_to_file_stream_async(session, url, destination, timeout=VIDEO_DOWNLOAD_TIMEOUT)
-            )
+            await download_to_file(session, url, destination)
         except comfy.model_management.InterruptProcessingException:
             raise
         except Exception as error:
