@@ -503,6 +503,30 @@ async def make_comparison(build, video, link, prefix, *args):
         _remove_quietly(source_path)
 
 
+async def _removing_on_interrupt(path, awaitable):
+    """Await it; if it is interrupted, delete path (a downloaded result nobody will receive)."""
+    try:
+        return await awaitable
+    except BaseException:
+        _remove_quietly(path)
+        raise
+
+
+async def _pass_through_source(link):
+    """
+    The source of a run with nothing repaired, downloaded from link. A failed
+    download blocks only the video output: the paid detection results stay.
+    """
+    try:
+        return VideoFromFile(await source_file(None, link, "smooth_source"))
+    except comfy.model_management.InterruptProcessingException:
+        raise
+    except Exception as e:
+        message = get_text("err_smooth_source_unavailable", reason=_reason(e))
+        log_msg("err_smooth_source_unavailable", reason=_reason(e))
+        return ExecutionBlocker(message)
+
+
 # --- Comparison --------------------------------------------------------------
 
 def _even(value):
@@ -647,31 +671,36 @@ def _render_synced(source, result, out_path, frame_size, compose):
     step = 1.0 / float(rate)
     count = max(1, int(round(duration * float(rate)))) if duration else None
     width, height = frame_size
-    with av.open(out_path, mode="w") as output:
-        out_stream = None
-        index = 0
-        while count is None or index < count:
-            comfy.model_management.throw_exception_if_processing_interrupted()
-            t = index * step
-            after = r_cursor.rgb_at(t, width, height)
-            if after is None or (count is None and r_cursor.ended_before(t, step)):
-                break
-            before = s_cursor.rgb_at(t, width, height)
-            if before is None:
-                break
-            composed = compose(before, after, t)
+    try:
+        with av.open(out_path, mode="w") as output:
+            out_stream = None
+            index = 0
+            while count is None or index < count:
+                comfy.model_management.throw_exception_if_processing_interrupted()
+                t = index * step
+                after = r_cursor.rgb_at(t, width, height)
+                if after is None or (count is None and r_cursor.ended_before(t, step)):
+                    break
+                before = s_cursor.rgb_at(t, width, height)
+                if before is None:
+                    break
+                composed = compose(before, after, t)
+                if out_stream is None:
+                    out_stream = output.add_stream("libx264", rate=rate)
+                    out_stream.height, out_stream.width = composed.shape[:2]
+                    out_stream.pix_fmt = "yuv420p"
+                    out_stream.options = {"crf": "18", "preset": "veryfast"}
+                for packet in out_stream.encode(av.VideoFrame.from_ndarray(composed, format="rgb24")):
+                    output.mux(packet)
+                index += 1
             if out_stream is None:
-                out_stream = output.add_stream("libx264", rate=rate)
-                out_stream.height, out_stream.width = composed.shape[:2]
-                out_stream.pix_fmt = "yuv420p"
-                out_stream.options = {"crf": "18", "preset": "veryfast"}
-            for packet in out_stream.encode(av.VideoFrame.from_ndarray(composed, format="rgb24")):
+                raise BytePlusException(get_text("err_mediakit_comparison_no_frames"))
+            for packet in out_stream.encode():
                 output.mux(packet)
-            index += 1
-        if out_stream is None:
-            raise BytePlusException(get_text("err_mediakit_comparison_no_frames"))
-        for packet in out_stream.encode():
-            output.mux(packet)
+    except BaseException:
+        # A partial comparison is useless; nothing else would delete it.
+        _remove_quietly(out_path)
+        raise
 
 
 def build_comparison(source_path, enhanced_path, compare_time=-1.0):
@@ -878,7 +907,10 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
         # Without a comparison, nodes using those outputs are skipped rather than failing on None.
         comparison_video = source_frame = enhanced_frame = ExecutionBlocker(None)
         if comparison:
-            built = await make_comparison(build_comparison, video, link, "vcube_source", enhanced_path, compare_time)
+            built = await _removing_on_interrupt(
+                enhanced_path,
+                make_comparison(build_comparison, video, link, "vcube_source", enhanced_path, compare_time),
+            )
             if built:
                 comparison_path, source_frame, enhanced_frame = built
                 comparison_video = VideoFromFile(comparison_path)
@@ -1094,13 +1126,15 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
         if not repaired_url:
             # Detection only, nothing to fix, or the repair failed MediaKit's quality check.
             log_msg("smooth_no_repair")
-            source = video if video is not None else VideoFromFile(await source_file(None, link, "smooth_source"))
+            source = video if video is not None else await _pass_through_source(link)
             return comfy_io.NodeOutput(source, ExecutionBlocker(None), inserted, duplicates, task_response(task))
 
         repaired_path = await _download(repaired_url, "smooth_repaired")
         comparison_video = ExecutionBlocker(None)
         if comparison:
-            comparison_path = await make_comparison(build_side_by_side, video, link, "smooth_source", repaired_path)
+            comparison_path = await _removing_on_interrupt(
+                repaired_path, make_comparison(build_side_by_side, video, link, "smooth_source", repaired_path)
+            )
             if comparison_path:
                 comparison_video = VideoFromFile(comparison_path)
         return comfy_io.NodeOutput(

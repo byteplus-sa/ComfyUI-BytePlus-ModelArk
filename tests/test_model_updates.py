@@ -662,7 +662,7 @@ class AssetLibraryTests(unittest.IsolatedAsyncioTestCase):
                 failure = test.failures.get(action)
                 if failure:
                     test.failures[action] -= 1
-                    raise test.assets.BytePlusException(f"[BytePlus] {action} failed")
+                    raise test.assets.AssetApiError(f"[BytePlus] {action} failed", retryable=True)
                 if action == "ListAssetGroups":
                     if test.group_pages:
                         return test.group_pages.pop(0)

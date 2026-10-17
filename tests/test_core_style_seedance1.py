@@ -713,7 +713,7 @@ class Seedance1PollingTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
 class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
     """generation_count above 1: every video and the paired last frames, nothing saved."""
 
-    # Task ID -> seed; results are ordered by seed: cgt-2, cgt-3, cgt-1.
+    # Task ID -> seed, in submission order. Results keep that order, not the seed's.
     SEEDS = {"cgt-1": 12, "cgt-2": 10, "cgt-3": 11}
 
     def setUp(self):
@@ -749,21 +749,22 @@ class Seedance1BatchOutputTests(_NodeRunner, unittest.IsolatedAsyncioTestCase):
             self._tasks(), generation_count, None
         )
 
-    async def test_every_video_with_its_last_frame_in_seed_order(self):
+    async def test_every_video_with_its_last_frame_in_submission_order(self):
         video, last_frame, response = (await self._handle()).args
-        order = ["cgt-2", "cgt-3", "cgt-1"]
+        order = ["cgt-1", "cgt-2", "cgt-3"]
         self.assertEqual(video, [("video", f"/tmp/{tid}.mp4") for tid in order])
         self.assertEqual(tuple(last_frame.shape), (3, 8, 8, 3))
         for index, tid in enumerate(order):
             self.assertTrue(torch.equal(last_frame[index:index + 1], self.frames[f"/tmp/{tid}.mp4"]))
         self.assertEqual([item["id"] for item in json.loads(response)], order)
 
-    async def test_missing_last_frame_is_left_out_of_the_batch(self):
+    async def test_missing_last_frame_blocks_last_frame_instead_of_shifting_it(self):
         del self.frames["/tmp/cgt-2.mp4"]
         video, last_frame, _ = (await self._handle()).args
         self.assertEqual(len(video), 3)
-        self.assertEqual(tuple(last_frame.shape), (2, 8, 8, 3))
-        self.assertTrue(torch.equal(last_frame[0:1], self.frames["/tmp/cgt-3.mp4"]))
+        # last_frame[i] must belong to VIDEO[i]: with a gap it is blocked, with the reason.
+        self.assertIsInstance(last_frame, ExecutionBlocker)
+        self.assertIn("1 of 3", last_frame.message)
 
 
     async def test_no_downloaded_video_blocks_the_list_outputs(self):

@@ -197,7 +197,8 @@ class NonBlockingCacheTests(ExecutorTestCase):
         cache = {}
         await run_videos(video_client(tasks), cache)
         second = await run_videos(video_client(tasks), cache, generation_count=2)
-        self.assertEqual(second["task_ids"], ["task-2", "task-3"])
+        # Both tasks are created in parallel threads, so the fake may number them in either order.
+        self.assertEqual(sorted(second["task_ids"]), ["task-2", "task-3"])
 
     async def test_another_key_or_region_submits_a_new_task(self):
         tasks = FakeVideoTasks()

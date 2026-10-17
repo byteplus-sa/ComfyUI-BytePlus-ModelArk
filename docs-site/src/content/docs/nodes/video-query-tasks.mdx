@@ -47,7 +47,7 @@ It starts no generation, so it creates no new video. It is an output node: it ru
 ## Limits and tips
 
 - ModelArk keeps tasks for 7 days, so older tasks no longer appear.
-- Use `page_num` and `page_size` to walk through a long list.
+- Use `page_num` and `page_size` (each 1 to 500) to walk through a long list.
 - Looking up task IDs that all do not exist stops the node with a "No task found" error. If only some are missing, the node lists the ones it found and writes "Not found" with the missing IDs to the console.
 - A task that was still running when you interrupted a video node cannot be cancelled and is billed. Look it up here with the ID from the node's message. See [Interrupts and cancelling](../../concepts/interrupts/).
 - If a video node reports that a succeeded (and billed) task's video could not be downloaded, the video stays available for 24 hours. Look the task up here, or in the ModelArk console, to get it.

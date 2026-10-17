@@ -36,6 +36,7 @@ from .nodes_shared import (
 )
 from .constants import (
     VIDEO_MAX_SEED,
+    VIDEO_TASK_LIST_MAX_PAGE,
     IMAGE_MIN_EDGE,
     IMAGE_MAX_EDGE,
     IMAGE_MIN_RATIO,
@@ -325,17 +326,20 @@ class BytePlusVideoBase:
     @staticmethod
     def _video_variant(video):
         """
-        Trim window and crop of a VideoFromFile. Core's trim and crop nodes keep
-        the same file, and the upload (save_to) applies them, so they must be
-        part of the cache key or a trimmed clip would reuse the full clip's link.
+        Trim window and crop of a VideoFromFile ("" for neither, None when
+        unknown). Core's trim and crop nodes keep the same file, and the upload
+        (save_to) applies them, so they must be part of the cache key or a
+        trimmed clip would reuse the full clip's link.
         """
         parts = []
         window = getattr(video, "get_active_trim_window", None)
         if callable(window):
             try:
-                parts.append("trim=" + ",".join(f"{float(x):.3f}" for x in window()))
+                start, duration = (float(x) for x in window())
             except Exception:
                 return None  # unknown variant: do not cache
+            if start or duration:
+                parts.append(f"trim={start:.3f},{duration:.3f}")
         crop = getattr(video, "_VideoFromFile__crop", None)
         if crop is not None:
             parts.append(f"crop={tuple(crop)}")
@@ -598,8 +602,6 @@ class BytePlusVideoBase:
                 task_ids=", ".join(missing),
             )
 
-        valid_results.sort(key=lambda x: x["seed"])
-
         all_responses = []
         # One entry per downloaded video, so videos[i] and frames[i] are the same task.
         videos = []
@@ -622,12 +624,13 @@ class BytePlusVideoBase:
             return comfy_io.NodeOutput(ExecutionBlocker(download_error), ExecutionBlocker(download_error), response)
         if not videos:
             return comfy_io.NodeOutput(ExecutionBlocker(None), ExecutionBlocker(None), response)
-        found = [frame for frame in frames if frame is not None]
-        if len(found) < len(frames):
-            log_msg("batch_last_frame_missing", missing=len(frames) - len(found), total=len(frames))
-        return comfy_io.NodeOutput(
-            videos, safe_cat_tensors(found) if found else ExecutionBlocker(None), response
-        )
+        missing_frames = sum(frame is None for frame in frames)
+        if missing_frames:
+            # A batch without them would pair last_frame[i] with the wrong video.
+            log_msg("batch_last_frame_missing", missing=missing_frames, total=len(frames))
+            message = get_text("batch_last_frame_missing", missing=missing_frames, total=len(frames))
+            return comfy_io.NodeOutput(videos, ExecutionBlocker(message), response)
+        return comfy_io.NodeOutput(videos, safe_cat_tensors(frames), response)
 
     async def _run_prebuilt_content(
         self,
@@ -965,8 +968,8 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
             category=GLOBAL_CATEGORY,
             is_output_node=True,
             inputs=[
-                comfy_io.Int.Input("page_num", default=1),
-                comfy_io.Int.Input("page_size", default=10),
+                comfy_io.Int.Input("page_num", default=1, min=1, max=VIDEO_TASK_LIST_MAX_PAGE),
+                comfy_io.Int.Input("page_size", default=10, min=1, max=VIDEO_TASK_LIST_MAX_PAGE),
                 comfy_io.Combo.Input("status", options=cls.STATUSES, default="all"),
                 comfy_io.Combo.Input(
                     "service_tier", options=["default", "flex"], default="default"

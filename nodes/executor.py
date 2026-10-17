@@ -474,6 +474,8 @@ class BytePlusGenerationExecutor:
         """
         Run a batch of video tasks: create, poll with progress estimates, handle errors.
         With several tasks, task i sends seed + i, so the videos differ.
+        Succeeded tasks are returned in submission order (polling finds them in
+        completion order).
         """
         ark_client = self.ark_client
         ps_instance = self.ps_instance
@@ -1003,6 +1005,8 @@ class BytePlusGenerationExecutor:
             else:
                 self._create_failure_json(get_text("err_batch_fail_all"))
 
+        submission_order = {task.id: index for index, task in enumerate(tasks_to_poll)}
+        successful_tasks.sort(key=lambda task: submission_order.get(task.id, len(submission_order)))
         return successful_tasks
 
     async def run_parallel_requests(

@@ -556,6 +556,24 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("previous_response_id", responses.calls[2])
         self.assertNotIn("7", nodes_seed.SEED_LAST_RESPONSES)
 
+    async def test_turns_limits_the_conversation_length(self):
+        client, responses = self.client(*[reply(f"R{i}", f"resp-{i}") for i in range(1, 8)])
+        for _ in range(7):
+            await self.run_node(client, turns=3)
+        previous = [call.get("previous_response_id") for call in responses.calls]
+        # Three turns per conversation, then a new one: 3 behaves differently from 2 or 10.
+        self.assertEqual(previous, [None, "resp-1", "resp-2", None, "resp-4", "resp-5", None])
+        self.assertEqual(nodes_seed.SEED_LAST_RESPONSES["7"]["turn"], 1)
+
+    async def test_raising_turns_continues_the_current_conversation(self):
+        client, responses = self.client(*[reply(f"R{i}", f"resp-{i}") for i in range(1, 5)])
+        await self.run_node(client, turns=2)
+        await self.run_node(client, turns=2)
+        await self.run_node(client, turns=4)  # third turn of the same conversation
+        await self.run_node(client, turns=2)  # already past 2 turns: a new conversation
+        previous = [call.get("previous_response_id") for call in responses.calls]
+        self.assertEqual(previous, [None, "resp-1", "resp-2", None])
+
     async def test_conversation_is_scoped_to_key(self):
         client_a, responses_a = self.client(reply("A", "resp-a"))
         client_b, responses_b = self.client(reply("B", "resp-b"), api_key="other-key")

@@ -42,6 +42,8 @@ if COMFY_ROOT:
         package.__path__ = [PLUGIN_ROOT]
         sys.modules[PACKAGE_NAME] = package
 
+    import comfy.model_management  # noqa: E402
+
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
     from comfy_execution.graph_utils import ExecutionBlocker
@@ -455,6 +457,16 @@ class NodeTests(NodeFixture):
             self.assertIsInstance(blocked, ExecutionBlocker)
         self.assertFalse(os.path.exists(dict(self.copies)["vcube_source"]))
 
+    async def test_interrupted_comparison_deletes_the_enhanced_download(self):
+        async def interrupted(*args):
+            raise comfy.model_management.InterruptProcessingException()
+
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit()), \
+                mock.patch.object(nodes_mediakit, "make_comparison", interrupted):
+            with self.assertRaises(comfy.model_management.InterruptProcessingException):
+                await self.run_node(video_url="https://cdn.example/source.mp4")
+        self.assertFalse(os.path.exists(dict(self.copies)["vcube_enhanced"]))
+
     async def test_connected_video_comparison_copy_is_removed(self):
         from comfy_api.input_impl import VideoFromFile
 
@@ -666,6 +678,49 @@ class SmoothnessNodeTests(NodeFixture):
         self.assertIs(result.args[0], source)
         self.assertEqual(result.args[2:4], (0, 0))
         self.assertEqual(self.downloads, [])
+
+    async def test_failed_pass_through_download_keeps_the_detection_results(self):
+        async def unreachable(url, prefix, ext="mp4"):
+            raise nodes_mediakit.BytePlusException("[BytePlus] link expired")
+
+        detected = {"duration": 1.0, "inserted_frames_detail": {"inserted_frame_count": 4}}
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit(result=detected)), \
+                mock.patch.object(nodes_mediakit, "_download", unreachable):
+            result = await self.run_node(video_url="https://cdn.example/source.mp4", periodic_stutter=DETECT)
+        output, comparison, inserted, duplicates, response = result.args
+        self.assertIsInstance(output, ExecutionBlocker)
+        self.assertIn("link expired", output.message)
+        self.assertIsInstance(comparison, ExecutionBlocker)
+        self.assertEqual((inserted, duplicates), (4, 0))
+        self.assertEqual(json.loads(response)["status"], "completed")
+
+    async def test_interrupted_comparison_deletes_the_repaired_download(self):
+        async def interrupted(*args):
+            raise comfy.model_management.InterruptProcessingException()
+
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit(result=self.REPAIRED)), \
+                mock.patch.object(nodes_mediakit, "make_comparison", interrupted):
+            with self.assertRaises(comfy.model_management.InterruptProcessingException):
+                await self.run_node(video_url="https://cdn.example/source.mp4")
+        self.assertFalse(os.path.exists(dict(self.copies)["smooth_repaired"]))
+
+    async def test_failed_render_deletes_the_partial_comparison(self):
+        compose = nodes_mediakit.compose_side_by_side_frame
+        frames = []
+
+        def fails_on_second_frame(before, after):
+            frames.append(1)
+            if len(frames) > 1:
+                raise RuntimeError("encoder died")
+            return compose(before, after)
+
+        with mock.patch.object(nodes_mediakit, "_send", FakeMediaKit(result=self.REPAIRED)), \
+                mock.patch.object(nodes_mediakit, "compose_side_by_side_frame", fails_on_second_frame):
+            result = await self.run_node(video_url="https://cdn.example/source.mp4")
+        self.assertIsInstance(result.args[1], ExecutionBlocker)
+        self.assertGreater(len(frames), 1)
+        leftovers = [name for name in os.listdir(self.tmp.name) if name.startswith("smooth_comparison")]
+        self.assertEqual(leftovers, [])
 
     async def test_connected_video_is_uploaded(self):
         from comfy_api.input_impl import VideoFromFile

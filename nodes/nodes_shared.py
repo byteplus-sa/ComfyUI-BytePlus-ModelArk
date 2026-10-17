@@ -3,6 +3,7 @@ import io
 import functools
 import inspect
 import base64
+import contextlib
 import hashlib
 import json
 import re
@@ -699,6 +700,27 @@ async def gather_cancelling(awaitables, return_exceptions=False):
         await asyncio.gather(*tasks, return_exceptions=True)
         raise
     return [task.exception() or task.result() if return_exceptions else task.result() for task in tasks]
+
+
+@contextlib.asynccontextmanager
+async def keyed_lock(locks, key):
+    """
+    Hold the asyncio lock for key in the locks dict (waiting is interruptible).
+    The entry is dropped once nobody holds or waits for it, so the dict stays
+    small and no lock outlives the event loop it was used on.
+    """
+    entry = locks.setdefault(key, [asyncio.Lock(), 0])
+    entry[1] += 1
+    try:
+        await wait_interruptible(entry[0].acquire())
+        try:
+            yield
+        finally:
+            entry[0].release()
+    finally:
+        entry[1] -= 1
+        if not entry[1] and locks.get(key) is entry:
+            del locks[key]
 
 
 def plain_text(key, **kwargs):

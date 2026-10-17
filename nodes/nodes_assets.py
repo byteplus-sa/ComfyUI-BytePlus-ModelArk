@@ -12,6 +12,7 @@ ByteDance Create Image / Video Asset) and BytePlusAssetLibrary (ListAssets).
 """
 import ast
 import asyncio
+import contextlib
 import hashlib
 import io
 import json
@@ -23,6 +24,7 @@ from urllib.parse import urlparse
 import comfy.model_management
 import numpy
 import PIL.Image
+import urllib3
 from comfy_api.latest import io as comfy_io
 
 from .constants import (
@@ -41,6 +43,7 @@ from .nodes_shared import (
     GLOBAL_CATEGORY,
     BytePlusException,
     get_text,
+    keyed_lock,
     log_msg,
     send_node_text,
     sleep_interruptible,
@@ -59,6 +62,18 @@ THROTTLE_ERROR_CODES = {"RequestLimitExceeded", "FlowLimitExceeded", "TooManyReq
 # (image sha256, group id) -> asset id, so re-running a workflow does not
 # register the same portrait again. Mutated in place.
 ASSET_UPLOAD_CACHE = {}
+# Locks per group name and per ASSET_UPLOAD_CACHE key, so asset nodes running at
+# the same time do not create the same group or asset twice (see keyed_lock).
+GROUP_LOCKS = {}
+ASSET_UPLOAD_LOCKS = {}
+
+
+class AssetApiError(BytePlusException):
+    """A failed asset library call. retryable: throttling, network errors, timeouts and 5xx."""
+
+    def __init__(self, message, retryable=False):
+        super().__init__(message)
+        self.retryable = retryable
 
 
 def resolve_asset_credentials(client):
@@ -122,8 +137,21 @@ class AssetLibrary:
             api = self._create_api if action.startswith("Create") else self._api
             result = api.do_call(info, {k: v for k, v in body.items() if v is not None})
         except ApiException as e:
-            raise BytePlusException(_format_asset_error(action, e)) from e
+            raise AssetApiError(_format_asset_error(action, e), _retryable_asset_error(e)) from e
+        except (urllib3.exceptions.HTTPError, OSError) as e:
+            raise AssetApiError(_format_asset_error(action, e), retryable=True) from e
         return result if isinstance(result, dict) else {}
+
+
+def _retryable_asset_error(error):
+    """Throttling, a network error (status 0), a timeout or a 5xx; never auth or permission errors."""
+    code = str(_parse_error_payload(error).get("Code") or "")
+    if code in THROTTLE_ERROR_CODES:
+        return True
+    if code in AUTH_ERROR_CODES or code in DENIED_ERROR_CODES:
+        return False
+    status = getattr(error, "status", None)
+    return isinstance(status, int) and (status in (0, 408, 429) or status >= 500)
 
 
 def _parse_error_payload(error):
@@ -196,7 +224,13 @@ async def upload_image_to_comfy_storage(node_cls, image):
 
 
 async def find_or_create_group(library, name, project_name):
-    """Reuse the single AIGC group with exactly this name, or create it."""
+    """Reuse the single AIGC group with exactly this name, or create it (one lookup at a time per name)."""
+    key = (library.account_fingerprint, library.region, project_name, name)
+    async with keyed_lock(GROUP_LOCKS, key):
+        return await _find_or_create_group(library, name, project_name)
+
+
+async def _find_or_create_group(library, name, project_name):
     matches, next_token = [], None
     while True:
         result = await asyncio.to_thread(
@@ -245,10 +279,10 @@ async def wait_for_asset(library, asset_id, project_name, timeout=ASSET_ACTIVE_T
             asset = await asyncio.to_thread(
                 library.call, "GetAsset", {"Id": asset_id, "ProjectName": project_name}
             )
-        except BytePlusException:
-            # Throttling or a network error: keep waiting, the asset is still processing.
+        except AssetApiError as e:
+            # Throttling, a network error or a 5xx: keep waiting, the asset is still processing.
             status_errors += 1
-            if status_errors >= ASSET_MAX_STATUS_ERRORS or time.monotonic() >= deadline:
+            if not e.retryable or status_errors >= ASSET_MAX_STATUS_ERRORS or time.monotonic() >= deadline:
                 raise
             await sleep_interruptible(ASSET_POLL_SECONDS)
             continue
@@ -722,23 +756,25 @@ async def register_core_asset(
             library, (group_name or "").strip() or DEFAULT_GROUP_NAME, project_name
         )
     cache_key = None
-    if upload is not None:
-        if digest:
-            cache_key = _asset_cache_key(digest, library, project_name, group_id, asset_name)
+    if upload is not None and digest:
+        cache_key = _asset_cache_key(digest, library, project_name, group_id, asset_name)
+    async with keyed_lock(ASSET_UPLOAD_LOCKS, cache_key) if cache_key else contextlib.nullcontext():
+        if cache_key:
             reused = await reuse_cached_asset(library, cache_key, project_name, wait_until_active)
             if reused:
                 return _core_asset_output(cls, reused[0], reused[1], group_id)
-        source_url = await upload()
-    asset, asset_id = await create_asset(
-        library,
-        group_id=group_id,
-        url=source_url,
-        asset_type=asset_type,
-        asset_name=asset_name,
-        project_name=project_name,
-        wait_until_active=wait_until_active,
-        cache_key=cache_key,
-    )
+        if upload is not None:
+            source_url = await upload()
+        asset, asset_id = await create_asset(
+            library,
+            group_id=group_id,
+            url=source_url,
+            asset_type=asset_type,
+            asset_name=asset_name,
+            project_name=project_name,
+            wait_until_active=wait_until_active,
+            cache_key=cache_key,
+        )
     return _core_asset_output(cls, asset, asset_id, group_id)
 
 

@@ -7,9 +7,11 @@ reference strings (asset IDs, asset:// URIs, https links) for Seedance.
 import asyncio
 import ipaddress
 import os
+import socket
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
+import aiohttp.abc
 from comfy_api.latest import io as comfy_io
 
 from .constants import ASSET_URI_PREFIX, MAX_GENERATION_COUNT
@@ -245,20 +247,44 @@ def _kind_from_content_type(content_type):
     return major if major in REFERENCE_KINDS else None
 
 
+def _is_global_address(text):
+    try:
+        return ipaddress.ip_address(str(text).split("%", 1)[0]).is_global
+    except ValueError:
+        return False
+
+
 async def _host_is_public(host):
     """False for hosts that resolve to a private, loopback or link-local address (or not at all)."""
     try:
         infos = await asyncio.get_running_loop().getaddrinfo(host, None)
     except OSError:
         return False
-    for info in infos:
-        try:
-            address = ipaddress.ip_address(info[4][0].split("%", 1)[0])
-        except ValueError:
-            return False
-        if not address.is_global:
-            return False
-    return bool(infos)
+    return bool(infos) and all(_is_global_address(info[4][0]) for info in infos)
+
+
+class PublicOnlyResolver(aiohttp.abc.AbstractResolver):
+    """
+    aiohttp's threaded resolver, refusing hosts with any non-global address.
+    The probe connects only to the addresses checked here, so a DNS answer that
+    changes after _host_is_public (DNS rebinding) cannot reach a private host.
+    """
+
+    def __init__(self):
+        self._resolver = aiohttp.ThreadedResolver()
+
+    async def resolve(self, host, port=0, family=socket.AF_INET):
+        infos = await self._resolver.resolve(host, port, family)
+        if not infos or not all(_is_global_address(info["host"]) for info in infos):
+            raise OSError(f"{host} does not resolve to a public address")
+        return infos
+
+    async def close(self):
+        await self._resolver.close()
+
+
+def _public_probe_session(timeout):
+    return aiohttp.ClientSession(timeout=timeout, connector=aiohttp.TCPConnector(resolver=PublicOnlyResolver()))
 
 
 async def _probe_request(session, method, url, headers=None):
@@ -282,7 +308,7 @@ async def _probe_url_kind(url):
     timeout = aiohttp.ClientTimeout(total=_URL_PROBE_TIMEOUT_SECONDS)
 
     async def probe():
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with _public_probe_session(timeout) as session:
             for method, headers in (("HEAD", None), ("GET", {"Range": "bytes=0-0"})):
                 target = url
                 for _hop in range(_MAX_PROBE_REDIRECTS + 1):
@@ -328,7 +354,7 @@ async def sniff_audio_format(url):
     timeout = aiohttp.ClientTimeout(total=_URL_PROBE_TIMEOUT_SECONDS)
 
     async def sniff():
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with _public_probe_session(timeout) as session:
             target = url
             for _hop in range(_MAX_PROBE_REDIRECTS + 1):
                 parsed = urlparse(target)

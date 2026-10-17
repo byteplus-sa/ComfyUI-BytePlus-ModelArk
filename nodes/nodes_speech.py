@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import io
@@ -615,7 +616,9 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
         validate_seed_audio_inputs(
             text_prompt, mode, sorted(audio_slots), image is not None or bool(image_url), preset_voice
         )
-        references = build_seed_audio_references(mode, audio_slots, image, image_url, preset_voice)
+        references = await asyncio.to_thread(
+            build_seed_audio_references, mode, audio_slots, image, image_url, preset_voice
+        )
         # seed only makes ComfyUI re-run the node; the API has no seed parameter.
         body = build_seed_audio_request(
             model or SEED_AUDIO_MODELS[0], text_prompt, references, audio_format, sample_rate, speech_rate,
@@ -663,7 +666,10 @@ async def _seed_audio_once(speech_client, body, audio_format, sample_rate):
         audio_bytes = await download_bytes(url, operation)
     else:
         raise BytePlusException(get_text("speech_empty_audio", operation=operation))
-    audio = pcm16_to_audio(audio_bytes, int(sample_rate)) if audio_format == "pcm" else decode_audio_bytes(audio_bytes)
+    if audio_format == "pcm":
+        audio = await asyncio.to_thread(pcm16_to_audio, audio_bytes, int(sample_rate))
+    else:
+        audio = await asyncio.to_thread(decode_audio_bytes, audio_bytes)
 
     subtitle = result.get("subtitle") if isinstance(result.get("subtitle"), dict) else {}
     # The docs name the sentence list "sentences"; accept "utterances" too.
@@ -926,7 +932,7 @@ class BytePlusSeedTTS(comfy_io.ComfyNode):
             raise BytePlusException(get_text("speech_empty_audio", operation=operation))
         segments = subtitle_segments(sentences)
         return comfy_io.NodeOutput(
-            pcm16_to_audio(pcm, int(sample_rate)),
+            await asyncio.to_thread(pcm16_to_audio, pcm, int(sample_rate)),
             _segments_json(sentences, segments),
             build_srt(segments),
         )
@@ -1254,7 +1260,9 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
             if (options.get("audio_url") or "").strip():
                 raise BytePlusException(get_text("asr_both_inputs"))
             channels = asr_channel_count(audio, options.get("enable_channel_split"))
-            wav = audio_to_wav_bytes(audio, sample_rate=SEED_ASR_SAMPLE_RATE, mono=channels == 1)
+            wav = await asyncio.to_thread(
+                audio_to_wav_bytes, audio, sample_rate=SEED_ASR_SAMPLE_RATE, mono=channels == 1
+            )
             options["audio_url"] = await upload_to_comfy_storage(cls, "audio", wav, "asr.wav", "audio/wav")
             options["audio_format"] = "wav"
             audio = None
@@ -1264,8 +1272,9 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
                 raise BytePlusException(get_text("asr_context_image_conflict"))
             if SEED_ASR_MODELS[model][1] == "volc.bigasr.auc":
                 raise BytePlusException(get_text("asr_context_image_2_only"))
+            jpeg = await asyncio.to_thread(context_image_jpeg, context_image)
             options["context_image_url"] = await upload_to_comfy_storage(
-                cls, "image", context_image_jpeg(context_image), "context.jpg", "image/jpeg"
+                cls, "image", jpeg, "context.jpg", "image/jpeg"
             )
         url = (options.get("audio_url") or "").strip()
         if mode != "fast" and url and audio is None and (options.get("audio_format") or "auto") == "auto":
@@ -1275,7 +1284,7 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
                 sniffed = await sniff_audio_format(url)
                 if sniffed:
                     options["audio_format"] = sniffed
-        mode, headers, body = build_asr_request(model, audio, **options)
+        mode, headers, body = await asyncio.to_thread(build_asr_request, model, audio, **options)
         if uploaded_audio:
             body["audio"].update({"codec": "raw", "rate": SEED_ASR_SAMPLE_RATE, "bits": 16})
         labels = bool(options.get("enable_speaker_info") or options.get("enable_channel_split"))
@@ -1433,8 +1442,9 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
     @with_client("speech_client", get_speech_client)
     async def execute(cls, speech_client, speaker_id, audio, language="en", reference_text="", demo_text="",
                       disable_volume_normalization=False) -> comfy_io.NodeOutput:
-        speaker, body, ids = build_voice_clone_request(
-            speaker_id, audio, language, reference_text, demo_text, disable_volume_normalization
+        speaker, body, ids = await asyncio.to_thread(
+            build_voice_clone_request,
+            speaker_id, audio, language, reference_text, demo_text, disable_volume_normalization,
         )
         operation = "Voice clone"
         response = await speech_post(speech_client, SEED_VOICE_CLONE_PATH, body, operation=operation)
@@ -1465,7 +1475,7 @@ class BytePlusSeedVoiceClone(comfy_io.ComfyNode):
 
         demo_url = _voice_demo_url(result)
         if demo_url:
-            demo = decode_audio_bytes(await download_bytes(demo_url, operation))
+            demo = await asyncio.to_thread(decode_audio_bytes, await download_bytes(demo_url, operation))
         else:
             log_msg("voice_clone_no_demo", speaker=speaker)
             demo = _silence()

@@ -594,12 +594,8 @@ def compute_upscale_dims(src_w, src_h, total_pixels):
 
 
 def _video_stream_source(video):
-    """A file path or BytesIO with the video's (trimmed) frames."""
-    try:
-        start, duration = video.get_active_trim_window()
-    except Exception:
-        start, duration = 0, 0
-    if not (start or duration):
+    """A file path or BytesIO with the video's frames, trimmed and cropped."""
+    if BytePlusVideoBase._video_variant(video) == "":
         try:
             return video.get_stream_source()
         except Exception:

@@ -47,7 +47,8 @@ FILE_EXPIRE_MAX_SECONDS = 2592000
 FILE_EXPIRE_DEFAULT_SECONDS = 604800
 
 # Last stored response per node, for multi-turn (previous_response_id). Keyed by
-# node id; the owner (key fingerprint, region) must match to continue.
+# node id; the owner (key fingerprint, region, model) must match to continue, and
+# "turn" counts the conversation's turns so far.
 SEED_LAST_RESPONSES = {}
 SEED_LAST_RESPONSES_MAX = 256
 
@@ -165,9 +166,10 @@ def _extra_inputs():
             max=10,
             tooltip=(
                 "1: every run starts a new conversation (the response is not stored). "
-                "2 or more: each run continues this node's last conversation (with the same "
-                "model) with the new prompt; images, videos and audio from the first turn stay "
-                "in the conversation."
+                "2 or more: the length of a conversation. Each run continues this node's last "
+                "conversation (with the same model) with the new prompt until it has this many "
+                "turns; the next run starts a new one. Images, videos and audio from the first "
+                "turn stay in the conversation."
             ),
             optional=True,
             advanced=True,
@@ -416,16 +418,18 @@ class BytePlusSeed(comfy_io.ComfyNode):
         owner = (*client_owner(client), model_id)
         turns = int(turns or 1)
         previous_response_id = None
+        turn = 1
         if turns > 1:
             last = SEED_LAST_RESPONSES.get(node_id)
-            if last and last.get("owner") == owner:
+            if last and last.get("owner") == owner and last.get("turn", 1) < turns:
                 previous_response_id = last["id"]
+                turn = last.get("turn", 1) + 1
         else:
             SEED_LAST_RESPONSES.pop(node_id, None)
 
         content = []
         if previous_response_id:
-            log_msg("visual_cont_conv", id=previous_response_id)
+            log_msg("visual_cont_conv", id=previous_response_id, turn=turn, turns=turns)
         else:
             log_msg("visual_new_conv")
             expire_seconds = max(
@@ -482,7 +486,7 @@ class BytePlusSeed(comfy_io.ComfyNode):
 
         if turns > 1 and isinstance(response, dict) and response.get("id"):
             SEED_LAST_RESPONSES.pop(node_id, None)
-            SEED_LAST_RESPONSES[node_id] = {"id": response["id"], "owner": owner}
+            SEED_LAST_RESPONSES[node_id] = {"id": response["id"], "owner": owner, "turn": turn}
             while len(SEED_LAST_RESPONSES) > SEED_LAST_RESPONSES_MAX:
                 SEED_LAST_RESPONSES.pop(next(iter(SEED_LAST_RESPONSES)))
             log_msg("visual_cached_id", id=response["id"])

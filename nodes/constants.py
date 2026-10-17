@@ -174,6 +174,8 @@ MAX_ASPECT_RATIO = 16.0
 
 # Video limits
 VIDEO_MAX_SEED = 2147483647
+# List video generation tasks: page_num and page_size are both 1-500.
+VIDEO_TASK_LIST_MAX_PAGE = 500
 VIDEO_DEFAULT_TIMEOUT = 172800
 IMAGE_MIN_EDGE = 300
 IMAGE_MAX_EDGE = 6000
@@ -248,8 +250,8 @@ MESSAGES = {
     "cancel_batch_reason": "  - {msg}",
     "task_finished_single": "Task completed successfully.",
     "batch_finished_stats": "Batch finished. Success: {success}, Failed: {failed}.",
-    "batch_handling": "Handling {count} successful tasks. Sorting by seed and downloading...",
-    "batch_last_frame_missing": "No last frame for {missing} of {total} videos; the last_frame batch leaves them out.",
+    "batch_handling": "Handling {count} successful tasks. Downloading...",
+    "batch_last_frame_missing": "No last frame for {missing} of {total} videos, so last_frame is blocked (its frames would no longer match the videos). The videos are not affected.",
     "err_download_url": "Async download failed, URL: {url}, Error: {e}",
     "err_video_download_failed": "The task(s) succeeded (and were billed) but their videos could not be downloaded: {task_ids}. The videos stay available for 24 hours: fetch them with the Video Query Tasks node or from the ModelArk console.",
     "batch_video_download_partial": "Downloaded {done} of {total} videos; could not download task(s) {task_ids}. They stay available for 24 hours (Video Query Tasks node or the ModelArk console).",
@@ -312,7 +314,7 @@ MESSAGES = {
     "visual_wait_active": "Waiting for file {id} to be active...",
     "visual_file_status": "File {id} status: {status}",
     "visual_new_conv": "Starting new conversation.",
-    "visual_cont_conv": "Continuing conversation {id}...",
+    "visual_cont_conv": "Continuing conversation {id} (turn {turn} of {turns})...",
     "visual_cached_id": "Cached response_id for next turn: {id}",
     "visual_stream_start": "Starting Streaming Response...",
     "visual_task_created": "Response Task Created",
@@ -549,6 +551,7 @@ MESSAGES = {
     "err_vcube_bitrate": "bitrate must be 0 (use bitrate_level) or {min}-{max} kbps, got {value}.",
     "smooth_task_submitted": "Video Smoothness task submitted: {task_id}",
     "smooth_summary": "Video Smoothness: {inserted} frame(s) to insert for periodic stutter, {duplicates} duplicate frame(s).",
+    "err_smooth_source_unavailable": "Video Smoothness repaired nothing, so its video output is the source, but the source could not be downloaded ({reason}). The frame counts and response are still available.",
     "smooth_no_repair": "Video Smoothness returned no repaired video (repairs set to detect only, nothing to fix, or the repair was skipped by MediaKit's quality check), so the output is the source video. Billed as detection only.",
     "err_smooth_too_long": "The video is {duration}s long; Video Smoothness repairs videos up to {max}s. Set both repairs to 'detect only' to analyse a longer video.",
     "err_smooth_input_too_large": "Video resolution must be at most {max_w}x{max_h} (4K), got {width}x{height}.",
