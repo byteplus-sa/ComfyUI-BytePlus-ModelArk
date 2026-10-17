@@ -313,6 +313,24 @@ class EnvFileTests(IsolatedCredentials):
         iam = credentials.credential_status()["credentials"]["iam"]
         self.assertEqual((iam["configured"], iam["in_file"], iam["source"]), (True, True, "file"))
 
+    def test_an_alias_in_the_environment_wins_over_the_file(self):
+        names = credentials.ACCESS_KEY_ENVS
+        self.write_env("BYTEPLUS_ACCESS_KEY=file-ak\n")
+        os.environ["BYTEPLUS_ACCESSKEY"] = "env-ak"
+        self.assertEqual(credentials.get_setting(*names), "env-ak")
+        self.assertEqual(credentials.setting_source(*names), "environment")
+
+    def test_name_order_decides_within_the_environment_and_within_the_file(self):
+        names = credentials.ACCESS_KEY_ENVS
+        self.write_env("BYTEPLUS_ACCESSKEY=file-alias\nBYTEPLUS_ACCESS_KEY=file-primary\n")
+        self.assertEqual(credentials.get_setting(*names), "file-primary")
+        self.write_env("BYTEPLUS_ACCESSKEY=file-alias\n")
+        self.assertEqual(credentials.get_setting(*names), "file-alias")
+        self.assertEqual(credentials.setting_source(*names), "file")
+        os.environ["BYTEPLUS_ACCESSKEY"] = "env-alias"
+        os.environ["BYTEPLUS_ACCESS_KEY"] = "env-primary"
+        self.assertEqual(credentials.get_setting(*names), "env-primary")
+
 
 @requires_comfyui
 class ClientTests(IsolatedCredentials):
@@ -587,6 +605,25 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status, 200)
         self.assertIn("could not be reached", body["message"])
         self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "key-0001")
+
+    async def test_the_endpoint_answer_decides_how_the_key_is_saved(self):
+        cases = (
+            (200, 200, "Saved."),
+            (403, 422, None),
+            (503, 200, "could not be reached"),
+            (404, 200, "could not be reached"),
+        )
+        for endpoint_status, expected_status, message in cases:
+            with self.subTest(endpoint=endpoint_status):
+                answer = SimpleNamespace(status_code=endpoint_status)
+                with mock.patch.object(nodes_shared.requests, "get", lambda *a, **k: answer):
+                    status, body = await self.save({"credential": "modelark", "value": "key-0001"})
+                self.assertEqual(status, expected_status)
+                if message:
+                    self.assertIn(message, body["message"])
+                    self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "key-0001")
+                else:
+                    self.assertIn("rejected", body["error"])
 
     async def test_a_region_fixed_by_the_environment_is_not_overridden(self):
         os.environ["BYTEPLUS_REGION"] = "ap-southeast-1"

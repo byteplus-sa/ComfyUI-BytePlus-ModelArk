@@ -1344,7 +1344,6 @@ class BytePlusVisualExecutor:
                             print("")
                         
                     if isinstance(event, ResponseCompletedEvent):
-                        # print(f"\nResponse Completed. Usage: {event.response.usage}")
                         if hasattr(event.response, "model_dump"):
                             final_json = event.response.model_dump()
                         else:

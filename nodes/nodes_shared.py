@@ -16,6 +16,7 @@ import asyncio
 import threading
 import comfy.model_management
 from byteplussdkarkruntime import Ark
+from byteplussdkarkruntime._exceptions import ArkAPIConnectionError
 
 
 import logging
@@ -217,9 +218,10 @@ def format_api_error(e):
 
 def check_api_key(api_key: str, base_url: str):
     """
-    Ask the region's endpoint about the API key: True when it is accepted,
-    False when it is rejected (401), None when the endpoint could not be
-    reached (network error, timeout, proxy), so nothing is known about the key.
+    Ask the region's endpoint about the API key: True when it is accepted
+    (2xx), False when it is rejected (401/403), None for anything else
+    (unreachable, timeout, proxy, 404, 429, 5xx), so nothing is known about
+    the key.
     """
     try:
         headers = {
@@ -230,7 +232,11 @@ def check_api_key(api_key: str, base_url: str):
     except Exception as e:
         logger.error(f"API Key validation error: {e}")
         return None
-    return response.status_code != 401
+    if response.status_code in (401, 403):
+        return False
+    if 200 <= response.status_code < 300:
+        return True
+    return None
 
 
 def _normalize_expire_seconds(expire_seconds):
@@ -239,27 +245,23 @@ def _normalize_expire_seconds(expire_seconds):
 
 
 def _normalize_cache_key(cache_key):
+    """(account, file identity, fps, expire seconds), or None for anything else."""
     if isinstance(cache_key, str):
         try:
             cache_key = json.loads(cache_key)
-        except Exception:
+        except ValueError:
             return None
-    if isinstance(cache_key, list):
-        cache_key = tuple(cache_key)
-    if not isinstance(cache_key, tuple):
+    if not isinstance(cache_key, (list, tuple)) or len(cache_key) != 4:
         return None
-    if len(cache_key) == 2:
-        file_path, fps = cache_key
-        expire_seconds = 604800
-    elif len(cache_key) == 3:
-        file_path, fps, expire_seconds = cache_key
-    else:
+    account, file_identity, fps, expire_seconds = cache_key
+    if not (isinstance(account, str) and account and isinstance(file_identity, str) and file_identity):
         return None
-    if not isinstance(file_path, str) or not file_path:
+    try:
+        normalized_fps = float(fps) if fps is not None else None
+        normalized_expire_seconds = _normalize_expire_seconds(expire_seconds)
+    except (TypeError, ValueError):
         return None
-    normalized_fps = float(fps) if fps is not None else None
-    normalized_expire_seconds = _normalize_expire_seconds(expire_seconds)
-    return (file_path, normalized_fps, normalized_expire_seconds)
+    return (account, file_identity, normalized_fps, normalized_expire_seconds)
 
 
 def _serialize_cache_key(cache_key):
@@ -338,10 +340,6 @@ class UploadCacheStore:
         with self._lock:
             return self._data.pop(cache_key, default)
 
-    def contains(self, cache_key):
-        with self._lock:
-            return cache_key in self._data
-
     def keys(self):
         with self._lock:
             return list(self._data.keys())
@@ -361,115 +359,94 @@ def save_files_upload_cache():
 load_files_upload_cache()
 
 
-async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, return_meta=False, model=None):
+def _upload_account(client):
+    """Uploaded files belong to one account and region: a fingerprint of both, never the key."""
+    api_key = getattr(client, "api_key", None) or ""
+    region = getattr(client, "region", None) or ""
+    return f"{api_key_fingerprint(api_key) if api_key else 'no-key'}@{region}"
+
+
+def _retrieve_error_is_transient(error):
+    """Network errors, timeouts and 5xx say nothing about the file; a 4xx means it is gone or not ours."""
+    status = getattr(error, "status_code", None)
+    if isinstance(status, int):
+        return status >= 500 or status == 408
+    return isinstance(error, (ArkAPIConnectionError, asyncio.TimeoutError, TimeoutError, ConnectionError))
+
+
+async def _cached_file_id(client, cache_key, now_ts):
+    """The cached file ID when the file is still usable, else None (and the entry is dropped)."""
+    cached_entry = UPLOAD_CACHE_STORE.get(cache_key)
+    if cached_entry is None:
+        return None
+    cached_file_id = cached_entry.get("file_id") if isinstance(cached_entry, dict) else None
+    if cached_file_id:
+        try:
+            remote_file_info = await asyncio.to_thread(client.ark.files.retrieve, file_id=cached_file_id)
+        except Exception as e:
+            if _retrieve_error_is_transient(e) and int(cached_entry.get("expire_at", 0) or 0) > now_ts:
+                return cached_file_id
+        else:
+            remote_status = getattr(remote_file_info, "status", "unknown")
+            remote_expire_at = int(getattr(remote_file_info, "expire_at", 0) or 0)
+            if remote_status == "active" and remote_expire_at > now_ts:
+                cached_entry["expire_at"] = remote_expire_at
+                save_files_upload_cache()
+                return cached_file_id
+    UPLOAD_CACHE_STORE.pop(cache_key, None)
+    save_files_upload_cache()
+    return None
+
+
+async def _delete_stale_uploads(client, cache_key):
+    """Uploads of the same file with another lifetime are replaced by this one."""
+    account, file_identity, fps, expire_seconds = cache_key
+    stale_keys = [
+        existing_key for existing_key in UPLOAD_CACHE_STORE.keys()
+        if existing_key[:3] == (account, file_identity, fps) and existing_key[3] != expire_seconds
+    ]
+    for stale_key in stale_keys:
+        stale_entry = UPLOAD_CACHE_STORE.pop(stale_key, None)
+        stale_file_id = stale_entry.get("file_id") if isinstance(stale_entry, dict) else None
+        if stale_file_id:
+            await _delete_file_quietly(client, stale_file_id)
+    if stale_keys:
+        save_files_upload_cache()
+
+
+async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800, model=None):
     """
-    Upload a file with client.ark.files.create (cached by content). For videos
-    (fps set), `model` selects the frame-sampling strategy of that model; without
-    it ModelArk uses the strategy of models older than seed-1-8.
+    Upload a file with client.ark.files.create (cached by content, account and
+    region). For videos (fps set), `model` selects the frame-sampling strategy
+    of that model; without it ModelArk uses the strategy of models older than
+    seed-1-8.
     """
     expire_seconds = _normalize_expire_seconds(expire_seconds)
     if fps is None:
         model = None
         try:
             file_identity = f"sha256:{await asyncio.to_thread(_compute_file_sha256, file_path)}"
-        except Exception:
+        except OSError:
             file_identity = file_path
     else:
         file_identity = file_path
     if model:
         # Preprocessing depends on the model, so the upload is cached per model.
         file_identity = f"{file_identity}|model={model}"
-    cache_key = (file_identity, float(fps) if fps is not None else None, expire_seconds)
-    cache_fps = float(fps) if fps is not None else None
+    cache_key = (
+        _upload_account(client), file_identity, float(fps) if fps is not None else None, expire_seconds
+    )
     now_ts = int(time.time())
     expire_at = now_ts + expire_seconds
 
-    cached_entry = UPLOAD_CACHE_STORE.get(cache_key)
-    legacy_path_key = None
-    matched_cache_key = cache_key
-    if cached_entry is None and fps is None and file_identity != file_path:
-        legacy_path_key = (file_path, None, expire_seconds)
-        cached_entry = UPLOAD_CACHE_STORE.get(legacy_path_key)
-        if cached_entry is not None:
-            matched_cache_key = legacy_path_key
-    if isinstance(cached_entry, dict):
-        cached_file_id = cached_entry.get("file_id")
-        cached_expire_at = int(cached_entry.get("expire_at", 0) or 0)
-        if cached_file_id:
-            try:
-                remote_file_info = await asyncio.to_thread(
-                    client.ark.files.retrieve,
-                    file_id=cached_file_id
-                )
-                remote_status = getattr(remote_file_info, "status", "unknown")
-                remote_expire_at = int(getattr(remote_file_info, "expire_at", 0) or 0)
-                if remote_status == "active" and remote_expire_at > now_ts:
-                    cached_entry["expire_at"] = remote_expire_at
-                    if legacy_path_key is not None and UPLOAD_CACHE_STORE.contains(legacy_path_key):
-                        UPLOAD_CACHE_STORE.pop(legacy_path_key, None)
-                        UPLOAD_CACHE_STORE.set(cache_key, cached_entry)
-                    save_files_upload_cache()
-                    log_msg("visual_found_file", path=file_path)
-                    if return_meta:
-                        return {
-                            "file_id": cached_file_id,
-                            "expire_at": remote_expire_at
-                        }
-                    return cached_file_id
-            except Exception:
-                if cached_expire_at > now_ts:
-                    if legacy_path_key is not None and UPLOAD_CACHE_STORE.contains(legacy_path_key):
-                        UPLOAD_CACHE_STORE.pop(legacy_path_key, None)
-                        UPLOAD_CACHE_STORE.set(cache_key, cached_entry)
-                        save_files_upload_cache()
-                    log_msg("visual_found_file", path=file_path)
-                    if return_meta:
-                        return {
-                            "file_id": cached_file_id,
-                            "expire_at": cached_expire_at
-                        }
-                    return cached_file_id
-        UPLOAD_CACHE_STORE.pop(matched_cache_key, None)
-        save_files_upload_cache()
-    elif cached_entry is not None:
-        UPLOAD_CACHE_STORE.pop(cache_key, None)
-        save_files_upload_cache()
+    cached_file_id = await _cached_file_id(client, cache_key, now_ts)
+    if cached_file_id:
+        log_msg("visual_found_file", path=file_path)
+        return cached_file_id
 
-    identity_candidates = {file_identity}
-    if fps is None and file_identity != file_path:
-        identity_candidates.add(file_path)
-    stale_keys = []
-    for existing_key in UPLOAD_CACHE_STORE.keys():
-        normalized_existing_key = _normalize_cache_key(existing_key)
-        if normalized_existing_key is None:
-            continue
-        existing_identity, existing_fps, existing_expire_seconds = normalized_existing_key
-        if (
-            existing_identity in identity_candidates
-            and existing_fps == cache_fps
-            and existing_expire_seconds != expire_seconds
-        ):
-            stale_keys.append(existing_key)
+    if hasattr(client.ark, "files"):
+        await _delete_stale_uploads(client, cache_key)
 
-    if stale_keys and hasattr(client.ark, "files"):
-        cache_changed = False
-        for stale_key in stale_keys:
-            stale_entry = UPLOAD_CACHE_STORE.get(stale_key)
-            if isinstance(stale_entry, dict):
-                stale_file_id = stale_entry.get("file_id")
-                if stale_file_id:
-                    try:
-                        await asyncio.to_thread(
-                            client.ark.files.delete,
-                            file_id=stale_file_id
-                        )
-                    except Exception as e:
-                        logger.error(f"Delete stale file failed for {stale_file_id}: {e}")
-            UPLOAD_CACHE_STORE.pop(stale_key, None)
-            cache_changed = True
-        if cache_changed:
-            save_files_upload_cache()
-        
     try:
         log_msg("visual_uploading", path=file_path)
         if not hasattr(client.ark, "files"):
@@ -502,8 +479,6 @@ async def upload_file_to_ark(client, file_path, fps=None, expire_seconds=604800,
 
         UPLOAD_CACHE_STORE.set(cache_key, {"file_id": file_id, "expire_at": expire_at})
         save_files_upload_cache()
-        if return_meta:
-            return {"file_id": file_id, "expire_at": expire_at}
         return file_id
     except BytePlusException:
         raise

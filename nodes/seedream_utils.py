@@ -304,22 +304,24 @@ def _bbox_dict(item):
     }
 
 
-def _save_layer_pngs(filename_prefix, base, layers, layer_items, output_format):
-    """Save the base image and the original layer PNGs; return {z_index: relative path}."""
+def _save_layer_pngs(filename_prefix, base, layers, output_format):
+    """
+    Save the base image and the original layer PNGs; return their relative
+    paths, the base first and then the layers in response order. Files are
+    named by position: z_index can be missing or repeated.
+    """
     output_dir = folder_paths.get_output_directory()
     full_folder, filename, counter, subfolder, _ = folder_paths.get_save_image_path(
         filename_prefix, output_dir, base.width, base.height
     )
     os.makedirs(full_folder, exist_ok=True)
-    saved = {}
     stem = f"{filename}_{counter:05}"
     base_ext = "png" if output_format == "png" else "jpg"
     base_name = f"{stem}_base.{base_ext}"
     (base if base_ext == "png" else base.convert("RGB")).save(os.path.join(full_folder, base_name))
-    saved[0] = os.path.join(subfolder, base_name)
-    for layer, item in zip(layers, layer_items):
-        z_index = getattr(item, "z_index", None) or 0
-        layer_name = f"{stem}_layer{z_index:02d}.png"
+    saved = [os.path.join(subfolder, base_name)]
+    for position, layer in enumerate(layers, start=1):
+        layer_name = f"{stem}_layer{position:02d}.png"
         layer.save(os.path.join(full_folder, layer_name))
-        saved[z_index] = os.path.join(subfolder, layer_name)
+        saved.append(os.path.join(subfolder, layer_name))
     return saved

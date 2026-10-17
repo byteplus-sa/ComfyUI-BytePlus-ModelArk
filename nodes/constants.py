@@ -445,6 +445,7 @@ MESSAGES = {
     "err_draft_lookup_failed": "Could not look up draft task {task_id}: {e}",
     "err_query_tasks_not_found": "No task found for {ids}. Check the task ID: it is the Task ID line in the console or the draft_task_id output of a Seedance 2.5 Draft run, and ModelArk keeps tasks for 7 days.",
     "query_tasks_some_not_found": "Not found: {ids}.",
+    "query_tasks_partial_error": "Could not list some tasks: {e}",
     "err_draft_not_a_draft": "Task {task_id} is not a draft. Use the draft_task_id of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run.",
     "err_draft_is_final": "Task {task_id} is a final video rendered from draft {draft_task_id}, not a draft. Use the draft task ID.",
     "err_draft_expired": "Draft task {task_id} is more than 7 days old; drafts can only be rendered for 7 days. Generate a new draft.",

@@ -21,6 +21,7 @@ from comfy_execution.graph_utils import ExecutionBlocker
 
 from .nodes_shared import (
     GLOBAL_CATEGORY,
+    LOG_PREFIX,
     _image_to_base64,
     log_msg,
     get_text,
@@ -51,6 +52,7 @@ from .constants import (
     VIDEO_BASE_FRAMES,
 )
 from .utils_download import (
+    describe_download_error,
     download_video_to_temp,
     download_image_to_temp,
 )
@@ -85,7 +87,7 @@ def resolve_model_id(model_version: str) -> str:
     if model_version in VIDEO_MODEL_MAP:
         return VIDEO_MODEL_MAP[model_version]
 
-    raise BytePlusException(f"Model ID not found for selection: {model_version}")
+    raise BytePlusException(get_text("err_model_not_supported", model=model_version))
 
 def resolve_query_models(model_version: str) -> list:
     """
@@ -576,7 +578,7 @@ class BytePlusVideoBase:
             if isinstance(res, comfy.model_management.InterruptProcessingException):
                 raise res
             if isinstance(res, Exception):
-                log_msg("err_download_url", url="batch_task", e=res)
+                log_msg("err_download_url", url="batch_task", e=describe_download_error(res))
                 missing.append(str(getattr(task, "id", "?")))
                 continue
             if not res["video_path"]:
@@ -1029,7 +1031,7 @@ class BytePlusVideoQueryTasks(comfy_io.ComfyNode):
 
             for res in results:
                 if isinstance(res, Exception):
-                    print(f"[BytePlus] Query Partial Error: {res}")
+                    log_msg("query_tasks_partial_error", e=format_api_error(res).replace(LOG_PREFIX, "", 1))
                     continue
                 total_count += getattr(res, "total", 0)
                 if hasattr(res, "items") and res.items:
