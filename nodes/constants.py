@@ -254,8 +254,6 @@ SEED_CUSTOM_VOICE_ID_REJECT = (
     r"|.*[-_]$|^.{0,7}$|^.{257,}$|.*[^a-zA-Z0-9_-].*"
 )
 # Uploads of connected media to Comfy.org storage (for APIs that need a URL).
-SPEECH_UPLOAD_CACHE_TTL_SECONDS = 43200
-SPEECH_UPLOAD_CACHE_MAX_ENTRIES = 128
 
 # Seed Speech error codes without a dedicated MESSAGES key (Voice Replication).
 SPEECH_ERROR_TEXT = {

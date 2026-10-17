@@ -39,6 +39,7 @@ if COMFY_ROOT:
     executor = importlib.import_module(f"{PACKAGE_NAME}.nodes.executor")
     nodes_3d = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_3d")
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
+    nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
     nodes_seedream = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedream")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
     import comfy.model_management
@@ -337,7 +338,7 @@ class ImageEnhanceFixtures(unittest.IsolatedAsyncioTestCase):
         for patcher in (
             mock.patch.object(nodes_mediakit, "_download", fake_download),
             mock.patch("comfy_api_nodes.util.upload_file_to_comfyapi", fake_upload, create=True),
-            mock.patch.dict(nodes_mediakit.IMAGE_UPLOAD_CACHE, clear=True),
+            mock.patch.dict(nodes_shared.COMFY_UPLOAD_CACHE, clear=True),
             mock.patch.object(
                 nodes_mediakit.BytePlusImageEnhance, "hidden", SimpleNamespace(unique_id="9", prompt={}), create=True
             ),

@@ -680,11 +680,6 @@ async def upload_asset_video(node_cls, video):
     return urls[0]
 
 
-ASSET_AUDIO_UPLOAD_CACHE = {}
-ASSET_AUDIO_UPLOAD_CACHE_TTL_SECONDS = 12 * 3600  # Comfy.org links last about 24 h
-ASSET_AUDIO_UPLOAD_CACHE_MAX_ENTRIES = 32
-
-
 async def upload_asset_audio(node_cls, wav_bytes):
     """Comfy.org upload of connected audio as WAV (CreateAsset needs an HTTPS URL), reused for the same bytes."""
     return await upload_bytes_to_comfy_storage(
@@ -692,10 +687,7 @@ async def upload_asset_audio(node_cls, wav_bytes):
         wav_bytes,
         f"{uuid.uuid4()}.wav",
         "audio/wav",
-        ASSET_AUDIO_UPLOAD_CACHE,
-        cache_key=hashlib.sha256(wav_bytes).hexdigest(),
-        ttl_seconds=ASSET_AUDIO_UPLOAD_CACHE_TTL_SECONDS,
-        max_entries=ASSET_AUDIO_UPLOAD_CACHE_MAX_ENTRIES,
+        cache_kind="asset-audio",
         unavailable_key="err_comfy_audio_upload_unavailable_asset",
         failed_key="err_comfy_audio_upload_failed_asset",
     )

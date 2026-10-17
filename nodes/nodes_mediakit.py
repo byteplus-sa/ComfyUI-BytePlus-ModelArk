@@ -17,7 +17,6 @@ the original resized to the result for the Compare Images slider.
 """
 
 import asyncio
-import hashlib
 import io
 import json
 import math
@@ -1182,9 +1181,6 @@ IMAGE_VERSION_LIMITS = {
         "out_rule": "a long side of at most 10240 px",
     },
 }
-IMAGE_UPLOAD_CACHE = {}
-IMAGE_UPLOAD_CACHE_TTL_SECONDS = 12 * 3600  # Comfy.org links last about 24 h
-IMAGE_UPLOAD_CACHE_MAX_ENTRIES = 64
 
 
 def _image_tool_version_input():
@@ -1395,10 +1391,7 @@ async def upload_image_source(node_cls, data, filename, mime_type):
         data,
         filename,
         mime_type,
-        IMAGE_UPLOAD_CACHE,
-        cache_key=hashlib.sha256(data).hexdigest(),
-        ttl_seconds=IMAGE_UPLOAD_CACHE_TTL_SECONDS,
-        max_entries=IMAGE_UPLOAD_CACHE_MAX_ENTRIES,
+        cache_kind="mediakit-image",
         unavailable_key="err_comfy_image_upload_unavailable_mediakit",
         failed_key="err_comfy_image_upload_failed_mediakit",
     )

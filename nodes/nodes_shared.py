@@ -737,16 +737,18 @@ def send_node_text(node_id, text, ps_instance=None):
         pass
 
 
+COMFY_UPLOAD_CACHE = {}
+COMFY_UPLOAD_CACHE_TTL_SECONDS = 12 * 3600  # Comfy.org links last about 24 h
+COMFY_UPLOAD_CACHE_MAX_ENTRIES = 128
+
+
 async def upload_bytes_to_comfy_storage(
     node_cls,
     data,
     filename,
     mime_type,
-    cache,
     *,
-    cache_key,
-    ttl_seconds,
-    max_entries,
+    cache_kind,
     unavailable_key,
     failed_key,
     done_key=None,
@@ -754,12 +756,14 @@ async def upload_bytes_to_comfy_storage(
 ):
     """
     Comfy.org storage URL for media an API only takes as a public link,
-    reused from `cache` for the same cache_key within ttl_seconds. Needs a
-    Comfy.org login; the helper is internal to ComfyUI and missing with
-    --disable-api-nodes. Message keys get message_kwargs plus e.
+    reused for the same content (cache_kind, SHA-256) within
+    COMFY_UPLOAD_CACHE_TTL_SECONDS. Needs a Comfy.org login; the helper is
+    internal to ComfyUI and missing with --disable-api-nodes. Message keys get
+    message_kwargs plus e.
     """
-    cached = cache.get(cache_key)
-    if cached and time.time() - cached[1] < ttl_seconds:
+    cache_key = (cache_kind, hashlib.sha256(data).hexdigest())
+    cached = COMFY_UPLOAD_CACHE.get(cache_key)
+    if cached and time.time() - cached[1] < COMFY_UPLOAD_CACHE_TTL_SECONDS:
         return cached[0]
     try:
         from comfy_api_nodes.util import upload_file_to_comfyapi
@@ -771,10 +775,10 @@ async def upload_bytes_to_comfy_storage(
         raise
     except Exception as e:
         raise BytePlusException(get_text(failed_key, e=e, **message_kwargs)) from e
-    cache.pop(cache_key, None)
-    cache[cache_key] = (url, time.time())
-    while len(cache) > max_entries:
-        cache.pop(next(iter(cache)))
+    COMFY_UPLOAD_CACHE.pop(cache_key, None)
+    COMFY_UPLOAD_CACHE[cache_key] = (url, time.time())
+    while len(COMFY_UPLOAD_CACHE) > COMFY_UPLOAD_CACHE_MAX_ENTRIES:
+        COMFY_UPLOAD_CACHE.pop(next(iter(COMFY_UPLOAD_CACHE)))
     if done_key:
         log_msg(done_key, **message_kwargs)
     return url

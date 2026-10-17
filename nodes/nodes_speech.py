@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import hashlib
 import io
 import json
 import math
@@ -66,8 +65,6 @@ from .constants import (
     SPEECH_ASR_PENDING_CODES,
     SPEECH_ASR_POLL_SECONDS,
     SPEECH_ASR_SILENT_AUDIO_CODE,
-    SPEECH_UPLOAD_CACHE_MAX_ENTRIES,
-    SPEECH_UPLOAD_CACHE_TTL_SECONDS,
 )
 from .models_config import (
     SEED_ASR_MODELS,
@@ -178,19 +175,13 @@ def _segments_json(raw, segments):
 # Connected media -> Comfy.org storage URL, for Seed Speech options that only
 # take URLs (standard ASR audio, ASR context image). Needs a Comfy.org login;
 # the helper is internal to ComfyUI and missing with --disable-api-nodes.
-SPEECH_UPLOAD_CACHE = {}
-
-
 async def upload_to_comfy_storage(node_cls, kind, data, filename, mime_type):
     return await upload_bytes_to_comfy_storage(
         node_cls,
         data,
         filename,
         mime_type,
-        SPEECH_UPLOAD_CACHE,
-        cache_key=(kind, hashlib.sha256(data).hexdigest()),
-        ttl_seconds=SPEECH_UPLOAD_CACHE_TTL_SECONDS,
-        max_entries=SPEECH_UPLOAD_CACHE_MAX_ENTRIES,
+        cache_kind=f"speech-{kind}",
         unavailable_key="speech_upload_unavailable",
         failed_key="speech_upload_failed",
         done_key="speech_upload_done",

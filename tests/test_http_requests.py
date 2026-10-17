@@ -153,3 +153,48 @@ class ArkTaskPollTests(unittest.TestCase):
 
     def test_permanent_failures_end_the_wait_at_once(self):
         self.assertTrue(self.ark_tasks.poll_failure_is_final(types.SimpleNamespace(status_code=401), 1, 15))
+
+
+@requires_comfyui
+class ComfyUploadCacheTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
+        self.uploads = []
+
+        async def upload_file_to_comfyapi(node_cls, file_bytes_io, filename, mime_type, wait_label=None):
+            self.uploads.append(file_bytes_io.getvalue())
+            return f"https://storage.example/{len(self.uploads)}"
+
+        fake_util = types.ModuleType("comfy_api_nodes.util")
+        fake_util.upload_file_to_comfyapi = upload_file_to_comfyapi
+        patchers = [
+            mock.patch.dict(sys.modules, {"comfy_api_nodes.util": fake_util}),
+            mock.patch.dict(self.nodes_shared.COMFY_UPLOAD_CACHE, clear=True),
+        ]
+        for patcher in patchers:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    async def upload(self, data, cache_kind):
+        return await self.nodes_shared.upload_bytes_to_comfy_storage(
+            None, data, "f.bin", "application/octet-stream", cache_kind=cache_kind, unavailable_key="", failed_key=""
+        )
+
+    async def test_the_same_content_of_one_kind_is_uploaded_once(self):
+        first = await self.upload(b"abc", "speech-audio")
+        again = await self.upload(b"abc", "speech-audio")
+        self.assertEqual(first, again)
+        self.assertEqual(len(self.uploads), 1)
+
+    async def test_the_same_content_of_another_kind_is_uploaded_again(self):
+        await self.upload(b"abc", "speech-audio")
+        await self.upload(b"abc", "asset-audio")
+        self.assertEqual(len(self.uploads), 2)
+
+    async def test_the_oldest_entries_are_dropped_beyond_the_limit(self):
+        with mock.patch.object(self.nodes_shared, "COMFY_UPLOAD_CACHE_MAX_ENTRIES", 2):
+            for data in (b"1", b"2", b"3"):
+                await self.upload(data, "mediakit-image")
+            self.assertEqual(len(self.nodes_shared.COMFY_UPLOAD_CACHE), 2)
+            await self.upload(b"1", "mediakit-image")
+        self.assertEqual(len(self.uploads), 4)
