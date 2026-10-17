@@ -26,33 +26,32 @@ function isBytePlusNode(node) {
     return typeof node?.comfyClass === "string" && node.comfyClass.startsWith("BytePlus");
 }
 
+// A node inside a subgraph has an execution id that is a colon path ("12:5"):
+// node 12 of the root graph is the subgraph node, and 5 is a node inside it.
+function findGraphNode(executionId) {
+    let graph = getGraph();
+    let node;
+    for (const id of String(executionId).split(":")) {
+        node = graph?.getNodeById(id);
+        graph = node?.subgraph;
+    }
+    return node;
+}
+
 app.registerExtension({
     name: "ComfyUI.BytePlus.ProgressBar",
 
     async setup() {
         api.addEventListener("progress", ({ detail }) => {
             const { value, max, node } = detail;
-            const graphNode = getGraph()?.getNodeById(node);
-            
+            const graphNode = findGraphNode(node);
+
             if (isBytePlusNode(graphNode) && max > 0) {
-                const ratio = value / max;
-                graphNode.byteplus_progress_ratio = ratio;
+                graphNode.byteplus_progress_ratio = value / max;
                 graphNode.byteplus_progress_text = `${value}s / ${max}s`;
-                
+
                 getGraph()?.setDirtyCanvas(true, false);
             }
-        });
-
-        api.addEventListener("executed", ({ detail }) => {
-             const graphNode = getGraph()?.getNodeById(detail.node);
-             if (isBytePlusNode(graphNode)) {
-                 graphNode.byteplus_progress_ratio = 0;
-                 graphNode.byteplus_progress_text = "";
-                 graphNode.byteplus_progress_mode = null;
-                 graphNode.byteplus_progress_startTime = 0;
-                 graphNode.byteplus_progress_duration = 0;
-                 getGraph()?.setDirtyCanvas(true, false);
-             }
         });
     },
 
