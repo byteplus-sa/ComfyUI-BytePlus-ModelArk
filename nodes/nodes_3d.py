@@ -58,6 +58,7 @@ from .models_config import (
 )
 from .nodes_shared import (
     GLOBAL_CATEGORY,
+    LOG_PREFIX,
     BytePlusException,
     billed_ark,
     call_billed,
@@ -247,7 +248,7 @@ async def cancel_task(client, task_id):
         await asyncio.to_thread(client.ark.content_generation.tasks.delete, task_id=task_id)
         log_msg("msg3d_cancelled", task_id=task_id)
     except Exception as error:
-        log_msg("msg3d_cancel_failed", task_id=task_id, reason=format_api_error(error))
+        log_msg("msg3d_cancel_failed", task_id=task_id, reason=format_api_error(error).removeprefix(LOG_PREFIX))
 
 
 async def cancel_created_task(client, creation):

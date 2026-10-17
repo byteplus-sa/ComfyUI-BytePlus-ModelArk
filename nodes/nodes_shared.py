@@ -226,6 +226,8 @@ def check_api_key(api_key: str, base_url: str):
     Ask the region's endpoint about the API key: False when it is rejected
     (401/403), None when nothing is known about it (unreachable, 408, 429,
     5xx), True for any other answer (the endpoint did not refuse it).
+    Checked live 2026-10-18 (ap-southeast-1 /api/v3): a valid key gets 200,
+    a malformed or missing key 401.
     """
     try:
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}

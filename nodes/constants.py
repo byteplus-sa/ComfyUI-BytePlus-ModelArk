@@ -417,7 +417,7 @@ MESSAGES = {
     "err_transparent_needs_one_image": "Transparent background needs exactly one reference image with an alpha channel (connect its mask to reference_mask). Current reference images: {n}.",
     "err_transparent_needs_png": "Transparent background returns PNG; set output_format to png.",
     # Visual Understanding
-    "visual_found_file": "Found file in input directory: {path}",
+    "visual_found_file": "Reusing the earlier upload of {path} (still active in Ark Files).",
     "visual_uploading": "Uploading file: {path}",
     "visual_uploaded": "Uploaded file_id: {id}, Status: {status}",
     "visual_wait_active": "Waiting for file {id} to be active...",

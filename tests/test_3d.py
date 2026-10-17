@@ -294,6 +294,19 @@ class TaskFlowTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(nodes_3d.BytePlusException):
             await nodes_3d.wait_for_task(client, "task-1")
 
+    async def test_a_failed_cancel_names_the_reason_without_a_second_prefix(self):
+        client, _ = fake_tasks(["running"])
+
+        def refuse(task_id):
+            raise RuntimeError("Task is currently running and cannot be cancelled (409).")
+
+        client.ark.content_generation.tasks.delete = refuse
+        with self.assertLogs("BytePlus", level="INFO") as logs:
+            await nodes_3d.cancel_task(client, "task-1")
+        line = "\n".join(logs.output)
+        self.assertIn("cannot be cancelled", line)
+        self.assertEqual(line.count("[BytePlus]"), 1)
+
     async def test_cancelled_and_expired_tasks_end_the_wait(self):
         for status in ("cancelled", "expired"):
             client, _ = fake_tasks([status])
