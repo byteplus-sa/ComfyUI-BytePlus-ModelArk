@@ -24,6 +24,9 @@ extend-exclude = [".claude/worktrees"]
 
 [tool.ruff.format]
 quote-style = "double"
+# Code blocks in Markdown keep their hand-aligned comments. The two Seedream
+# files are formatted once PR #20 (which edits them) has merged.
+exclude = ["*.md", "nodes/nodes_seedream.py", "tests/test_core_style_seedream.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B", "UP", "SIM"]

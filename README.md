@@ -354,6 +354,7 @@ COMFYUI_ROOT=/path/to/ComfyUI python -m unittest discover -s tests -t .
 
 # Lint
 uvx ruff@0.17.1 check .
+uvx ruff@0.17.1 format --check .
 ```
 
 CI runs these on every push and pull request, and weekly against ComfyUI's latest release and `master`, since the nodes are compared with ComfyUI's built-in ByteDance nodes. See [`CLAUDE.md`](./CLAUDE.md) for layout and conventions.

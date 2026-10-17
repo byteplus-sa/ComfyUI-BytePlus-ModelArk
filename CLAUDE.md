@@ -68,10 +68,11 @@ COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest discover -s tests -t .
 
 # Lint (ruff settings are in pyproject.toml; nothing to install with uv)
 uvx ruff@0.17.1 check .
+uvx ruff@0.17.1 format --check .
 for file in web/js/*.js; do node --check "$file"; done
 ```
 
-`ruff format` is configured (`[tool.ruff.format]`) but the code is not formatted yet: the one-time `uvx ruff format .` waits until open branches that edit `nodes/*.py` are merged, then the lint job gets `uvx ruff@0.17.1 format --check .`. Until then, do not reformat whole files in feature PRs.
+The code is formatted with `uvx ruff@0.17.1 format .`, and the lint job runs `format --check`. `nodes/nodes_seedream.py` and `tests/test_core_style_seedream.py` are excluded in `[tool.ruff.format]` until the open PR that edits them (#20) merges; then remove the exclude and format them.
 
 CI (`.github/workflows/tests.yml`) runs all of these on every push and pull request, and weekly, against ComfyUI's latest release and `master` (CPU torch); a skipped test fails the run, because a skip means the core-parity comparison did not happen. New `tests/test_*.py` modules are picked up by discovery, so there is no list to update. The publish workflow runs the same tests (latest release only) before it tags and publishes. Actions are pinned by commit SHA; Dependabot (`.github/dependabot.yml`) proposes updates weekly.
 
