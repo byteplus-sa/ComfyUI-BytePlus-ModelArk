@@ -36,7 +36,7 @@ from .constants import (
     ASSET_URI_PREFIX,
     DEFAULT_REGION,
 )
-from .core_style import core_search_aliases, reference_kind_from_url
+from .core_style import _asset_library, core_search_aliases, reference_kind_from_url
 from . import credentials
 from .nodes_shared import (
     get_client,
@@ -416,7 +416,7 @@ class BytePlusAssetLibrary(comfy_io.ComfyNode):
         max_results=20,
         project_name="default",
     ) -> comfy_io.NodeOutput:
-        library = AssetLibrary(client)
+        library = _asset_library(client)
         group_id = (group_id or "").strip()
         result = await asyncio.to_thread(
             library.call,
@@ -735,7 +735,7 @@ async def register_core_asset(
     reuse an asset created for the same media, upload connected media to
     Comfy.org, CreateAsset, optionally wait until Active.
     """
-    library = AssetLibrary(client)
+    library = _asset_library(client)
     project_name = (project_name or "").strip() or "default"
     group_id = (group_id or "").strip()
     if not group_id:
