@@ -282,7 +282,7 @@ NEW_TEMPLATES = {
 
 
 def load_workflow(name):
-    with open(os.path.join(WORKFLOW_DIR, name), "r", encoding="utf-8") as file:
+    with open(os.path.join(WORKFLOW_DIR, name), encoding="utf-8") as file:
         return json.load(file)
 
 
@@ -664,7 +664,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         # Draft to Final is fed from the draft_task_id output (slot 1) of a Draft run.
         final = next(n for n in nodes.values() if n["type"] == "BytePlusSeedanceDraftToFinal")
         draft_input = next(i for i in final["inputs"] if i["name"] == "draft_task_id")
-        link = next(l for l in workflow["links"] if l[0] == draft_input["link"])
+        link = next(entry for entry in workflow["links"] if entry[0] == draft_input["link"])
         source = nodes[link[1]]
         self.assertEqual(link[2], 1)
         self.assertEqual(source["outputs"][1]["name"], "draft_task_id")
@@ -710,7 +710,7 @@ class WorkflowTemplateTests(unittest.TestCase):
 
     def test_templates_are_english_and_byteplus_only(self):
         for name in sorted(EXPECTED_WORKFLOWS):
-            with open(os.path.join(WORKFLOW_DIR, name), "r", encoding="utf-8") as file:
+            with open(os.path.join(WORKFLOW_DIR, name), encoding="utf-8") as file:
                 text = file.read()
             with self.subTest(workflow=name):
                 self.assertFalse(any("\u4e00" <= char <= "\u9fff" for char in text))
@@ -809,7 +809,7 @@ class WorkflowTemplateTests(unittest.TestCase):
             for n in extensions
         }
         sources = {
-            eid: next(l for l in workflow["links"] if l[0] == link)[1] for eid, link in reference.items()
+            eid: next(entry for entry in workflow["links"] if entry[0] == link)[1] for eid, link in reference.items()
         }
         first, second = sorted(extensions, key=lambda n: n["id"])
         self.assertEqual(sources[first["id"]], clip1["id"])
@@ -1174,7 +1174,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertEqual(len(shots), 3)
         for shot in shots:
             asset = next(i for i in shot["inputs"] if i["name"] == "model.reference_assets.asset_1")
-            link = next(l for l in workflow["links"] if l[0] == asset["link"])
+            link = next(entry for entry in workflow["links"] if entry[0] == asset["link"])
             self.assertEqual((nodes[link[1]]["type"], link[2]), ("BytePlusCreateImageAsset", 2))  # asset_uri
             self.assertIn("asset1", shot["widgets_values"][1])
 

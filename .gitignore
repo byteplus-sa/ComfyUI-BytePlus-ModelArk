@@ -40,3 +40,4 @@ ARCHITECTURE.md
 
 # e2e test reports (shared via Artifact, not committed)
 e2e-report/
+.DS_Store

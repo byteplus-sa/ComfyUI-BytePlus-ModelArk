@@ -229,7 +229,7 @@ MESSAGES = {
     "upload_ref_video_start": "Uploading reference video (done: {done}, pending: {pending})...",
     "upload_ref_video_done": "Reference video upload completed.",
     "upload_ref_video_cache_hit": "Reference video cache hit; reused uploaded result.",
-    
+
     # Updated
     "polling_single": "Task {task_id}: Running... {elapsed}s / {max}s elapsed",
     "node_poll_long_wait": " Waiting for {minutes} min already. Interrupt to stop waiting: queued tasks are cancelled, running ones finish and are billed (find them with Video Query Tasks).",
@@ -608,7 +608,7 @@ MESSAGES = {
 ERROR_TEXT_MATCH_RULES = {
     "output image may contain sensitive information": "OutputImageSensitiveContentDetected",
     "input text may contain sensitive information": "InputTextSensitiveContentDetected",
-    "input image may contain sensitive information": "InputImageSensitiveContentDetected", 
+    "input image may contain sensitive information": "InputImageSensitiveContentDetected",
     "the request failed because the input video may contain real person": "InputMediaMayContainRealPerson",
     "the request failed because the input image may contain real person": "InputMediaMayContainRealPerson",
     "input video may contain sensitive information": "InputVideoSensitiveContentDetected",

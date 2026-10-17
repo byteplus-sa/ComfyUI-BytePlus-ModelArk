@@ -175,9 +175,9 @@ async def mediakit_request(client, method, path, body=None, timeout_seconds=None
     except comfy.model_management.InterruptProcessingException:
         raise
     except asyncio.TimeoutError:
-        raise MediaKitRequestError(get_text("err_mediakit_timeout", seconds=seconds), retryable=True)
+        raise MediaKitRequestError(get_text("err_mediakit_timeout", seconds=seconds), retryable=True) from None
     except aiohttp.ClientError as e:
-        raise MediaKitRequestError(get_text("err_mediakit_network", e=e), retryable=True)
+        raise MediaKitRequestError(get_text("err_mediakit_network", e=e), retryable=True) from e
     if not isinstance(data, dict):
         raise MediaKitRequestError(get_text("err_mediakit_unexpected", status=status), _retryable_status(status))
     if accept_failed_task and data.get("status") == "failed":
@@ -929,7 +929,7 @@ def parse_frame_indices(text):
     try:
         indices = [int(part) for part in value.replace(",", " ").split()]
     except ValueError:
-        raise BytePlusException(get_text("err_smooth_frame_indices", value=value))
+        raise BytePlusException(get_text("err_smooth_frame_indices", value=value)) from None
     if any(index < 0 for index in indices) or len(set(indices)) != len(indices):
         raise BytePlusException(get_text("err_smooth_frame_indices", value=value))
     return sorted(indices)

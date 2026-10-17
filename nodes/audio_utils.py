@@ -105,7 +105,7 @@ def decode_audio_bytes(data):
     except BytePlusException:
         raise
     except Exception as e:
-        raise BytePlusException(get_text("speech_audio_decode_failed", e=e))
+        raise BytePlusException(get_text("speech_audio_decode_failed", e=e)) from e
 
 
 def _time_ms(item, ms_key, seconds_key):

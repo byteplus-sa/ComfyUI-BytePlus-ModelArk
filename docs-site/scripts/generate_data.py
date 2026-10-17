@@ -152,7 +152,7 @@ def build_nodes(object_info):
         tips = info.get("output_tooltips") or [None] * len(names)
         outputs = [
             {"name": n, "type": TYPE_LABELS.get(t, t), "is_list": bool(lists[i]), "tooltip": tips[i] or ""}
-            for i, (n, t) in enumerate(zip(names, types))
+            for i, (n, t) in enumerate(zip(names, types, strict=True))
         ]
         category = info.get("category", "")
         nodes.append({
@@ -185,7 +185,8 @@ def build_templates(nodes, object_info):
     templates = []
     for filename in sorted(f for f in os.listdir(folder) if f.endswith(".json")):
         title = filename[:-5]
-        workflow = json.load(open(os.path.join(folder, filename), encoding="utf-8"))
+        with open(os.path.join(folder, filename), encoding="utf-8") as file:
+            workflow = json.load(file)
         counts = {}
         for node in workflow.get("nodes", []):
             counts[node["type"]] = counts.get(node["type"], 0) + 1
@@ -254,7 +255,8 @@ def main():
     if args.object_info.startswith("http"):
         object_info = json.load(urllib.request.urlopen(args.object_info))
     else:
-        object_info = json.load(open(args.object_info))
+        with open(args.object_info, encoding="utf-8") as file:
+            object_info = json.load(file)
     nodes = build_nodes(object_info)
     templates = build_templates(nodes, object_info)
     models = build_models()

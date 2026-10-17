@@ -30,6 +30,8 @@ from .nodes_shared import (
     wait_interruptible,
 )
 from .constants import SEEDANCE_REQUEST_MAX_BYTES, VIDEO_MAX_SEED
+from .models_config import VIDEO_MODEL_MAP, VIDEO_2_UI_OPTIONS
+from .utils_download import b64_image_to_tensor_async
 
 # Seedance task polling: interval, and how many failed polls in a row are
 # tolerated before a task is reported as lost (about 30 s of errors).
@@ -51,8 +53,6 @@ def _poll_error_is_permanent(error):
     """A 4xx other than 408/409/429 (bad key, unknown or expired task) will not go away."""
     status = getattr(error, "status_code", None)
     return isinstance(status, int) and 400 <= status < 500 and status not in (408, 409, 429)
-from .models_config import VIDEO_MODEL_MAP, VIDEO_2_UI_OPTIONS
-from .utils_download import b64_image_to_tensor_async
 
 DEFAULT_FALLBACK_PER_SEC = 12
 DEFAULT_FALLBACK_BASE = 20
@@ -353,26 +353,26 @@ class BytePlusGenerationExecutor:
             clean_msg = clean_msg.strip()[len(prefix) :].strip()
         if clean_msg.startswith("Error:"):
             clean_msg = clean_msg[6:].strip()
-        
+
         if task_id:
             display_msg = get_text("popup_task_failed").format(
                 task_id=task_id, msg=clean_msg
             )
         else:
             display_msg = get_text("popup_req_failed").format(msg=clean_msg)
-        
+
         if self.ignore_errors:
             clean_display_msg = display_msg
             if clean_display_msg.startswith("[BytePlus] "):
                 clean_display_msg = clean_display_msg[11:].strip()
-            
+
             if clean_display_msg.startswith("[BytePlus] "):
                 clean_display_msg = clean_display_msg[11:].strip()
 
             log_msg("err_task_fail_ignored", node_id=self.node_id or "N/A", msg=clean_display_msg)
             self.ignored_failure = display_msg
             return
-            
+
         raise BytePlusException(display_msg)
 
     async def run_batch_tasks(
@@ -398,7 +398,7 @@ class BytePlusGenerationExecutor:
         ark_client = self.ark_client
         ps_instance = self.ps_instance
         node_id = self.node_id
-        
+
         cached_data = non_blocking_cache_dict.get(node_id)
 
         if non_blocking and cached_data:
@@ -474,7 +474,7 @@ class BytePlusGenerationExecutor:
                             self._create_failure_json(
                                 get_text("err_batch_fail_all")
                             )
-                    
+
                     return successful_tasks
 
             except Exception as e:
@@ -498,7 +498,7 @@ class BytePlusGenerationExecutor:
             request_kwargs["service_tier"] = service_tier
         if execution_expires_after is not None:
             request_kwargs["execution_expires_after"] = execution_expires_after
-        
+
         if extra_api_params:
             request_kwargs.update(extra_api_params)
 
@@ -531,7 +531,7 @@ class BytePlusGenerationExecutor:
             if "seedance-2-" in str(model_name).lower():
                 validate_seedance_request_size(task_kwargs)
             submitted_task_kwargs.append(task_kwargs)
-            
+
             create_coroutines.append(
                 asyncio.to_thread(
                     call_billed, self.billed_ark.content_generation.tasks.create, **task_kwargs
@@ -892,7 +892,7 @@ class BytePlusGenerationExecutor:
 
             running_ids = [
                 tid
-                for tid, (ok, msg) in zip(tasks_to_poll_ids, results)
+                for tid, (ok, msg) in zip(tasks_to_poll_ids, results, strict=True)
                 if not ok and "cannot be cancelled" in (msg or "")
             ]
             for success, msg in results:
@@ -957,7 +957,7 @@ class BytePlusGenerationExecutor:
                 self._create_failure_json(first_msg, task_id=first_tid)
             else:
                 self._create_failure_json(get_text("err_batch_fail_all"))
-        
+
         return successful_tasks
 
     async def run_parallel_requests(
@@ -968,7 +968,7 @@ class BytePlusGenerationExecutor:
     ):
         """
         Run image requests concurrently via request_func and collect results.
-        
+
         request_func: async function(index, session) -> (result_tensor, result_metadata)
         """
         async with aiohttp.ClientSession() as session:
@@ -1019,10 +1019,10 @@ class BytePlusGenerationExecutor:
             raise BytePlusException(get_text("err_batch_fail_all"))
 
         valid_results.sort(key=lambda x: x[1].get("batch_index", 0))
-        
+
         tensors = [r[0] for r in valid_results]
         metadata = [r[1] for r in valid_results]
-        
+
         return tensors, metadata
 
     async def stream_generation_helper(
@@ -1200,7 +1200,7 @@ class BytePlusGenerationExecutor:
             stop.set()
             raise
         except Exception as e:
-            raise BytePlusException(str(e))
+            raise BytePlusException(str(e)) from e
 
 
 class BytePlusVisualExecutor:
@@ -1218,22 +1218,22 @@ class BytePlusVisualExecutor:
         Create a response (non-streaming).
         """
         payload["stream"] = False
-        
+
         log_msg("visual_task_created")
         task_id = "N/A"
-        
+
         try:
             def _call():
                 return call_billed(self.ark_client.responses.create, **payload)
-            
+
             response = await wait_interruptible(asyncio.to_thread(_call))
-            
+
             task_id = getattr(response, "id", "N/A")
             self._results_cache[task_id] = response
-            
+
             log_msg("visual_task_complete", id=task_id)
             return task_id
-            
+
         except Exception as e:
             if isinstance(e, comfy.model_management.InterruptProcessingException):
                 raise e
@@ -1244,7 +1244,7 @@ class BytePlusVisualExecutor:
                 msg=formatted_error,
                 raw_api_response=str(e),
             )
-            raise BytePlusException(formatted_error)
+            raise BytePlusException(formatted_error) from e
 
     async def poll_response_result(self, task_id):
         """
@@ -1257,7 +1257,7 @@ class BytePlusVisualExecutor:
                     return response.model_dump()
                 else:
                     return response.dict()
-            
+
             raise BytePlusException(f"Task result not found for ID: {task_id}")
         except Exception as e:
             if isinstance(e, comfy.model_management.InterruptProcessingException):
@@ -1269,19 +1269,19 @@ class BytePlusVisualExecutor:
                 msg=formatted_error,
                 raw_api_response=str(e),
             )
-            raise BytePlusException(formatted_error)
+            raise BytePlusException(formatted_error) from e
 
     async def stream_response_task(self, payload, is_single_node=True):
         """
         Create a streaming response and handle its events.
         """
         payload["stream"] = True
-        
+
         log_msg("visual_stream_start")
-        
+
         full_content = ""
         final_json = {}
-        
+
         # Short task label to tell concurrent streams apart in the console
         task_short_id = "Main"
         if "previous_response_id" in payload:
@@ -1311,7 +1311,7 @@ class BytePlusVisualExecutor:
             nonlocal full_content, final_json
             try:
                 stream = call_billed(self.ark_client.responses.create, **payload)
-                
+
                 for event in stream:
                     if stop.is_set():
                         close = getattr(stream, "close", None)
@@ -1322,7 +1322,7 @@ class BytePlusVisualExecutor:
                         delta = event.delta
                         if delta:
                             _print_chunk(delta)
-                    
+
                     if ResponseReasoningTextDeltaEvent and isinstance(event, ResponseReasoningTextDeltaEvent):
                          delta = event.delta
                          if delta:
@@ -1336,20 +1336,20 @@ class BytePlusVisualExecutor:
                         if delta:
                             _print_chunk(delta)
                             full_content += delta
-                            
+
                     if isinstance(event, ResponseTextDoneEvent):
                          if not is_single_node and line_buffer:
                             print(f"\033[94m[Visual-{task_short_id}]\033[0m {line_buffer}")
                          elif is_single_node:
                             print("")
-                        
+
                     if isinstance(event, ResponseCompletedEvent):
                         # print(f"\nResponse Completed. Usage: {event.response.usage}")
                         if hasattr(event.response, "model_dump"):
                             final_json = event.response.model_dump()
                         else:
                              final_json = event.response.dict()
-                             
+
             except Exception as e:
                 if isinstance(e, comfy.model_management.InterruptProcessingException):
                     raise e
@@ -1360,15 +1360,15 @@ class BytePlusVisualExecutor:
                     msg=formatted_error,
                     raw_api_response=str(e),
                 )
-                raise BytePlusException(formatted_error)
-                
+                raise BytePlusException(formatted_error) from e
+
         try:
             await wait_interruptible(asyncio.to_thread(_run_stream))
         except comfy.model_management.InterruptProcessingException:
             stop.set()
             raise
-        
+
         if not final_json:
              final_json = {"status": "completed (stream)", "output": full_content}
-        
+
         return full_content, json.dumps(final_json, indent=2, ensure_ascii=False)

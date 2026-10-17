@@ -680,7 +680,7 @@ def _fit_reference_video(video, index, model_key, resolution, auto_downscale, au
     try:
         return scale_video(video, *dims)
     except Exception as e:
-        raise BytePlusException(get_text("err_seedance2_ref_video_resize_failed", index=index, e=e))
+        raise BytePlusException(get_text("err_seedance2_ref_video_resize_failed", index=index, e=e)) from e
 
 
 def validate_reference_video(video, index, model_key, resolution, task_type="auto"):
@@ -807,7 +807,7 @@ async def _resolve_reference_assets(client, reference_assets):
         if str(reference_assets[key] or "").strip()
     ]
     resolved = await resolve_reference_values(client, [value for _slot, value in slots])
-    return [(slot, item["kind"], item["uri"]) for (slot, _value), item in zip(slots, resolved)]
+    return [(slot, item["kind"], item["uri"]) for (slot, _value), item in zip(slots, resolved, strict=True)]
 
 
 # --------------------------------------------------------------------------
@@ -1070,9 +1070,9 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
         for kind in unique_assets.values():
             asset_counts[kind] += 1
 
-        if not images and not videos and not asset_counts["image"] and not asset_counts["video"]:
-            if not is_2_5 or not (audios or asset_counts["audio"]):
-                raise BytePlusException(get_text("err_seedance2_reference_required"))
+        has_visual = images or videos or asset_counts["image"] or asset_counts["video"]
+        if not has_visual and (not is_2_5 or not (audios or asset_counts["audio"])):
+            raise BytePlusException(get_text("err_seedance2_reference_required"))
         for kind, local, key in (("image", images, "images"), ("video", videos, "videos")):
             total = len(local) + asset_counts[kind]
             if total > limits[key]:
@@ -1242,14 +1242,14 @@ async def _get_draft_task(client, task_id):
     except Exception as e:
         raise BytePlusException(
             get_text("err_draft_lookup_failed", task_id=task_id, e=format_api_error(e).replace(LOG_PREFIX, "", 1))
-        )
+        ) from e
 
 
 async def describe_drafts(client, draft_ids):
     """Look up the draft tasks; returns (model_key, model_id, first task)."""
     tasks = await asyncio.gather(*[_get_draft_task(client, task_id) for task_id in draft_ids])
     model_keys = []
-    for task_id, task in zip(draft_ids, tasks):
+    for task_id, task in zip(draft_ids, tasks, strict=True):
         # The query API documents `draft` only for Seedance 1.5 Pro (2.5 returns it
         # too), so also reject finals and non-480p tasks, and drafts past 7 days.
         if getattr(task, "draft", None) is False:
@@ -1263,9 +1263,9 @@ async def describe_drafts(client, draft_ids):
         if task_resolution and task_resolution != SEEDANCE_DRAFT_RESOLUTION:
             raise BytePlusException(get_text("err_draft_not_a_draft", task_id=task_id))
         created_at = getattr(task, "created_at", None)
-        if isinstance(created_at, (int, float)) and created_at > 0:
-            if time.time() - float(created_at) > DRAFT_TASK_VALID_SECONDS:
-                raise BytePlusException(get_text("err_draft_expired", task_id=task_id))
+        is_timestamp = isinstance(created_at, (int, float)) and created_at > 0
+        if is_timestamp and time.time() - float(created_at) > DRAFT_TASK_VALID_SECONDS:
+            raise BytePlusException(get_text("err_draft_expired", task_id=task_id))
         status = str(getattr(task, "status", "") or "")
         if status in _FAILED_TASK_STATUSES:
             raise BytePlusException(get_text("err_draft_failed", task_id=task_id, status=status))

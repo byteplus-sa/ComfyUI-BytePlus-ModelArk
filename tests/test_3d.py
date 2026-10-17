@@ -4,7 +4,6 @@ archive extraction and outputs. Fake Ark clients only; nothing calls the API.
 
   COMFYUI_ROOT=/path/to/ComfyUI python -m unittest tests.test_3d
 """
-import asyncio
 import importlib
 import io
 import os

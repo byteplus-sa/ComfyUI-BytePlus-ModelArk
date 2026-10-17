@@ -399,19 +399,19 @@ class SeedreamSchemaTests(unittest.TestCase):
             self.assertEqual(core_schema.description, our_schema.description)
             our_top = our_schema.inputs
             self.assertEqual([i.id for i in core_schema.inputs], [i.id for i in our_top])
-            for core_input, our_input in zip(core_schema.inputs, our_top):
+            for core_input, our_input in zip(core_schema.inputs, our_top, strict=True):
                 if core_input.io_type != "COMFY_DYNAMICCOMBO_V3":
                     self.assertEqual(describe(core_input), describe(our_input))
                     continue
                 self.assertEqual(
                     [o.key for o in core_input.options], [o.key for o in our_input.options]
                 )
-                for core_option, our_option in zip(core_input.options, our_input.options):
+                for core_option, our_option in zip(core_input.options, our_input.options, strict=True):
                     ours = [i for i in our_option.inputs if i.id not in extras]
                     self.assertEqual(
                         [i.id for i in core_option.inputs], [i.id for i in ours], core_option.key
                     )
-                    for core_item, our_item in zip(core_option.inputs, ours):
+                    for core_item, our_item in zip(core_option.inputs, ours, strict=True):
                         if (our_schema.node_id, core_option.key, core_item.id) in BYTEPLUS_LIMIT_DEVIATIONS:
                             continue  # checked in test_documented_byteplus_limits
                         with self.subTest(node=our_schema.node_id, option=core_option.key, input=core_item.id):
@@ -425,7 +425,7 @@ class SeedreamSchemaTests(unittest.TestCase):
                                 self.assertEqual(
                                     core_item.template.as_dict(), our_item.template.as_dict()
                                 )
-            for core_output, our_output in zip(core_schema.outputs, our_schema.outputs):
+            for core_output, our_output in zip(core_schema.outputs, our_schema.outputs, strict=False):
                 self.assertEqual(
                     (core_output.io_type, core_output.display_name, core_output.tooltip),
                     (our_output.io_type, our_output.display_name, our_output.tooltip),

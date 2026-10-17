@@ -54,20 +54,26 @@ The project release skill is `.claude/skills/comfyui-registry-release/SKILL.md`.
 | `docs/images/` | Screenshots for the README's Settings > BytePlus guide (taken on a throwaway ComfyUI with a fake key; retake them when the Settings rows change). |
 | `example_workflows/*.json` | Templates shipped to the ComfyUI template browser; guarded by tests. They contain no client nodes. Each has a `<name>.jpg` thumbnail (a screenshot of the graph); retake it when the template changes. Templates show current models only: no Seedance 1.x, Seedream 4.x or Seed Speech 1.0 (`seed-tts-1.0`, `seed-icl-1.0`, `seed-asr-1.0`) (`LEGACY_MODEL_PREFIXES`, tested). Those nodes and options stay in the pack without a template. |
 | `docs-site/` | The documentation site (Astro Starlight, published to GitHub Pages by `.github/workflows/docs.yml`): one page per node and per template, guides, models, troubleshooting. Input/output tables, facts cards and the model table are **generated** from the code (`scripts/generate_data.py` reads a running ComfyUI's `/object_info`, `example_workflows/` and `models_config.py` into `src/data/*.json`), so pages hold only hand-written text. Page format and rules: `docs-site/CONTRIBUTING-DOCS.md`; `node scripts/check-docs.mjs --strict` enforces it (CI runs it, plus `npm run build`, which validates links). `tests/test_docs_data.py` fails when a node or template has no page. Screenshots and sample media come from a live run (`scripts/import_evidence.py`, `redact_results.py`); never publish asset, group or task IDs or signed URLs in images. |
-| `.comfyignore` | Dev files excluded from the registry package. |
+| `.comfyignore` | Dev files excluded from the registry package (including `docs/` and `assets/`: the README's images and the Registry icon are loaded from raw GitHub URLs). |
 
 ## Commands
 
 ```bash
-# Template/workflow tests (no ComfyUI needed)
-python3 -m unittest tests.test_workflow_templates tests.test_agent_files
+# Template, agent-file and docs-data tests (no ComfyUI needed)
+python3 -m unittest tests.test_workflow_templates tests.test_agent_files tests.test_docs_data
 
-# Node behaviour tests (skipped unless COMFYUI_ROOT is set; the interpreter needs torch,
+# Every test module (node tests are skipped unless COMFYUI_ROOT is set; the interpreter needs torch,
 # ComfyUI's requirements and this pack's requirements)
-COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed
+COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest discover -s tests -t .
+
+# Lint (ruff settings are in pyproject.toml; nothing to install with uv)
+uvx ruff check .
+for file in web/js/*.js; do node --check "$file"; done
 ```
 
-CI (`.github/workflows/tests.yml`) runs all of these on every push and pull request, and weekly, against ComfyUI's latest release and `master` (CPU torch); a skipped test fails the run, because a skip means the core-parity comparison did not happen.
+`ruff format` is configured (`[tool.ruff.format]`) but the code is not formatted yet: the one-time `uvx ruff format .` waits until open branches that edit `nodes/*.py` are merged, then the lint job gets `uvx ruff@0.17.1 format --check .`. Until then, do not reformat whole files in feature PRs.
+
+CI (`.github/workflows/tests.yml`) runs all of these on every push and pull request, and weekly, against ComfyUI's latest release and `master` (CPU torch); a skipped test fails the run, because a skip means the core-parity comparison did not happen. New `tests/test_*.py` modules are picked up by discovery, so there is no list to update. The publish workflow runs the same tests (latest release only) before it tags and publishes. Actions are pinned by commit SHA; Dependabot (`.github/dependabot.yml`) proposes updates weekly.
 
 Tests use stdlib `unittest` (pytest is not a dependency). `test_model_updates` fakes Ark clients with `SimpleNamespace` and stubs `PromptServer` / `comfy_api_nodes.util` — follow that pattern; never hit the real API in tests.
 

@@ -222,7 +222,7 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
     except Exception as exc:
         if isinstance(exc, BytePlusException):
             raise
-        raise BytePlusException(format_api_error(exc))
+        raise BytePlusException(format_api_error(exc)) from exc
 
 
 def _get_dynamic_input_order(name):
@@ -263,7 +263,7 @@ def _prepare_multi_image_inputs(images=None, **kwargs):
     elif isinstance(images, torch.Tensor):
         input_image_tensors.append(images)
 
-    for key in sorted([k for k in kwargs.keys() if k.startswith("image_")], key=_get_dynamic_input_order):
+    for key in sorted([k for k in kwargs if k.startswith("image_")], key=_get_dynamic_input_order):
         image_tensor = kwargs[key]
         if isinstance(image_tensor, torch.Tensor):
             input_image_tensors.append(image_tensor)
@@ -317,7 +317,7 @@ def _save_layer_pngs(filename_prefix, base, layers, layer_items, output_format):
     base_name = f"{stem}_base.{base_ext}"
     (base if base_ext == "png" else base.convert("RGB")).save(os.path.join(full_folder, base_name))
     saved[0] = os.path.join(subfolder, base_name)
-    for layer, item in zip(layers, layer_items):
+    for layer, item in zip(layers, layer_items, strict=True):
         z_index = getattr(item, "z_index", None) or 0
         layer_name = f"{stem}_layer{z_index:02d}.png"
         layer.save(os.path.join(full_folder, layer_name))

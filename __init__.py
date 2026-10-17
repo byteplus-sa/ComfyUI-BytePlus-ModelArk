@@ -25,7 +25,7 @@ def _byteplus_print_exception(*args, **kwargs):
         f = kwargs.get('file')
         if not f:
             f = sys.stderr
-        
+
         print(f"{exc}", file=f)
         return
 
@@ -49,7 +49,7 @@ def _byteplus_format_exception(*args, **kwargs):
 
     if exc and getattr(exc, "byteplus_suppress_traceback", False):
         return [f"{exc}\n"]
-    
+
     return _original_format_exception(*args, **kwargs)
 
 def _byteplus_logging_error(msg, *args, **kwargs):
@@ -71,9 +71,9 @@ logging.error = _byteplus_logging_error
 if sys.platform == 'win32':
     try:
         from asyncio import proactor_events
-        
+
         _original_call_connection_lost = proactor_events._ProactorBasePipeTransport._call_connection_lost
-        
+
         def _silenced_call_connection_lost(self, exc):
             """
             Silence asyncio ConnectionResetError / OSError (winerror 10054) on Windows.
@@ -102,7 +102,7 @@ def get_init_text(key, **kwargs):
 
     try:
         return msg.format(**kwargs)
-    except:
+    except Exception:
         return msg
 
 

@@ -644,7 +644,7 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
         if not clips:
             raise errors[0]
         # One list per output, index-aligned with the clips.
-        return comfy_io.NodeOutput(*[list(column) for column in zip(*clips)])
+        return comfy_io.NodeOutput(*[list(column) for column in zip(*clips, strict=True)])
 
 
 async def _seed_audio_once(speech_client, body, audio_format, sample_rate):
@@ -663,10 +663,7 @@ async def _seed_audio_once(speech_client, body, audio_format, sample_rate):
         audio_bytes = await download_bytes(url, operation)
     else:
         raise BytePlusException(get_text("speech_empty_audio", operation=operation))
-    if audio_format == "pcm":
-        audio = pcm16_to_audio(audio_bytes, int(sample_rate))
-    else:
-        audio = decode_audio_bytes(audio_bytes)
+    audio = pcm16_to_audio(audio_bytes, int(sample_rate)) if audio_format == "pcm" else decode_audio_bytes(audio_bytes)
 
     subtitle = result.get("subtitle") if isinstance(result.get("subtitle"), dict) else {}
     # The docs name the sentence list "sentences"; accept "utterances" too.

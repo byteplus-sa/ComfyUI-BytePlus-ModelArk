@@ -100,7 +100,7 @@ def resolve_query_models(model_version: str) -> list:
         target_models.append(RETIRED_MODELS[model_version][0])
     else:
         target_models.append(model_version)
-    
+
     return target_models
 
 def _calculate_duration_and_frames_args(duration: float):
@@ -143,13 +143,13 @@ async def upload_video_to_comfy_storage(
     try:
         from comfy_api_nodes.util import upload_video_to_comfyapi
     except Exception as e:
-        raise BytePlusException(get_text(unavailable_key, e=e))
+        raise BytePlusException(get_text(unavailable_key, e=e)) from e
     try:
         return await upload_video_to_comfyapi(node_cls, video, wait_label=None)
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:
-        raise BytePlusException(get_text(failed_key, e=e))
+        raise BytePlusException(get_text(failed_key, e=e)) from e
 
 
 async def upload_videos_to_comfy_storage_cached(node_cls, videos, helper=None, *, unavailable_key, failed_key):
@@ -448,7 +448,7 @@ class BytePlusVideoBase:
         try:
             waveform, sample_rate = audio_waveform(audio)
         except BytePlusException:
-            raise BytePlusException(get_text("popup_audio_invalid"))
+            raise BytePlusException(get_text("popup_audio_invalid")) from None
 
         duration = float(waveform.shape[1]) / float(sample_rate)
         if duration < REF_AUDIO_MIN_DURATION or duration > max_duration:
@@ -572,7 +572,7 @@ class BytePlusVideoBase:
         )
         valid_results = []
         missing = []  # paid tasks whose video could not be downloaded
-        for task, res in zip(successful_tasks, results):
+        for task, res in zip(successful_tasks, results, strict=True):
             if isinstance(res, comfy.model_management.InterruptProcessingException):
                 raise res
             if isinstance(res, Exception):
@@ -766,7 +766,7 @@ class BytePlusVideoBase:
             s_e = str(e)
             if s_e.startswith("[BytePlus]"):
                 raise e
-            raise BytePlusException(format_api_error(e))
+            raise BytePlusException(format_api_error(e)) from e
 
 
 def build_seedance1_frame_content(helper, first_frame, last_frame):
