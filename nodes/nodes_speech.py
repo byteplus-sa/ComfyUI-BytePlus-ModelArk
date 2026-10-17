@@ -19,6 +19,7 @@ from .audio_utils import (
 )
 from .constants import (
     DEFAULT_SPEECH_REGION,
+    MAX_GENERATION_COUNT,
     SEED_ASR_AUDIO_FORMATS,
     SEED_ASR_CONTEXT_IMAGE_MAX_PIXELS,
     SEED_ASR_CONTEXT_LANGUAGES,
@@ -37,7 +38,6 @@ from .constants import (
     SEED_AUDIO_FORMATS,
     SEED_AUDIO_IMAGE_MAX_PIXELS,
     SEED_AUDIO_IMAGE_MIN_PIXELS,
-    SEED_AUDIO_MAX_GENERATION_COUNT,
     SEED_AUDIO_MAX_AUDIO_REFS,
     SEED_AUDIO_MAX_PROMPT_CHARS,
     SEED_AUDIO_PATH,
@@ -574,7 +574,7 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
                     "generation_count",
                     default=1,
                     min=1,
-                    max=SEED_AUDIO_MAX_GENERATION_COUNT,
+                    max=MAX_GENERATION_COUNT,
                     optional=True,
                     advanced=True,
                     tooltip=(

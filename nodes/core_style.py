@@ -12,7 +12,7 @@ from urllib.parse import urljoin, urlparse
 import aiohttp
 from comfy_api.latest import io as comfy_io
 
-from .constants import ASSET_URI_PREFIX
+from .constants import ASSET_URI_PREFIX, MAX_GENERATION_COUNT
 from .models_config import MODEL_REGION_EXCLUSIONS
 from .nodes_shared import BytePlusException, gather_cancelling, get_text, wait_interruptible
 
@@ -73,6 +73,7 @@ def generation_count_input(seeded=True):
         "generation_count",
         default=1,
         min=1,
+        max=MAX_GENERATION_COUNT,
         tooltip=tooltip,
         advanced=True,
     )

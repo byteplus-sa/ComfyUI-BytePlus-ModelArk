@@ -1476,21 +1476,43 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
                     _load_image, await _download(result["image_url"], "image_enhanced", extension), True
                 )
                 if source is None:
-                    source = await asyncio.to_thread(_load_image, await _download(link, "image_source", "img"), True)
+                    source = await _load_linked_source(link)
                 return enhanced, source, {k: v for k, v in response.items() if k != "request_id"}
 
-        done = await gather_cancelling([enhance(i, s) for i, s in enumerate(sources)])
+        # Each image is billed on its own: a failed one leaves the others' results; an interrupt cancels the rest.
+        results = await gather_cancelling([enhance(i, s) for i, s in enumerate(sources)], return_exceptions=True)
+        done = [result for result in results if not isinstance(result, BaseException)]
+        errors = [result for result in results if isinstance(result, BaseException)]
+        if len(sources) > 1:
+            log_msg("batch_finished_stats", success=len(done), failed=len(errors))
+            for error in errors:
+                log_msg("batch_failed_reason", msg=str(error), count=1)
+        if not done:
+            raise errors[0]
         enhanced = [item[0] for item in done]
         height, width = enhanced[0].shape[1:3]
         # A batch is one tensor: results of another size are resized to the first one.
         enhanced = [e if e.shape[1:3] == (height, width) else resize_like(e, height, width) for e in enhanced]
-        originals = [resize_like(item[1], height, width) for item in done]
+        originals = (
+            torch.cat([resize_like(item[1], height, width) for item in done])
+            if all(item[1] is not None for item in done)
+            else ExecutionBlocker(None)
+        )
         responses = [item[2] for item in done]
         return comfy_io.NodeOutput(
             torch.cat(enhanced),
-            torch.cat(originals),
+            originals,
             json.dumps(responses[0] if len(responses) == 1 else responses, ensure_ascii=False),
         )
+
+
+async def _load_linked_source(link):
+    """The image behind image_url, for the original output; None when it cannot be fetched (the result is kept)."""
+    try:
+        return await asyncio.to_thread(_load_image, await _download(link, "image_source", "img"), True)
+    except Exception as error:
+        log_msg("image_enhance_source_unavailable", e=_reason(error))
+        return None
 
 
 # Registered in __init__.py.

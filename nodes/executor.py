@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import threading
 import time
 import math
@@ -22,7 +23,9 @@ from .nodes_shared import (
     BytePlusException,
     billed_ark,
     call_billed,
+    client_owner,
     format_api_error,
+    gather_cancelling,
     get_text,
     log_msg,
     safe_cat_tensors,
@@ -84,6 +87,18 @@ def compact_json_size_bytes(payload) -> int:
             default=_json_request_default,
         ).encode("utf-8")
     )
+
+
+def request_fingerprint(client, request_kwargs, generation_count):
+    """One-way hash of a video request and the key and region sending it (never the key itself)."""
+    payload = json.dumps(
+        [request_kwargs, generation_count, client_owner(client)],
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        default=_json_request_default,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def validate_seedance_request_size(payload, max_bytes=SEEDANCE_REQUEST_MAX_BYTES):
@@ -375,6 +390,66 @@ class BytePlusGenerationExecutor:
             
         raise BytePlusException(display_msg)
 
+    async def _cancel_tasks(self, task_ids):
+        """Cancel tasks after an interrupt; a running task cannot be cancelled (it is billed)."""
+        if not task_ids:
+            return
+        ark_client = self.ark_client
+
+        async def _cancel_task_safe(tid):
+            try:
+                await asyncio.to_thread(
+                    ark_client.content_generation.tasks.delete, task_id=tid
+                )
+                return True, None
+            except Exception as ex:
+                err_msg = format_api_error(ex)
+
+                clean_msg = err_msg.replace("[BytePlus] ", "").strip()
+                return False, clean_msg
+
+        results = await asyncio.gather(*[_cancel_task_safe(tid) for tid in task_ids])
+
+        cancel_stats = {"success": 0, "failed_counts": {}}
+        running_ids = [
+            tid
+            for tid, (ok, msg) in zip(task_ids, results)
+            if not ok and "cannot be cancelled" in (msg or "")
+        ]
+        for success, msg in results:
+            if success:
+                cancel_stats["success"] += 1
+            else:
+                cancel_stats["failed_counts"][msg] = (
+                    cancel_stats["failed_counts"].get(msg, 0) + 1
+                )
+
+        if len(task_ids) == 1:
+            if cancel_stats["success"] > 0:
+                log_msg("cancel_task_success", task_id=task_ids[0])
+            else:
+                first_fail_msg = next(iter(cancel_stats["failed_counts"]))
+                log_msg(
+                    "cancel_task_failed",
+                    task_id=task_ids[0],
+                    msg=first_fail_msg,
+                )
+        else:
+            failed_total = sum(cancel_stats["failed_counts"].values())
+            log_msg(
+                "cancel_batch_summary",
+                success=cancel_stats["success"],
+                failed=failed_total,
+            )
+            if failed_total > 0:
+                for msg, count in cancel_stats["failed_counts"].items():
+                    log_msg("cancel_batch_reason", msg=msg, count=count)
+
+        if running_ids:
+            note = get_text("cancel_running_billed", count=len(running_ids), ids=", ".join(running_ids))
+            log_msg("cancel_running_billed", count=len(running_ids), ids=", ".join(running_ids))
+            send_node_text(self.node_id, note, self.ps_instance)
+
     async def run_batch_tasks(
         self,
         model_name,
@@ -399,9 +474,32 @@ class BytePlusGenerationExecutor:
         ps_instance = self.ps_instance
         node_id = self.node_id
         
-        cached_data = non_blocking_cache_dict.get(node_id)
+        request_kwargs = {
+            "model": model_name,
+            "content": content,
+            "return_last_frame": return_last_frame,
+        }
+        if service_tier:
+            request_kwargs["service_tier"] = service_tier
+        if execution_expires_after is not None:
+            request_kwargs["execution_expires_after"] = execution_expires_after
 
-        if non_blocking and cached_data:
+        if extra_api_params:
+            request_kwargs.update(extra_api_params)
+
+        if "seedance-2-" in str(model_name).lower():
+            request_kwargs.pop("service_tier", None)
+            request_kwargs.pop("execution_expires_after", None)
+
+        # A pending non_blocking task is collected only by the same request from the
+        # same key and region; a blocking run forgets it.
+        fingerprint = request_fingerprint(self.client, request_kwargs, generation_count)
+        cached_data = non_blocking_cache_dict.get(node_id)
+        if cached_data and (not non_blocking or cached_data.get("request") != fingerprint):
+            del non_blocking_cache_dict[node_id]
+            cached_data = None
+
+        if cached_data:
             task_ids = cached_data["task_ids"]
             log_msg("check_status", count=len(task_ids))
             try:
@@ -478,33 +576,15 @@ class BytePlusGenerationExecutor:
                     return successful_tasks
 
             except Exception as e:
-                if isinstance(e, comfy.model_management.InterruptProcessingException):
-                    raise e
                 if str(e).startswith("[BytePlus]"):
                     raise e
                 del non_blocking_cache_dict[node_id]
                 log_msg("err_check_status_batch", e=e)
                 self._create_failure_json(format_api_error(e))
+                return []
 
         if generation_count > 1:
             log_msg("batch_submit_start", count=generation_count, model=model_name)
-
-        request_kwargs = {
-            "model": model_name,
-            "content": content,
-            "return_last_frame": return_last_frame,
-        }
-        if service_tier:
-            request_kwargs["service_tier"] = service_tier
-        if execution_expires_after is not None:
-            request_kwargs["execution_expires_after"] = execution_expires_after
-        
-        if extra_api_params:
-            request_kwargs.update(extra_api_params)
-
-        if "seedance-2-" in str(model_name).lower():
-            request_kwargs.pop("service_tier", None)
-            request_kwargs.pop("execution_expires_after", None)
 
         is_multi_content = isinstance(content, list) and len(content) > 0 and isinstance(content[0], list)
 
@@ -540,6 +620,17 @@ class BytePlusGenerationExecutor:
 
         comfy.model_management.throw_exception_if_processing_interrupted()
         results = await asyncio.gather(*create_coroutines, return_exceptions=True)
+
+        # An interrupt during a rate-limit wait stops one creation; the others may have
+        # created (and started billing) tasks, which are cancelled before re-raising.
+        aborted = next(
+            (res for res in results if isinstance(res, BaseException) and not isinstance(res, Exception)),
+            None,
+        )
+        if aborted is not None:
+            log_msg("interrupted")
+            await self._cancel_tasks([res.id for res in results if not isinstance(res, BaseException)])
+            raise aborted
 
         tasks_to_poll = []
         creation_errors = []
@@ -620,7 +711,7 @@ class BytePlusGenerationExecutor:
 
         if non_blocking:
             task_ids = [t.id for t in tasks_to_poll]
-            non_blocking_cache_dict[node_id] = {"task_ids": task_ids}
+            non_blocking_cache_dict[node_id] = {"task_ids": task_ids, "request": fingerprint}
             if node_id and ps_instance:
                 ps_instance.send_progress_text(
                     get_text("progress_non_blocking_submitted").format(
@@ -870,66 +961,10 @@ class BytePlusGenerationExecutor:
 
                 await asyncio.sleep(poll_interval)
 
-        except comfy.model_management.InterruptProcessingException as e:
+        except comfy.model_management.InterruptProcessingException:
             log_msg("interrupted")
-
-            cancel_stats = {"success": 0, "failed_counts": {}}
-
-            async def _cancel_task_safe(tid):
-                try:
-                    await asyncio.to_thread(
-                        ark_client.content_generation.tasks.delete, task_id=tid
-                    )
-                    return True, None
-                except Exception as ex:
-                    err_msg = format_api_error(ex)
-
-                    clean_msg = err_msg.replace("[BytePlus] ", "").strip()
-                    return False, clean_msg
-
-            cancel_coroutines = [_cancel_task_safe(tid) for tid in tasks_to_poll_ids]
-            results = await asyncio.gather(*cancel_coroutines)
-
-            running_ids = [
-                tid
-                for tid, (ok, msg) in zip(tasks_to_poll_ids, results)
-                if not ok and "cannot be cancelled" in (msg or "")
-            ]
-            for success, msg in results:
-                if success:
-                    cancel_stats["success"] += 1
-                else:
-                    cancel_stats["failed_counts"][msg] = (
-                        cancel_stats["failed_counts"].get(msg, 0) + 1
-                    )
-
-            if generation_count == 1:
-                if cancel_stats["success"] > 0:
-                    log_msg("cancel_task_success", task_id=tasks_to_poll_ids[0])
-                else:
-                    first_fail_msg = next(iter(cancel_stats["failed_counts"]))
-                    log_msg(
-                        "cancel_task_failed",
-                        task_id=tasks_to_poll_ids[0],
-                        msg=first_fail_msg,
-                    )
-            else:
-                failed_total = sum(cancel_stats["failed_counts"].values())
-                log_msg(
-                    "cancel_batch_summary",
-                    success=cancel_stats["success"],
-                    failed=failed_total,
-                )
-                if failed_total > 0:
-                    for msg, count in cancel_stats["failed_counts"].items():
-                        log_msg("cancel_batch_reason", msg=msg, count=count)
-
-            if running_ids:
-                note = get_text("cancel_running_billed", count=len(running_ids), ids=", ".join(running_ids))
-                log_msg("cancel_running_billed", count=len(running_ids), ids=", ".join(running_ids))
-                send_node_text(node_id, note, ps_instance)
-
-            raise e
+            await self._cancel_tasks(tasks_to_poll_ids)
+            raise
 
         finally:
             print()
@@ -972,18 +1007,18 @@ class BytePlusGenerationExecutor:
         request_func: async function(index, session) -> (result_tensor, result_metadata)
         """
         async with aiohttp.ClientSession() as session:
-            tasks = [request_func(i, session) for i in range(generation_count)]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            # An interrupt cancels the other requests and is re-raised; other errors are collected.
+            results = await gather_cancelling(
+                [request_func(i, session) for i in range(generation_count)],
+                return_exceptions=True,
+            )
 
         valid_results = []
         error_counts = {}
         first_exception = None
 
         for res in results:
-            if isinstance(res, Exception):
-                if isinstance(res, comfy.model_management.InterruptProcessingException):
-                    raise res
-
+            if isinstance(res, BaseException):
                 msg = str(res)
                 prefix = "[BytePlus] "
                 if msg.startswith(prefix):
@@ -1235,8 +1270,6 @@ class BytePlusVisualExecutor:
             return task_id
             
         except Exception as e:
-            if isinstance(e, comfy.model_management.InterruptProcessingException):
-                raise e
             formatted_error = format_api_error(e)
             log_msg(
                 "visual_task_failed",
@@ -1260,8 +1293,6 @@ class BytePlusVisualExecutor:
             
             raise BytePlusException(f"Task result not found for ID: {task_id}")
         except Exception as e:
-            if isinstance(e, comfy.model_management.InterruptProcessingException):
-                raise e
             formatted_error = format_api_error(e)
             log_msg(
                 "visual_task_failed",
@@ -1351,8 +1382,6 @@ class BytePlusVisualExecutor:
                              final_json = event.response.dict()
                              
             except Exception as e:
-                if isinstance(e, comfy.model_management.InterruptProcessingException):
-                    raise e
                 formatted_error = format_api_error(e)
                 log_msg(
                     "visual_task_failed",

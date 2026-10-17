@@ -761,8 +761,6 @@ class BytePlusVideoBase:
             return ret_results
 
         except Exception as e:
-            if isinstance(e, comfy.model_management.InterruptProcessingException):
-                raise e
             s_e = str(e)
             if s_e.startswith("[BytePlus]"):
                 raise e

@@ -30,7 +30,7 @@ from .models_config import (
     SEED_LLM_UI_OPTIONS,
 )
 from .nodes_shared import (
-    api_key_fingerprint,
+    client_owner,
     get_client,
     with_client,
     GLOBAL_CATEGORY,
@@ -50,12 +50,6 @@ FILE_EXPIRE_DEFAULT_SECONDS = 604800
 # node id; the owner (key fingerprint, region) must match to continue.
 SEED_LAST_RESPONSES = {}
 SEED_LAST_RESPONSES_MAX = 256
-
-
-def _conversation_owner(client):
-    """A response ID only exists in the account and region that made it (the key as a fingerprint)."""
-    api_key = getattr(client, "api_key", None) or ""
-    return (api_key_fingerprint(api_key) if api_key else "", getattr(client, "region", None))
 
 
 def _seed_model_inputs(max_images=SEED_LLM_MAX_IMAGES, max_videos=SEED_LLM_MAX_VIDEOS, max_audios=0):
@@ -419,7 +413,7 @@ class BytePlusSeed(comfy_io.ComfyNode):
 
         node_id = cls.hidden.unique_id
         # A conversation continues only on the same account, region and model.
-        owner = (*_conversation_owner(client), model_id)
+        owner = (*client_owner(client), model_id)
         turns = int(turns or 1)
         previous_response_id = None
         if turns > 1:

@@ -254,19 +254,30 @@ async def cancel_task(client, task_id):
         log_msg("msg3d_cancel_failed", task_id=task_id, reason=format_api_error(error))
 
 
+async def cancel_created_task(client, creation):
+    """After an interrupt the worker thread still creates (and bills) the task: wait for it, then cancel it."""
+    try:
+        task = await creation
+    except (Exception, comfy.model_management.InterruptProcessingException):
+        return
+    await cancel_task(client, task.id)
+
+
 async def submit_task(client, request):
     extra = {key: value for key, value in request.items() if key not in ("model", "content") and value is not None}
-    try:
-        task = await wait_interruptible(
-            asyncio.to_thread(
-                call_billed,
-                billed_ark(client).content_generation.tasks.create,
-                model=request["model"],
-                content=request["content"],
-                **extra,
-            )
+    creation = asyncio.ensure_future(
+        asyncio.to_thread(
+            call_billed,
+            billed_ark(client).content_generation.tasks.create,
+            model=request["model"],
+            content=request["content"],
+            **extra,
         )
+    )
+    try:
+        task = await wait_interruptible(asyncio.shield(creation))
     except comfy.model_management.InterruptProcessingException:
+        await cancel_created_task(client, creation)
         raise
     except Exception as error:
         raise BytePlusException(format_api_error(error)) from error
