@@ -29,6 +29,8 @@ if COMFY_ROOT:
         package.__path__ = [PLUGIN_ROOT]
         sys.modules[PACKAGE_NAME] = package
     http_requests = importlib.import_module(f"{PACKAGE_NAME}.nodes.http_requests")
+    speech_api = importlib.import_module(f"{PACKAGE_NAME}.nodes.speech_api")
+    nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
 
 
 def setUpModule():
@@ -206,3 +208,76 @@ class SlotNumberTests(unittest.TestCase):
         slot_number = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared").slot_number
         keys = ["image_10", "image_2", "image_1", "other"]
         self.assertEqual(sorted(keys, key=slot_number), ["image_1", "image_2", "image_10", "other"])
+
+
+@requires_comfyui
+class ServiceErrorTextTests(unittest.IsolatedAsyncioTestCase):
+    async def test_speech_timeout_names_the_operation_and_is_retryable(self):
+        async def slow(method, url, headers, body, timeout):
+            raise asyncio.TimeoutError()
+
+        client = speech_api.SeedSpeechClient("key")
+        with mock.patch.object(speech_api, "_send", slow):
+            with self.assertRaises(http_requests.RetryableRequestError) as ctx:
+                await speech_api.speech_post(client, "/p", {}, operation="TTS", timeout=7)
+        self.assertTrue(ctx.exception.retryable)
+        self.assertIn("Seed Speech TTS timed out after 7 s", str(ctx.exception))
+
+    async def test_speech_server_errors_are_retryable_and_client_errors_are_not(self):
+        client = speech_api.SeedSpeechClient("key")
+        for status, retryable in ((503, True), (429, True), (400, False), (401, False)):
+            with self.subTest(status=status):
+
+                async def answer(method, url, headers, body, timeout, status=status):
+                    return speech_api.SpeechResponse(status, {}, b"{}")
+
+                with mock.patch.object(speech_api, "_send", answer):
+                    with self.assertRaises(http_requests.RetryableRequestError) as ctx:
+                        await speech_api.speech_post(client, "/p", {}, operation="TTS")
+                self.assertEqual(ctx.exception.retryable, retryable)
+
+    async def test_mediakit_network_error_is_retryable_and_names_the_cause(self):
+        import aiohttp
+
+        async def down(client, method, path, body=None, timeout_seconds=None):
+            raise aiohttp.ClientConnectionError("reset")
+
+        client = nodes_mediakit.MediaKitClient("key")
+        with mock.patch.object(nodes_mediakit, "_send", down):
+            with self.assertRaises(http_requests.RetryableRequestError) as ctx:
+                await nodes_mediakit.mediakit_request(client, "GET", "/tasks/t1")
+        self.assertTrue(ctx.exception.retryable)
+        self.assertIn("Could not reach AI MediaKit", str(ctx.exception))
+
+    async def test_mediakit_http_errors_carry_the_status_and_the_api_message(self):
+        async def answer(client, method, path, body=None, timeout_seconds=None):
+            return 429, {"success": False, "error": {"code": "Throttled", "message": "slow down"}}
+
+        client = nodes_mediakit.MediaKitClient("key")
+        with mock.patch.object(nodes_mediakit, "_send", answer):
+            with self.assertRaises(http_requests.RetryableRequestError) as ctx:
+                await nodes_mediakit.mediakit_request(client, "POST", "/tools/enhance-video", {})
+        self.assertEqual(ctx.exception.status, 429)
+        self.assertTrue(ctx.exception.retryable)
+        self.assertIn("slow down", str(ctx.exception))
+
+    async def test_mediakit_non_json_answer_is_unexpected(self):
+        async def answer(client, method, path, body=None, timeout_seconds=None):
+            return 502, None
+
+        client = nodes_mediakit.MediaKitClient("key")
+        with mock.patch.object(nodes_mediakit, "_send", answer):
+            with self.assertRaises(http_requests.RetryableRequestError) as ctx:
+                await nodes_mediakit.mediakit_request(client, "GET", "/tasks/t1")
+        self.assertEqual(ctx.exception.status, 502)
+        self.assertTrue(ctx.exception.retryable)
+
+
+@requires_comfyui
+class AssetApiErrorTests(unittest.TestCase):
+    def test_asset_errors_follow_the_shared_retry_contract(self):
+        nodes_assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
+        error = nodes_assets.AssetApiError("[BytePlus] throttled", True)
+        self.assertIsInstance(error, http_requests.RetryableRequestError)
+        self.assertTrue(error.retryable)
+        self.assertFalse(nodes_assets.AssetApiError("[BytePlus] denied").retryable)

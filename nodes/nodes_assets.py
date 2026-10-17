@@ -38,6 +38,7 @@ from .constants import (
 )
 from .core_style import _asset_library, core_search_aliases, reference_kind_from_url
 from . import credentials
+from .http_requests import RetryableRequestError
 from .nodes_shared import (
     get_client,
     with_client,
@@ -69,12 +70,8 @@ GROUP_LOCKS = {}
 ASSET_UPLOAD_LOCKS = {}
 
 
-class AssetApiError(BytePlusException):
+class AssetApiError(RetryableRequestError):
     """A failed asset library call. retryable: throttling, network errors, timeouts and 5xx."""
-
-    def __init__(self, message, retryable=False):
-        super().__init__(message)
-        self.retryable = retryable
 
 
 def resolve_asset_credentials(client):

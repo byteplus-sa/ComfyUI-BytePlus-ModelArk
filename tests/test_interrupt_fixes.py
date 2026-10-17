@@ -198,13 +198,28 @@ class PollTextTests(unittest.TestCase):
 
     def test_node_status_text_adds_time_left_and_the_long_wait_hint_only_when_due(self):
         short = executor._poll_node_status_text(1, 0, 0, 1, 30, 20)
-        self.assertIn("1 running, 0 queued, 0/1 done · waiting 30s", short)
-        self.assertIn("about 20s left", short)
-        self.assertNotIn("Waiting for", short)
+        self.assertEqual(plain(short), "1 running, 0 queued, 0/1 done · waiting 30s · about 20s left")
         long = executor._poll_node_status_text(0, 2, 0, 2, executor.LONG_WAIT_HINT_SECONDS, 0)
-        self.assertIn("0 running, 2 queued, 0/2 done · waiting 1200s", long)
+        self.assertTrue(plain(long).startswith("0 running, 2 queued, 0/2 done · waiting 1200s Waiting for 20 min"))
         self.assertNotIn("left", long)
-        self.assertIn("Waiting for 20 min already", long)
+
+    def test_node_status_text_has_no_console_prefix_inside(self):
+        text = executor._poll_node_status_text(1, 0, 0, 1, executor.LONG_WAIT_HINT_SECONDS, 20)
+        self.assertEqual(plain(text).count("[BytePlus]"), 0)
+
+
+class FailedTaskReasonTests(unittest.TestCase):
+    def task(self, status, error=None):
+        return SimpleNamespace(id="t1", status=status, error=error)
+
+    def test_the_api_message_wins(self):
+        self.assertEqual(executor._task_fail_reason(self.task("failed", {"message": "bad"})), "bad")
+        self.assertEqual(executor._task_fail_reason(self.task("failed", SimpleNamespace(message="worse"))), "worse")
+
+    def test_without_an_error_the_status_names_the_reason(self):
+        self.assertEqual(executor._task_fail_reason(self.task("failed")), "Failed")
+        self.assertEqual(executor._task_fail_reason(self.task("cancelled")), "Cancelled")
+        self.assertEqual(executor._task_fail_reason(self.task("expired")), "Expired")
 
 
 class NonBlockingCacheTests(ExecutorTestCase):

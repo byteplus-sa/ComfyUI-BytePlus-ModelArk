@@ -30,6 +30,7 @@ from .nodes_shared import (
     call_billed,
     client_owner,
     format_api_error,
+    plain_text,
     gather_cancelling,
     get_text,
     log_msg,
@@ -58,8 +59,8 @@ def _task_error(task, fallback):
     return fallback
 
 
-def _task_fail_reason(task, name_status=False):
-    """The reason a finished-unsuccessfully task gives; name_status falls back to Cancelled / Expired."""
+def _task_fail_reason(task):
+    """The reason a task that ended unsuccessfully gives, else its status."""
     error = getattr(task, "error", None)
     if error:
         if hasattr(error, "message"):
@@ -67,16 +68,16 @@ def _task_fail_reason(task, name_status=False):
         if isinstance(error, dict) and "message" in error:
             return error["message"]
         return str(error)
-    if name_status and task.status == "cancelled":
+    if task.status == "cancelled":
         return "Cancelled"
-    if name_status and task.status == "expired":
+    if task.status == "expired":
         return "Expired"
     return "Failed"
 
 
-def _failed_task_info(task_id, task, name_status=False):
+def _failed_task_info(task_id, task):
     """(task ID, message for the user, reason) of a failed, cancelled or expired task."""
-    reason = _task_fail_reason(task, name_status)
+    reason = _task_fail_reason(task)
     return (task_id, format_api_error(_task_error(task, reason)), reason)
 
 
@@ -357,9 +358,9 @@ def _poll_console_text(
 
 
 def _poll_node_status_text(running, queued, done, total, waited_seconds, remaining_seconds):
-    remaining = get_text("node_poll_remaining", seconds=remaining_seconds) if remaining_seconds > 0 else ""
+    remaining = plain_text("node_poll_remaining", seconds=remaining_seconds) if remaining_seconds > 0 else ""
     long_wait = (
-        get_text("node_poll_long_wait", minutes=waited_seconds // 60)
+        plain_text("node_poll_long_wait", minutes=waited_seconds // 60)
         if waited_seconds >= LONG_WAIT_HINT_SECONDS
         else ""
     )
@@ -630,7 +631,7 @@ class BytePlusGenerationExecutor:
                 elif res.status == "succeeded":
                     successful_tasks.append(res)
                 elif res.status in FAILED_TASK_STATUSES:
-                    failed_tasks_info.append(_failed_task_info(res.id, res, name_status=True))
+                    failed_tasks_info.append(_failed_task_info(res.id, res))
                 else:
                     pending_tasks.append(res)
 
