@@ -16,11 +16,11 @@ from .constants import (
     SPEECH_REQUEST_TIMEOUT_SECONDS,
     SPEECH_SUCCESS_CODES,
 )
+from .http_requests import RetryableRequestError, await_request, is_retryable_status, retry_transient, send_http_request
 from .nodes_shared import (
     BytePlusException,
     get_text,
     plain_text,
-    sleep_interruptible,
     wait_interruptible,
 )
 
@@ -142,25 +142,15 @@ def check_code(operation, response, code, message=None):
 
 async def _send(method, url, headers, body, timeout):
     """One HTTP request; tests replace this function."""
-    client_timeout = aiohttp.ClientTimeout(total=timeout)
-    async with aiohttp.ClientSession(timeout=client_timeout) as session:
-        async with session.request(method, url, headers=headers, json=body) as response:
-            return SpeechResponse(response.status, dict(response.headers), await response.read())
-
-
-class SpeechRequestError(BytePlusException):
-    """A failed Seed Speech request. retryable: network errors, timeouts, 429 and 5xx."""
-
-    def __init__(self, message, retryable=False):
-        super().__init__(message)
-        self.retryable = retryable
+    status, response_headers, response_body = await send_http_request(method, url, headers, body, timeout)
+    return SpeechResponse(status, response_headers, response_body)
 
 
 async def speech_post(client, path, body, *, operation, headers=None, timeout=SPEECH_REQUEST_TIMEOUT_SECONDS):
     """
     POST JSON to Seed Speech with the X-Api-Key header and a fresh
-    X-Api-Request-Id (callers may override it). Raises BytePlusException for
-    network errors and HTTP errors; the caller checks body/header codes.
+    X-Api-Request-Id (callers may override it). Raises RetryableRequestError
+    for network errors and HTTP errors; the caller checks body/header codes.
     """
     request_headers = {
         "X-Api-Key": client.api_key,
@@ -168,36 +158,25 @@ async def speech_post(client, path, body, *, operation, headers=None, timeout=SP
         "Content-Type": "application/json",
     }
     request_headers.update(headers or {})
-    try:
-        response = await wait_interruptible(_send("POST", client.base_url + path, request_headers, body, timeout))
-    except asyncio.TimeoutError:
-        raise SpeechRequestError(
-            get_text("speech_timeout", operation=operation, seconds=timeout), retryable=True
-        ) from None
-    except aiohttp.ClientError as e:
-        raise SpeechRequestError(get_text("speech_network_error", operation=operation, e=e), retryable=True) from e
+    response = await await_request(
+        _send("POST", client.base_url + path, request_headers, body, timeout),
+        get_text("speech_timeout", operation=operation, seconds=timeout),
+        lambda e: get_text("speech_network_error", operation=operation, e=e),
+    )
     if response.status >= 400:
-        raise SpeechRequestError(
-            str(speech_error(operation, response)), retryable=response.status == 429 or response.status >= 500
+        raise RetryableRequestError(
+            str(speech_error(operation, response)), retryable=is_retryable_status(response.status)
         )
     return response
 
 
 async def speech_poll(client, path, body, *, operation, poll_seconds, headers=None):
-    """
-    speech_post for status queries of a submitted (possibly already billed)
-    task: transient failures are retried after poll_seconds, up to
-    SPEECH_POLL_MAX_ERRORS in a row, instead of abandoning the task.
-    """
-    errors = 0
-    while True:
-        try:
-            return await speech_post(client, path, body, operation=operation, headers=headers)
-        except SpeechRequestError as e:
-            errors += 1
-            if not e.retryable or errors >= SPEECH_POLL_MAX_ERRORS:
-                raise
-            await sleep_interruptible(poll_seconds)
+    """speech_post for status queries of a submitted task: transient failures are retried."""
+    return await retry_transient(
+        lambda: speech_post(client, path, body, operation=operation, headers=headers),
+        max_errors=SPEECH_POLL_MAX_ERRORS,
+        poll_seconds=poll_seconds,
+    )
 
 
 async def download_bytes(url, operation, timeout=SPEECH_REQUEST_TIMEOUT_SECONDS):
