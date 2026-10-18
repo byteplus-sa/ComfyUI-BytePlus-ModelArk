@@ -4,9 +4,9 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.6.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.6.1.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.6.0:** two 3D generation nodes, Hyper3D Gen2 (text and images to 3D) and Hitem3D 2.0 (images to 3D), with two templates that open the result in ComfyUI's 3D viewer and save it as GLB. They need only a ModelArk key and a ComfyUI release with 3D file support (tested on 0.38).
+**New in v0.6.1:** reliability and safety fixes from a full code review, checked against the live APIs. Stop no longer errors or leaves paid work running unseen, re-running a `non_blocking` Seedance node collects the pending video instead of billing a new one, `last_frame` always matches its video, and parallel Image Quality Enhance calls no longer lose images. Signed result links no longer appear in logs. `generation_count` is limited to 16, and the BytePlus LLM node's `turns` now sets the conversation length. Workflows need no changes.
 
 ## Contents
 
