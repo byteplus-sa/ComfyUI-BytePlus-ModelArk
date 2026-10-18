@@ -15,6 +15,7 @@ sweeps across the frame plus a frame pair for ComfyUI's Compare Images slider;
 for Smoothness, the source and the repaired video side by side; for images,
 the original resized to the result for the Compare Images slider.
 """
+
 import asyncio
 import hashlib
 import io
@@ -54,6 +55,7 @@ from .nodes_shared import (
     BytePlusException,
     gather_cancelling,
     get_text,
+    keyed_lock,
     log_msg,
     plain_text,
     send_node_text,
@@ -152,11 +154,12 @@ async def _send(client, method, path, body=None, timeout_seconds=None):
 
 
 class MediaKitRequestError(BytePlusException):
-    """A failed MediaKit call. retryable: network errors, timeouts, 429 and 5xx."""
+    """A failed MediaKit call. retryable: network errors, timeouts, 429 and 5xx. status: the HTTP status, if any."""
 
-    def __init__(self, message, retryable=False):
+    def __init__(self, message, retryable=False, status=None):
         super().__init__(message)
         self.retryable = retryable
+        self.status = status
 
 
 def _retryable_status(status):
@@ -175,16 +178,20 @@ async def mediakit_request(client, method, path, body=None, timeout_seconds=None
     except comfy.model_management.InterruptProcessingException:
         raise
     except asyncio.TimeoutError:
-        raise MediaKitRequestError(get_text("err_mediakit_timeout", seconds=seconds), retryable=True)
+        raise MediaKitRequestError(get_text("err_mediakit_timeout", seconds=seconds), retryable=True) from None
     except aiohttp.ClientError as e:
-        raise MediaKitRequestError(get_text("err_mediakit_network", e=e), retryable=True)
+        raise MediaKitRequestError(get_text("err_mediakit_network", e=e), retryable=True) from e
     if not isinstance(data, dict):
-        raise MediaKitRequestError(get_text("err_mediakit_unexpected", status=status), _retryable_status(status))
+        raise MediaKitRequestError(
+            get_text("err_mediakit_unexpected", status=status), _retryable_status(status), status=status
+        )
     if accept_failed_task and data.get("status") == "failed":
         return data
     if status >= 400 or data.get("success") is False:
         raise MediaKitRequestError(
-            describe_mediakit_error(data.get("error"), status, data.get("request_id")), _retryable_status(status)
+            describe_mediakit_error(data.get("error"), status, data.get("request_id")),
+            _retryable_status(status),
+            status=status,
         )
     return data
 
@@ -239,13 +246,13 @@ def task_result(task):
 # vCube Video Enhance: inputs, request and source limits
 # --------------------------------------------------------------------------
 
+
 def _style_input():
     return comfy_io.Combo.Input(
         "enhance_style",
         options=VCUBE_STYLES,
         default="hd",
-        tooltip="'hd' applies a sharper enhancement; 'natural' reduces the strength "
-        "for a softer, less sharpened look.",
+        tooltip="'hd' applies a sharper enhancement; 'natural' reduces the strength for a softer, less sharpened look.",
     )
 
 
@@ -290,8 +297,7 @@ def _resolution_input():
                         default=1080,
                         min=VCUBE_MIN_SHORT_SIDE,
                         max=VCUBE_MAX_SHORT_SIDE,
-                        tooltip="Short side of the output in pixels; the long side follows "
-                        "the source aspect ratio.",
+                        tooltip="Short side of the output in pixels; the long side follows the source aspect ratio.",
                     ),
                 ],
             ),
@@ -303,8 +309,9 @@ def _resolution_input():
     )
 
 
-def build_enhance_request(video_url, tool_version, resolution, fps, bitrate_level, bitrate=0,
-                          source_size=None, source_fps=None):
+def build_enhance_request(
+    video_url, tool_version, resolution, fps, bitrate_level, bitrate=0, source_size=None, source_fps=None
+):
     """
     The POST /tools/enhance-video body, as core's node builds it: fps 'source'
     sends the source rate (when known and within 15-120), resolution 'source'
@@ -418,8 +425,10 @@ async def _download(url, prefix, ext="mp4"):
 
 # --- Source video and tasks (shared by the MediaKit tools) --------------------
 
-def check_source(media, url, name="video_url", both_key="err_mediakit_source_both",
-                 missing_key="err_mediakit_source_missing"):
+
+def check_source(
+    media, url, name="video_url", both_key="err_mediakit_source_both", missing_key="err_mediakit_source_missing"
+):
     """The url link ("" for connected media). Exactly one source is required."""
     link = str(url or "").strip()
     if media is not None and link:
@@ -472,7 +481,7 @@ async def submit_and_wait(client, path, body, node_id, submitted_key):
         except MediaKitRequestError as e:
             if not e.retryable or attempt >= MEDIAKIT_SUBMIT_RETRIES:
                 raise
-            await sleep_interruptible(2 ** attempt)
+            await sleep_interruptible(2**attempt)
     task_id = created.get("task_id")
     if not task_id:
         raise BytePlusException(get_text("err_mediakit_unexpected", status="no task_id"))
@@ -503,7 +512,32 @@ async def make_comparison(build, video, link, prefix, *args):
         _remove_quietly(source_path)
 
 
+async def _removing_on_interrupt(path, awaitable):
+    """Await it; if it is interrupted, delete path (a downloaded result nobody will receive)."""
+    try:
+        return await awaitable
+    except BaseException:
+        _remove_quietly(path)
+        raise
+
+
+async def _pass_through_source(link):
+    """
+    The source of a run with nothing repaired, downloaded from link. A failed
+    download blocks only the video output: the paid detection results stay.
+    """
+    try:
+        return VideoFromFile(await source_file(None, link, "smooth_source"))
+    except comfy.model_management.InterruptProcessingException:
+        raise
+    except Exception as e:
+        message = get_text("err_smooth_source_unavailable", reason=_reason(e))
+        log_msg("err_smooth_source_unavailable", reason=_reason(e))
+        return ExecutionBlocker(message)
+
+
 # --- Comparison --------------------------------------------------------------
+
 
 def _even(value):
     value = max(2, int(round(value)))
@@ -549,7 +583,7 @@ def compose_side_by_side_frame(source_rgb, result_rgb, line_px=2):
 
     frame = numpy.hstack([source_rgb, result_rgb])
     x = source_rgb.shape[1]
-    frame[:, max(0, x - line_px // 2):x + (line_px + 1) // 2] = numpy.array([240, 240, 240], dtype=frame.dtype)
+    frame[:, max(0, x - line_px // 2) : x + (line_px + 1) // 2] = numpy.array([240, 240, 240], dtype=frame.dtype)
     return frame
 
 
@@ -647,31 +681,36 @@ def _render_synced(source, result, out_path, frame_size, compose):
     step = 1.0 / float(rate)
     count = max(1, int(round(duration * float(rate)))) if duration else None
     width, height = frame_size
-    with av.open(out_path, mode="w") as output:
-        out_stream = None
-        index = 0
-        while count is None or index < count:
-            comfy.model_management.throw_exception_if_processing_interrupted()
-            t = index * step
-            after = r_cursor.rgb_at(t, width, height)
-            if after is None or (count is None and r_cursor.ended_before(t, step)):
-                break
-            before = s_cursor.rgb_at(t, width, height)
-            if before is None:
-                break
-            composed = compose(before, after, t)
+    try:
+        with av.open(out_path, mode="w") as output:
+            out_stream = None
+            index = 0
+            while count is None or index < count:
+                comfy.model_management.throw_exception_if_processing_interrupted()
+                t = index * step
+                after = r_cursor.rgb_at(t, width, height)
+                if after is None or (count is None and r_cursor.ended_before(t, step)):
+                    break
+                before = s_cursor.rgb_at(t, width, height)
+                if before is None:
+                    break
+                composed = compose(before, after, t)
+                if out_stream is None:
+                    out_stream = output.add_stream("libx264", rate=rate)
+                    out_stream.height, out_stream.width = composed.shape[:2]
+                    out_stream.pix_fmt = "yuv420p"
+                    out_stream.options = {"crf": "18", "preset": "veryfast"}
+                for packet in out_stream.encode(av.VideoFrame.from_ndarray(composed, format="rgb24")):
+                    output.mux(packet)
+                index += 1
             if out_stream is None:
-                out_stream = output.add_stream("libx264", rate=rate)
-                out_stream.height, out_stream.width = composed.shape[:2]
-                out_stream.pix_fmt = "yuv420p"
-                out_stream.options = {"crf": "18", "preset": "veryfast"}
-            for packet in out_stream.encode(av.VideoFrame.from_ndarray(composed, format="rgb24")):
+                raise BytePlusException(get_text("err_mediakit_comparison_no_frames"))
+            for packet in out_stream.encode():
                 output.mux(packet)
-            index += 1
-        if out_stream is None:
-            raise BytePlusException(get_text("err_mediakit_comparison_no_frames"))
-        for packet in out_stream.encode():
-            output.mux(packet)
+    except BaseException:
+        # A partial comparison is useless; nothing else would delete it.
+        _remove_quietly(out_path)
+        raise
 
 
 def build_comparison(source_path, enhanced_path, compare_time=-1.0):
@@ -735,6 +774,7 @@ def build_side_by_side(source_path, result_path, labels=("Original", "Smoothed")
 # --------------------------------------------------------------------------
 # vCube Video Enhance
 # --------------------------------------------------------------------------
+
 
 class BytePlusVideoEnhance(comfy_io.ComfyNode):
     """Core's ByteDanceVideoEnhanceNode (vCube) on BytePlus VOD AI MediaKit."""
@@ -878,7 +918,10 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
         # Without a comparison, nodes using those outputs are skipped rather than failing on None.
         comparison_video = source_frame = enhanced_frame = ExecutionBlocker(None)
         if comparison:
-            built = await make_comparison(build_comparison, video, link, "vcube_source", enhanced_path, compare_time)
+            built = await _removing_on_interrupt(
+                enhanced_path,
+                make_comparison(build_comparison, video, link, "vcube_source", enhanced_path, compare_time),
+            )
             if built:
                 comparison_path, source_frame, enhanced_frame = built
                 comparison_video = VideoFromFile(comparison_path)
@@ -891,6 +934,7 @@ class BytePlusVideoEnhance(comfy_io.ComfyNode):
 # --------------------------------------------------------------------------
 # Video Smoothness Enhance
 # --------------------------------------------------------------------------
+
 
 def _periodic_stutter_input():
     return comfy_io.DynamicCombo.Input(
@@ -929,7 +973,7 @@ def parse_frame_indices(text):
     try:
         indices = [int(part) for part in value.replace(",", " ").split()]
     except ValueError:
-        raise BytePlusException(get_text("err_smooth_frame_indices", value=value))
+        raise BytePlusException(get_text("err_smooth_frame_indices", value=value)) from None
     if any(index < 0 for index in indices) or len(set(indices)) != len(indices):
         raise BytePlusException(get_text("err_smooth_frame_indices", value=value))
     return sorted(indices)
@@ -1094,13 +1138,15 @@ class BytePlusVideoSmoothness(comfy_io.ComfyNode):
         if not repaired_url:
             # Detection only, nothing to fix, or the repair failed MediaKit's quality check.
             log_msg("smooth_no_repair")
-            source = video if video is not None else VideoFromFile(await source_file(None, link, "smooth_source"))
+            source = video if video is not None else await _pass_through_source(link)
             return comfy_io.NodeOutput(source, ExecutionBlocker(None), inserted, duplicates, task_response(task))
 
         repaired_path = await _download(repaired_url, "smooth_repaired")
         comparison_video = ExecutionBlocker(None)
         if comparison:
-            comparison_path = await make_comparison(build_side_by_side, video, link, "smooth_source", repaired_path)
+            comparison_path = await _removing_on_interrupt(
+                repaired_path, make_comparison(build_side_by_side, video, link, "smooth_source", repaired_path)
+            )
             if comparison_path:
                 comparison_video = VideoFromFile(comparison_path)
         return comfy_io.NodeOutput(
@@ -1117,6 +1163,12 @@ IMAGE_SIZE_MULTIPLE = "multiple"
 IMAGE_SIZE_TARGET = "target size"
 IMAGE_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 IMAGE_MAX_PARALLEL = 3
+# MediaKit takes one sync image call at a time: parallel calls get 429
+# RequestLimitExceeded at once (checked live 2026-10-18). A 429 is a refusal
+# that bills nothing, so it is retried; other failures are not (the image may
+# have been processed and billed).
+IMAGE_SYNC_LOCKS = {}
+IMAGE_RATE_LIMIT_RETRIES = 5
 IMAGE_MAX_RECOMMENDED_SIDE = 8000  # max version: larger outputs can time out
 
 # Per tool_version (AI MediaKit docs): input short/long side, long:short ratio,
@@ -1124,20 +1176,38 @@ IMAGE_MAX_RECOMMENDED_SIDE = 8000  # max version: larger outputs can time out
 # original size), and the final magnification cap of a target size.
 IMAGE_VERSION_LIMITS = {
     "standard": {
-        "in_short": (16, 1440), "in_long": (16, 2160), "max_ratio": None, "multiple": 8.0,
-        "out_short": 6144, "out_long": 6144, "target": (None, 6144), "target_scale": 8.0,
+        "in_short": (16, 1440),
+        "in_long": (16, 2160),
+        "max_ratio": None,
+        "multiple": 8.0,
+        "out_short": 6144,
+        "out_long": 6144,
+        "target": (None, 6144),
+        "target_scale": 8.0,
         "in_rule": "16-1440 px on the short side and 16-2160 px on the long side",
         "out_rule": "at most 6144 px on each side",
     },
     "professional": {
-        "in_short": (256, None), "in_long": (None, 2048), "max_ratio": None, "multiple": 30.0,
-        "out_short": None, "out_long": 10240, "target": (64, 10240), "target_scale": None,
+        "in_short": (256, None),
+        "in_long": (None, 2048),
+        "max_ratio": None,
+        "multiple": 30.0,
+        "out_short": None,
+        "out_long": 10240,
+        "target": (64, 10240),
+        "target_scale": None,
         "in_rule": "a short side of at least 256 px and a long side of at most 2048 px",
         "out_rule": "a long side of at most 10240 px",
     },
     "max": {
-        "in_short": (64, None), "in_long": (None, 6240), "max_ratio": 32.0, "multiple": 30.0,
-        "out_short": None, "out_long": 10240, "target": (64, 10240), "target_scale": None,
+        "in_short": (64, None),
+        "in_long": (None, 6240),
+        "max_ratio": 32.0,
+        "multiple": 30.0,
+        "out_short": None,
+        "out_long": 10240,
+        "target": (64, 10240),
+        "target_scale": None,
         "in_rule": "a short side of at least 64 px, a long side of at most 6240 px and a ratio up to 32:1",
         "out_rule": "a long side of at most 10240 px",
     },
@@ -1168,8 +1238,7 @@ def _image_tool_version_input():
                     comfy_io.Boolean.Input(
                         "enable_correct_color",
                         default=True,
-                        tooltip="Keep the colours close to the original. Turn off if the result looks "
-                        "over-sharpened.",
+                        tooltip="Keep the colours close to the original. Turn off if the result looks over-sharpened.",
                     ),
                 ],
             ),
@@ -1194,8 +1263,7 @@ def _image_output_size_input():
                         min=1.0,
                         max=30.0,
                         step=0.01,
-                        tooltip="Scale factor for width and height: 1-8 for standard, 1-30 for professional "
-                        "and max.",
+                        tooltip="Scale factor for width and height: 1-8 for standard, 1-30 for professional and max.",
                     ),
                 ],
             ),
@@ -1267,8 +1335,14 @@ def plan_image_enhance(body, size=None):
             low, high = limits["target"]
             if not _in_range(value, (low, high)):
                 raise BytePlusException(
-                    get_text("err_image_enhance_target_range", name=name, min=low or 1, max=high,
-                             version=version, value=value)
+                    get_text(
+                        "err_image_enhance_target_range",
+                        name=name,
+                        min=low or 1,
+                        max=high,
+                        version=version,
+                        value=value,
+                    )
                 )
         return None
 
@@ -1277,7 +1351,9 @@ def plan_image_enhance(body, size=None):
     ratio_ok = limits["max_ratio"] is None or long_ / float(short) <= limits["max_ratio"]
     if not (_in_range(short, limits["in_short"]) and _in_range(long_, limits["in_long"]) and ratio_ok):
         raise BytePlusException(
-            get_text("err_image_enhance_input_size", version=version, rule=limits["in_rule"], width=width, height=height)
+            get_text(
+                "err_image_enhance_input_size", version=version, rule=limits["in_rule"], width=width, height=height
+            )
         )
     if "multiple" in body:
         scale = body["multiple"]
@@ -1288,8 +1364,9 @@ def plan_image_enhance(body, size=None):
             low = original if low is None else low
             if not _in_range(value, (low, high)):
                 raise BytePlusException(
-                    get_text("err_image_enhance_target_range", name=name, min=low, max=high,
-                             version=version, value=value)
+                    get_text(
+                        "err_image_enhance_target_range", name=name, min=low, max=high, version=version, value=value
+                    )
                 )
         scale = min(
             targets.get("target_width", float("inf")) / float(width),
@@ -1297,16 +1374,21 @@ def plan_image_enhance(body, size=None):
         )
         if limits["target_scale"] and scale > limits["target_scale"] + 1e-9:
             raise BytePlusException(
-                get_text("err_image_enhance_multiple", max=int(limits["target_scale"]), version=version,
-                         value=round(scale, 2))
+                get_text(
+                    "err_image_enhance_multiple",
+                    max=int(limits["target_scale"]),
+                    version=version,
+                    value=round(scale, 2),
+                )
             )
     out_w, out_h = int(round(width * scale)), int(round(height * scale))
     if (limits["out_long"] and max(out_w, out_h) > limits["out_long"]) or (
         limits["out_short"] and min(out_w, out_h) > limits["out_short"]
     ):
         raise BytePlusException(
-            get_text("err_image_enhance_output_size", version=version, width=out_w, height=out_h,
-                     rule=limits["out_rule"])
+            get_text(
+                "err_image_enhance_output_size", version=version, width=out_w, height=out_h, rule=limits["out_rule"]
+            )
         )
     return out_w, out_h
 
@@ -1437,7 +1519,7 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
         template = build_image_enhance_request(link, tool_version or {}, output_size or {})
         version = template["tool_version"]
         if image is not None:
-            sources = [image[i:i + 1] for i in range(image.shape[0])]
+            sources = [image[i : i + 1] for i in range(image.shape[0])]
             plans = [plan_image_enhance(template, (int(s.shape[2]), int(s.shape[1]))) for s in sources]
         else:
             sources, plans = [None], [plan_image_enhance(template)]
@@ -1457,10 +1539,7 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
                     cls.hidden.unique_id,
                     plain_text("image_enhance_submitted", version=version, index=index + 1, count=len(sources)),
                 )
-                response = await mediakit_request(
-                    mediakit_client, "POST", "/tools-sync/enhance-image", body,
-                    timeout_seconds=MEDIAKIT_SYNC_TIMEOUT_SECONDS,
-                )
+                response = await enhance_image_request(mediakit_client, body)
                 result = task_result(response)
                 if not result.get("image_url"):
                     raise BytePlusException(get_text("err_mediakit_unexpected", status="no result image_url"))
@@ -1476,21 +1555,57 @@ class BytePlusImageEnhance(comfy_io.ComfyNode):
                     _load_image, await _download(result["image_url"], "image_enhanced", extension), True
                 )
                 if source is None:
-                    source = await asyncio.to_thread(_load_image, await _download(link, "image_source", "img"), True)
+                    source = await _load_linked_source(link)
                 return enhanced, source, {k: v for k, v in response.items() if k != "request_id"}
 
-        done = await gather_cancelling([enhance(i, s) for i, s in enumerate(sources)])
+        # Each image is billed on its own: a failed one leaves the others' results; an interrupt cancels the rest.
+        results = await gather_cancelling([enhance(i, s) for i, s in enumerate(sources)], return_exceptions=True)
+        done = [result for result in results if not isinstance(result, BaseException)]
+        errors = [result for result in results if isinstance(result, BaseException)]
+        if len(sources) > 1:
+            log_msg("batch_finished_stats", success=len(done), failed=len(errors))
+            for error in errors:
+                log_msg("batch_failed_reason", msg=str(error), count=1)
+        if not done:
+            raise errors[0]
         enhanced = [item[0] for item in done]
         height, width = enhanced[0].shape[1:3]
         # A batch is one tensor: results of another size are resized to the first one.
         enhanced = [e if e.shape[1:3] == (height, width) else resize_like(e, height, width) for e in enhanced]
-        originals = [resize_like(item[1], height, width) for item in done]
+        originals = (
+            torch.cat([resize_like(item[1], height, width) for item in done])
+            if all(item[1] is not None for item in done)
+            else ExecutionBlocker(None)
+        )
         responses = [item[2] for item in done]
         return comfy_io.NodeOutput(
             torch.cat(enhanced),
-            torch.cat(originals),
+            originals,
             json.dumps(responses[0] if len(responses) == 1 else responses, ensure_ascii=False),
         )
+
+
+async def enhance_image_request(client, body):
+    """POST /tools-sync/enhance-image, one call at a time, retrying only 429 (nothing billed)."""
+    for attempt in range(IMAGE_RATE_LIMIT_RETRIES + 1):
+        try:
+            async with keyed_lock(IMAGE_SYNC_LOCKS, "enhance-image"):
+                return await mediakit_request(
+                    client, "POST", "/tools-sync/enhance-image", body, timeout_seconds=MEDIAKIT_SYNC_TIMEOUT_SECONDS
+                )
+        except MediaKitRequestError as e:
+            if e.status != 429 or attempt >= IMAGE_RATE_LIMIT_RETRIES:
+                raise
+        await sleep_interruptible(2**attempt)
+
+
+async def _load_linked_source(link):
+    """The image behind image_url, for the original output; None when it cannot be fetched (the result is kept)."""
+    try:
+        return await asyncio.to_thread(_load_image, await _download(link, "image_source", "img"), True)
+    except Exception as error:
+        log_msg("image_enhance_source_unavailable", e=_reason(error))
+        return None
 
 
 # Registered in __init__.py.

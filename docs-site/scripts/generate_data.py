@@ -14,6 +14,7 @@ Writes
 
 Hand-written text lives in src/content/docs/{nodes,templates}/*.mdx; see CONTRIBUTING-DOCS.md.
 """
+
 import argparse
 import importlib.util
 import json
@@ -58,15 +59,50 @@ SKIPPED_NODES = {"BytePlusProgressTest"}  # dev-only
 # Template title -> group. The order is the sidebar order. A template that is not listed fails the run.
 TEMPLATE_GROUPS = [
     ("Start here", ["Seedream", "Seedance 2", "Seed", "Text to Image to Video"]),
-    ("Images", ["Image Edit", "Image Variations", "Seedream Layer Separation", "Image Quality Enhance", "Generate and Enhance"]),
-    ("Production assets", ["Character Sheet", "Location Sheet", "Prop Sheet", "Character Sheet Cleanup", "Storyboard Grid"]),
-    ("Video", ["Image and Video References", "Image to Video - Seedance 2.5 and 2.0", "Image to Draft to 1080p", "2.5 Model Updates", "Seedance Video Extension", "Seedance Task Query", "vCube Video Enhance", "Video Smoothness Enhance"]),
+    (
+        "Images",
+        [
+            "Image Edit",
+            "Image Variations",
+            "Seedream Layer Separation",
+            "Image Quality Enhance",
+            "Generate and Enhance",
+        ],
+    ),
+    (
+        "Production assets",
+        ["Character Sheet", "Location Sheet", "Prop Sheet", "Character Sheet Cleanup", "Storyboard Grid"],
+    ),
+    (
+        "Video",
+        [
+            "Image and Video References",
+            "Image to Video - Seedance 2.5 and 2.0",
+            "Image to Draft to 1080p",
+            "2.5 Model Updates",
+            "Seedance Video Extension",
+            "Seedance Task Query",
+            "vCube Video Enhance",
+            "Video Smoothness Enhance",
+        ],
+    ),
     ("3D", ["Hyper3D Text to 3D", "Hyper3D and Hitem3D Image to 3D"]),
     ("Language", ["Seed Prompt Writer"]),
     ("Speech", ["Seed Audio", "Seed Speech TTS and ASR", "Seed Voice Clone"]),
     ("Assets", ["Virtual Portrait - Existing Asset", "Virtual Portrait - New Asset", "Video and Audio Assets"]),
-    ("Showcase", ["Image to UGC Video", "Product Ad in One Click", "Old Photo to Living Memory", "Podcast Clip",
-                  "Multilingual Dubbing", "Product Lookbook", "Sound Design", "Consistent Character Shots"]),
+    (
+        "Showcase",
+        [
+            "Image to UGC Video",
+            "Product Ad in One Click",
+            "Old Photo to Living Memory",
+            "Podcast Clip",
+            "Multilingual Dubbing",
+            "Product Lookbook",
+            "Sound Design",
+            "Consistent Character Shots",
+        ],
+    ),
 ]
 
 # Keys a node needs (Settings > BytePlus). Assets also need the IAM pair.
@@ -84,8 +120,13 @@ KEYS_BY_CLASS = {
 }
 
 TYPE_LABELS = {
-    "STRING": "text", "INT": "integer", "FLOAT": "number", "BOOLEAN": "on/off", "COMBO": "choice",
-    "COMFY_DYNAMICCOMBO_V3": "choice with options", "COMFY_AUTOGROW_V3": "group of inputs",
+    "STRING": "text",
+    "INT": "integer",
+    "FLOAT": "number",
+    "BOOLEAN": "on/off",
+    "COMBO": "choice",
+    "COMFY_DYNAMICCOMBO_V3": "choice with options",
+    "COMFY_AUTOGROW_V3": "group of inputs",
 }
 
 
@@ -114,9 +155,7 @@ def parse_input(name, spec, required, advanced_default=False):
         item["options"] = list(config.get("options", []))
     if kind == "COMFY_DYNAMICCOMBO_V3":
         item["options"] = [o["key"] for o in config["options"]]
-        item["variants"] = [
-            {"key": o["key"], "inputs": parse_group(o.get("inputs", {}))} for o in config["options"]
-        ]
+        item["variants"] = [{"key": o["key"], "inputs": parse_group(o.get("inputs", {}))} for o in config["options"]]
     if kind == "COMFY_AUTOGROW_V3":
         template = config.get("template", {})
         children = parse_group(template.get("input", {}))
@@ -152,22 +191,24 @@ def build_nodes(object_info):
         tips = info.get("output_tooltips") or [None] * len(names)
         outputs = [
             {"name": n, "type": TYPE_LABELS.get(t, t), "is_list": bool(lists[i]), "tooltip": tips[i] or ""}
-            for i, (n, t) in enumerate(zip(names, types))
+            for i, (n, t) in enumerate(zip(names, types, strict=True))
         ]
         category = info.get("category", "")
-        nodes.append({
-            "id": cls,
-            "slug": slug,
-            "group": group,
-            "display_name": info.get("display_name", cls),
-            "category": category,
-            "description": info.get("description", ""),
-            "search_aliases": info.get("search_aliases") or [],
-            "keys": KEYS_BY_CLASS.get(cls) or KEYS_BY_CATEGORY.get(category, []),
-            "is_output_node": bool(info.get("output_node")),
-            "inputs": inputs,
-            "outputs": outputs,
-        })
+        nodes.append(
+            {
+                "id": cls,
+                "slug": slug,
+                "group": group,
+                "display_name": info.get("display_name", cls),
+                "category": category,
+                "description": info.get("description", ""),
+                "search_aliases": info.get("search_aliases") or [],
+                "keys": KEYS_BY_CLASS.get(cls) or KEYS_BY_CATEGORY.get(category, []),
+                "is_output_node": bool(info.get("output_node")),
+                "inputs": inputs,
+                "outputs": outputs,
+            }
+        )
     missing = [c for c, _, _ in NODES if c not in {n["id"] for n in nodes}]
     if missing:
         raise SystemExit(f"Registered nodes missing from /object_info: {missing}")
@@ -185,7 +226,8 @@ def build_templates(nodes, object_info):
     templates = []
     for filename in sorted(f for f in os.listdir(folder) if f.endswith(".json")):
         title = filename[:-5]
-        workflow = json.load(open(os.path.join(folder, filename), encoding="utf-8"))
+        with open(os.path.join(folder, filename), encoding="utf-8") as file:
+            workflow = json.load(file)
         counts = {}
         for node in workflow.get("nodes", []):
             counts[node["type"]] = counts.get(node["type"], 0) + 1
@@ -208,20 +250,22 @@ def build_templates(nodes, object_info):
         thumb = os.path.join(folder, title + ".jpg")
         if os.path.exists(thumb):
             shutil.copyfile(thumb, os.path.join(out_dir, slug + ".jpg"))
-        templates.append({
-            "file": filename,
-            "title": title,
-            "slug": slug,
-            "group": group,
-            "nodes": [{"id": t, "count": counts[t]} for t in byteplus],
-            "other_nodes": sorted(
-                (object_info.get(t, {}).get("display_name") or t) for t in counts if t not in by_id
-            ),
-            "keys": keys,
-            "groups": groups,
-            "note": note,
-            "has_thumbnail": os.path.exists(thumb),
-        })
+        templates.append(
+            {
+                "file": filename,
+                "title": title,
+                "slug": slug,
+                "group": group,
+                "nodes": [{"id": t, "count": counts[t]} for t in byteplus],
+                "other_nodes": sorted(
+                    (object_info.get(t, {}).get("display_name") or t) for t in counts if t not in by_id
+                ),
+                "keys": keys,
+                "groups": groups,
+                "note": note,
+                "has_thumbnail": os.path.exists(thumb),
+            }
+        )
     order = [t for _, names in TEMPLATE_GROUPS for t in names]
     templates.sort(key=lambda t: order.index(t["title"]))
     return templates
@@ -242,7 +286,9 @@ def build_models():
         maps["SEED_ASR_MODELS"] = {name: value[1] for name, value in asr.items()}
     return {
         "maps": maps,
-        "retired": {k: {"model_id": v[0], "replacement": v[1]} for k, v in getattr(module, "RETIRED_MODELS", {}).items()},
+        "retired": {
+            k: {"model_id": v[0], "replacement": v[1]} for k, v in getattr(module, "RETIRED_MODELS", {}).items()
+        },
         "region_exclusions": {k: list(v) for k, v in getattr(module, "MODEL_REGION_EXCLUSIONS", {}).items()},
     }
 
@@ -254,7 +300,8 @@ def main():
     if args.object_info.startswith("http"):
         object_info = json.load(urllib.request.urlopen(args.object_info))
     else:
-        object_info = json.load(open(args.object_info))
+        with open(args.object_info, encoding="utf-8") as file:
+            object_info = json.load(file)
     nodes = build_nodes(object_info)
     templates = build_templates(nodes, object_info)
     models = build_models()

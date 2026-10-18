@@ -7,6 +7,7 @@ and collapse empty video areas. Run after scripts/import_evidence.py (which over
 
 Each rule: image slug, box (x0, y0, x1, y1) of the line to replace, text to draw instead.
 """
+
 import io
 import os
 import subprocess
@@ -72,13 +73,38 @@ def add_frames(im, slug, count=3, width=440):
     clip = os.path.normpath(clip)
     if not os.path.exists(clip):
         return im
-    duration = float(subprocess.run(["/opt/homebrew/bin/ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", clip],
-                                    capture_output=True, text=True).stdout.strip() or 0)
+    duration = float(
+        subprocess.run(
+            ["/opt/homebrew/bin/ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", clip],
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        or 0
+    )
     frames = []
     for i in range(count):
         t = duration * (0.08 + 0.84 * i / (count - 1))
-        raw = subprocess.run(["/opt/homebrew/bin/ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", clip, "-frames:v", "1", "-vf", f"scale={width}:-2",
-                              "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True).stdout
+        raw = subprocess.run(
+            [
+                "/opt/homebrew/bin/ffmpeg",
+                "-v",
+                "error",
+                "-ss",
+                f"{t:.2f}",
+                "-i",
+                clip,
+                "-frames:v",
+                "1",
+                "-vf",
+                f"scale={width}:-2",
+                "-f",
+                "image2pipe",
+                "-vcodec",
+                "png",
+                "-",
+            ],
+            capture_output=True,
+        ).stdout
         if raw:
             frames.append(Image.open(io.BytesIO(raw)).convert("RGB"))
     if not frames:

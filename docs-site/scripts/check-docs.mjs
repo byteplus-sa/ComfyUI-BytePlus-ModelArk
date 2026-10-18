@@ -23,7 +23,7 @@ const TEMPLATE_H2 = ['What it makes', 'The workflow', 'Run it', 'Settings worth 
 const H3_ALLOWED = { Inputs: ['Notes on inputs'], Outputs: ['Notes on outputs'] };
 
 function parse(path) {
-	const text = readFileSync(path, 'utf-8');
+	const text = readFileSync(path, 'utf-8').replace(/\r\n?/g, '\n');
 	const match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
 	if (!match) return null;
 	const front = {};
@@ -58,6 +58,9 @@ const BANNED = [
 	[/X-Tos-|Signature=|X-Amz-/i, 'signed URL'],
 	[/\b(sk-[A-Za-z0-9]{16,}|AKLT[A-Za-z0-9]{10,})/, 'something that looks like a key'],
 	[/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/, 'a UUID (could be a key)'],
+	[/\bcgt-\d{14}-[a-z0-9]{4,}\b/i, 'a Seedance task ID'],
+	[/\basset-\d{14}-[a-z0-9]{4,}\b/i, 'a private asset ID'],
+	[/\bgroup-\d{14}-[a-z0-9]{4,}\b/i, 'an asset group ID'],
 	[/TODO|FIXME|lorem ipsum/i, 'placeholder text'],
 	[/\]\(\/(?!\/)/, 'root-relative link (use ../ paths so the base path works)'],
 ];

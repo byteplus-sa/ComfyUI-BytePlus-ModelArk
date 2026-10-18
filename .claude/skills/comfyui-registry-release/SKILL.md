@@ -43,9 +43,9 @@ Never put Registry tokens, BytePlus keys (ModelArk, Seed Speech, MediaKit, IAM A
 
 ```bash
 python3 -m unittest tests.test_workflow_templates -v
-COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest tests.test_credentials tests.test_mediakit \
-  tests.test_model_updates tests.test_workflow_templates tests.test_core_style_seedance1 \
-  tests.test_core_style_seedance2 tests.test_core_style_seedream tests.test_core_style_seed -v
+COMFYUI_ROOT=/path/to/ComfyUI /path/to/python -m unittest discover -s tests -t . -v
+uvx ruff@0.17.1 check .
+uvx ruff@0.17.1 format --check .
 comfy --skip-prompt node validate
 comfy --skip-prompt node pack
 unzip -Z -1 node.zip

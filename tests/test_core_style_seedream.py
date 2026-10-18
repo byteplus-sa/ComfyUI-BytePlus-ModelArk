@@ -399,19 +399,19 @@ class SeedreamSchemaTests(unittest.TestCase):
             self.assertEqual(core_schema.description, our_schema.description)
             our_top = our_schema.inputs
             self.assertEqual([i.id for i in core_schema.inputs], [i.id for i in our_top])
-            for core_input, our_input in zip(core_schema.inputs, our_top):
+            for core_input, our_input in zip(core_schema.inputs, our_top, strict=True):
                 if core_input.io_type != "COMFY_DYNAMICCOMBO_V3":
                     self.assertEqual(describe(core_input), describe(our_input))
                     continue
                 self.assertEqual(
                     [o.key for o in core_input.options], [o.key for o in our_input.options]
                 )
-                for core_option, our_option in zip(core_input.options, our_input.options):
+                for core_option, our_option in zip(core_input.options, our_input.options, strict=True):
                     ours = [i for i in our_option.inputs if i.id not in extras]
                     self.assertEqual(
                         [i.id for i in core_option.inputs], [i.id for i in ours], core_option.key
                     )
-                    for core_item, our_item in zip(core_option.inputs, ours):
+                    for core_item, our_item in zip(core_option.inputs, ours, strict=True):
                         if (our_schema.node_id, core_option.key, core_item.id) in BYTEPLUS_LIMIT_DEVIATIONS:
                             continue  # checked in test_documented_byteplus_limits
                         with self.subTest(node=our_schema.node_id, option=core_option.key, input=core_item.id):
@@ -425,7 +425,7 @@ class SeedreamSchemaTests(unittest.TestCase):
                                 self.assertEqual(
                                     core_item.template.as_dict(), our_item.template.as_dict()
                                 )
-            for core_output, our_output in zip(core_schema.outputs, our_schema.outputs):
+            for core_output, our_output in zip(core_schema.outputs, our_schema.outputs, strict=False):
                 self.assertEqual(
                     (core_output.io_type, core_output.display_name, core_output.tooltip),
                     (our_output.io_type, our_output.display_name, our_output.tooltip),
@@ -901,6 +901,24 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(os.path.exists(os.path.join(tmp, item["file"])))
             self.assertTrue(info[0]["file"].endswith("_base.png"))
             self.assertTrue(info[1]["file"].endswith("_layer01.png"))
+
+    async def test_saved_layers_without_z_index_do_not_overwrite_each_other(self):
+        first = self.layer_item((4, 4), (0, 255, 0, 255), None, [0, 0, 4, 4], name="first")
+        second = self.layer_item((4, 4), (0, 0, 255, 255), None, [4, 4, 8, 8], name="second")
+        old_output = seedream_utils.folder_paths.get_output_directory
+        with tempfile.TemporaryDirectory() as tmp:
+            seedream_utils.folder_paths.get_output_directory = lambda: tmp
+            try:
+                _calls, _client, result = await self.run_node(
+                    [self.base_item(), first, second], save_layers=True, filename_prefix="BytePlus/Test/Layers"
+                )
+            finally:
+                seedream_utils.folder_paths.get_output_directory = old_output
+            files = [item["file"] for item in json.loads(result[6])["layers"]]
+            self.assertEqual(len(set(files)), 3)
+            self.assertTrue(files[0].endswith("_base.png"))
+            for relative in files:
+                self.assertTrue(os.path.exists(os.path.join(tmp, relative)))
 
     async def test_api_error_in_response_is_raised(self):
         error = SimpleNamespace(code="OutputImageSensitiveContentDetected", message="output image may contain sensitive information")

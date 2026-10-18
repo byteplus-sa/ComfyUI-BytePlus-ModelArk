@@ -26,9 +26,7 @@ Last sync date: the "Read on" date in `core-partner-nodes.md`. Update it when yo
 Point `COMFYUI_ROOT` at a checkout of the new ComfyUI (`git -C <root> checkout <tag>`); interpreter and paths are in the `local-comfyui-test-env` memory.
 
 ```bash
-COMFYUI_ROOT=<root> <python> -m unittest tests.test_core_style_seedream tests.test_core_style_seedance1 \
-  tests.test_core_style_seedance2 tests.test_core_style_seed tests.test_mediakit tests.test_credentials \
-  tests.test_model_updates tests.test_workflow_templates -v
+COMFYUI_ROOT=<root> <python> -m unittest discover -s tests -t . -v
 ```
 
 How each file compares:

@@ -121,7 +121,7 @@ def read_env_file():
         return dict(_read_cache["values"])
     try:
         # utf-8-sig: editors such as Notepad start the file with a BOM.
-        with open(path, "r", encoding="utf-8-sig") as handle:
+        with open(path, encoding="utf-8-sig") as handle:
             values = parse_env_text(handle.read())
     except (OSError, UnicodeDecodeError):
         return {}
@@ -129,35 +129,32 @@ def read_env_file():
     return dict(values)
 
 
-def get_setting(*names):
-    """
-    First non-empty value among the variable names: process environment, then
-    the .env file. Returns "" when none is set.
-    """
-    file_values = None
+def _find_setting(names):
+    """(value, source) for the first non-empty name in the process environment,
+    else the first in the .env file; ("", None) when none is set."""
     for name in names:
         value = (os.environ.get(name) or "").strip()
         if value:
-            return value
-        if file_values is None:
-            file_values = read_env_file()
+            return value, "environment"
+    file_values = read_env_file()
+    for name in names:
         value = (file_values.get(name) or "").strip()
         if value:
-            return value
-    return ""
+            return value, "file"
+    return "", None
+
+
+def get_setting(*names):
+    """
+    First non-empty value among the variable names: every name in the process
+    environment, then every name in the .env file. Returns "" when none is set.
+    """
+    return _find_setting(names)[0]
 
 
 def setting_source(*names):
     """Where get_setting finds the value: "environment", "file" or None."""
-    file_values = None
-    for name in names:
-        if (os.environ.get(name) or "").strip():
-            return "environment"
-        if file_values is None:
-            file_values = read_env_file()
-        if (file_values.get(name) or "").strip():
-            return "file"
-    return None
+    return _find_setting(names)[1]
 
 
 def get_default_region():
@@ -203,7 +200,7 @@ def update_env_file(updates):
     drop = {alias for name in updates for alias in ALIASES.get(name, ())}
     with _write_lock:
         try:
-            with open(path, "r", encoding="utf-8-sig") as handle:
+            with open(path, encoding="utf-8-sig") as handle:
                 lines = handle.read().splitlines()
         except FileNotFoundError:
             lines = []
@@ -263,7 +260,7 @@ def display_path(path):
     """The path with the home folder shown as ~ (shorter, and no user name on screenshots)."""
     home = os.path.expanduser("~")
     if home and home != "~" and (path == home or path.startswith(home + os.sep)):
-        return "~" + path[len(home):]
+        return "~" + path[len(home) :]
     return path
 
 

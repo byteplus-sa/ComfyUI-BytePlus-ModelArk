@@ -123,7 +123,11 @@ VISUAL_MODEL_MAP = {
 }
 
 # Seed Speech models (separate API key, see constants.SPEECH_REGION_BASE_URLS).
-# Seed Audio 1.0: the model ID goes in the request body.
+# Seed Audio 1.0: the model ID goes in the request body. Core also lists
+# "seed-audio-1.0-multilingual" (default there) and says plain 1.0 is English/Chinese only. Checked
+# live 2026-10-18: the API never validates the name (any non-empty string, even a made-up one, gives
+# byte-identical audio; an empty one is rejected with 45000030), and seed-audio-1.0 already speaks
+# Spanish and honours "[0.0s:2.0s]" timestamps. So the name is not a model switch and is not offered.
 SEED_AUDIO_MODELS = ["seed-audio-1.0"]
 
 # TTS: the UI name is the X-Api-Resource-Id header. Voice replication (ICL)
@@ -167,28 +171,58 @@ SEEDREAM_MODELS = {
 # resolution levels offered as extra "(adaptive)" size presets.
 SEEDREAM_MODEL_CAPS = {
     SEEDREAM_PRO: {
-        "max_refs": 10, "min_side": 240, "max_side": 8600, "batch": False,
-        "fast": True, "thinking": True, "min_pixels": 921_600, "max_pixels": 4_624_220,
+        "max_refs": 10,
+        "min_side": 240,
+        "max_side": 8600,
+        "batch": False,
+        "fast": True,
+        "thinking": True,
+        "min_pixels": 921_600,
+        "max_pixels": 4_624_220,
         "adaptive_sizes": ["1K", "1.5K", "2K"],
     },
     SEEDREAM_FLASH: {
-        "max_refs": 10, "min_side": 240, "max_side": 8600, "batch": False,
-        "fast": False, "thinking": False, "min_pixels": 921_600, "max_pixels": 4_624_220,
+        "max_refs": 10,
+        "min_side": 240,
+        "max_side": 8600,
+        "batch": False,
+        "fast": False,
+        "thinking": False,
+        "min_pixels": 921_600,
+        "max_pixels": 4_624_220,
         "adaptive_sizes": ["1K", "1.5K", "2K"],
     },
     SEEDREAM_LITE: {
-        "max_refs": 14, "min_side": 480, "max_side": 16384, "batch": True,
-        "fast": False, "thinking": True, "min_pixels": 3_686_400, "max_pixels": 16_777_216,
+        "max_refs": 14,
+        "min_side": 480,
+        "max_side": 16384,
+        "batch": True,
+        "fast": False,
+        "thinking": True,
+        "min_pixels": 3_686_400,
+        "max_pixels": 16_777_216,
         "adaptive_sizes": ["2K", "3K", "4K"],
     },
     SEEDREAM_4_5: {
-        "max_refs": 14, "min_side": 480, "max_side": 16384, "batch": True,
-        "fast": False, "thinking": True, "min_pixels": 3_686_400, "max_pixels": 16_777_216,
+        "max_refs": 14,
+        "min_side": 480,
+        "max_side": 16384,
+        "batch": True,
+        "fast": False,
+        "thinking": True,
+        "min_pixels": 3_686_400,
+        "max_pixels": 16_777_216,
         "adaptive_sizes": ["2K", "4K"],
     },
     SEEDREAM_4_0: {
-        "max_refs": 14, "min_side": 240, "max_side": 16384, "batch": True,
-        "fast": False, "thinking": True, "min_pixels": 921_600, "max_pixels": 16_777_216,
+        "max_refs": 14,
+        "min_side": 240,
+        "max_side": 16384,
+        "batch": True,
+        "fast": False,
+        "thinking": True,
+        "min_pixels": 921_600,
+        "max_pixels": 16_777_216,
         "adaptive_sizes": ["1K", "2K", "4K"],
     },
 }

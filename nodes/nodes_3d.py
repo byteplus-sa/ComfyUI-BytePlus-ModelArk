@@ -14,6 +14,7 @@ The result is extracted to the temp folder and returned as a File3D. ComfyUI's
 3D viewer is bound to core's own nodes, so the templates connect it to core's
 Preview 3D (Advanced) to view it and Save 3D (Advanced) to download it.
 """
+
 import asyncio
 import base64
 import io
@@ -28,6 +29,7 @@ from urllib.parse import urlsplit
 import aiohttp
 import comfy.model_management
 import folder_paths
+
 try:
     from comfy_api.latest import Types
 except ImportError:
@@ -56,6 +58,7 @@ from .models_config import (
 )
 from .nodes_shared import (
     GLOBAL_CATEGORY,
+    LOG_PREFIX,
     BytePlusException,
     billed_ark,
     call_billed,
@@ -74,7 +77,7 @@ from .utils_download import VIDEO_DOWNLOAD_TIMEOUT, _download_to_file_stream_asy
 THREE_D_CATEGORY = f"{GLOBAL_CATEGORY}/3D"
 THREE_D_POLL_SECONDS = 4
 MODEL_EXTENSIONS = ("glb", "gltf", "obj", "fbx", "usdz", "stl")
-MAX_EXTRACTED_BYTES = 2 * 1024 ** 3
+MAX_EXTRACTED_BYTES = 2 * 1024**3
 ZIP_MAGIC = b"PK"
 PROMPT_FLAG_PATTERN = re.compile(r"(?:^|\s)--([A-Za-z_]+)")
 TERMINAL_FAILURES = ("failed", "cancelled", "expired")
@@ -90,9 +93,7 @@ def render_command_value(value):
 
 def build_text_command(params):
     """``--name value`` flags in the given order; None values are skipped (the API default applies)."""
-    return " ".join(
-        f"--{name} {render_command_value(value)}" for name, value in params.items() if value is not None
-    )
+    return " ".join(f"--{name} {render_command_value(value)}" for name, value in params.items() if value is not None)
 
 
 def build_text_item(prompt, params):
@@ -133,9 +134,7 @@ def hyper3d_face_count(mesh_mode, quality_override):
         return None
     low, high = HYPER3D_FACE_LIMITS[mesh_mode]
     if not low <= quality_override <= high:
-        raise BytePlusException(
-            get_text("err3d_face_range", mode=mesh_mode, min=low, max=high, count=quality_override)
-        )
+        raise BytePlusException(get_text("err3d_face_range", mode=mesh_mode, min=low, max=high, count=quality_override))
     return int(quality_override)
 
 
@@ -159,9 +158,7 @@ def build_hyper3d_request(
     if not prompt and not count:
         raise BytePlusException(get_text("err3d_no_input", node="BytePlus Hyper3D"))
     if len(prompt) > HYPER3D_MAX_PROMPT_CHARS:
-        raise BytePlusException(
-            get_text("err3d_prompt_too_long", count=len(prompt), max=HYPER3D_MAX_PROMPT_CHARS)
-        )
+        raise BytePlusException(get_text("err3d_prompt_too_long", count=len(prompt), max=HYPER3D_MAX_PROMPT_CHARS))
     if count > HYPER3D_MAX_IMAGES:
         raise BytePlusException(
             get_text("err3d_too_many_images", node="BytePlus Hyper3D", max=HYPER3D_MAX_IMAGES, count=count)
@@ -251,22 +248,33 @@ async def cancel_task(client, task_id):
         await asyncio.to_thread(client.ark.content_generation.tasks.delete, task_id=task_id)
         log_msg("msg3d_cancelled", task_id=task_id)
     except Exception as error:
-        log_msg("msg3d_cancel_failed", task_id=task_id, reason=format_api_error(error))
+        log_msg("msg3d_cancel_failed", task_id=task_id, reason=format_api_error(error).removeprefix(LOG_PREFIX))
+
+
+async def cancel_created_task(client, creation):
+    """After an interrupt the worker thread still creates (and bills) the task: wait for it, then cancel it."""
+    try:
+        task = await creation
+    except (Exception, comfy.model_management.InterruptProcessingException):
+        return
+    await cancel_task(client, task.id)
 
 
 async def submit_task(client, request):
     extra = {key: value for key, value in request.items() if key not in ("model", "content") and value is not None}
-    try:
-        task = await wait_interruptible(
-            asyncio.to_thread(
-                call_billed,
-                billed_ark(client).content_generation.tasks.create,
-                model=request["model"],
-                content=request["content"],
-                **extra,
-            )
+    creation = asyncio.ensure_future(
+        asyncio.to_thread(
+            call_billed,
+            billed_ark(client).content_generation.tasks.create,
+            model=request["model"],
+            content=request["content"],
+            **extra,
         )
+    )
+    try:
+        task = await wait_interruptible(asyncio.shield(creation))
     except comfy.model_management.InterruptProcessingException:
+        await cancel_created_task(client, creation)
         raise
     except Exception as error:
         raise BytePlusException(format_api_error(error)) from error
@@ -345,7 +353,7 @@ def extract_archive(archive_path, folder):
     with zipfile.ZipFile(archive_path) as archive:
         members = [member for member in archive.infolist() if not member.is_dir()]
         if sum(member.file_size for member in members) > MAX_EXTRACTED_BYTES:
-            raise BytePlusException(get_text("err3d_archive_too_large", max_mb=MAX_EXTRACTED_BYTES // 1024 ** 2))
+            raise BytePlusException(get_text("err3d_archive_too_large", max_mb=MAX_EXTRACTED_BYTES // 1024**2))
         for member in members:
             target = os.path.realpath(os.path.join(root, member.filename))
             if os.path.commonpath([root, target]) != root:
@@ -356,6 +364,7 @@ def extract_archive(archive_path, folder):
 
 def pick_model_file(paths, file_format):
     """The model file to return: the largest file of the requested format, else of any 3D format."""
+
     def largest(extensions):
         matches = [path for path in paths if os.path.splitext(path)[1].lstrip(".").lower() in extensions]
         return max(matches, key=os.path.getsize) if matches else None
@@ -423,9 +432,7 @@ def model_output():
 
 
 def response_output():
-    return comfy_io.String.Output(
-        "response", tooltip="Task ID and format of the result, as JSON."
-    )
+    return comfy_io.String.Output("response", tooltip="Task ID and format of the result, as JSON.")
 
 
 class BytePlusHyper3D(comfy_io.ComfyNode):

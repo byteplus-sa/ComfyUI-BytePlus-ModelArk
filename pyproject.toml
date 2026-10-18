@@ -16,3 +16,22 @@ PublisherId = "byteplus-sa"
 DisplayName = "ComfyUI BytePlus ModelArk & AI MediaKit"
 Icon = "https://raw.githubusercontent.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/main/assets/registry-icon.jpg"
 requires-comfyui = ">=0.31.0"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+extend-exclude = [".claude/worktrees"]
+
+[tool.ruff.format]
+quote-style = "double"
+# Code blocks in Markdown keep their hand-aligned comments. The two Seedream
+# files are formatted once PR #20 (which edits them) has merged.
+exclude = ["*.md", "nodes/nodes_seedream.py", "tests/test_core_style_seedream.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "SIM"]
+ignore = ["E501", "SIM105", "SIM117"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"tests/*" = ["B017", "E731"]

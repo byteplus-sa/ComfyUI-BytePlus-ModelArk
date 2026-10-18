@@ -8,6 +8,7 @@ isolation the tests would see that key: "no key" cases would fail, and code
 that is meant to stop at a missing key could call the real API with it. Every
 test module that loads the pack calls this from setUpModule.
 """
+
 import importlib
 import os
 import tempfile
@@ -15,9 +16,15 @@ from unittest import mock
 
 PACKAGE_NAME = "byteplus_plugin_test"
 CREDENTIAL_ENV_VARS = (
-    "BYTEPLUS_API_KEY", "BYTEPLUS_REGION", "BYTEPLUS_SEED_SPEECH_API_KEY",
-    "BYTEPLUS_VOD_MEDIAKIT_API_KEY", "BYTEPLUS_ACCESS_KEY", "BYTEPLUS_ACCESSKEY",
-    "BYTEPLUS_SECRET_KEY", "BYTEPLUS_SECRETKEY", "BYTEPLUS_SESSION_TOKEN",
+    "BYTEPLUS_API_KEY",
+    "BYTEPLUS_REGION",
+    "BYTEPLUS_SEED_SPEECH_API_KEY",
+    "BYTEPLUS_VOD_MEDIAKIT_API_KEY",
+    "BYTEPLUS_ACCESS_KEY",
+    "BYTEPLUS_ACCESSKEY",
+    "BYTEPLUS_SECRET_KEY",
+    "BYTEPLUS_SECRETKEY",
+    "BYTEPLUS_SESSION_TOKEN",
 )
 
 

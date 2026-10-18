@@ -8,6 +8,7 @@ Tiny local server for taking docs screenshots from a running ComfyUI page (see R
   GET  /workflows/<slug>.json    public/workflows/<slug>.json
   POST /save/<path>              writes the body to docs-site/src/assets/<path>
 """
+
 import http.server
 import os
 import urllib.parse
@@ -44,7 +45,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         path = urllib.parse.unquote(self.path.split("?")[0])
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         if path.startswith("/save/"):
-            relative = os.path.normpath(path[len("/save/"):]).lstrip("/")
+            relative = os.path.normpath(path[len("/save/") :]).lstrip("/")
             if relative.startswith(".."):
                 return self._send(400)
             target = os.path.join(ASSETS, relative)

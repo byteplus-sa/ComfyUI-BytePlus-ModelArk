@@ -8,6 +8,7 @@ straight to BytePlus ModelArk with the user's key through the shared video
 executor. Local images and audio are sent inline as base64; local reference
 videos are uploaded to Comfy.org storage (needs a Comfy.org login).
 """
+
 import asyncio
 import json
 import math
@@ -149,6 +150,7 @@ _ASSET_REF_RE = re.compile(r"\basset ?(\d{1,2})\b", re.IGNORECASE)
 # --------------------------------------------------------------------------
 # Schema helpers (copies of core's _seedance2_text_inputs & co.)
 # --------------------------------------------------------------------------
+
 
 def _model_key(label):
     return SEEDANCE2_CORE_MODEL_OPTIONS[label]
@@ -330,10 +332,7 @@ def _reference_option_inputs(label):
 def _model_input(option_inputs):
     return comfy_io.DynamicCombo.Input(
         "model",
-        options=[
-            comfy_io.DynamicCombo.Option(label, option_inputs(label))
-            for label in SEEDANCE2_CORE_MODEL_OPTIONS
-        ],
+        options=[comfy_io.DynamicCombo.Option(label, option_inputs(label)) for label in SEEDANCE2_CORE_MODEL_OPTIONS],
         tooltip=SEEDANCE_MODEL_TOOLTIP,
     )
 
@@ -350,6 +349,7 @@ def _generation_outputs():
 # --------------------------------------------------------------------------
 # Request helpers
 # --------------------------------------------------------------------------
+
 
 def _selected_label(model):
     label = model.get("model") if isinstance(model, dict) else None
@@ -428,12 +428,8 @@ def build_seedance2_request_params(model, label, ratio, watermark):
 async def _generate(cls, client, model, label, content, prompt, ratio, seed, watermark, extras):
     """Submit, poll and collect through BytePlusVideoBase; returns core's outputs plus ours."""
     model_key = _model_key(label)
-    duration, auto_duration, ratio, extra_api_params = build_seedance2_request_params(
-        model, label, ratio, watermark
-    )
-    resolution = validate_seedance2_resolution(
-        model_key, model.get("resolution"), draft_mode=_is_draft(label)
-    )
+    duration, auto_duration, ratio, extra_api_params = build_seedance2_request_params(model, label, ratio, watermark)
+    resolution = validate_seedance2_resolution(model_key, model.get("resolution"), draft_mode=_is_draft(label))
     duration = validate_seedance2_duration(model_key, duration, auto_duration)
     helper = BytePlusVideoBase()
     result = await helper._common_generation_logic(
@@ -469,6 +465,7 @@ def _extras(generation_count, non_blocking):
 # --------------------------------------------------------------------------
 # Image helpers (core's _prepare_seedance_image / FLF frame sizing)
 # --------------------------------------------------------------------------
+
 
 def _image_size(image):
     """(width, height) of an IMAGE tensor [B, H, W, C]."""
@@ -553,6 +550,7 @@ def resize_to_exact(image, width, height):
 # Reference video helpers (pixel limits, PyAV rescaling)
 # --------------------------------------------------------------------------
 
+
 def ref_video_pixel_limits(model_key, resolution):
     """
     Total-pixel range for reference videos: the documented BytePlus range, the
@@ -594,12 +592,8 @@ def compute_upscale_dims(src_w, src_h, total_pixels):
 
 
 def _video_stream_source(video):
-    """A file path or BytesIO with the video's (trimmed) frames."""
-    try:
-        start, duration = video.get_active_trim_window()
-    except Exception:
-        start, duration = 0, 0
-    if not (start or duration):
+    """A file path or BytesIO with the video's frames, trimmed and cropped."""
+    if BytePlusVideoBase._video_variant(video) == "":
         try:
             return video.get_stream_source()
         except Exception:
@@ -680,7 +674,7 @@ def _fit_reference_video(video, index, model_key, resolution, auto_downscale, au
     try:
         return scale_video(video, *dims)
     except Exception as e:
-        raise BytePlusException(get_text("err_seedance2_ref_video_resize_failed", index=index, e=e))
+        raise BytePlusException(get_text("err_seedance2_ref_video_resize_failed", index=index, e=e)) from e
 
 
 def validate_reference_video(video, index, model_key, resolution, task_type="auto"):
@@ -807,12 +801,13 @@ async def _resolve_reference_assets(client, reference_assets):
         if str(reference_assets[key] or "").strip()
     ]
     resolved = await resolve_reference_values(client, [value for _slot, value in slots])
-    return [(slot, item["kind"], item["uri"]) for (slot, _value), item in zip(slots, resolved)]
+    return [(slot, item["kind"], item["uri"]) for (slot, _value), item in zip(slots, resolved, strict=True)]
 
 
 # --------------------------------------------------------------------------
 # Nodes
 # --------------------------------------------------------------------------
+
 
 class BytePlusSeedance2TextToVideo(NonBlockingRerun, comfy_io.ComfyNode):
     """Core's ByteDance2TextToVideoNode on BytePlus ModelArk."""
@@ -885,9 +880,7 @@ class BytePlusSeedance2FirstLastFrame(NonBlockingRerun, comfy_io.ComfyNode):
             description="Generate video using Seedance 2.5 or 2.0 from a first frame image "
             "and optional last frame image. Calls BytePlus ModelArk directly with your API key.",
             inputs=[
-                _model_input(
-                    lambda label: _text_option_inputs(label, with_ratio=False, default_ratio="adaptive")
-                ),
+                _model_input(lambda label: _text_option_inputs(label, with_ratio=False, default_ratio="adaptive")),
                 comfy_io.Image.Input(
                     "first_frame",
                     tooltip="First frame image for the video.",
@@ -1070,9 +1063,9 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
         for kind in unique_assets.values():
             asset_counts[kind] += 1
 
-        if not images and not videos and not asset_counts["image"] and not asset_counts["video"]:
-            if not is_2_5 or not (audios or asset_counts["audio"]):
-                raise BytePlusException(get_text("err_seedance2_reference_required"))
+        has_visual = images or videos or asset_counts["image"] or asset_counts["video"]
+        if not has_visual and (not is_2_5 or not (audios or asset_counts["audio"])):
+            raise BytePlusException(get_text("err_seedance2_reference_required"))
         for kind, local, key in (("image", images, "images"), ("video", videos, "videos")):
             total = len(local) + asset_counts[kind]
             if total > limits[key]:
@@ -1187,12 +1180,7 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
             helper._append_media_url_content(asset_items[kind], uri, media_type, f"reference_{kind}")
 
         content = (
-            image_items
-            + video_items
-            + audio_items
-            + asset_items["image"]
-            + asset_items["video"]
-            + asset_items["audio"]
+            image_items + video_items + audio_items + asset_items["image"] + asset_items["video"] + asset_items["audio"]
         )
         return await _generate(
             cls,
@@ -1242,30 +1230,28 @@ async def _get_draft_task(client, task_id):
     except Exception as e:
         raise BytePlusException(
             get_text("err_draft_lookup_failed", task_id=task_id, e=format_api_error(e).replace(LOG_PREFIX, "", 1))
-        )
+        ) from e
 
 
 async def describe_drafts(client, draft_ids):
     """Look up the draft tasks; returns (model_key, model_id, first task)."""
     tasks = await asyncio.gather(*[_get_draft_task(client, task_id) for task_id in draft_ids])
     model_keys = []
-    for task_id, task in zip(draft_ids, tasks):
+    for task_id, task in zip(draft_ids, tasks, strict=True):
         # The query API documents `draft` only for Seedance 1.5 Pro (2.5 returns it
         # too), so also reject finals and non-480p tasks, and drafts past 7 days.
         if getattr(task, "draft", None) is False:
             raise BytePlusException(get_text("err_draft_not_a_draft", task_id=task_id))
         source_draft = getattr(task, "draft_task_id", None)
         if source_draft:
-            raise BytePlusException(
-                get_text("err_draft_is_final", task_id=task_id, draft_task_id=source_draft)
-            )
+            raise BytePlusException(get_text("err_draft_is_final", task_id=task_id, draft_task_id=source_draft))
         task_resolution = str(getattr(task, "resolution", "") or "")
         if task_resolution and task_resolution != SEEDANCE_DRAFT_RESOLUTION:
             raise BytePlusException(get_text("err_draft_not_a_draft", task_id=task_id))
         created_at = getattr(task, "created_at", None)
-        if isinstance(created_at, (int, float)) and created_at > 0:
-            if time.time() - float(created_at) > DRAFT_TASK_VALID_SECONDS:
-                raise BytePlusException(get_text("err_draft_expired", task_id=task_id))
+        is_timestamp = isinstance(created_at, (int, float)) and created_at > 0
+        if is_timestamp and time.time() - float(created_at) > DRAFT_TASK_VALID_SECONDS:
+            raise BytePlusException(get_text("err_draft_expired", task_id=task_id))
         status = str(getattr(task, "status", "") or "")
         if status in _FAILED_TASK_STATUSES:
             raise BytePlusException(get_text("err_draft_failed", task_id=task_id, status=status))

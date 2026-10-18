@@ -76,7 +76,7 @@ These messages appear in the Settings page, next to the key row.
 |---|---|---|
 | No **BytePlus** page in Settings | An old version of the pack is installed, or ComfyUI was not restarted and the page not reloaded after the install. | Update the pack (ComfyUI-Manager → Update), restart ComfyUI and reload the page. See [Install](../get-started/install/). |
 | `BytePlus rejected this API key for the selected region, so it was not saved.` | The key is wrong, or you picked another region than the key's. | Pick the key's region and save again. |
-| `Saved, but BytePlus could not be reached to check the key; …` | The check could not run, so the key was saved unchecked. | If the nodes report 401, check the key and the region. |
+| `Saved, but the key could not be checked …` | BytePlus was unreachable, rate-limited or returned a server error, so the key was saved unchecked. | If the nodes report 401, check the key and the region. |
 | `The BYTEPLUS_REGION environment variable is set to … and it overrides the region picked here. …` | An environment variable fixes the region. | Pick the region it names, or change or remove the variable and restart ComfyUI. |
 | `The IAM access key and secret key go together: fill in both.` | Only one of the two fields was filled in. | Fill in both fields. |
 | `Requests from another origin are not accepted.` | ComfyUI is behind a proxy that hides the address you opened. | Edit `user/.env` by hand ([API keys](../get-started/api-keys/)). |
