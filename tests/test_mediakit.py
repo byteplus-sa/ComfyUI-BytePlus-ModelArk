@@ -372,6 +372,8 @@ class DownloadTests(unittest.IsolatedAsyncioTestCase):
         ):
             with self.assertRaises(Exception) as ctx:
                 await nodes_mediakit._download("https://cdn.example/out.mp4?auth_key=secret", "vcube_enhanced")
+        self.assertIsNone(ctx.exception.__cause__)
+        self.assertTrue(ctx.exception.__suppress_context__)
         message = str(ctx.exception)
         self.assertIn("https://cdn.example/out.mp4 (HTTP 403)", message)
         self.assertNotIn("secret", message)

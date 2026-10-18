@@ -388,7 +388,7 @@ async def _download(url, prefix, ext="mp4"):
     except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
         raise BytePlusException(
             get_text("err_mediakit_download_failed", url=url.split("?", 1)[0], reason=_reason(e))
-        ) from e
+        ) from None
     return path
 
 

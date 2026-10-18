@@ -186,6 +186,19 @@ class DownloadLogTests(unittest.IsolatedAsyncioTestCase):
                 await utils_download.download_to_file(None, SIGNED_URL, self.path)
         self.assertFalse(os.path.exists(self.path))
 
+    async def test_download_to_file_keeps_the_original_error_when_the_file_cannot_be_removed(self):
+        async def partial_then_fail(session, url, path, timeout=None, retries=3):
+            with open(path, "wb") as handle:
+                handle.write(b"partial")
+            raise RuntimeError("connection lost")
+
+        with (
+            mock.patch.object(utils_download, "_download_to_file_stream_async", partial_then_fail),
+            mock.patch.object(utils_download.os, "remove", side_effect=PermissionError("in use")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "connection lost"):
+                await utils_download.download_to_file(None, SIGNED_URL, self.path)
+
     async def test_download_to_file_keeps_the_finished_file(self):
         async def write(session, url, path, timeout=None, retries=3):
             with open(path, "wb") as handle:

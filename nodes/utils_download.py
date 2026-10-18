@@ -232,7 +232,7 @@ async def download_to_file(
     try:
         await wait_interruptible(_download_to_file_stream_async(session, url, path, timeout=timeout))
     except BaseException:
-        with contextlib.suppress(FileNotFoundError):
+        with contextlib.suppress(OSError):
             os.remove(path)
         raise
 
