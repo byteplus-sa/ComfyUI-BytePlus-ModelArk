@@ -123,7 +123,11 @@ VISUAL_MODEL_MAP = {
 }
 
 # Seed Speech models (separate API key, see constants.SPEECH_REGION_BASE_URLS).
-# Seed Audio 1.0: the model ID goes in the request body.
+# Seed Audio 1.0: the model ID goes in the request body. Core also lists
+# "seed-audio-1.0-multilingual" (default there) and says plain 1.0 is English/Chinese only. Checked
+# live 2026-10-18: the API never validates the name (any non-empty string, even a made-up one, gives
+# byte-identical audio; an empty one is rejected with 45000030), and seed-audio-1.0 already speaks
+# Spanish and honours "[0.0s:2.0s]" timestamps. So the name is not a model switch and is not offered.
 SEED_AUDIO_MODELS = ["seed-audio-1.0"]
 
 # TTS: the UI name is the X-Api-Resource-Id header. Voice replication (ICL)
