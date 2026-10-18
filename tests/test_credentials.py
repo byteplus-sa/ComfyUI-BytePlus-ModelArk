@@ -439,7 +439,11 @@ class ClientTests(IsolatedCredentials):
         node = nodes_assets.BytePlusAssetLibrary
         node.hidden = SimpleNamespace(unique_id="1", prompt={})
         self.write_env("BYTEPLUS_API_KEY=saved-key\n")
-        with mock.patch.object(nodes_assets, "AssetLibrary", FakeLibrary):
+        keys = {"access_key": "ak", "secret_key": "sk"}
+        with (
+            mock.patch.object(nodes_assets, "AssetLibrary", FakeLibrary),
+            mock.patch.object(nodes_assets, "resolve_asset_credentials", lambda client: keys),
+        ):
             asyncio.run(node.execute(group_type="AIGC", status="all", project_name="default"))
             self.assertEqual(seen[-1].api_key, "saved-key")
             mine = SimpleNamespace(api_key="test-key", region="ap-southeast-1")

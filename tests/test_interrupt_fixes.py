@@ -39,6 +39,7 @@ if COMFY_ROOT:
     executor = importlib.import_module(f"{PACKAGE_NAME}.nodes.executor")
     nodes_3d = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_3d")
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
+    nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
     nodes_seedream = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedream")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
     import comfy.model_management
@@ -174,6 +175,53 @@ class VideoCreationInterruptTests(ExecutorTestCase):
         self.assertEqual(cache, {})
 
 
+def plain(text):
+    return text.removeprefix("[BytePlus] ")
+
+
+class PollTextTests(unittest.TestCase):
+    def test_single_running_task_line(self):
+        text = plain(executor._poll_console_text(1, ["t1"], 0, 1, 1, 0, 12, 60))
+        self.assertEqual(text, "Task t1: Running... 12s / 60s elapsed")
+
+    def test_single_queued_task_line_shows_its_status(self):
+        text = plain(executor._poll_console_text(1, ["t1"], 0, 1, 0, 1, 5, None, "queued"))
+        self.assertEqual(text, "Task t1: Queued and waiting for resources... (Status: queued)")
+
+    def test_batch_line_while_running_uses_the_estimate(self):
+        text = plain(executor._poll_console_text(3, ["a", "b"], 1, 3, 2, 0, 30, 90))
+        self.assertEqual(text, "Batch Progress: 1/3 done. 2 pending... (Elapsed 30s / 90s) [Run: 2, Queue: 0]")
+
+    def test_batch_line_while_queued_estimates_ten_more_seconds(self):
+        text = plain(executor._poll_console_text(3, ["a", "b", "c"], 0, 3, 0, 3, 30, None, "queued"))
+        self.assertEqual(text, "Batch Progress: 0/3 done. 3 pending... (Elapsed 30s / 40s) [Run: 0, Queue: 3]")
+
+    def test_node_status_text_adds_time_left_and_the_long_wait_hint_only_when_due(self):
+        short = executor._poll_node_status_text(1, 0, 0, 1, 30, 20)
+        self.assertEqual(plain(short), "1 running, 0 queued, 0/1 done · waiting 30s · about 20s left")
+        long = executor._poll_node_status_text(0, 2, 0, 2, executor.LONG_WAIT_HINT_SECONDS, 0)
+        self.assertTrue(plain(long).startswith("0 running, 2 queued, 0/2 done · waiting 1200s Waiting for 20 min"))
+        self.assertNotIn("left", long)
+
+    def test_node_status_text_has_no_console_prefix_inside(self):
+        text = executor._poll_node_status_text(1, 0, 0, 1, executor.LONG_WAIT_HINT_SECONDS, 20)
+        self.assertEqual(plain(text).count("[BytePlus]"), 0)
+
+
+class FailedTaskReasonTests(unittest.TestCase):
+    def task(self, status, error=None):
+        return SimpleNamespace(id="t1", status=status, error=error)
+
+    def test_the_api_message_wins(self):
+        self.assertEqual(executor._task_fail_reason(self.task("failed", {"message": "bad"})), "bad")
+        self.assertEqual(executor._task_fail_reason(self.task("failed", SimpleNamespace(message="worse"))), "worse")
+
+    def test_without_an_error_the_status_names_the_reason(self):
+        self.assertEqual(executor._task_fail_reason(self.task("failed")), "Failed")
+        self.assertEqual(executor._task_fail_reason(self.task("cancelled")), "Cancelled")
+        self.assertEqual(executor._task_fail_reason(self.task("expired")), "Expired")
+
+
 class NonBlockingCacheTests(ExecutorTestCase):
     async def test_same_request_collects_the_pending_task(self):
         tasks = FakeVideoTasks()
@@ -183,6 +231,15 @@ class NonBlockingCacheTests(ExecutorTestCase):
         self.assertEqual(first["task_ids"], ["task-1"])
         self.assertEqual(second["task_ids"], ["task-1"])
         self.assertEqual(len(tasks.created), 1)
+
+    async def test_collecting_a_failed_task_reports_the_failure_and_forgets_it(self):
+        tasks = FakeVideoTasks()
+        cache = {}
+        await run_videos(video_client(tasks), cache)
+        tasks.status = "failed"
+        with self.assertRaisesRegex(nodes_seedream.BytePlusException, "task-1"):
+            await run_videos(video_client(tasks), cache)
+        self.assertEqual(cache, {})
 
     async def test_changed_prompt_submits_a_new_task(self):
         tasks = FakeVideoTasks()
@@ -337,7 +394,7 @@ class ImageEnhanceFixtures(unittest.IsolatedAsyncioTestCase):
         for patcher in (
             mock.patch.object(nodes_mediakit, "_download", fake_download),
             mock.patch("comfy_api_nodes.util.upload_file_to_comfyapi", fake_upload, create=True),
-            mock.patch.dict(nodes_mediakit.IMAGE_UPLOAD_CACHE, clear=True),
+            mock.patch.dict(nodes_shared.COMFY_UPLOAD_CACHE, clear=True),
             mock.patch.object(
                 nodes_mediakit.BytePlusImageEnhance, "hidden", SimpleNamespace(unique_id="9", prompt={}), create=True
             ),

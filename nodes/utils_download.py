@@ -1,4 +1,5 @@
 import os
+import contextlib
 import io
 import base64
 import asyncio
@@ -10,7 +11,7 @@ import folder_paths
 import random
 import urllib.parse
 import comfy.model_management
-from .nodes_shared import log_msg
+from .nodes_shared import log_msg, wait_interruptible
 
 DEFAULT_DOWNLOAD_TIMEOUT = 60
 DEFAULT_DOWNLOAD_RETRIES = 3
@@ -147,6 +148,21 @@ async def download_url_to_image_tensor_async(session: aiohttp.ClientSession, url
         return None
 
 
+def _temp_download_path(prefix: str, seed: int | None, save_path_name: str, file_ext: str) -> str:
+    if seed is not None:
+        prefix = f"{prefix}_seed_{seed}"
+
+    output_dir = folder_paths.get_temp_directory()
+    if save_path_name:
+        output_dir = os.path.join(output_dir, save_path_name)
+
+    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(prefix, output_dir)
+    os.makedirs(full_output_folder, exist_ok=True)
+
+    final_filename = f"{filename}_{random.randint(1, 10000)}.{file_ext}"
+    return os.path.join(full_output_folder, final_filename)
+
+
 async def _download_to_temp_base(
     session: aiohttp.ClientSession,
     url: str,
@@ -161,18 +177,7 @@ async def _download_to_temp_base(
     if not url:
         return (None, None)
 
-    if seed is not None:
-        prefix = f"{prefix}_seed_{seed}"
-
-    output_dir = folder_paths.get_temp_directory()
-    if save_path_name:
-        output_dir = os.path.join(output_dir, save_path_name)
-
-    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(prefix, output_dir)
-    os.makedirs(full_output_folder, exist_ok=True)
-
-    final_filename = f"{filename}_{random.randint(1, 10000)}.{file_ext}"
-    final_path = os.path.join(full_output_folder, final_filename)
+    final_path = _temp_download_path(prefix, seed, save_path_name, file_ext)
 
     try:
         data = await _fetch_data_from_url_async(session, url)
@@ -212,6 +217,43 @@ async def _download_to_file_stream_async(
     return await _with_download_retries(attempt_once, retries)
 
 
+async def download_to_file(
+    session: aiohttp.ClientSession,
+    url: str,
+    path: str,
+    timeout: int | aiohttp.ClientTimeout = VIDEO_DOWNLOAD_TIMEOUT,
+) -> None:
+    """
+    Stream a (possibly very large) download to path, honouring ComfyUI
+    interrupts. The partly written file is removed when the download fails or
+    is interrupted. Errors are raised as they are; they can carry the signed
+    link, so callers describe them with describe_download_error.
+    """
+    try:
+        await wait_interruptible(_download_to_file_stream_async(session, url, path, timeout=timeout))
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.remove(path)
+        raise
+
+
+async def download_to_temp(
+    session: aiohttp.ClientSession,
+    url: str,
+    prefix: str,
+    file_ext: str,
+    seed: int | None = None,
+    save_path_name: str = "",
+    timeout: int | aiohttp.ClientTimeout = VIDEO_DOWNLOAD_TIMEOUT,
+) -> str:
+    """
+    Download a file into the temp directory and return its path.
+    """
+    path = _temp_download_path(prefix, seed, save_path_name, file_ext)
+    await download_to_file(session, url, path, timeout)
+    return path
+
+
 async def download_video_to_temp(
     session: aiohttp.ClientSession,
     url: str,
@@ -224,26 +266,11 @@ async def download_video_to_temp(
     """
     if not url:
         return None
-    file_ext = url_file_extension(url, "mp4")
-
-    if seed is not None:
-        prefix = f"{prefix}_seed_{seed}"
-
-    output_dir = folder_paths.get_temp_directory()
-    if save_path_name:
-        output_dir = os.path.join(output_dir, save_path_name)
-
-    (full_output_folder, filename, _, _, _) = folder_paths.get_save_image_path(prefix, output_dir)
-    os.makedirs(full_output_folder, exist_ok=True)
-
-    final_filename = f"{filename}_{random.randint(1, 10000)}.{file_ext}"
-    final_path = os.path.join(full_output_folder, final_filename)
 
     try:
-        success = await _download_to_file_stream_async(session, url, final_path, timeout=VIDEO_DOWNLOAD_TIMEOUT)
-        if success:
-            return final_path
-        return None
+        return await download_to_temp(
+            session, url, prefix, url_file_extension(url, "mp4"), seed=seed, save_path_name=save_path_name
+        )
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as e:

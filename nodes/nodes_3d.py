@@ -37,6 +37,7 @@ except ImportError:
 from comfy_api.latest import io as comfy_io
 from PIL import Image
 
+from .ark_tasks import FAILED_TASK_STATUSES, poll_failure_is_final
 from .executor import SEEDANCE_MAX_POLL_ERRORS
 from .models_config import (
     HITEM3D_FILE_FORMAT_CODES,
@@ -72,7 +73,7 @@ from .nodes_shared import (
     wait_interruptible,
     with_client,
 )
-from .utils_download import VIDEO_DOWNLOAD_TIMEOUT, _download_to_file_stream_async
+from .utils_download import download_to_file
 
 THREE_D_CATEGORY = f"{GLOBAL_CATEGORY}/3D"
 THREE_D_POLL_SECONDS = 4
@@ -80,7 +81,6 @@ MODEL_EXTENSIONS = ("glb", "gltf", "obj", "fbx", "usdz", "stl")
 MAX_EXTRACTED_BYTES = 2 * 1024**3
 ZIP_MAGIC = b"PK"
 PROMPT_FLAG_PATTERN = re.compile(r"(?:^|\s)--([A-Za-z_]+)")
-TERMINAL_FAILURES = ("failed", "cancelled", "expired")
 
 
 def render_command_value(value):
@@ -238,11 +238,6 @@ def task_error_reason(task):
     return " ".join(str(part) for part in (code, message) if part) or "no reason given"
 
 
-def poll_error_is_permanent(error):
-    status = getattr(error, "status_code", None)
-    return isinstance(status, int) and 400 <= status < 500 and status not in (408, 409, 429)
-
-
 async def cancel_task(client, task_id):
     try:
         await asyncio.to_thread(client.ark.content_generation.tasks.delete, task_id=task_id)
@@ -295,7 +290,7 @@ async def wait_for_task(client, task_id, node_id=None):
                 raise
             except Exception as error:
                 failed_polls += 1
-                if poll_error_is_permanent(error) or failed_polls >= SEEDANCE_MAX_POLL_ERRORS:
+                if poll_failure_is_final(error, failed_polls, SEEDANCE_MAX_POLL_ERRORS):
                     raise BytePlusException(
                         get_text("err3d_poll_failed", task_id=task_id, reason=format_api_error(error))
                     ) from error
@@ -310,7 +305,7 @@ async def wait_for_task(client, task_id, node_id=None):
                 if not file_url:
                     raise BytePlusException(get_text("err3d_no_file_url", task_id=task_id))
                 return file_url
-            if status in TERMINAL_FAILURES:
+            if status in FAILED_TASK_STATUSES:
                 if status == "failed":
                     raise BytePlusException(
                         get_text("err3d_task_failed", task_id=task_id, reason=task_error_reason(task))
@@ -331,9 +326,7 @@ def new_result_dir(task_id):
 async def download_result(url, destination, task_id):
     async with aiohttp.ClientSession() as session:
         try:
-            await wait_interruptible(
-                _download_to_file_stream_async(session, url, destination, timeout=VIDEO_DOWNLOAD_TIMEOUT)
-            )
+            await download_to_file(session, url, destination)
         except comfy.model_management.InterruptProcessingException:
             raise
         except Exception as error:

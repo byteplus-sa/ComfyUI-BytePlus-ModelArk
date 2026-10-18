@@ -1866,7 +1866,7 @@ class SpeechUploadTests(SpeechTestBase):
         fake_util.upload_file_to_comfyapi = upload_file_to_comfyapi
         old_module = sys.modules.get("comfy_api_nodes.util")
         sys.modules["comfy_api_nodes.util"] = fake_util
-        self.nodes.SPEECH_UPLOAD_CACHE.clear()
+        nodes_shared.COMFY_UPLOAD_CACHE.clear()
         upload = self._old_upload
         try:
             first = await upload(None, "audio", b"abc", "a.wav", "audio/wav")
@@ -1879,7 +1879,7 @@ class SpeechUploadTests(SpeechTestBase):
             with self.assertRaises(mm.InterruptProcessingException):
                 await upload(None, "image", b"third", "i.jpg", "image/jpeg")
         finally:
-            self.nodes.SPEECH_UPLOAD_CACHE.clear()
+            nodes_shared.COMFY_UPLOAD_CACHE.clear()
             if old_module is None:
                 sys.modules.pop("comfy_api_nodes.util", None)
             else:

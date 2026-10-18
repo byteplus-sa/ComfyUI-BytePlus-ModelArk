@@ -36,8 +36,9 @@ from .constants import (
     ASSET_URI_PREFIX,
     DEFAULT_REGION,
 )
-from .core_style import core_search_aliases, reference_kind_from_url
+from .core_style import _asset_library, core_search_aliases, reference_kind_from_url
 from . import credentials
+from .http_requests import RetryableRequestError
 from .nodes_shared import (
     get_client,
     with_client,
@@ -69,12 +70,8 @@ GROUP_LOCKS = {}
 ASSET_UPLOAD_LOCKS = {}
 
 
-class AssetApiError(BytePlusException):
+class AssetApiError(RetryableRequestError):
     """A failed asset library call. retryable: throttling, network errors, timeouts and 5xx."""
-
-    def __init__(self, message, retryable=False):
-        super().__init__(message)
-        self.retryable = retryable
 
 
 def resolve_asset_credentials(client):
@@ -416,7 +413,7 @@ class BytePlusAssetLibrary(comfy_io.ComfyNode):
         max_results=20,
         project_name="default",
     ) -> comfy_io.NodeOutput:
-        library = AssetLibrary(client)
+        library = _asset_library(client)
         group_id = (group_id or "").strip()
         result = await asyncio.to_thread(
             library.call,
@@ -680,11 +677,6 @@ async def upload_asset_video(node_cls, video):
     return urls[0]
 
 
-ASSET_AUDIO_UPLOAD_CACHE = {}
-ASSET_AUDIO_UPLOAD_CACHE_TTL_SECONDS = 12 * 3600  # Comfy.org links last about 24 h
-ASSET_AUDIO_UPLOAD_CACHE_MAX_ENTRIES = 32
-
-
 async def upload_asset_audio(node_cls, wav_bytes):
     """Comfy.org upload of connected audio as WAV (CreateAsset needs an HTTPS URL), reused for the same bytes."""
     return await upload_bytes_to_comfy_storage(
@@ -692,10 +684,7 @@ async def upload_asset_audio(node_cls, wav_bytes):
         wav_bytes,
         f"{uuid.uuid4()}.wav",
         "audio/wav",
-        ASSET_AUDIO_UPLOAD_CACHE,
-        cache_key=hashlib.sha256(wav_bytes).hexdigest(),
-        ttl_seconds=ASSET_AUDIO_UPLOAD_CACHE_TTL_SECONDS,
-        max_entries=ASSET_AUDIO_UPLOAD_CACHE_MAX_ENTRIES,
+        cache_kind="asset-audio",
         unavailable_key="err_comfy_audio_upload_unavailable_asset",
         failed_key="err_comfy_audio_upload_failed_asset",
     )
@@ -743,7 +732,7 @@ async def register_core_asset(
     reuse an asset created for the same media, upload connected media to
     Comfy.org, CreateAsset, optionally wait until Active.
     """
-    library = AssetLibrary(client)
+    library = _asset_library(client)
     project_name = (project_name or "").strip() or "default"
     group_id = (group_id or "").strip()
     if not group_id:

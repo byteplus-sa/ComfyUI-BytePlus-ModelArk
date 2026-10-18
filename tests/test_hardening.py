@@ -175,6 +175,49 @@ class DownloadLogTests(unittest.IsolatedAsyncioTestCase):
                 await utils_download._download_to_file_stream_async(session, SIGNED_URL, self.path, retries=3)
         self.assertEqual(session.calls, 4)
 
+    async def test_download_to_file_removes_the_partial_file_on_failure(self):
+        async def partial_then_fail(session, url, path, timeout=None, retries=3):
+            with open(path, "wb") as handle:
+                handle.write(b"partial")
+            raise RuntimeError("connection lost")
+
+        with mock.patch.object(utils_download, "_download_to_file_stream_async", partial_then_fail):
+            with self.assertRaises(RuntimeError):
+                await utils_download.download_to_file(None, SIGNED_URL, self.path)
+        self.assertFalse(os.path.exists(self.path))
+
+    async def test_download_to_file_keeps_the_original_error_when_the_file_cannot_be_removed(self):
+        async def partial_then_fail(session, url, path, timeout=None, retries=3):
+            with open(path, "wb") as handle:
+                handle.write(b"partial")
+            raise RuntimeError("connection lost")
+
+        with (
+            mock.patch.object(utils_download, "_download_to_file_stream_async", partial_then_fail),
+            mock.patch.object(utils_download.os, "remove", side_effect=PermissionError("in use")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "connection lost"):
+                await utils_download.download_to_file(None, SIGNED_URL, self.path)
+
+    async def test_download_to_file_keeps_the_finished_file(self):
+        async def write(session, url, path, timeout=None, retries=3):
+            with open(path, "wb") as handle:
+                handle.write(b"done")
+            return True
+
+        with mock.patch.object(utils_download, "_download_to_file_stream_async", write):
+            await utils_download.download_to_file(None, SIGNED_URL, self.path)
+        with open(self.path, "rb") as handle:
+            self.assertEqual(handle.read(), b"done")
+
+    async def test_download_to_file_does_not_mask_the_error_when_nothing_was_written(self):
+        async def fail(session, url, path, timeout=None, retries=3):
+            raise RuntimeError("refused")
+
+        with mock.patch.object(utils_download, "_download_to_file_stream_async", fail):
+            with self.assertRaisesRegex(RuntimeError, "refused"):
+                await utils_download.download_to_file(None, SIGNED_URL, self.path)
+
     async def test_failure_logs_hide_the_signed_query(self):
         session = FakeSession([403] * 3)
         with (

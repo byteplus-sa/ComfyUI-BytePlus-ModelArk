@@ -1470,7 +1470,7 @@ class DraftToFinalTests(_ExecutorHarness):
         self.assertEqual(mapping("dreamina-seedance-2-5-premium-261201"), "dreamina-seedance-2-5-premium")
         # Seedance 1.5 Pro is deprecated by BytePlus: no longer a known model.
         self.assertIsNone(mapping("seedance-1-5-pro-251215"))
-        self.assertIsNone(nodes_seedance2.draft_final_plan("seedance-1-5-pro"))
+        self.assertIsNone(nodes_seedance2.draft_final_resolution("seedance-1-5-pro"))
         self.assertEqual(mapping("seedance-1-0-pro-fast-251015"), "seedance-1-0-pro-fast")
         self.assertIsNone(mapping("ep-20260101-xyz"))
 

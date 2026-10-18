@@ -17,7 +17,6 @@ the original resized to the result for the Compare Images slider.
 """
 
 import asyncio
-import hashlib
 import io
 import json
 import math
@@ -48,6 +47,7 @@ from .constants import (
 )
 from .core_style import core_search_aliases
 from . import credentials
+from .http_requests import RetryableRequestError, await_request, is_retryable_status, retry_transient, send_http_request
 from .nodes_shared import (
     with_client,
     GLOBAL_CATEGORY,
@@ -61,7 +61,6 @@ from .nodes_shared import (
     send_node_text,
     sleep_interruptible,
     upload_bytes_to_comfy_storage,
-    wait_interruptible,
 )
 
 MEDIAKIT_CATEGORY = f"{GLOBAL_CATEGORY}/MediaKit"
@@ -139,58 +138,41 @@ def describe_mediakit_error(error, status=None, request_id=None):
 
 async def _send(client, method, path, body=None, timeout_seconds=None):
     """One HTTP call to MediaKit; returns (status, parsed JSON or None). Tests replace this."""
-    timeout = aiohttp.ClientTimeout(total=timeout_seconds or MEDIAKIT_REQUEST_TIMEOUT_SECONDS)
     headers = {"Authorization": f"Bearer {client.api_key}"}
     if body is not None:
         headers["Content-Type"] = "application/json"
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.request(method, client.base_url + path, headers=headers, json=body) as response:
-            text = await response.text()
-            try:
-                data = json.loads(text) if text else None
-            except ValueError:
-                data = None
-            return response.status, data
-
-
-class MediaKitRequestError(BytePlusException):
-    """A failed MediaKit call. retryable: network errors, timeouts, 429 and 5xx. status: the HTTP status, if any."""
-
-    def __init__(self, message, retryable=False, status=None):
-        super().__init__(message)
-        self.retryable = retryable
-        self.status = status
-
-
-def _retryable_status(status):
-    return status == 429 or status >= 500
+    status, _, content = await send_http_request(
+        method, client.base_url + path, headers, body, timeout_seconds or MEDIAKIT_REQUEST_TIMEOUT_SECONDS
+    )
+    try:
+        data = json.loads(content) if content else None
+    except ValueError:
+        data = None
+    return status, data
 
 
 async def mediakit_request(client, method, path, body=None, timeout_seconds=None, accept_failed_task=False):
     """
-    Call MediaKit; raise MediaKitRequestError unless the response reports
+    Call MediaKit; raise RetryableRequestError unless the response reports
     success. accept_failed_task returns a task whose status is 'failed'
     (whatever its success flag), so the poller can report it as such.
     """
     seconds = timeout_seconds or MEDIAKIT_REQUEST_TIMEOUT_SECONDS
-    try:
-        status, data = await wait_interruptible(_send(client, method, path, body, timeout_seconds=seconds))
-    except comfy.model_management.InterruptProcessingException:
-        raise
-    except asyncio.TimeoutError:
-        raise MediaKitRequestError(get_text("err_mediakit_timeout", seconds=seconds), retryable=True) from None
-    except aiohttp.ClientError as e:
-        raise MediaKitRequestError(get_text("err_mediakit_network", e=e), retryable=True) from e
+    status, data = await await_request(
+        _send(client, method, path, body, timeout_seconds=seconds),
+        get_text("err_mediakit_timeout", seconds=seconds),
+        lambda e: get_text("err_mediakit_network", e=e),
+    )
     if not isinstance(data, dict):
-        raise MediaKitRequestError(
-            get_text("err_mediakit_unexpected", status=status), _retryable_status(status), status=status
+        raise RetryableRequestError(
+            get_text("err_mediakit_unexpected", status=status), is_retryable_status(status), status=status
         )
     if accept_failed_task and data.get("status") == "failed":
         return data
     if status >= 400 or data.get("success") is False:
-        raise MediaKitRequestError(
+        raise RetryableRequestError(
             describe_mediakit_error(data.get("error"), status, data.get("request_id")),
-            _retryable_status(status),
+            is_retryable_status(status),
             status=status,
         )
     return data
@@ -204,19 +186,13 @@ async def wait_for_mediakit_task(client, task_id, node_id=None, poll_seconds=Non
     """
     poll_seconds = MEDIAKIT_POLL_SECONDS if poll_seconds is None else poll_seconds
     started = time.monotonic()
-    errors = 0
     while True:
         comfy.model_management.throw_exception_if_processing_interrupted()
-        try:
-            task = await mediakit_request(client, "GET", f"/tasks/{task_id}", accept_failed_task=True)
-            errors = 0
-        except MediaKitRequestError as e:
-            # Only transient errors are retried; a bad key or unknown task fails at once.
-            errors += 1
-            if not e.retryable or errors >= MEDIAKIT_MAX_POLL_ERRORS:
-                raise
-            await sleep_interruptible(poll_seconds)
-            continue
+        task = await retry_transient(
+            lambda: mediakit_request(client, "GET", f"/tasks/{task_id}", accept_failed_task=True),
+            max_errors=MEDIAKIT_MAX_POLL_ERRORS,
+            poll_seconds=poll_seconds,
+        )
         status = str(task.get("status") or "")
         if status == "completed":
             return task
@@ -398,28 +374,21 @@ async def _download(url, prefix, ext="mp4"):
     Stream url to a temp file. Results can be gigabytes, so only a stalled
     connection times out, not a long download. Interruptible.
     """
-    from .utils_download import _download_to_file_stream_async
+    from .utils_download import download_to_file
 
     path = _temp_path(prefix, ext)
     timeout = aiohttp.ClientTimeout(
         total=None, sock_connect=MEDIAKIT_REQUEST_TIMEOUT_SECONDS, sock_read=MEDIAKIT_DOWNLOAD_STALL_SECONDS
     )
-
-    async def fetch():
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            return await _download_to_file_stream_async(session, url, path, timeout=timeout)
-
-    reason = "no data"
     try:
-        ok = await wait_interruptible(fetch())
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            await download_to_file(session, url, path, timeout)
     except comfy.model_management.InterruptProcessingException:
-        _remove_quietly(path)
         raise
     except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
-        ok, reason = False, _reason(e)
-    if not ok or not os.path.exists(path):
-        _remove_quietly(path)
-        raise BytePlusException(get_text("err_mediakit_download_failed", url=url.split("?", 1)[0], reason=reason))
+        raise BytePlusException(
+            get_text("err_mediakit_download_failed", url=url.split("?", 1)[0], reason=_reason(e))
+        ) from None
     return path
 
 
@@ -478,7 +447,7 @@ async def submit_and_wait(client, path, body, node_id, submitted_key):
         try:
             created = await mediakit_request(client, "POST", path, body)
             break
-        except MediaKitRequestError as e:
+        except RetryableRequestError as e:
             if not e.retryable or attempt >= MEDIAKIT_SUBMIT_RETRIES:
                 raise
             await sleep_interruptible(2**attempt)
@@ -1212,9 +1181,6 @@ IMAGE_VERSION_LIMITS = {
         "out_rule": "a long side of at most 10240 px",
     },
 }
-IMAGE_UPLOAD_CACHE = {}
-IMAGE_UPLOAD_CACHE_TTL_SECONDS = 12 * 3600  # Comfy.org links last about 24 h
-IMAGE_UPLOAD_CACHE_MAX_ENTRIES = 64
 
 
 def _image_tool_version_input():
@@ -1425,10 +1391,7 @@ async def upload_image_source(node_cls, data, filename, mime_type):
         data,
         filename,
         mime_type,
-        IMAGE_UPLOAD_CACHE,
-        cache_key=hashlib.sha256(data).hexdigest(),
-        ttl_seconds=IMAGE_UPLOAD_CACHE_TTL_SECONDS,
-        max_entries=IMAGE_UPLOAD_CACHE_MAX_ENTRIES,
+        cache_kind="mediakit-image",
         unavailable_key="err_comfy_image_upload_unavailable_mediakit",
         failed_key="err_comfy_image_upload_failed_mediakit",
     )
@@ -1593,7 +1556,7 @@ async def enhance_image_request(client, body):
                 return await mediakit_request(
                     client, "POST", "/tools-sync/enhance-image", body, timeout_seconds=MEDIAKIT_SYNC_TIMEOUT_SECONDS
                 )
-        except MediaKitRequestError as e:
+        except RetryableRequestError as e:
             if e.status != 429 or attempt >= IMAGE_RATE_LIMIT_RETRIES:
                 raise
         await sleep_interruptible(2**attempt)

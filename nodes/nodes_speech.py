@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import hashlib
 import io
 import json
 import math
@@ -66,8 +65,6 @@ from .constants import (
     SPEECH_ASR_PENDING_CODES,
     SPEECH_ASR_POLL_SECONDS,
     SPEECH_ASR_SILENT_AUDIO_CODE,
-    SPEECH_UPLOAD_CACHE_MAX_ENTRIES,
-    SPEECH_UPLOAD_CACHE_TTL_SECONDS,
 )
 from .models_config import (
     SEED_ASR_MODELS,
@@ -178,19 +175,13 @@ def _segments_json(raw, segments):
 # Connected media -> Comfy.org storage URL, for Seed Speech options that only
 # take URLs (standard ASR audio, ASR context image). Needs a Comfy.org login;
 # the helper is internal to ComfyUI and missing with --disable-api-nodes.
-SPEECH_UPLOAD_CACHE = {}
-
-
 async def upload_to_comfy_storage(node_cls, kind, data, filename, mime_type):
     return await upload_bytes_to_comfy_storage(
         node_cls,
         data,
         filename,
         mime_type,
-        SPEECH_UPLOAD_CACHE,
-        cache_key=(kind, hashlib.sha256(data).hexdigest()),
-        ttl_seconds=SPEECH_UPLOAD_CACHE_TTL_SECONDS,
-        max_entries=SPEECH_UPLOAD_CACHE_MAX_ENTRIES,
+        cache_kind=f"speech-{kind}",
         unavailable_key="speech_upload_unavailable",
         failed_key="speech_upload_failed",
         done_key="speech_upload_done",
@@ -1142,19 +1133,52 @@ def _sensitive_words_filter(system_filter=False, remove_words="", mask_words="",
     return json.dumps(config, ensure_ascii=False) if config else None
 
 
+def _url_extension(url):
+    """The lower-case file extension of a link's last path segment ("" when it has none)."""
+    return url.split("?", 1)[0].split("#", 1)[0].rsplit("/", 1)[-1].rpartition(".")[2].lower()
+
+
 def _url_audio_format(model, mode, audio_url, audio_format):
     """audio.format for a URL: explicit choice, else from the extension."""
     if audio_format and audio_format != "auto":
         if mode == "fast" and audio_format not in SEED_ASR_FAST_FORMATS:
             raise BytePlusException(get_text("asr_format_fast_unsupported", format=audio_format))
         return audio_format
-    extension = audio_url.split("?", 1)[0].split("#", 1)[0].rsplit("/", 1)[-1].rpartition(".")[2].lower()
-    inferred = SEED_ASR_EXTENSION_FORMATS.get(extension)
+    inferred = SEED_ASR_EXTENSION_FORMATS.get(_url_extension(audio_url))
     if mode == "fast":
         return inferred if inferred in SEED_ASR_FAST_FORMATS else None
     if not inferred:
         raise BytePlusException(get_text("asr_format_unknown", model=model))
     return inferred
+
+
+def _asr_audio_config(model, mode, audio, audio_url, audio_format, enable_channel_split):
+    if audio is not None:
+        if mode != "fast":
+            raise BytePlusException(get_text("asr_standard_needs_url", model=model))
+        channels = asr_channel_count(audio, enable_channel_split)
+        wav = audio_to_wav_bytes(audio, sample_rate=SEED_ASR_SAMPLE_RATE, mono=channels == 1)
+        if len(wav) > SEED_ASR_FAST_MAX_BYTES:
+            raise BytePlusException(
+                get_text("asr_audio_too_large", size_mb=_size_mb(len(wav)), max_mb=_size_mb(SEED_ASR_FAST_MAX_BYTES))
+            )
+        return {
+            "data": base64.b64encode(wav).decode("utf-8"),
+            "format": "wav",
+            "codec": "raw",
+            "rate": SEED_ASR_SAMPLE_RATE,
+            "bits": 16,
+            "channel": channels,
+        }
+    audio_config = {"url": audio_url}
+    url_format = _url_audio_format(model, mode, audio_url, audio_format)
+    if url_format:
+        audio_config["format"] = url_format
+        if url_format == "ogg":
+            audio_config["codec"] = "opus"
+    if enable_channel_split:
+        audio_config["channel"] = 2
+    return audio_config
 
 
 def build_asr_request(
@@ -1203,32 +1227,7 @@ def build_asr_request(
     if context and (language not in SEED_ASR_CONTEXT_LANGUAGES or enable_auto_lang):
         raise BytePlusException(get_text("asr_context_language"))
 
-    if audio is not None:
-        if mode != "fast":
-            raise BytePlusException(get_text("asr_standard_needs_url", model=model))
-        channels = asr_channel_count(audio, enable_channel_split)
-        wav = audio_to_wav_bytes(audio, sample_rate=SEED_ASR_SAMPLE_RATE, mono=channels == 1)
-        if len(wav) > SEED_ASR_FAST_MAX_BYTES:
-            raise BytePlusException(
-                get_text("asr_audio_too_large", size_mb=_size_mb(len(wav)), max_mb=_size_mb(SEED_ASR_FAST_MAX_BYTES))
-            )
-        audio_config = {
-            "data": base64.b64encode(wav).decode("utf-8"),
-            "format": "wav",
-            "codec": "raw",
-            "rate": SEED_ASR_SAMPLE_RATE,
-            "bits": 16,
-            "channel": channels,
-        }
-    else:
-        audio_config = {"url": audio_url}
-        url_format = _url_audio_format(model, mode, audio_url, audio_format)
-        if url_format:
-            audio_config["format"] = url_format
-            if url_format == "ogg":
-                audio_config["codec"] = "opus"
-        if enable_channel_split:
-            audio_config["channel"] = 2
+    audio_config = _asr_audio_config(model, mode, audio, audio_url, audio_format, enable_channel_split)
     if language and language != "auto":
         audio_config["language"] = language
 
@@ -1471,35 +1470,8 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
     @with_client("speech_client", get_speech_client)
     async def execute(cls, speech_client, model, audio=None, context_image=None, **options) -> comfy_io.NodeOutput:
         mode = SEED_ASR_MODELS[model][0]
-        uploaded_audio = False
-        if audio is not None and mode != "fast":
-            if (options.get("audio_url") or "").strip():
-                raise BytePlusException(get_text("asr_both_inputs"))
-            channels = asr_channel_count(audio, options.get("enable_channel_split"))
-            wav = await asyncio.to_thread(
-                audio_to_wav_bytes, audio, sample_rate=SEED_ASR_SAMPLE_RATE, mono=channels == 1
-            )
-            options["audio_url"] = await upload_to_comfy_storage(cls, "audio", wav, "asr.wav", "audio/wav")
-            options["audio_format"] = "wav"
-            audio = None
-            uploaded_audio = True
-        if context_image is not None:
-            if (options.get("context_image_url") or "").strip():
-                raise BytePlusException(get_text("asr_context_image_conflict"))
-            if SEED_ASR_MODELS[model][1] == "volc.bigasr.auc":
-                raise BytePlusException(get_text("asr_context_image_2_only"))
-            jpeg = await asyncio.to_thread(context_image_jpeg, context_image)
-            options["context_image_url"] = await upload_to_comfy_storage(
-                cls, "image", jpeg, "context.jpg", "image/jpeg"
-            )
-        url = (options.get("audio_url") or "").strip()
-        if mode != "fast" and url and audio is None and (options.get("audio_format") or "auto") == "auto":
-            extension = url.split("?", 1)[0].split("#", 1)[0].rsplit("/", 1)[-1].rpartition(".")[2].lower()
-            if extension not in SEED_ASR_EXTENSION_FORMATS:
-                # A link without a file extension (the Seed Audio url): read the format from the file.
-                sniffed = await sniff_audio_format(url)
-                if sniffed:
-                    options["audio_format"] = sniffed
+        audio, uploaded_audio = await _upload_asr_media(cls, model, mode, audio, context_image, options)
+        await _detect_asr_url_format(mode, audio, options)
         mode, headers, body = await asyncio.to_thread(build_asr_request, model, audio, **options)
         if uploaded_audio:
             body["audio"].update({"codec": "raw", "rate": SEED_ASR_SAMPLE_RATE, "bits": 16})
@@ -1517,31 +1489,71 @@ class BytePlusSeedASR(comfy_io.ComfyNode):
         response = await speech_post(speech_client, SEED_ASR_SUBMIT_PATH, body, operation=operation, headers=headers)
         check_code(operation, response, response.status_code)
         log_msg("asr_task_submitted", task_id=task_id)
-        waited = 0
-        while True:
-            if waited >= SEED_ASR_MAX_WAIT_SECONDS:
-                raise BytePlusException(
-                    get_text("asr_wait_timeout", task_id=task_id, seconds=SEED_ASR_MAX_WAIT_SECONDS)
-                )
-            await sleep_interruptible(SPEECH_ASR_POLL_SECONDS)
-            waited += max(SPEECH_ASR_POLL_SECONDS, 1)
-            response = await speech_poll(
-                speech_client,
-                SEED_ASR_QUERY_PATH,
-                {},
-                operation=operation,
-                headers=headers,
-                poll_seconds=SPEECH_ASR_POLL_SECONDS,
-            )
-            status = response.status_code
-            if status in SPEECH_ASR_PENDING_CODES:
-                continue
-            if status == SPEECH_ASR_SILENT_AUDIO_CODE:
-                return _silent_outputs()
-            check_code(operation, response, status)
-            if status is None and not isinstance((response.json() or {}).get("result"), (dict, list)):
-                raise speech_error(operation, response)
-            return _asr_outputs(operation, response, labels)
+        return await _wait_for_asr_task(speech_client, headers, task_id, operation, labels)
+
+
+async def _upload_asr_media(cls, model, mode, audio, context_image, options):
+    """
+    Standard ASR takes URLs only: connected audio and the context image go
+    through Comfy.org storage. Fills options; returns (audio still to send
+    inline, whether the audio was uploaded).
+    """
+    uploaded_audio = False
+    if audio is not None and mode != "fast":
+        if (options.get("audio_url") or "").strip():
+            raise BytePlusException(get_text("asr_both_inputs"))
+        channels = asr_channel_count(audio, options.get("enable_channel_split"))
+        wav = await asyncio.to_thread(audio_to_wav_bytes, audio, sample_rate=SEED_ASR_SAMPLE_RATE, mono=channels == 1)
+        options["audio_url"] = await upload_to_comfy_storage(cls, "audio", wav, "asr.wav", "audio/wav")
+        options["audio_format"] = "wav"
+        audio = None
+        uploaded_audio = True
+    if context_image is not None:
+        if (options.get("context_image_url") or "").strip():
+            raise BytePlusException(get_text("asr_context_image_conflict"))
+        if SEED_ASR_MODELS[model][1] == "volc.bigasr.auc":
+            raise BytePlusException(get_text("asr_context_image_2_only"))
+        jpeg = await asyncio.to_thread(context_image_jpeg, context_image)
+        options["context_image_url"] = await upload_to_comfy_storage(cls, "image", jpeg, "context.jpg", "image/jpeg")
+    return audio, uploaded_audio
+
+
+async def _detect_asr_url_format(mode, audio, options):
+    """A link without a file extension (the Seed Audio url): read the format from the file."""
+    url = (options.get("audio_url") or "").strip()
+    if mode == "fast" or not url or audio is not None or (options.get("audio_format") or "auto") != "auto":
+        return
+    if _url_extension(url) in SEED_ASR_EXTENSION_FORMATS:
+        return
+    sniffed = await sniff_audio_format(url)
+    if sniffed:
+        options["audio_format"] = sniffed
+
+
+async def _wait_for_asr_task(speech_client, headers, task_id, operation, labels):
+    waited = 0
+    while True:
+        if waited >= SEED_ASR_MAX_WAIT_SECONDS:
+            raise BytePlusException(get_text("asr_wait_timeout", task_id=task_id, seconds=SEED_ASR_MAX_WAIT_SECONDS))
+        await sleep_interruptible(SPEECH_ASR_POLL_SECONDS)
+        waited += max(SPEECH_ASR_POLL_SECONDS, 1)
+        response = await speech_poll(
+            speech_client,
+            SEED_ASR_QUERY_PATH,
+            {},
+            operation=operation,
+            headers=headers,
+            poll_seconds=SPEECH_ASR_POLL_SECONDS,
+        )
+        status = response.status_code
+        if status in SPEECH_ASR_PENDING_CODES:
+            continue
+        if status == SPEECH_ASR_SILENT_AUDIO_CODE:
+            return _silent_outputs()
+        check_code(operation, response, status)
+        if status is None and not isinstance((response.json() or {}).get("result"), (dict, list)):
+            raise speech_error(operation, response)
+        return _asr_outputs(operation, response, labels)
 
 
 # Voice cloning (Voice Replication 2.0)

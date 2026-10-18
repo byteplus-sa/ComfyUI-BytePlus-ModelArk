@@ -44,6 +44,7 @@ if COMFY_ROOT:
     import comfy.model_management  # noqa: E402
 
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
+    nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
     from comfy_execution.graph_utils import ExecutionBlocker
 
@@ -371,6 +372,8 @@ class DownloadTests(unittest.IsolatedAsyncioTestCase):
         ):
             with self.assertRaises(Exception) as ctx:
                 await nodes_mediakit._download("https://cdn.example/out.mp4?auth_key=secret", "vcube_enhanced")
+        self.assertIsNone(ctx.exception.__cause__)
+        self.assertTrue(ctx.exception.__suppress_context__)
         message = str(ctx.exception)
         self.assertIn("https://cdn.example/out.mp4 (HTTP 403)", message)
         self.assertNotIn("secret", message)
@@ -994,7 +997,7 @@ class ImageEnhanceNodeTests(unittest.IsolatedAsyncioTestCase):
         self._patches = [
             mock.patch.object(nodes_mediakit, "_download", fake_download),
             mock.patch("comfy_api_nodes.util.upload_file_to_comfyapi", fake_upload, create=True),
-            mock.patch.dict(nodes_mediakit.IMAGE_UPLOAD_CACHE, clear=True),
+            mock.patch.dict(nodes_shared.COMFY_UPLOAD_CACHE, clear=True),
         ]
         for patcher in self._patches:
             patcher.start()

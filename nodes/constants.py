@@ -254,8 +254,6 @@ SEED_CUSTOM_VOICE_ID_REJECT = (
     r"|.*[-_]$|^.{0,7}$|^.{257,}$|.*[^a-zA-Z0-9_-].*"
 )
 # Uploads of connected media to Comfy.org storage (for APIs that need a URL).
-SPEECH_UPLOAD_CACHE_TTL_SECONDS = 43200
-SPEECH_UPLOAD_CACHE_MAX_ENTRIES = 128
 
 # Seed Speech error codes without a dedicated MESSAGES key (Voice Replication).
 SPEECH_ERROR_TEXT = {
@@ -310,11 +308,6 @@ REF_AUDIO_MIN_DURATION = REF_MEDIA_MIN_DURATION
 REF_AUDIO_MAX_DURATION = REF_MEDIA_MAX_DURATION
 REF_AUDIO_MAX_SIZE_MB = 15.0
 REF_AUDIO_MAX_TOTAL_REQUEST_MB = 64.0
-VIDEO_FRAME_RATE = 24.0
-VIDEO_MIN_FRAMES = 29
-VIDEO_MAX_FRAMES = 289
-VIDEO_FRAME_STEP = 4.0
-VIDEO_BASE_FRAMES = 25.0
 
 MESSAGES = {
     "init_credentials_routes_failed": "Could not register the BytePlus credentials routes ({e}); Settings > BytePlus will not work. The nodes still load.",
@@ -370,11 +363,9 @@ MESSAGES = {
     "err_task_fail_msg": "Task {tid} failed: {msg}",
     "err_batch_fail_all": "Batch failed: No tasks succeeded.",
     "err_task_poll_failed": "Could not check task {task_id} ({count} attempt(s)): {reason} The task may still finish and be billed; check it with the Video Query Tasks node or in the ModelArk console.",
-    "err_copy_fail": "Failed to copy file: {path}. Error: {e}",
     "err_convert_tensor": "Failed to convert frame to tensor: {e}",
     "err_check_status_batch": "API Error checking batch status: {e}",
     "err_task_fail_ignored": "⚠️ Node {node_id} task failed (Ignored in concurrent mode): {msg}",
-    "debug_node_count": "Debug: Detected {count} {type} nodes.",
     "download_retry": "Warning: Download failed (Attempt {attempt}/{total}). Retrying in {delay}s... Error: {e}",
     "stream_recv_image": "Streaming: Image {index} generated.",
     "stream_partial_fail": "Streaming Warning: Image {index} failed: {msg}",
