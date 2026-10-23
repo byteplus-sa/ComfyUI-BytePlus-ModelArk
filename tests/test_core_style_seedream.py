@@ -644,6 +644,44 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sorted(call["seed"] for call in fake.calls), [0, 2147483647])
         self.assertEqual(result[0].shape[0], 2)
 
+    async def test_failed_sibling_reports_error_in_ui_and_response(self):
+        from comfy_execution.graph_utils import ExecutionBlocker
+
+        class FailedImages(FakeImages):
+            def generate(self, **kwargs):
+                raise TimeoutError("Seedream request timed out")
+
+        nodes_seedream.BytePlusSeedream.hidden.prompt = {
+            "failed": {"class_type": "BytePlusSeedream"},
+            "successful": {"class_type": "BytePlusSeedream"},
+        }
+        _fake, _client, result = await self.run_node(PRO, fake=FailedImages())
+        image, response, mask = result.args
+        self.assertIsInstance(image, ExecutionBlocker)
+        self.assertIsInstance(mask, ExecutionBlocker)
+        self.assertIn("timed out", image.message)
+        self.assertIsNotNone(result.ui)
+        self.assertEqual(result.ui.as_dict()["text"], (image.message,))
+        self.assertEqual(json.loads(response), [{"error": image.message}])
+
+    async def test_successful_sibling_keeps_normal_outputs(self):
+        nodes_seedream.BytePlusSeedream.hidden.prompt = {
+            "failed": {"class_type": "BytePlusSeedream"},
+            "successful": {"class_type": "BytePlusSeedream"},
+        }
+        _fake, _client, result = await self.run_node(PRO)
+        self.assertEqual(result[0].shape[0], 1)
+        self.assertIsNone(result.ui)
+        self.assertNotIn("error", json.loads(result[1])[0])
+
+    async def test_single_failed_node_still_raises(self):
+        class FailedImages(FakeImages):
+            def generate(self, **kwargs):
+                raise TimeoutError("Seedream request timed out")
+
+        with self.assertRaisesRegex(Exception, "timed out"):
+            await self.run_node(PRO, fake=FailedImages())
+
     async def test_transparent_background(self):
         import torch
 
