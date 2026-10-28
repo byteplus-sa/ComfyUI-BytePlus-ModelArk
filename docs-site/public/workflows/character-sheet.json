@@ -392,7 +392,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedream",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.6.1"
+        "ver": "0.7.0"
       },
       "widgets_values": [
         "",
