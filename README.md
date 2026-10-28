@@ -4,7 +4,7 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.7.0 release candidate (not yet published).** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.7.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
 **New in v0.7.0:** optional default ModelArk endpoint IDs for Seedance 2.0, Seedance 2.5 and Seedream 5.0 Pro in **Settings → Other → BytePlus → Default credentials**. Endpoint overrides use your existing key and region, keep the selected model's capabilities and invalidate cached outputs when changed. Leave a field blank to use the built-in model. No workflow changes are needed. All three endpoint paths were checked with real generation requests.
 
