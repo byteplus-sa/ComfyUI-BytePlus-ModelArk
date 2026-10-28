@@ -32,6 +32,7 @@ from .core_style import (
     watermark_input,
 )
 from .executor import BytePlusGenerationExecutor
+from .model_endpoints import EndpointDefaultsRerun, request_model_id
 from .models_config import (
     SEEDREAM_PRO,
     SEEDREAM_FLASH,
@@ -400,7 +401,7 @@ def build_seedream_request(plan, idx=0):
     return request
 
 
-class BytePlusSeedream(comfy_io.ComfyNode):
+class BytePlusSeedream(EndpointDefaultsRerun, comfy_io.ComfyNode):
     """
     Seedream 5.0 Pro / Flash / Lite, 4.5 and 4.0 with core's ByteDanceSeedreamNodeV3
     inputs. Pro and Flash return one image by URL; Lite, 4.5 and 4.0 stream b64
@@ -453,6 +454,7 @@ class BytePlusSeedream(comfy_io.ComfyNode):
         plan = build_seedream_plan(model if isinstance(model, dict) else {"model": model}, prompt)
         model_id = plan["model_id"]
         raise_if_model_unavailable_in_region(client, model_id)
+        plan["model_id"] = request_model_id(model_id)
         generation_count = plan["generation_count"]
         batch_mode = plan["max_images"] > 1
 
@@ -890,7 +892,7 @@ def _decode_layer_images(base_item, layer_items):
     return base, layers
 
 
-class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
+class BytePlusSeedreamLayerSeparation(EndpointDefaultsRerun, comfy_io.ComfyNode):
     """
     Seedream 5.0 Pro / Flash layer separation with core's
     ByteDanceSeedreamLayerSeparationNodeV2 inputs and outputs.
@@ -931,6 +933,8 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
         model_id = SEEDREAM_LAYER_SEPARATION_MODELS.get(label)
         if not model_id:
             raise BytePlusException(get_text("seedream_err_unknown_model", model=label))
+        raise_if_model_unavailable_in_region(client, model_id)
+        request_model = request_model_id(model_id)
         image = model.get("image")
         crop_layers = bool(model.get("crop_layers", False))
         count = (int(image.shape[0]) if image.ndim >= 4 else 1) if isinstance(image, torch.Tensor) else 0
@@ -946,7 +950,7 @@ class BytePlusSeedreamLayerSeparation(comfy_io.ComfyNode):
 
         output_format = model.get("output_format", "png")
         request = {
-            "model": model_id,
+            "model": request_model,
             "prompt": str(model.get("prompt") or "").strip(),
             "image": _image_to_png_data_uri(
                 _downscale_to_total_pixels(image[:, :, :, :3], LAYER_INPUT_MAX_PIXELS)

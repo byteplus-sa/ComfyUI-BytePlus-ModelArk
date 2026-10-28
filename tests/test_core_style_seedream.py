@@ -8,6 +8,7 @@ import tempfile
 import types
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
 
 # Needs a ComfyUI checkout and a Python env with torch and the BytePlus SDK:
@@ -497,6 +498,17 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(float(mask.sum()), 0.0)
         self.assertEqual(json.loads(response)[0]["urls"], ["https://example.invalid/image0.png"])
 
+    async def test_pro_endpoint_keeps_capabilities_and_leaves_flash_unchanged(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-image"}):
+            fake, _, _ = await self.run_node(PRO, thinking=False, generation_count=2)
+            self.assertEqual(len(fake.calls), 2)
+            for request in fake.calls:
+                self.assertEqual(request["model"], "ep-image")
+                self.assertEqual(request["response_format"], "url")
+                self.assertEqual(request["optimize_prompt_options"].thinking, "disabled")
+            fake, _, _ = await self.run_node(FLASH)
+            self.assertEqual(fake.calls[0]["model"], "dola-seedream-5-0-flash-260915")
+
     async def test_thinking_and_prompt_optimization_rules(self):
         import torch
 
@@ -802,6 +814,13 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([item["z_index"] for item in info["layers"]], [0, 1])
         self.assertEqual(info["layers"][1]["bounding_box"]["absolute"], [2, 2, 6, 6])
         self.assertIsNone(info["layers"][1]["file"])
+
+    async def test_pro_endpoint_also_applies_to_layers(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-layers"}):
+            calls, _, _ = await self.run_node([self.base_item(), leaf])
+        self.assertEqual(calls[0]["model"], "ep-layers")
+        self.assertTrue(calls[0]["layer_decomposition"])
 
     async def test_flash_has_no_prompt_optimization(self):
         leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])

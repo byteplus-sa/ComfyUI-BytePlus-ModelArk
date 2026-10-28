@@ -93,6 +93,14 @@ Open **Settings** (gear icon, or Ctrl+, / Cmd+,), search for **BytePlus**, paste
 
 ![Settings → BytePlus after saving: "ModelArk API key: set (ends in abcd), from user/.env."](https://raw.githubusercontent.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/main/docs/images/settings-byteplus-key-set.jpg)
 
+#### Default model endpoints
+
+Under **Settings → Other → BytePlus → Default credentials**, the **Seedance 2.0 default endpoint**, **Seedance 2.5 default endpoint** and **Seedream 5.0 Pro default endpoint** rows accept optional ModelArk endpoint IDs (`ep-...`), not URLs. Keep choosing the model normally on the canvas; the pack sends its configured endpoint ID using the existing ModelArk API key and region.
+
+Use an endpoint deployed for exactly that model in the key's region. Saving checks the ID format, not its model, region or access, and makes no generation request. Blank **Save** or **Remove** restores the built-in model unless an environment variable overrides it. Changes take effect without restarting and invalidate the selected model's cached output on the next run.
+
+Seedance 2.5 Draft shares the 2.5 endpoint; Seedream Pro layer separation shares the Pro endpoint. Fast, Mini, Premium, Flash and other models are unchanged. Draft to Final keeps the model or endpoint recorded on the draft. If a draft reports an endpoint ID, keep that endpoint configured until its final is rendered. Pending non-blocking tasks keep running if you change endpoints; collect their results with **Video Query Tasks**, using `all`.
+
 ### Option B: Edit `user/.env`
 
 Create `user/.env` inside your ComfyUI folder and add only the lines you need:
@@ -105,6 +113,8 @@ BYTEPLUS_VOD_MEDIAKIT_API_KEY=your-mediakit-key
 BYTEPLUS_ACCESS_KEY=your-iam-ak
 BYTEPLUS_SECRET_KEY=your-iam-sk
 ```
+
+Optional endpoint variables: `BYTEPLUS_SEEDANCE_2_0_ENDPOINT`, `BYTEPLUS_SEEDANCE_2_5_ENDPOINT` and `BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT`. Set each to its own `ep-...` ID, or leave it unset.
 
 The file is read on every run, so no restart is needed. A real environment variable with the same name wins over the file (Settings tells you when that happens). The pack never touches other lines in the file.
 

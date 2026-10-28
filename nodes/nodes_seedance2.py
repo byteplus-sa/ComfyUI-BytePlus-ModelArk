@@ -19,6 +19,7 @@ from io import BytesIO
 import comfy.model_management
 from comfy_api.latest import io as comfy_io
 
+from .model_endpoints import canonical_model_id
 from .constants import (
     IMAGE_MAX_EDGE,
     IMAGE_MAX_RATIO,
@@ -1201,7 +1202,7 @@ DRAFT_TASK_VALID_SECONDS = 7 * 24 * 3600
 
 def video_model_key_for_id(model_id):
     """VIDEO_MODEL_MAP key for a (dated) model ID from a task, or None."""
-    text = str(model_id or "").strip()
+    text = canonical_model_id(str(model_id or "").strip())
     for key, value in VIDEO_MODEL_MAP.items():
         if text in (key, value):
             return key
@@ -1260,6 +1261,9 @@ async def describe_drafts(client, draft_ids):
         model_keys.append(model_key)
     if len(set(model_keys)) > 1:
         raise BytePlusException(get_text("err_draft_mixed_models", models=", ".join(sorted(set(model_keys)))))
+    task_models = {str(getattr(task, "model", "") or "") for task in tasks}
+    if len(task_models) > 1 and any(model.startswith("ep-") for model in task_models):
+        raise BytePlusException(get_text("err_draft_mixed_models", models=", ".join(sorted(task_models))))
     first = tasks[0]
     model_key = model_keys[0]
     # The final uses the draft's own dated model ID (the UI name maps to the current one).

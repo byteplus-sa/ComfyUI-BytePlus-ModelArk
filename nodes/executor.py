@@ -41,6 +41,7 @@ from .nodes_shared import (
 from .ark_tasks import FAILED_TASK_STATUSES, poll_failure_is_final
 from .constants import SEEDANCE_REQUEST_MAX_BYTES, VIDEO_MAX_SEED
 from .models_config import VIDEO_MODEL_MAP, VIDEO_2_UI_OPTIONS
+from .model_endpoints import canonical_model_id, request_model_id
 from .utils_download import b64_image_to_tensor_async
 
 # Seedance task polling: interval, and how many failed polls in a row are
@@ -531,6 +532,7 @@ class BytePlusGenerationExecutor:
         extra_api_params=None,
         return_last_frame=True,
         on_tasks_created=None,
+        use_default_endpoint=True,
     ):
         """
         Run a batch of video tasks: create, poll with progress estimates, handle errors.
@@ -542,9 +544,12 @@ class BytePlusGenerationExecutor:
         ps_instance = self.ps_instance
         node_id = self.node_id
 
+        request_model = request_model_id(model_name) if use_default_endpoint else model_name
+        model_name = canonical_model_id(model_name)
         request_kwargs = self._build_task_request(
             model_name, content, service_tier, execution_expires_after, extra_api_params, return_last_frame
         )
+        request_kwargs["model"] = request_model
 
         # A pending non_blocking task is collected only by the same request from the
         # same key and region; a blocking run forgets it.

@@ -16,6 +16,7 @@ import aiohttp.abc
 from comfy_api.latest import io as comfy_io
 
 from .constants import ASSET_URI_PREFIX, MAX_GENERATION_COUNT
+from .model_endpoints import EndpointDefaultsRerun
 from .models_config import MODEL_REGION_EXCLUSIONS
 from .nodes_shared import BytePlusException, gather_cancelling, get_text, wait_interruptible
 
@@ -149,7 +150,7 @@ def core_search_aliases(node_id, *extra):
     return [*([core_name] if core_name else []), *extra]
 
 
-class NonBlockingRerun:
+class NonBlockingRerun(EndpointDefaultsRerun):
     """
     Mixin for nodes with the non_blocking extra. A non_blocking run returns
     the pending task IDs; the next run collects the video. ComfyUI only
@@ -160,7 +161,7 @@ class NonBlockingRerun:
 
     @classmethod
     def fingerprint_inputs(cls, non_blocking=False, **kwargs):
-        return float("nan") if non_blocking else 0
+        return float("nan") if non_blocking else super().fingerprint_inputs(**kwargs)
 
 
 def video_list_output():

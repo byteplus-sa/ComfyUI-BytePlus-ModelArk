@@ -72,6 +72,8 @@ async def handle_save(request):
            "value": "<key>", "access_key": "...", "secret_key": "...",
            "region": "ap-southeast-1", "clear": true}
     ("iam" is the AK/SK pair for the asset library; "region" belongs to modelark.)
+    Endpoint: {"credential": "endpoint", "endpoint": <ENDPOINT_VARS key>,
+               "value": "ep-..."}; empty value or clear restores the built-in model.
     """
     if not _same_origin(request):
         return _error("cred_forbidden_origin", 403)
@@ -91,7 +93,30 @@ async def handle_save(request):
     updates = {}
     message_key = "cred_cleared" if clear else "cred_saved"
 
-    if credential in ("modelark", "speech", "mediakit"):
+    if credential == "endpoint":
+        endpoint = body.get("endpoint")
+        if not isinstance(endpoint, str) or endpoint not in credentials.ENDPOINT_VARS:
+            return _error("cred_bad_request")
+        variable = credentials.ENDPOINT_VARS[endpoint]
+        value = body.get("value", "")
+        if not isinstance(value, str):
+            return _error("cred_bad_request")
+        value = "" if clear else value.strip()
+        if value and not credentials.valid_endpoint_id(value):
+            return _error("cred_endpoint_invalid")
+        if (
+            value
+            and credentials.setting_source(variable) == "environment"
+            and value != credentials.get_setting(variable)
+        ):
+            return _error("cred_endpoint_env_conflict", 409, variable=variable)
+        if value and any(
+            credentials.get_setting(other) == value for other in credentials.ENDPOINT_VARS.values() if other != variable
+        ):
+            return _error("cred_endpoint_duplicate")
+        updates[variable] = value
+        message_key = "cred_endpoint_saved" if value else "cred_endpoint_cleared"
+    elif credential in ("modelark", "speech", "mediakit"):
         variable = credentials.CREDENTIAL_VARS[credential]
         if clear:
             updates[variable] = ""
