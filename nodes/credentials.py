@@ -12,6 +12,7 @@ tests can import it on its own.
 """
 
 import os
+import re
 import tempfile
 import threading
 
@@ -30,6 +31,18 @@ ACCESS_KEY_ENVS = ("BYTEPLUS_ACCESS_KEY", "BYTEPLUS_ACCESSKEY")
 SECRET_KEY_ENVS = ("BYTEPLUS_SECRET_KEY", "BYTEPLUS_SECRETKEY")
 SESSION_TOKEN_ENV = "BYTEPLUS_SESSION_TOKEN"
 
+ENDPOINT_VARS = {
+    "seedance_2_0": "BYTEPLUS_SEEDANCE_2_0_ENDPOINT",
+    "seedance_2_5": "BYTEPLUS_SEEDANCE_2_5_ENDPOINT",
+    "seedream_5_0_pro": "BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT",
+}
+
+
+def valid_endpoint_id(value):
+    """Only ModelArk endpoint IDs, never URLs or arbitrary request parameters."""
+    return isinstance(value, str) and re.fullmatch(r"ep-[A-Za-z0-9][A-Za-z0-9-]{0,124}", value) is not None
+
+
 # Credential id (as used by the Settings dialog and the routes) -> variable.
 CREDENTIAL_VARS = {
     "modelark": MODELARK_KEY_ENV,
@@ -42,7 +55,7 @@ CREDENTIAL_VARS = {
 # removes them, or a stale alias would keep the old value active.
 ALIASES = {ACCESS_KEY_ENVS[0]: ACCESS_KEY_ENVS[1:], SECRET_KEY_ENVS[0]: SECRET_KEY_ENVS[1:]}
 # Variables a request may write; everything else in the file is left alone.
-WRITABLE_VARS = set(CREDENTIAL_VARS.values()) | {REGION_ENV, SESSION_TOKEN_ENV}
+WRITABLE_VARS = set(CREDENTIAL_VARS.values()) | set(ENDPOINT_VARS.values()) | {REGION_ENV, SESSION_TOKEN_ENV}
 
 _write_lock = threading.Lock()
 _read_cache = {"stamp": None, "values": {}}
@@ -299,4 +312,17 @@ def credential_status():
     # An environment variable fixes the region: the one picked in Settings would be ignored.
     status["region_source"] = setting_source(REGION_ENV)
     status["regions"] = list(REGION_BASE_URLS)
+    status["endpoints"] = {}
+    for name, variable in ENDPOINT_VARS.items():
+        value, source = _find_setting((variable,))
+        file_value = read_env_file().get(variable, "").strip()
+        status["endpoints"][name] = {
+            "configured": bool(value),
+            # Do not echo arbitrary text accidentally pasted into an endpoint variable.
+            "value": value if valid_endpoint_id(value) else "",
+            "valid": not value or valid_endpoint_id(value),
+            "source": source,
+            "in_file": bool(file_value),
+            "shadowed": source == "environment" and bool(file_value) and file_value != value,
+        }
     return status

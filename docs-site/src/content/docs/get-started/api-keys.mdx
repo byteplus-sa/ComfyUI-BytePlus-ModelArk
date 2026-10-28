@@ -32,15 +32,25 @@ You only need the keys for the nodes you use. Each node page lists them in its *
 
 </Steps>
 
-<Shot src="guides/settings-byteplus-not-set.jpg" alt="Settings, BytePlus page, Default credentials section: four empty key rows (ModelArk with a region drop-down, Seed Speech, AI MediaKit and Asset library IAM AK/SK), each with a status line saying not set" caption="Before saving: every row says the key is not set." />
+<Shot src="guides/settings-byteplus-not-set.jpg" alt="Settings, BytePlus page: three default endpoint rows using built-in models and four empty credential rows, including ModelArk with a region drop-down" caption="Before saving: keys are not set and optional endpoints use the built-in models." />
 
 ModelArk API keys are checked with BytePlus before they are saved. A wrong key is refused and nothing is written. If BytePlus cannot be reached, the key is saved and Settings says it could not be checked. The key takes effect at once, with no restart. Seed Speech and AI MediaKit API keys are saved without a check.
 
-<Shot src="guides/settings-byteplus-key-set.jpg" alt="Settings, BytePlus page after saving: the ModelArk API key status line says the key is set, ends in abcd and comes from user/.env; the other three rows still say not set" caption="After saving: the row shows only the last four characters (here the sample value abcd) and where the key is stored." />
+<Shot src="guides/settings-byteplus-key-set.jpg" alt="Settings, BytePlus page: ModelArk key set with the sample suffix abcd; other credentials are not set and three default endpoint rows use built-in models" caption="After saving: the row shows only the last four characters (here the sample value abcd) and where the key is stored." />
 
 Keys are never shown again. Settings only says whether a key is set, where it comes from and its last four characters. The key is written to `user/.env` in your ComfyUI folder and never into a workflow file.
 
 The IAM access key and secret key go together: fill in both. Settings has no field for an STS session token. To use one, add `BYTEPLUS_SESSION_TOKEN` to `user/.env` after you save the pair, because saving or removing the pair in Settings also removes that line.
+
+## Default model endpoints
+
+In **Settings → Other → BytePlus → Default credentials**, you can also set **Seedance 2.0 default endpoint**, **Seedance 2.5 default endpoint** and **Seedream 5.0 Pro default endpoint**. Enter a ModelArk endpoint ID (`ep-...`), not a URL. You still select the model on the node; the endpoint uses your saved ModelArk API key and region.
+
+Each endpoint must serve exactly the named model in your key's region. Saving checks the ID format only, without generating media or checking model access. Leave the field blank and press **Save**, or press **Remove**, to return to the built-in model. Environment variables still take precedence.
+
+The Seedance 2.5 endpoint also applies to **Seedance 2.5 Draft**. The Seedream Pro endpoint also applies to **Layer Separation** with Pro selected. Fast, Mini, Premium, Flash and other model variants keep their own built-in IDs.
+
+Changes take effect without restarting and invalidate cached outputs for the selected model on the next run. A pending non-blocking task keeps running when you change endpoints; find it with **Video Query Tasks** and `model` set to `all`. **Draft to Final** keeps the model or endpoint recorded on its draft. If the draft reports an endpoint ID, keep it configured until you render the final.
 
 ## Or edit `user/.env` by hand
 
@@ -55,7 +65,9 @@ BYTEPLUS_ACCESS_KEY=your-iam-access-key
 BYTEPLUS_SECRET_KEY=your-iam-secret-key
 ```
 
-The file is read again whenever it changes, so no restart is needed. The pack never touches other lines in it. **Settings → BytePlus** shows its path under the ModelArk row ("Saved in …"). The file does not exist until you save a key.
+For optional endpoints, set `BYTEPLUS_SEEDANCE_2_0_ENDPOINT`, `BYTEPLUS_SEEDANCE_2_5_ENDPOINT` or `BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT` to the matching `ep-...` ID. Leave unused variables unset.
+
+The file is read again whenever it changes, so no restart is needed. The pack never touches other lines in it. **Settings → BytePlus** shows its path under the ModelArk row ("Saved in …"). The file does not exist until you save a key or endpoint.
 
 ## Region
 

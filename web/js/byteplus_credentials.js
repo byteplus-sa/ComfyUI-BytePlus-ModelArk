@@ -33,7 +33,7 @@ async function request(method, body) {
     return data;
 }
 
-// The four rows render together and the status covers all of them, so they
+// The rows render together and the status covers all of them, so they
 // share one request (also when the dialog re-renders them).
 let statusRequest = null;
 function loadStatus() {
@@ -77,7 +77,7 @@ const BUTTON_STYLE = {
  * {name, placeholder, type?} (password inputs by default); `select` an optional
  * {name, options} dropdown. `payload(values)` builds the POST body.
  */
-function credentialEditor({ credential, fields, select, label, showFile = false }) {
+function credentialEditor({ credential, endpoint, fields, select, label, showFile = false }) {
     const root = element("div", {}, {
         display: "flex",
         flexDirection: "column",
@@ -89,14 +89,15 @@ function credentialEditor({ credential, fields, select, label, showFile = false 
     const inputs = {};
     for (const field of fields) {
         const input = element("input", {
-            type: "password",
+            type: field.type || "password",
             placeholder: field.placeholder,
             // "new-password" (not "off", which browsers ignore for passwords) and the
             // password managers' own opt-outs: an API key is not a login to remember.
             autocomplete: "new-password",
             spellcheck: false,
-            name: `byteplus-${credential}-${field.name}`,
+            name: `byteplus-${endpoint || credential}-${field.name}`,
         }, INPUT_STYLE);
+        input.setAttribute("aria-label", field.placeholder);
         for (const attribute of ["data-1p-ignore", "data-lpignore", "data-bwignore", "data-form-type"]) {
             input.setAttribute(attribute, attribute === "data-form-type" ? "other" : "true");
         }
@@ -136,7 +137,7 @@ function credentialEditor({ credential, fields, select, label, showFile = false 
             fileLine.textContent = `Saved in ${data.env_file_display || data.env_file}`;
             fileLine.title = data.env_file;
         }
-        const info = data.credentials?.[credential];
+        const info = endpoint ? data.endpoints?.[endpoint] : data.credentials?.[credential];
         if (regionSelect && data.regions && !regionSelect.options.length) {
             for (const region of data.regions) regionSelect.add(new Option(region, region));
         }
@@ -150,9 +151,11 @@ function credentialEditor({ credential, fields, select, label, showFile = false 
             if (data.region && (locked || !regionTouched)) regionSelect.value = data.region;
         }
         if (!info?.configured) {
-            show(`${label}: not set.`);
+            show(endpoint ? "Using the built-in model. Optional: enter an ep- endpoint ID." : `${label}: not set.`);
+        } else if (endpoint && !info.valid) {
+            show(`Invalid endpoint ${SOURCE_TEXT[info.source] || ""}. Set an ep- ID or remove it.`, true);
         } else {
-            const parts = [`${label}: set (${info.hint})`, SOURCE_TEXT[info.source] ?? ""];
+            const parts = [`${label}: set (${endpoint ? info.value : info.hint})`, SOURCE_TEXT[info.source] ?? ""];
             let text = parts.filter(Boolean).join(", ");
             if (info.shadowed) text += ". An environment variable overrides the value in user/.env";
             show(text + ".");
@@ -180,7 +183,8 @@ function credentialEditor({ credential, fields, select, label, showFile = false 
     const send = async (body) => {
         save.disabled = remove.disabled = true;
         try {
-            const data = await request("POST", { credential, ...body });
+            const data = await request("POST", { credential, ...(endpoint ? { endpoint } : {}), ...body });
+            statusRequest = null;
             for (const input of Object.values(inputs)) input.value = "";
             regionTouched = false;
             // The answer is the full status: update every row, not only this one.
@@ -195,7 +199,7 @@ function credentialEditor({ credential, fields, select, label, showFile = false 
     save.addEventListener("click", () => {
         const values = Object.fromEntries(Object.entries(inputs).map(([name, input]) => [name, input.value.trim()]));
         const missing = fields.find((field) => !values[field.name]);
-        if (missing) {
+        if (missing && !endpoint) {
             show(`Fill in ${missing.placeholder.toLowerCase()} first.`, true);
             return;
         }
@@ -286,5 +290,20 @@ app.registerExtension({
                 ],
             },
         ),
+        ...[
+            ["Seedance20Endpoint", "seedance_2_0", "Seedance 2.0"],
+            ["Seedance25Endpoint", "seedance_2_5", "Seedance 2.5"],
+            ["Seedream50ProEndpoint", "seedream_5_0_pro", "Seedream 5.0 Pro"],
+        ].map(([id, endpoint, model]) => setting(
+            id,
+            `${model} default endpoint`,
+            `Optional ModelArk ep- ID for ${model}, not a URL. Must match this model and your ModelArk key's region. Uses the existing ModelArk API key. Blank or Remove restores the built-in model. Saving does not check model or access and does not generate media.`,
+            {
+                credential: "endpoint",
+                endpoint,
+                label: `${model} endpoint`,
+                fields: [{ name: "value", placeholder: `${model} endpoint ID (ep-...)`, type: "text" }],
+            },
+        )),
     ],
 });

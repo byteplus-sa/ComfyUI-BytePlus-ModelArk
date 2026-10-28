@@ -168,7 +168,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedream",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.6.1"
+        "ver": "0.7.0"
       },
       "widgets_values": [
         "A single orange and black armored quadrupedal mech robot with a rounded head and glowing blue sensors, full body, three-quarter front view, centered on a plain light grey background, soft even studio lighting, nothing cropped",
@@ -380,7 +380,7 @@
       "properties": {
         "Node name for S&R": "BytePlusHyper3D",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.6.1"
+        "ver": "0.7.0"
       },
       "widgets_values": [
         "Quad",
@@ -505,7 +505,7 @@
       "properties": {
         "Node name for S&R": "BytePlusHitem3D",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.6.1"
+        "ver": "0.7.0"
       },
       "widgets_values": [
         "1536",

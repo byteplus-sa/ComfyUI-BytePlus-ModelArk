@@ -618,6 +618,8 @@ class BytePlusVideoBase:
             execution_expires_after=execution_expires_after,
             extra_api_params=extra_api_params,
             return_last_frame=True,
+            # A final must keep the model/endpoint recorded on its draft.
+            use_default_endpoint=False,
         )
 
         if isinstance(successful_tasks, dict) and successful_tasks.get("non_blocking"):

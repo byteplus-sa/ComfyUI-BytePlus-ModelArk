@@ -42,6 +42,7 @@ if COMFY_ROOT:
     credentials = importlib.import_module(f"{PACKAGE_NAME}.nodes.credentials")
     credentials_routes = importlib.import_module(f"{PACKAGE_NAME}.nodes.credentials_routes")
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
+    model_endpoints = importlib.import_module(f"{PACKAGE_NAME}.nodes.model_endpoints")
     core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
@@ -77,6 +78,9 @@ CREDENTIAL_ENV_VARS = (
     "BYTEPLUS_SECRET_KEY",
     "BYTEPLUS_SECRETKEY",
     "BYTEPLUS_SESSION_TOKEN",
+    "BYTEPLUS_SEEDANCE_2_0_ENDPOINT",
+    "BYTEPLUS_SEEDANCE_2_5_ENDPOINT",
+    "BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT",
 )
 
 
@@ -343,6 +347,75 @@ class EnvFileTests(IsolatedCredentials):
 
 
 @requires_comfyui
+class EndpointTests(IsolatedCredentials):
+    def test_default_override_remove_and_environment_precedence(self):
+        for name, model_id in model_endpoints.ENDPOINT_MODELS.items():
+            variable = credentials.ENDPOINT_VARS[name]
+            with self.subTest(model=name):
+                self.assertEqual(model_endpoints.request_model_id(model_id), model_id)
+                credentials.update_env_file({variable: "ep-file"})
+                self.assertEqual(model_endpoints.request_model_id(model_id), "ep-file")
+                self.assertEqual(model_endpoints.canonical_model_id("ep-file"), model_id)
+                with mock.patch.dict(os.environ, {variable: "ep-environment"}):
+                    self.assertEqual(model_endpoints.request_model_id(model_id), "ep-environment")
+                    info = credentials.credential_status()["endpoints"][name]
+                    self.assertEqual(info["value"], "ep-environment")
+                    self.assertTrue(info["shadowed"])
+                    self.assertTrue(info["in_file"])
+                credentials.update_env_file({variable: ""})
+                self.assertEqual(model_endpoints.request_model_id(model_id), model_id)
+
+    def test_invalid_environment_value_is_not_sent_or_echoed(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDANCE_2_0_ENDPOINT": "secret-accidentally-pasted"}):
+            with self.assertRaisesRegex(BytePlusException, "Invalid default endpoint"):
+                model_endpoints.request_model_id(model_endpoints.ENDPOINT_MODELS["seedance_2_0"])
+            status = credentials.credential_status()
+            self.assertNotIn("secret-accidentally-pasted", json.dumps(status))
+            self.assertFalse(status["endpoints"]["seedance_2_0"]["valid"])
+
+    def test_duplicate_endpoints_in_environment_are_rejected(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "BYTEPLUS_SEEDANCE_2_0_ENDPOINT": "ep-same",
+                "BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-same",
+            },
+        ):
+            with self.assertRaisesRegex(BytePlusException, "more than one model"):
+                model_endpoints.canonical_model_id("ep-same")
+
+    def test_comfy_cache_tracks_only_the_selected_models_endpoint(self):
+        node = nodes_seedance2.BytePlusSeedance2TextToVideo
+        before = node.fingerprint_inputs(model={"model": "Seedance 2.5"})
+        unrelated = node.fingerprint_inputs(model={"model": "Seedance 2.5 Premium"})
+        credentials.update_env_file({"BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-video"})
+        after = node.fingerprint_inputs(model={"model": "Seedance 2.5"})
+        self.assertNotEqual(before, after)
+        self.assertEqual(after, node.fingerprint_inputs(model={"model": "Seedance 2.5 Draft"}))
+        self.assertEqual(unrelated, node.fingerprint_inputs(model={"model": "Seedance 2.5 Premium"}))
+        self.assertEqual(node.fingerprint_inputs(non_blocking=False), 0)
+        self.assertNotEqual(node.fingerprint_inputs(non_blocking=True), node.fingerprint_inputs(non_blocking=True))
+        for node in nodes_seedream.NODES:
+            before = node.fingerprint_inputs(model={"model": nodes_seedream.SEEDREAM_PRO})
+            credentials.update_env_file({"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-image"})
+            self.assertNotEqual(before, node.fingerprint_inputs(model={"model": nodes_seedream.SEEDREAM_PRO}))
+            credentials.update_env_file({"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": ""})
+
+    def test_fingerprint_runs_on_comfyuis_locked_class(self):
+        from comfy_api.internal import make_locked_method_func
+
+        for node, model in (
+            (nodes_seedance2.BytePlusSeedance2TextToVideo, "Seedance 2.5"),
+            (nodes_seedream.BytePlusSeedream, nodes_seedream.SEEDREAM_PRO),
+            (nodes_seedream.BytePlusSeedreamLayerSeparation, nodes_seedream.SEEDREAM_PRO),
+        ):
+            with self.subTest(node=node.__name__):
+                node.VALIDATE_CLASS()
+                locked = make_locked_method_func(node, "fingerprint_inputs", node.PREPARE_CLASS_CLONE(None))
+                self.assertEqual(locked(model={"model": model}), node.fingerprint_inputs(model={"model": model}))
+
+
+@requires_comfyui
 class ClientTests(IsolatedCredentials):
     def setUp(self):
         super().setUp()
@@ -604,6 +677,47 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         status, body = await self.save({"credential": "speech", "clear": True})
         self.assertEqual(status, 200)
         self.assertFalse(body["credentials"]["speech"]["configured"])
+
+    async def test_save_and_clear_endpoints_without_api_calls(self):
+        with mock.patch.object(credentials_routes, "check_api_key", side_effect=AssertionError("No API calls")):
+            for endpoint, variable in credentials.ENDPOINT_VARS.items():
+                with self.subTest(endpoint=endpoint):
+                    status, body = await self.save(
+                        {"credential": "endpoint", "endpoint": endpoint, "value": " ep-test "}
+                    )
+                    self.assertEqual(status, 200)
+                    self.assertEqual(credentials.get_setting(variable), "ep-test")
+                    self.assertEqual(body["endpoints"][endpoint]["value"], "ep-test")
+                    self.assertIn("not checked", body["message"])
+                    status, body = await self.save({"credential": "endpoint", "endpoint": endpoint, "value": ""})
+                    self.assertEqual(status, 200)
+                    self.assertFalse(body["endpoints"][endpoint]["configured"])
+                    await self.save({"credential": "endpoint", "endpoint": endpoint, "value": "ep-test"})
+                    status, body = await self.save({"credential": "endpoint", "endpoint": endpoint, "clear": True})
+                    self.assertEqual(status, 200)
+                    self.assertFalse(body["endpoints"][endpoint]["configured"])
+
+    async def test_invalid_endpoints_are_not_saved(self):
+        for value in ("https://example.com", "ep-", "ep-a/b", "ep-a\nOTHER=x", "ep-" + "a" * 130, {}, 123):
+            status, _ = await self.save({"credential": "endpoint", "endpoint": "seedance_2_0", "value": value})
+            self.assertEqual(status, 400)
+        for endpoint in ("unknown", [], None):
+            status, _ = await self.save({"credential": "endpoint", "endpoint": endpoint, "value": "ep-test"})
+            self.assertEqual(status, 400)
+        self.assertFalse(os.path.exists(self.env_path))
+
+    async def test_endpoint_environment_conflict_and_duplicate(self):
+        os.environ["BYTEPLUS_SEEDANCE_2_0_ENDPOINT"] = "ep-env"
+        status, _ = await self.save({"credential": "endpoint", "endpoint": "seedance_2_0", "value": "ep-other"})
+        self.assertEqual(status, 409)
+        status, _ = await self.save({"credential": "endpoint", "endpoint": "seedance_2_5", "value": "ep-env"})
+        self.assertEqual(status, 400)
+        status, _ = await self.save({"credential": "endpoint", "endpoint": "seedance_2_0", "value": "ep-env"})
+        self.assertEqual(status, 200)
+        status, body = await self.save({"credential": "endpoint", "endpoint": "seedance_2_0", "clear": True})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["endpoints"]["seedance_2_0"]["value"], "ep-env")
+        self.assertFalse(body["endpoints"]["seedance_2_0"]["in_file"])
 
     async def test_modelark_key_is_checked_with_the_region_before_it_is_saved(self):
         seen = []

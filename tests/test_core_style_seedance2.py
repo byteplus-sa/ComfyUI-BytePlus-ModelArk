@@ -669,6 +669,46 @@ class TextToVideoTests(_ExecutorHarness):
         await self.run_node(self.T2V, model=self.model(), seed=0, watermark=True)
         self.assertEqual((self.submitted[0]["seed"], self.submitted[0]["watermark"]), (0, True))
 
+    async def test_default_endpoints_keep_video_policy_and_change_cache_identity(self):
+        for label, variable in (
+            ("Seedance 2.0", "BYTEPLUS_SEEDANCE_2_0_ENDPOINT"),
+            ("Seedance 2.5", "BYTEPLUS_SEEDANCE_2_5_ENDPOINT"),
+        ):
+            with self.subTest(model=label), mock.patch.dict(os.environ, {variable: "ep-first"}):
+                nodes_video.NON_BLOCKING_TASK_CACHE.clear()
+                with mock.patch.object(
+                    executor, "validate_seedance_request_size", wraps=executor.validate_seedance_request_size
+                ) as validate:
+                    await self.run_node(self.T2V, model=self.model(label), seed=42)
+                self.assertEqual(self.submitted[-1]["model"], "ep-first")
+                self.assertNotIn("service_tier", self.submitted[-1])
+                self.assertNotIn("execution_expires_after", self.submitted[-1])
+                validate.assert_called_once()
+                count = len(self.submitted)
+                os.environ[variable] = "ep-second"
+                await self.run_node(self.T2V, model=self.model(label), seed=42)
+                self.assertEqual(len(self.submitted), count + 1)
+                self.assertEqual(self.submitted[-1]["model"], "ep-second")
+
+    async def test_endpoints_do_not_override_variants(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "BYTEPLUS_SEEDANCE_2_0_ENDPOINT": "ep-20",
+                "BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-25",
+            },
+        ):
+            for label, resolution in (
+                ("Seedance 2.0 Fast", "720p"),
+                ("Seedance 2.0 Mini", "720p"),
+                ("Seedance 2.5 Premium", "4k"),
+            ):
+                await self.run_node(self.T2V, model=self.model(label, resolution=resolution), seed=42)
+                self.assertFalse(self.submitted[-1]["model"].startswith("ep-"))
+            await self.run_node(self.T2V, model=self.model("Seedance 2.5 Draft", resolution="480p"), seed=42)
+            self.assertEqual(self.submitted[-1]["model"], "ep-25")
+            self.assertTrue(self.submitted[-1]["draft"])
+
     async def test_draft_options(self):
         result = await self.run_node(
             self.T2V, model=self.model("Seedance 2.5 Draft", resolution="480p"), seed=1, generation_count=2
@@ -1492,6 +1532,18 @@ class DraftToFinalTests(_ExecutorHarness):
         self.assertEqual(request["model"], "dreamina-seedance-2-5-premium-260915")
         self.assertEqual((request["resolution"], request["output_format"]), ("4k", "mov"))
 
+    async def test_draft_endpoint_is_recognized_and_preserved(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-draft"}):
+            self.draft("ep-draft")
+            await self.run_node(self.D2F, draft_task_id="cgt-draft-1")
+            self.assertEqual(self.submitted[-1]["model"], "ep-draft")
+            self.assertEqual(self.submitted[-1]["resolution"], "1080p")
+            self.assertNotIn("service_tier", self.submitted[-1])
+            nodes_video.NON_BLOCKING_TASK_CACHE.clear()
+            self.draft("dreamina-seedance-2-5-260628")
+            await self.run_node(self.D2F, draft_task_id="cgt-draft-1")
+            self.assertEqual(self.submitted[-1]["model"], "dreamina-seedance-2-5-260628")
+
     async def test_several_drafts_render_one_final_each(self):
         self.draft("dreamina-seedance-2-5-260628", "cgt-a")
         self.draft("dreamina-seedance-2-5-260628", "cgt-b")
@@ -1504,6 +1556,14 @@ class DraftToFinalTests(_ExecutorHarness):
                 [{"type": "draft_task", "draft_task": {"id": "cgt-b"}}],
             ],
         )
+
+    async def test_mixed_endpoint_and_catalog_drafts_are_rejected_before_submission(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-draft"}):
+            self.draft("ep-draft", "cgt-a")
+            self.draft("dreamina-seedance-2-5-260628", "cgt-b")
+            with self.assertRaises(nodes_shared.BytePlusException):
+                await self.run_node(self.D2F, draft_task_id="cgt-a\ncgt-b")
+        self.assertEqual(self.submitted, [])
 
     async def test_errors(self):
         self.draft("dreamina-seedance-2-5-260628", "cgt-ok")
