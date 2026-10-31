@@ -16,6 +16,7 @@ import torch
 import comfy.model_management
 import comfy.utils
 from comfy_api.latest import io as comfy_io
+from comfy_api.latest import ui as comfy_ui
 from comfy_execution.graph_utils import ExecutionBlocker
 from byteplussdkarkruntime.types.images.images import (
     OptimizePromptOptions,
@@ -489,8 +490,14 @@ class BytePlusSeedream(EndpointDefaultsRerun, comfy_io.ComfyNode):
         if not tensors:
             # Every request failed in a workflow with several Seedream nodes: block the
             # outputs with the failure instead of returning a placeholder image.
-            blocked = ExecutionBlocker(executor.ignored_failure or get_text("err_batch_fail_all"))
-            return comfy_io.NodeOutput(blocked, "[]", blocked)
+            failure = executor.ignored_failure or get_text("err_batch_fail_all")
+            blocked = ExecutionBlocker(failure)
+            return comfy_io.NodeOutput(
+                blocked,
+                json.dumps([{"error": failure}], indent=2),
+                blocked,
+                ui=comfy_ui.PreviewText(failure),
+            )
 
         received = sum(int(t.shape[0]) for t in tensors)
         if plan["fail_on_partial"]:
