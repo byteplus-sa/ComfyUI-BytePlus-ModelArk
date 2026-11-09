@@ -2,6 +2,14 @@
 
 Core ComfyUI ships its own ByteDance nodes in `comfy_api_nodes/nodes_bytedance.py` (+ `apis/bytedance.py` pydantic models). They call BytePlus **through the Comfy.org proxy** and bill Comfy credits; this pack calls ModelArk **directly** with the user's key. Core usually adds new Seedream/Seedance models quickly, so its code is a useful early signal for payload fields, limits and error codes. Read on 2026-10-18 from ComfyUI v0.41.0 (98cc0bf; last ByteDance change still 9f932548f, 2026-09-25; all parity tests pass). Deliberate gap: core's `seed-audio-1.0-multilingual` model option is not offered (the API ignores the model name, checked live 2026-10-18). Core has no BytePlus 3D nodes; the closest are its Rodin nodes (`nodes_rodin.py`, Deemos API via the Comfy.org proxy), whose File3D output convention the 3D nodes follow. Core's retired models are deleted outright; core's partner-proxy Idempotency-Key (a8686f2b3) has no ModelArk equivalent, which is why paid calls here never auto-retry (`nodes_shared.call_billed`).
 
+## Targeted Seedance parity check
+
+Read on 2026-11-09 against ComfyUI `master` at `fca60fe70e5b84c5c6b058263653d15cb3401e44` and release `v0.44.0`. Upstream [fd7105477](https://github.com/Comfy-Org/ComfyUI/commit/fd7105477a348a5357f98d3a6b783027fa1ba3fe) adds enterprise-only 4k to base Seedance 2.5, an optional 1080p/4k Draft to Final resolution selector, a Comfy.org access error, and proxy pricing.
+
+The direct-API pack retains its existing model split: base 2.5 offers 480p/720p/1080p and produces 1080p finals; the separate Premium model offers 4k and produces 4k finals. Base-model enterprise 4k has not been verified against the direct BytePlus contract. Do not enable it just to make CI pass. The parity comparison accepts only the known base-model resolution list/tooltip additions and the exact optional final-resolution schema. Other resolution defaults, tooltips, options, model inputs and new optional inputs remain checked; regression tests cover these boundaries.
+
+Comfy.org pricing and `PARTNER_MODEL_UNAVAILABLE` access handling are proxy-only and are not copied. Revisit the resolution deviations when direct BytePlus support and entitlement rules are verified; then update capability tables, draft-final behavior and workflows together.
+
 Read it with:
 
 ```bash
