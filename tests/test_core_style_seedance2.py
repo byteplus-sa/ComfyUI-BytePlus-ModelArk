@@ -395,8 +395,7 @@ class SchemaTests(unittest.TestCase):
                 obj = getattr(module, name)
                 if isinstance(obj, type) and name.startswith("ByteDance") and hasattr(obj, "define_schema"):
                     schema = obj.define_schema()
-                    if not schema.is_deprecated:
-                        core_names.add(schema.display_name)
+                    core_names.add(schema.display_name)
         ours = {}
         for module_name in (
             "nodes_seedream",
@@ -417,6 +416,13 @@ class SchemaTests(unittest.TestCase):
             with self.subTest(node=node_id):
                 self.assertIn(core_name, core_names)
                 self.assertIn(core_name, ours[node_id].search_aliases)
+
+    def test_search_aliases_remain_valid_when_core_deprecates_a_node(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        schema = core.ByteDanceTextToVideoNode.define_schema()
+        schema.is_deprecated = True
+        with mock.patch.object(core.ByteDanceTextToVideoNode, "define_schema", return_value=schema):
+            self.test_core_display_names_are_search_aliases()
 
     def test_matches_core_nodes(self):
         try:

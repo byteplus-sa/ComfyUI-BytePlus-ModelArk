@@ -784,9 +784,91 @@
         "type": "choice",
         "required": true,
         "advanced": false,
-        "tooltip": "Early access: 2K text-to-image is currently exposed by this node.",
+        "tooltip": "Pick a recommended size. Select Custom to use the width and height below.",
+        "default": "2K (adaptive)",
         "options": [
-         "2K (adaptive)"
+         "(1K) 1024x1024 (1:1)",
+         "(1K) 864x1152 (3:4)",
+         "(1K) 1152x864 (4:3)",
+         "(1K) 1424x800 (16:9)",
+         "(1K) 800x1424 (9:16)",
+         "(1K) 832x1248 (2:3)",
+         "(1K) 1248x832 (3:2)",
+         "(1K) 1568x672 (21:9)",
+         "(1.5K) 1536x1536 (1:1)",
+         "(1.5K) 1344x1792 (3:4)",
+         "(1.5K) 1792x1344 (4:3)",
+         "(1.5K) 2048x1152 (16:9)",
+         "(1.5K) 1152x2048 (9:16)",
+         "(1.5K) 1248x1872 (2:3)",
+         "(1.5K) 1872x1248 (3:2)",
+         "(1.5K) 2352x1008 (21:9)",
+         "(2K) 2048x2048 (1:1)",
+         "(2K) 1776x2368 (3:4)",
+         "(2K) 2368x1776 (4:3)",
+         "(2K) 2816x1584 (16:9)",
+         "(2K) 1584x2816 (9:16)",
+         "(2K) 1664x2496 (2:3)",
+         "(2K) 2496x1664 (3:2)",
+         "(2K) 3136x1344 (21:9)",
+         "1K (adaptive)",
+         "1.5K (adaptive)",
+         "2K (adaptive)",
+         "Custom"
+        ]
+       },
+       {
+        "name": "width",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Custom width for image. Value is working only if `size_preset` is set to `Custom`",
+        "default": 2048,
+        "min": 240,
+        "max": 8600,
+        "step": 2
+       },
+       {
+        "name": "height",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Custom height for image. Value is working only if `size_preset` is set to `Custom`",
+        "default": 2048,
+        "min": 240,
+        "max": 8600,
+        "step": 2
+       },
+       {
+        "name": "images",
+        "type": "group of inputs",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 10 images.",
+        "item_type": "IMAGE",
+        "slots": [
+         "image_1",
+         "image_2",
+         "image_3",
+         "image_4",
+         "image_5",
+         "image_6",
+         "image_7",
+         "image_8",
+         "image_9",
+         "image_10"
+        ],
+        "min": 0
+       },
+       {
+        "name": "prompt_optimization",
+        "type": "choice",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Seedream 5.5 supports only standard prompt optimization.",
+        "default": "standard",
+        "options": [
+         "standard"
         ]
        },
        {
@@ -826,7 +908,8 @@
         "tooltip": "File format of the generated image. A transparent background needs png.",
         "default": "png",
         "options": [
-         "png"
+         "png",
+         "jpeg"
         ]
        },
        {
@@ -834,12 +917,21 @@
         "type": "choice",
         "required": true,
         "advanced": true,
-        "tooltip": "transparent: generate a PNG with transparency from text-to-image, also returned as the mask output. Needs output_format png.",
-        "default": "opaque",
+        "tooltip": "auto: choose from the prompt (JPEG is always opaque). transparent: generate a PNG with transparency from text-to-image or up to 10 references, also returned as the mask output. opaque: generate without transparency.",
+        "default": "auto",
         "options": [
-         "opaque",
-         "transparent"
+         "auto",
+         "transparent",
+         "opaque"
         ]
+       },
+       {
+        "name": "safety_identifier",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Optional stable end-user identifier, up to 64 ASCII characters. Use a hashed ID, not personal data.",
+        "default": ""
        }
       ]
      }
@@ -863,7 +955,7 @@
     "name": "mask",
     "type": "MASK",
     "is_list": false,
-    "tooltip": "Transparency of the output (1 = transparent, like Load Image). Empty unless background is transparent."
+    "tooltip": "Transparency of the output (1 = transparent, like Load Image). Empty for opaque images, including auto mode when the result is opaque."
    }
   ]
  },
@@ -871,16 +963,17 @@
   "id": "BytePlusSeedreamLayerSeparation",
   "slug": "seedream-layer-separation",
   "group": "Images",
-  "display_name": "BytePlus Seedream 5.0 Layer Separation",
+  "display_name": "BytePlus Seedream Layer Separation",
   "category": "BytePlus ModelArk",
-  "description": "Decompose an image into a background plate plus up to 16 repositionable transparent layers, each with stacking order, bounding box, name and description.",
+  "description": "Decompose an image into a background plate plus repositionable transparent layers (up to 99 on Seedream 5.5, 16 on 5.0), each with stacking order, bounding box, name and description.",
   "search_aliases": [
    "ByteDance Seedream 5.0 Layer Separation",
    "layer separation",
    "split layers",
    "decompose",
    "cutout",
-   "RGBA layers"
+   "RGBA layers",
+   "BytePlus Seedream 5.0 Layer Separation"
   ],
   "keys": [
    "ModelArk API key"
@@ -895,7 +988,8 @@
     "tooltip": "",
     "options": [
      "seedream 5.0 pro",
-     "seedream 5.0 flash"
+     "seedream 5.0 flash",
+     "seedream 5.5"
     ],
     "variants": [
      {
@@ -1089,6 +1183,133 @@
         "default": "BytePlus/Layers/Seedream"
        }
       ]
+     },
+     {
+      "key": "seedream 5.5",
+      "inputs": [
+       {
+        "name": "image",
+        "type": "IMAGE",
+        "required": true,
+        "advanced": false,
+        "tooltip": "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload."
+       },
+       {
+        "name": "prompt",
+        "type": "text",
+        "required": true,
+        "advanced": false,
+        "tooltip": "How to separate the image. Leave empty to auto-detect and separate all major elements. Describe elements in natural language to control the separation, or target exact regions with <bbox>left top right bottom</bbox> tags (coordinates 0-999, relative to the image).",
+        "default": "",
+        "multiline": true
+       },
+       {
+        "name": "size",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Output resolution level. 'auto' follows the input image size (clamped to the 1K-2K range).",
+        "default": "auto",
+        "options": [
+         "auto",
+         "1K",
+         "1.5K",
+         "2K"
+        ]
+       },
+       {
+        "name": "seed",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Change this value to run again. A generation seed is not set for the early-access model.",
+        "default": 42,
+        "min": 0,
+        "max": 2147483647,
+        "step": 1
+       },
+       {
+        "name": "prompt_optimization",
+        "type": "choice",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Seedream 5.5 supports only standard prompt optimization.",
+        "default": "standard",
+        "options": [
+         "standard"
+        ]
+       },
+       {
+        "name": "watermark",
+        "type": "on/off",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Whether to add an \"AI generated\" watermark to the images.",
+        "default": false
+       },
+       {
+        "name": "crop_layers",
+        "type": "on/off",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Geometry of the layers/masks batch outputs (layer_stack is unaffected and always tight). Full canvas: each layer on a base-sized canvas at its bounding-box position - recompose directly with ImageCompositeMasked. Minimal size: each layer cropped to its bounding box (padded to the largest layer for batching) - much smaller tensors; rebuild placement with Layers From Bounding Boxes using the bboxes output.",
+        "default": false
+       },
+       {
+        "name": "output_format",
+        "type": "choice",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Format of the base image. Layers are always PNG.",
+        "default": "png",
+        "options": [
+         "png",
+         "jpeg"
+        ]
+       },
+       {
+        "name": "save_layers",
+        "type": "on/off",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Also save the base image and the original layer PNGs to the output folder.",
+        "default": false
+       },
+       {
+        "name": "filename_prefix",
+        "type": "text",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Output folder prefix for the files written when save_layers is on.",
+        "default": "BytePlus/Layers/Seedream"
+       },
+       {
+        "name": "max_images",
+        "type": "integer",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Maximum total images, including the base image. Larger values allow finer decomposition.",
+        "default": 30,
+        "min": 2,
+        "max": 100
+       },
+       {
+        "name": "text_recognition",
+        "type": "on/off",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Return rich-text OCR for recognized formatted text layers in layers_json.",
+        "default": false
+       },
+       {
+        "name": "safety_identifier",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Optional stable end-user identifier, up to 64 ASCII characters. Use a hashed ID, not personal data.",
+        "default": ""
+       }
+      ]
      }
     ]
    }
@@ -1134,7 +1355,7 @@
     "name": "layers_json",
     "type": "text",
     "is_list": false,
-    "tooltip": "z_index, name, description, bounding box and saved file of the base image and each layer."
+    "tooltip": "Layer metadata and saved files, plus background and rich-text OCR when returned."
    }
   ]
  },

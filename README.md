@@ -54,7 +54,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 
 | Service | Nodes | Key |
 |---|---|---|
-| **ModelArk** – images | Seedream, Seedream 5.0 Layer Separation | ModelArk API key |
+| **ModelArk** – images | Seedream, Seedream Layer Separation | ModelArk API key |
 | **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 (3 nodes), Draft to Final | ModelArk API key |
 | **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
@@ -166,19 +166,19 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 
 | Node | What it does |
 |---|---|
-| **Seedream** | Text-to-image and image editing with Seedream 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0; early-access text-to-image with Seedream 5.5. |
-| **Seedream 5.0 Layer Separation** | Splits one image into a base image and up to 16 transparent layers (5.0 Pro or Flash). |
+| **Seedream** | Text-to-image and image editing with Seedream 5.5 (early access), 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0. |
+| **Seedream Layer Separation** | Splits one image into a base image and up to 99 transparent layers on 5.5, or 16 on 5.0 Pro/Flash. |
 
 **Seedream**
 - Sizes: presets for 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2 and 21:9 at each supported resolution (5.0 Pro and Flash add 1.5K, priced like 1K on Pro); "adaptive" levels where the model picks the ratio; or a custom width × height from 1:16 to 16:1.
 - Up to 10 reference images (14 on 5.0 Lite, 4.5 and 4.0). `max_images` for related image sets (Lite, 4.5, 4.0). Prompt optimization and "thinking" where supported.
 - Advanced: parallel generations, PNG output, transparent background on Pro and Flash (connect Load Image's `MASK` to `reference_mask`; the `mask` output holds the result's transparency).
 
-**Seedream 5.5 (early access):** select `seedream 5.5` to use `dola-seedream-5-5-261028`. This initial integration exposes `2K (adaptive)` text-to-image with PNG output, watermark and parallel generations. Set `background` to `transparent` to generate transparency without a reference image; the alpha channel is returned as the `mask` output. The default background is `opaque`. The `seed` widget is only a local rerun control, not a generation parameter for this model.
+**Seedream 5.5 (early access):** select `seedream 5.5` to use `dola-seedream-5-5-261028`. It supports text-to-image and up to 10 reference images, with `1K`, `1.5K`, `2K` and custom sizes (921,600 to 4,624,220 total pixels, aspect ratio 1:16 to 16:1). Defaults are `2K (adaptive)`, PNG and `background=auto`. Auto mode follows the prompt and preserves the resulting transparency in the `mask` output; JPEG is always opaque. Explicit `transparent` requires PNG but does not require a reference image or input alpha channel.
 
-The 5.5 option follows the supplied early-access API example, not a live-verified capability catalog. Other sizes, reference images, JPEG, prompt optimization and layer separation are deferred until their BytePlus contract is confirmed. Availability depends on your account's early-access entitlement. Existing models and the default selection are unchanged.
+5.5 supports only `standard` prompt optimization, not `fast`, streaming or related-image group generation. `generation_count` runs separate requests in parallel. Its `seed` widget remains a local rerun control, not a generation parameter. The optional `safety_identifier` accepts a stable hashed end-user ID of up to 64 ASCII characters; avoid personal data. Availability depends on your account's early-access entitlement. Existing model defaults are unchanged.
 
-**Seedream 5.0 Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and a JSON list of layer names and descriptions. Its opt-in `save_layers` is the only setting in the pack that writes files itself.
+**Seedream Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and `layers_json`. On 5.5, `max_images` controls the total including the base (2-100, default 30), and `text_recognition` optionally returns rich-text OCR with line coordinates and style runs in `layers_json`. Not every text layer returns OCR. Background mode is not accepted for layer separation; the base is opaque and layers are transparent PNGs. For large layer counts, prefer `crop_layers` to reduce memory use. Its opt-in `save_layers` is the only setting in the pack that writes files itself.
 
 ### Video (ModelArk)
 

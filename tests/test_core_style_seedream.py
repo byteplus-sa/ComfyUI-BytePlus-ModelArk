@@ -76,8 +76,8 @@ EXPECTED_OPTION_INPUTS = {
         "generation_count",
     ],
     V55: [
-        "size_preset", "seed", "watermark",
-        "generation_count", "output_format", "background",
+        "size_preset", "width", "height", "images", "prompt_optimization", "seed", "watermark",
+        "generation_count", "output_format", "background", "safety_identifier",
     ],
 }
 EXPECTED_OPTION_INPUTS[V45] = EXPECTED_OPTION_INPUTS[LITE]
@@ -92,6 +92,11 @@ LAYER_OPTION_INPUTS = {
     FLASH: [
         "image", "prompt", "size", "seed", "watermark", "crop_layers",
         "output_format", "save_layers", "filename_prefix",
+    ],
+    V55: [
+        "image", "prompt", "size", "seed", "prompt_optimization", "watermark", "crop_layers",
+        "output_format", "save_layers", "filename_prefix", "max_images", "text_recognition",
+        "safety_identifier",
     ],
 }
 
@@ -332,27 +337,42 @@ class SeedreamSchemaTests(unittest.TestCase):
         )
         self.assertEqual(
             models_config.SEEDREAM_LAYER_SEPARATION_MODELS,
-            {PRO: "dola-seedream-5-0-pro-260628", FLASH: "dola-seedream-5-0-flash-260915"},
+            {PRO: "dola-seedream-5-0-pro-260628", FLASH: "dola-seedream-5-0-flash-260915",
+             V55: "dola-seedream-5-5-261028"},
         )
 
-    def test_55_early_access_exposes_only_confirmed_options(self):
+    def test_55_schema_matches_documented_capabilities(self):
         schema = nodes_seedream.BytePlusSeedream.define_schema()
         inputs, _ = option_inputs(schema, V55)
-        self.assertEqual(inputs["size_preset"].options, ["2K (adaptive)"])
-        self.assertEqual(inputs["output_format"].options, ["png"])
+        self.assertEqual(inputs["size_preset"].default, "2K (adaptive)")
+        for size in ("1K (adaptive)", "1.5K (adaptive)", "2K (adaptive)", "Custom",
+                     "(1K) 1424x800 (16:9)", "(2K) 2368x1776 (4:3)"):
+            self.assertIn(size, inputs["size_preset"].options)
+        self.assertEqual((inputs["width"].min, inputs["width"].max), (240, 8600))
+        self.assertEqual(len(inputs["images"].template.names), 10)
+        self.assertEqual(inputs["output_format"].options, ["png", "jpeg"])
         self.assertEqual(inputs["output_format"].default, "png")
-        self.assertEqual(inputs["background"].options, ["opaque", "transparent"])
+        self.assertEqual(inputs["background"].options, ["auto", "transparent", "opaque"])
+        self.assertEqual(inputs["background"].default, "auto")
+        self.assertEqual(inputs["prompt_optimization"].options, ["standard"])
         self.assertIn("text-to-image", inputs["background"].tooltip)
         self.assertIn("not set", inputs["seed"].tooltip)
         self.assertNotIn("seed", inputs["generation_count"].tooltip)
-        for name in ("images", "reference_mask", "thinking", "prompt_optimization", "width", "height"):
+        for name in ("reference_mask", "thinking", "max_images"):
             self.assertNotIn(name, inputs)
-        self.assertNotIn(V55, models_config.SEEDREAM_LAYER_SEPARATION_MODELS)
+        self.assertTrue(inputs["safety_identifier"].optional)
+        self.assertTrue(inputs["safety_identifier"].advanced)
+        layers, _ = option_inputs(nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema(), V55)
+        self.assertEqual((layers["max_images"].min, layers["max_images"].max, layers["max_images"].default),
+                         (2, 100, 30))
+        self.assertFalse(layers["text_recognition"].default)
+        self.assertEqual(layers["prompt_optimization"].options, ["standard"])
+        self.assertNotIn("background", layers)
 
     def test_layer_separation_schema(self):
         schema = nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema()
         self.assertEqual(schema.node_id, "BytePlusSeedreamLayerSeparation")
-        self.assertEqual(schema.display_name, "BytePlus Seedream 5.0 Layer Separation")
+        self.assertEqual(schema.display_name, "BytePlus Seedream Layer Separation")
         self.assertEqual([item.id for item in schema.inputs], ["model"])
         for model, expected in LAYER_OPTION_INPUTS.items():
             with self.subTest(model=model):
@@ -419,7 +439,8 @@ class SeedreamSchemaTests(unittest.TestCase):
         for core_node, our_node, extras in pairs:
             core_schema = core_node.define_schema()
             our_schema = our_node.define_schema()
-            self.assertEqual(core_schema.description, our_schema.description)
+            if our_schema.node_id != "BytePlusSeedreamLayerSeparation":
+                self.assertEqual(core_schema.description, our_schema.description)
             our_top = our_schema.inputs
             self.assertEqual([i.id for i in core_schema.inputs], [i.id for i in our_top])
             for core_input, our_input in zip(core_schema.inputs, our_top, strict=True):
@@ -535,37 +556,50 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
             "output_format": "png",
             "extra_body": {"background": "transparent"},
             "watermark": True,
+            "optimize_prompt_options": fake.calls[0]["optimize_prompt_options"],
         }])
+        self.assertEqual(fake.calls[0]["optimize_prompt_options"].mode, "standard")
         image, response, mask = result
         self.assertEqual(tuple(image.shape), (1, 4, 4, 3))
         self.assertEqual(tuple(mask.shape), (1, 4, 4))
         self.assertAlmostEqual(float(mask[0, 0, 0]), 0.75)
         self.assertEqual(json.loads(response)[0]["model"], "dola-seedream-5-5-261028")
 
-    async def test_55_defaults_to_opaque_png_and_ignores_pro_endpoint(self):
+    async def test_55_defaults_to_auto_png_preserves_alpha_and_ignores_pro_endpoint(self):
         with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-image"}):
             fake, _client, result = await self.run_node(V55)
         request = fake.calls[0]
         self.assertEqual(request["model"], "dola-seedream-5-5-261028")
         self.assertEqual(request["size"], "2K")
         self.assertEqual(request["output_format"], "png")
-        self.assertEqual(request["extra_body"], {"background": "opaque"})
-        for key in ("seed", "optimize_prompt_options", "image", "stream", "sequential_image_generation"):
+        self.assertEqual(request["extra_body"], {"background": "auto"})
+        self.assertEqual(request["optimize_prompt_options"].mode, "standard")
+        for key in ("seed", "image", "stream", "sequential_image_generation"):
             self.assertNotIn(key, request)
-        self.assertEqual(float(result[2].sum()), 0.0)
+        self.assertAlmostEqual(float(result[2].mean()), 0.75)
 
-    async def test_55_rejects_unverified_options_before_submission(self):
+    async def test_55_rejects_invalid_options_before_submission(self):
         import torch
 
         cases = [
             ({"prompt": ""}, "Prompt cannot be empty"),
             ({"prompt": None}, "Prompt cannot be empty"),
             ({"size_preset": "4K (adaptive)"}, "size preset"),
-            ({"size_preset": "Custom", "width": 2048, "height": 2048}, "size preset"),
-            ({"output_format": "jpeg"}, "output format"),
+            ({"size_preset": "Custom", "width": 2880, "height": 2880}, "Maximum image resolution"),
+            ({"size_preset": "Custom", "width": 512, "height": 512}, "Minimum image resolution"),
+            ({"size_preset": "Custom", "width": 0, "height": 2048}, "aspect ratio"),
+            ({"size_preset": "Custom", "width": -2048, "height": -2048}, "aspect ratio"),
+            ({"output_format": "jpeg", "background": "transparent"}, "set output_format to png"),
             ({"output_format": "gif"}, "output format"),
-            ({"background": "auto"}, "background"),
-            ({"images": {"image_1": torch.ones((1, 8, 8, 3))}}, "reference images"),
+            ({"background": "invalid"}, "background"),
+            ({"prompt_optimization": "fast"}, "prompt optimization"),
+            ({"images": {"image_1": torch.ones((11, 16, 16, 3))}}, "reference images"),
+            ({"images": {"image_1": torch.ones((1, 14, 16, 3))}}, "reference image"),
+            ({"images": {"image_1": torch.empty((1, 6001, 6000, 3), device="meta")}}, "reference image"),
+            ({"safety_identifier": "a" * 65}, "safety_identifier"),
+            ({"safety_identifier": "\u00e9"}, "safety_identifier"),
+            ({"safety_identifier": "user\nname"}, "safety_identifier"),
+            ({"safety_identifier": False}, "safety_identifier"),
         ]
         for options, message in cases:
             with self.subTest(options=list(options)):
@@ -619,6 +653,7 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
             "output_format": "png",
             "background": "transparent",
             "watermark": True,
+            "optimize_prompt_options": {"mode": "standard", "thinking": None},
         })
 
     async def test_55_api_error_is_reported_without_retrying(self):
@@ -631,6 +666,50 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(Exception, "early-access entitlement required"):
             await self.run_node(V55, fake=fake)
         self.assertEqual(len(fake.calls), 1)
+
+    async def test_55_documented_sizes_and_reference_editing(self):
+        import torch
+
+        for size in ("1K", "1.5K", "2K"):
+            with self.subTest(size=size):
+                fake, _, _ = await self.run_node(V55, size_preset=f"{size} (adaptive)")
+                self.assertEqual(fake.calls[0]["size"], size)
+        for width, height in ((1280, 720), (240, 3840), (2048, 1024), (2150, 2150)):
+            fake, _, _ = await self.run_node(V55, size_preset="Custom", width=width, height=height)
+            self.assertEqual(fake.calls[0]["size"], f"{width}x{height}")
+        for count in (1, 10):
+            fake, _, result = await self.run_node(
+                V55, images={"image_1": torch.ones((count, 16, 16, 3))}, background="transparent",
+            )
+            images = fake.calls[0]["image"]
+            images = [images] if isinstance(images, str) else images
+            self.assertEqual(len(images), count)
+            self.assertTrue(all(decode_data_uri(image)[1].mode == "RGB" for image in images))
+            self.assertAlmostEqual(float(result[2].mean()), 0.75)
+
+    async def test_55_jpeg_auto_and_opaque_png_return_opaque_masks(self):
+        for options in ({"output_format": "jpeg"}, {"background": "opaque"}):
+            with self.subTest(options=options):
+                _, _, result = await self.run_node(V55, **options)
+                self.assertEqual(float(result[2].sum()), 0)
+
+    async def test_55_safety_identifier_is_merged_with_background(self):
+        fake, _, _ = await self.run_node(V55, safety_identifier="a" * 64)
+        self.assertEqual(fake.calls[0]["extra_body"], {"background": "auto", "safety_identifier": "a" * 64})
+        fake, _, _ = await self.run_node(V55, safety_identifier="")
+        self.assertNotIn("safety_identifier", fake.calls[0]["extra_body"])
+
+    async def test_55_response_preserves_actual_background_metadata(self):
+        class BackgroundImages(FakeImages):
+            def generate(self, **kwargs):
+                response = super().generate(**kwargs)
+                response.data[0].background = "transparent"
+                response.data[0].size = "2048x2048"
+                response.data[0].output_format = "png"
+                return response
+
+        _, _, result = await self.run_node(V55, fake=BackgroundImages())
+        self.assertEqual(json.loads(result[1])[0]["images"][0]["background"], "transparent")
 
     async def test_pro_endpoint_keeps_capabilities_and_leaves_flash_unchanged(self):
         with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-image"}):
@@ -948,6 +1027,128 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([item["z_index"] for item in info["layers"]], [0, 1])
         self.assertEqual(info["layers"][1]["bounding_box"]["absolute"], [2, 2, 6, 6])
         self.assertIsNone(info["layers"][1]["file"])
+
+    async def test_55_layer_options_and_rich_text_are_preserved(self):
+        from byteplussdkarkruntime.types.images.images import Image
+
+        leaf = self.layer_item((4, 4), (0, 255, 0, 128), 1, [2, 2, 6, 6])
+        ocr = {
+            "text": "SALE",
+            "lines": [{
+                "bounding_box": {"absolute": [2, 2, 6, 6], "normalized": [250, 250, 750, 750]},
+                "runs": [{"text": "SALE", "style": {
+                    "similar_font_family": "Impact", "foreground_color": "#E53935",
+                    "bold": True, "italic": False, "underline": True, "strikethrough": False,
+                    "shadow": False, "translucent": False,
+                }}],
+            }],
+        }
+        leaf = Image(
+            **{**vars(leaf), "url": "https://example.invalid/layer.png", "bounding_box": vars(leaf.bounding_box)},
+            text_recognition=ocr, background="transparent",
+        )
+        base = self.base_item()
+        base.background = "opaque"
+        calls, _, result = await self.run_node(
+            [base, leaf], model=V55, max_images=100, text_recognition=True,
+            safety_identifier="hashed-user",
+        )
+        request = calls[0]
+        self.assertEqual(request["model"], "dola-seedream-5-5-261028")
+        self.assertEqual(request["optimize_prompt_options"].mode, "standard")
+        self.assertEqual(request["extra_body"], {
+            "layer_decomposition_options": {"max_images": 100, "text_recognition": True},
+            "safety_identifier": "hashed-user",
+        })
+        self.assertNotIn("seed", request)
+        self.assertNotIn("background", request)
+        info = json.loads(result[-1])
+        self.assertEqual(info["layers"][0]["background"], "opaque")
+        self.assertEqual(info["layers"][1]["background"], "transparent")
+        self.assertEqual(info["layers"][1]["text_recognition"], ocr)
+
+    async def test_55_layer_defaults_boundaries_and_absent_ocr(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        for count in (None, 2, 100):
+            with self.subTest(count=count):
+                calls, _, result = await self.run_node(
+                    [self.base_item(), leaf], model=V55, **({} if count is None else {"max_images": count}),
+                )
+                self.assertEqual(calls[0]["extra_body"]["layer_decomposition_options"],
+                                 {"max_images": 30 if count is None else count, "text_recognition": False})
+                self.assertNotIn("text_recognition", json.loads(result[-1])["layers"][1])
+
+    async def test_55_layer_invalid_parameters_fail_before_submission(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        cases = [
+            ({"max_images": 1}, "max_images"),
+            ({"max_images": 101}, "max_images"),
+            ({"max_images": 2.5}, "max_images"),
+            ({"max_images": True}, "max_images"),
+            ({"background": "auto"}, "background"),
+            ({"prompt_optimization": "fast"}, "prompt optimization"),
+            ({"size": "2048x2048"}, "size"),
+            ({"output_format": "webp"}, "output format"),
+            ({"safety_identifier": "a" * 65}, "safety_identifier"),
+            ({"text_recognition": "false"}, "text_recognition"),
+        ]
+        for options, message in cases:
+            with self.subTest(options=options):
+                with mock.patch.object(nodes_seedream, "call_billed") as paid_call:
+                    with self.assertRaisesRegex(Exception, message):
+                        await self.run_node([self.base_item(), leaf], model=V55, **options)
+                    paid_call.assert_not_called()
+
+    async def test_55_layer_partial_failure_is_not_silently_dropped(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        for failed in (None, SimpleNamespace(b64_json=None, error=SimpleNamespace(code="LayerFailed"))):
+            with self.subTest(failed=failed):
+                with self.assertRaisesRegex(Exception, "incomplete layer"):
+                    await self.run_node([self.base_item(), leaf, failed], model=V55)
+
+    async def test_55_layer_count_can_return_99_layers(self):
+        layers = [
+            self.layer_item((2, 2), (0, 255, 0, 128), index, [0, 0, 2, 2])
+            for index in range(1, 100)
+        ]
+        _, _, result = await self.run_node([self.base_item(), *layers], model=V55, max_images=100)
+        self.assertEqual(result[2].shape[0], 99)
+        self.assertEqual(len(json.loads(result[-1])["layers"]), 100)
+
+    async def test_55_sdk_serializes_layer_options_without_background(self):
+        import httpx
+        import torch
+        from byteplussdkarkruntime import Ark
+
+        requests = []
+
+        def handle(request):
+            requests.append(json.loads(request.content))
+            return httpx.Response(200, json={
+                "model": "dola-seedream-5-5-261028",
+                "created": 1,
+                "data": [
+                    {"b64_json": png_b64((8, 8), (255, 255, 255, 255)), "z_index": 0},
+                    {"b64_json": png_b64((8, 8), (255, 0, 0, 128)), "z_index": 1},
+                ],
+            })
+
+        with Ark(
+            api_key="test-only",
+            base_url="https://example.invalid/api/v3",
+            max_retries=0,
+            http_client=httpx.Client(transport=httpx.MockTransport(handle)),
+        ) as ark:
+            await nodes_seedream.BytePlusSeedreamLayerSeparation.execute(
+                FakeClient(ark.images),
+                {"model": V55, "image": torch.ones((1, 512, 512, 3)), "max_images": 10,
+                 "text_recognition": True, "safety_identifier": "hashed-user"},
+            )
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0]["layer_decomposition_options"], {"max_images": 10, "text_recognition": True})
+        self.assertEqual(requests[0]["safety_identifier"], "hashed-user")
+        self.assertNotIn("background", requests[0])
+        self.assertEqual(requests[0]["response_format"], "b64_json")
 
     async def test_pro_endpoint_also_applies_to_layers(self):
         leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])

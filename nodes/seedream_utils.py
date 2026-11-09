@@ -121,7 +121,7 @@ SEEDREAM_PRESETS = {
     SEEDREAM_LITE: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_3K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_5: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_0: _PRESETS_SEEDREAM_1K + _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,
-    SEEDREAM_5_5: [],
+    SEEDREAM_5_5: _PRESETS_SEEDREAM_5_FLASH,
 }
 
 
@@ -138,7 +138,7 @@ def seedream_size_options(model):
     return (
         [label for label, _, _ in SEEDREAM_PRESETS[model]]
         + [seedream_adaptive_label(level) for level in SEEDREAM_MODEL_CAPS[model]["adaptive_sizes"]]
-        + ([SEEDREAM_CUSTOM_SIZE] if SEEDREAM_MODEL_CAPS[model].get("custom_sizes", True) else [])
+        + [SEEDREAM_CUSTOM_SIZE]
     )
 
 
@@ -213,6 +213,18 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
             "created": getattr(response, "created", None),
             "urls": urls,
         }
+        details = [
+            {
+                "url": item.url,
+                "background": getattr(item, "background", None),
+                "size": getattr(item, "size", None),
+                "output_format": getattr(item, "output_format", None),
+            }
+            for item in (getattr(response, "data", None) or [])
+            if getattr(item, "url", None)
+        ]
+        if any(item["background"] is not None for item in details):
+            metadata["images"] = details
         return safe_cat_tensors(downloaded), metadata
     except comfy.model_management.InterruptProcessingException:
         raise
