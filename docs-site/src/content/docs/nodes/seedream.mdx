@@ -1,6 +1,6 @@
 ---
-title: "Seedream 4.5 & 5.0"
-description: "Generate and edit images from a text prompt and optional reference images with Seedream 5.0 Pro, Flash, Lite, 4.5 and 4.0."
+title: "Seedream"
+description: "Generate and edit images with Seedream, including early-access Seedream 5.5 text-to-image with transparent PNG output."
 node_id: BytePlusSeedream
 ---
 
@@ -14,9 +14,11 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Creates images with BytePlus Seedream from a text prompt. Connect reference images to edit a picture, combine several, or keep a subject consistent: up to 10 on Seedream 5.0 Pro and Flash, and up to 14 on 5.0 Lite, 4.5 and 4.0. Each model option shows its own inputs, so pick the model first.
+Creates images with BytePlus Seedream from a text prompt, with reference-image editing on supported models. Pick the model first to see its inputs.
 
-The node bills for every image it generates. It does not save anything itself: connect **Save Image** to keep the result.
+Seedream 5.5 adds early-access 2K text-to-image with transparent PNG output, without a reference image.
+
+The node bills for every image it generates and does not save anything itself: connect **Save Image** to keep the result.
 
 ## On the canvas
 
@@ -32,7 +34,8 @@ The node bills for every image it generates. It does not save anything itself: c
 - **Reference images:** connect them to the `images` slots (`image_1`, `image_2`, …) in order. With reference images the model edits or combines them following the prompt.
 - **Related image sets** (5.0 Lite, 4.5 and 4.0): set `max_images` above 1 to let one request return between 1 and `max_images` related images, for example story scenes or character variations. Reference images plus `max_images` cannot exceed 15. With `fail_on_partial` on, the run aborts if any requested image is missing or returns an error.
 - **Transparent background** (5.0 Pro and Flash): connect exactly one reference image, set `output_format` to `png`, set `background` to `transparent`, and connect the `MASK` of **Load Image** to `reference_mask`.
-- **Several images in one run:** raise `generation_count`. The runs go in parallel and generation N uses `seed` + N, so the pictures differ.
+- **Transparent background** (5.5): set `background` to `transparent`; no reference image is needed. Output is PNG. The default background is `opaque`.
+- **Several images in one run:** raise `generation_count`. The runs go in parallel. Models other than 5.5 send `seed` + N for generation N; on 5.5, `seed` is only a local rerun control, not a generation parameter.
 
 ## Outputs
 
@@ -45,10 +48,10 @@ The node bills for every image it generates. It does not save anything itself: c
 
 ## Limits and tips
 
-- Activate each Seedream model in the ModelArk console for the region you use. Seedream 5.0 Lite is not available in `eu-west-1`: the node stops before it sends anything.
+- Activate each Seedream model in the ModelArk console for the region you use. Seedream 5.0 Lite is not available in `eu-west-1`: the node stops before it sends anything. Seedream 5.5 needs early-access entitlement; other sizes, reference images, JPEG, prompt optimization and layer separation are not yet exposed for 5.5 in this node.
 - The size is checked before anything is sent. The ratio must be between 1:16 and 16:1, and the total pixels must fit the model: 921,600 to 4,624,220 on 5.0 Pro and Flash, 3,686,400 to 16,777,216 on 5.0 Lite and 4.5, and 921,600 to 16,777,216 on 4.0.
 - On 5.0 Pro the 1.5K sizes are priced like 1K.
-- `thinking` is on by default (5.0 Flash has no such setting). It can substantially increase generation time, most on 5.0 Pro, and it can only be switched off when no reference image is connected.
+- `thinking` is on by default where exposed (5.0 Flash and early-access 5.5 have no such setting). It can substantially increase generation time, most on 5.0 Pro, and it can only be switched off when no reference image is connected.
 - For reference images of a character, a place or an object, the Production assets templates ([Character Sheet](../../templates/character-sheet/), [Location Sheet](../../templates/location-sheet/), [Prop Sheet](../../templates/prop-sheet/)) fill a fixed prompt from a few text boxes and send it to this node.
 - A rejected result (“Generated image contains sensitive content”) can be a false alarm. Run again with another `seed` or reword the prompt.
 - If you interrupt the run, the node stops waiting. A request that was already sent may still be billed.

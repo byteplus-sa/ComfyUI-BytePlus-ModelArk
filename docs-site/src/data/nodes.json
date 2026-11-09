@@ -3,11 +3,13 @@
   "id": "BytePlusSeedream",
   "slug": "seedream",
   "group": "Images",
-  "display_name": "BytePlus Seedream 4.5 & 5.0",
+  "display_name": "BytePlus Seedream",
   "category": "BytePlus ModelArk",
   "description": "Unified text-to-image generation and precise single-sentence editing at up to 4K resolution.",
   "search_aliases": [
-   "ByteDance Seedream 4.5 & 5.0"
+   "ByteDance Seedream 4.5 & 5.0",
+   "Seedream 5.5",
+   "BytePlus Seedream 4.5 & 5.0"
   ],
   "keys": [
    "ModelArk API key"
@@ -34,7 +36,8 @@
      "seedream 5.0 flash",
      "seedream 5.0 lite",
      "seedream-4-5-251128",
-     "seedream-4-0-250828"
+     "seedream-4-0-250828",
+     "seedream 5.5"
     ],
     "variants": [
      {
@@ -770,6 +773,73 @@
         "default": 1,
         "min": 1,
         "max": 16
+       }
+      ]
+     },
+     {
+      "key": "seedream 5.5",
+      "inputs": [
+       {
+        "name": "size_preset",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Early access: 2K text-to-image is currently exposed by this node.",
+        "options": [
+         "2K (adaptive)"
+        ]
+       },
+       {
+        "name": "seed",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Change this value to run again. A generation seed is not set for the early-access model.",
+        "default": 42,
+        "min": 0,
+        "max": 2147483647,
+        "step": 1
+       },
+       {
+        "name": "watermark",
+        "type": "on/off",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Whether to add an \"AI generated\" watermark to the image.",
+        "default": false
+       },
+       {
+        "name": "generation_count",
+        "type": "integer",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Number of separate generations to run in parallel.",
+        "default": 1,
+        "min": 1,
+        "max": 16
+       },
+       {
+        "name": "output_format",
+        "type": "choice",
+        "required": true,
+        "advanced": true,
+        "tooltip": "File format of the generated image. A transparent background needs png.",
+        "default": "png",
+        "options": [
+         "png"
+        ]
+       },
+       {
+        "name": "background",
+        "type": "choice",
+        "required": true,
+        "advanced": true,
+        "tooltip": "transparent: generate a PNG with transparency from text-to-image, also returned as the mask output. Needs output_format png.",
+        "default": "opaque",
+        "options": [
+         "opaque",
+         "transparent"
+        ]
        }
       ]
      }

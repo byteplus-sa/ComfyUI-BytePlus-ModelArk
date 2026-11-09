@@ -83,6 +83,11 @@ class ModelConfigurationTests(unittest.TestCase):
             "seedream-5-0-260128",
         )
         self.assertEqual(
+            models_config.SEEDREAM_5_MODEL_MAP["dola-seedream-5-5"],
+            "dola-seedream-5-5-261028",
+        )
+        self.assertEqual(next(iter(models_config.SEEDREAM_MODELS)), models_config.SEEDREAM_PRO)
+        self.assertEqual(
             models_config.VIDEO_MODEL_MAP["dreamina-seedance-2-0-mini"],
             "dreamina-seedance-2-0-mini-260615",
         )

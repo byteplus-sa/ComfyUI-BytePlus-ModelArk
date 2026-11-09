@@ -57,6 +57,7 @@ FLASH = "seedream 5.0 flash"
 LITE = "seedream 5.0 lite"
 V45 = "seedream-4-5-251128"
 V40 = "seedream-4-0-250828"
+V55 = "seedream 5.5"
 
 # Input ids per model option, as core orders them, then this pack's extras.
 EXPECTED_OPTION_INPUTS = {
@@ -73,6 +74,10 @@ EXPECTED_OPTION_INPUTS = {
         "size_preset", "width", "height", "max_images", "images", "fail_on_partial",
         "seed", "watermark", "thinking",
         "generation_count",
+    ],
+    V55: [
+        "size_preset", "seed", "watermark",
+        "generation_count", "output_format", "background",
     ],
 }
 EXPECTED_OPTION_INPUTS[V45] = EXPECTED_OPTION_INPUTS[LITE]
@@ -214,11 +219,11 @@ class SeedreamSchemaTests(unittest.TestCase):
     def test_top_level_order_and_outputs(self):
         schema = nodes_seedream.BytePlusSeedream.define_schema()
         self.assertEqual(schema.node_id, "BytePlusSeedream")
-        self.assertEqual(schema.display_name, "BytePlus Seedream 4.5 & 5.0")
+        self.assertEqual(schema.display_name, "BytePlus Seedream")
         self.assertEqual([item.id for item in schema.inputs], ["prompt", "model"])
         self.assertEqual(schema.inputs[1].io_type, "COMFY_DYNAMICCOMBO_V3")
         self.assertEqual(
-            [option.key for option in schema.inputs[1].options], [PRO, FLASH, LITE, V45, V40]
+            [option.key for option in schema.inputs[1].options], [PRO, FLASH, LITE, V45, V40, V55]
         )
         self.assertEqual(
             [(output.io_type, output.display_name) for output in schema.outputs],
@@ -239,11 +244,13 @@ class SeedreamSchemaTests(unittest.TestCase):
                     if name in inputs:
                         self.assertTrue(inputs[name].advanced, name)
                 for name in ("size_preset", "width", "height", "seed"):
-                    self.assertFalse(inputs[name].advanced, name)
+                    if name in inputs:
+                        self.assertFalse(inputs[name].advanced, name)
                 seed = inputs["seed"]
                 self.assertEqual((seed.default, seed.min, seed.max), (42, 0, 2147483647))
                 self.assertTrue(seed.control_after_generate)
-                self.assertEqual(seed.tooltip, "Seed to use for generation.")
+                if model != V55:
+                    self.assertEqual(seed.tooltip, "Seed to use for generation.")
                 self.assertFalse(inputs["watermark"].default)
                 self.assertEqual(
                     inputs["watermark"].tooltip,
@@ -320,12 +327,27 @@ class SeedreamSchemaTests(unittest.TestCase):
                 LITE: "seedream-5-0-260128",
                 V45: "seedream-4-5-251128",
                 V40: "seedream-4-0-250828",
+                V55: "dola-seedream-5-5-261028",
             },
         )
         self.assertEqual(
             models_config.SEEDREAM_LAYER_SEPARATION_MODELS,
             {PRO: "dola-seedream-5-0-pro-260628", FLASH: "dola-seedream-5-0-flash-260915"},
         )
+
+    def test_55_early_access_exposes_only_confirmed_options(self):
+        schema = nodes_seedream.BytePlusSeedream.define_schema()
+        inputs, _ = option_inputs(schema, V55)
+        self.assertEqual(inputs["size_preset"].options, ["2K (adaptive)"])
+        self.assertEqual(inputs["output_format"].options, ["png"])
+        self.assertEqual(inputs["output_format"].default, "png")
+        self.assertEqual(inputs["background"].options, ["opaque", "transparent"])
+        self.assertIn("text-to-image", inputs["background"].tooltip)
+        self.assertIn("not set", inputs["seed"].tooltip)
+        self.assertNotIn("seed", inputs["generation_count"].tooltip)
+        for name in ("images", "reference_mask", "thinking", "prompt_optimization", "width", "height"):
+            self.assertNotIn(name, inputs)
+        self.assertNotIn(V55, models_config.SEEDREAM_LAYER_SEPARATION_MODELS)
 
     def test_layer_separation_schema(self):
         schema = nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema()
@@ -404,10 +426,11 @@ class SeedreamSchemaTests(unittest.TestCase):
                 if core_input.io_type != "COMFY_DYNAMICCOMBO_V3":
                     self.assertEqual(describe(core_input), describe(our_input))
                     continue
+                shared_options = [o for o in our_input.options if o.key != V55]
                 self.assertEqual(
-                    [o.key for o in core_input.options], [o.key for o in our_input.options]
+                    [o.key for o in core_input.options], [o.key for o in shared_options]
                 )
-                for core_option, our_option in zip(core_input.options, our_input.options, strict=True):
+                for core_option, our_option in zip(core_input.options, shared_options, strict=True):
                     ours = [i for i in our_option.inputs if i.id not in extras]
                     self.assertEqual(
                         [i.id for i in core_option.inputs], [i.id for i in ours], core_option.key
@@ -497,6 +520,117 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tuple(image.shape), (1, 4, 4, 3))
         self.assertEqual(float(mask.sum()), 0.0)
         self.assertEqual(json.loads(response)[0]["urls"], ["https://example.invalid/image0.png"])
+
+    async def test_55_transparent_text_to_image_matches_supplied_request(self):
+        prompt = "Realistic embroidered patches on a transparent background."
+        fake, _client, result = await self.run_node(
+            V55, prompt=prompt, size_preset="2K (adaptive)",
+            output_format="png", background="transparent", watermark=True,
+        )
+        self.assertEqual(fake.calls, [{
+            "model": "dola-seedream-5-5-261028",
+            "prompt": prompt,
+            "size": "2K",
+            "response_format": "url",
+            "output_format": "png",
+            "extra_body": {"background": "transparent"},
+            "watermark": True,
+        }])
+        image, response, mask = result
+        self.assertEqual(tuple(image.shape), (1, 4, 4, 3))
+        self.assertEqual(tuple(mask.shape), (1, 4, 4))
+        self.assertAlmostEqual(float(mask[0, 0, 0]), 0.75)
+        self.assertEqual(json.loads(response)[0]["model"], "dola-seedream-5-5-261028")
+
+    async def test_55_defaults_to_opaque_png_and_ignores_pro_endpoint(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-image"}):
+            fake, _client, result = await self.run_node(V55)
+        request = fake.calls[0]
+        self.assertEqual(request["model"], "dola-seedream-5-5-261028")
+        self.assertEqual(request["size"], "2K")
+        self.assertEqual(request["output_format"], "png")
+        self.assertEqual(request["extra_body"], {"background": "opaque"})
+        for key in ("seed", "optimize_prompt_options", "image", "stream", "sequential_image_generation"):
+            self.assertNotIn(key, request)
+        self.assertEqual(float(result[2].sum()), 0.0)
+
+    async def test_55_rejects_unverified_options_before_submission(self):
+        import torch
+
+        cases = [
+            ({"prompt": ""}, "Prompt cannot be empty"),
+            ({"prompt": None}, "Prompt cannot be empty"),
+            ({"size_preset": "4K (adaptive)"}, "size preset"),
+            ({"size_preset": "Custom", "width": 2048, "height": 2048}, "size preset"),
+            ({"output_format": "jpeg"}, "output format"),
+            ({"output_format": "gif"}, "output format"),
+            ({"background": "auto"}, "background"),
+            ({"images": {"image_1": torch.ones((1, 8, 8, 3))}}, "reference images"),
+        ]
+        for options, message in cases:
+            with self.subTest(options=list(options)):
+                fake = FakeImages()
+                with self.assertRaisesRegex(Exception, message):
+                    await self.run_node(V55, fake=fake, **options)
+                self.assertEqual(fake.calls, [])
+
+    async def test_55_parallel_generation_preserves_transparency(self):
+        fake, _client, result = await self.run_node(
+            V55, generation_count=2, background="transparent",
+        )
+        self.assertEqual(len(fake.calls), 2)
+        self.assertEqual(tuple(result[0].shape), (2, 4, 4, 3))
+        self.assertEqual(tuple(result[2].shape), (2, 4, 4))
+        self.assertEqual(len(json.loads(result[1])), 2)
+        self.assertAlmostEqual(float(result[2].mean()), 0.75)
+
+    async def test_55_missing_url_is_reported(self):
+        with self.assertRaisesRegex(Exception, "download"):
+            await self.run_node(V55, fake=FakeImages(url_count=0))
+
+    async def test_55_sdk_serializes_background_as_a_top_level_field(self):
+        import httpx
+        from byteplussdkarkruntime import Ark
+
+        requests = []
+
+        def handle(request):
+            requests.append(json.loads(request.content))
+            self.assertEqual(request.url.path, "/api/v3/images/generations")
+            return httpx.Response(200, json={
+                "model": "dola-seedream-5-5-261028",
+                "created": 1,
+                "data": [{"url": "https://example.invalid/image.png"}],
+            })
+
+        with Ark(
+            api_key="test-only",
+            base_url="https://example.invalid/api/v3",
+            max_retries=0,
+            http_client=httpx.Client(transport=httpx.MockTransport(handle)),
+        ) as ark:
+            await self.run_node(V55, fake=ark.images, background="transparent", watermark=True)
+        self.assertEqual(len(requests), 1)
+        self.assertEqual({key: value for key, value in requests[0].items() if value is not None}, {
+            "model": "dola-seedream-5-5-261028",
+            "prompt": "a red apple",
+            "size": "2K",
+            "response_format": "url",
+            "output_format": "png",
+            "background": "transparent",
+            "watermark": True,
+        })
+
+    async def test_55_api_error_is_reported_without_retrying(self):
+        class UnavailableImages(FakeImages):
+            def generate(self, **kwargs):
+                self.calls.append(kwargs)
+                raise RuntimeError("Seedream 5.5 early-access entitlement required")
+
+        fake = UnavailableImages()
+        with self.assertRaisesRegex(Exception, "early-access entitlement required"):
+            await self.run_node(V55, fake=fake)
+        self.assertEqual(len(fake.calls), 1)
 
     async def test_pro_endpoint_keeps_capabilities_and_leaves_flash_unchanged(self):
         with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-image"}):

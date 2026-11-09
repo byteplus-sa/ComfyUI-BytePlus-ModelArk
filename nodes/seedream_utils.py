@@ -35,6 +35,7 @@ from .models_config import (
     SEEDREAM_LITE,
     SEEDREAM_4_5,
     SEEDREAM_4_0,
+    SEEDREAM_5_5,
     SEEDREAM_MODEL_CAPS,
 )
 
@@ -120,6 +121,7 @@ SEEDREAM_PRESETS = {
     SEEDREAM_LITE: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_3K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_5: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_0: _PRESETS_SEEDREAM_1K + _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,
+    SEEDREAM_5_5: [],
 }
 
 
@@ -136,7 +138,7 @@ def seedream_size_options(model):
     return (
         [label for label, _, _ in SEEDREAM_PRESETS[model]]
         + [seedream_adaptive_label(level) for level in SEEDREAM_MODEL_CAPS[model]["adaptive_sizes"]]
-        + [SEEDREAM_CUSTOM_SIZE]
+        + ([SEEDREAM_CUSTOM_SIZE] if SEEDREAM_MODEL_CAPS[model].get("custom_sizes", True) else [])
     )
 
 
@@ -183,7 +185,7 @@ def _split_rgba(tensor):
 
 async def request_url_images(session, ark_client, request_kwargs, idx, model_id, transparent=False):
     """
-    One Seedream request with response_format="url" (5.0 Pro / Flash): download
+    One Seedream request with response_format="url": download
     every returned image. transparent keeps the alpha channel (RGBA tensor).
     Returns (tensor, metadata) for BytePlusGenerationExecutor.run_parallel_requests.
     """

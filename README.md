@@ -54,7 +54,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 
 | Service | Nodes | Key |
 |---|---|---|
-| **ModelArk** – images | Seedream 4.5 & 5.0, Seedream 5.0 Layer Separation | ModelArk API key |
+| **ModelArk** – images | Seedream, Seedream 5.0 Layer Separation | ModelArk API key |
 | **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 (3 nodes), Draft to Final | ModelArk API key |
 | **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
@@ -166,13 +166,17 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 
 | Node | What it does |
 |---|---|
-| **Seedream 4.5 & 5.0** | Text-to-image and image editing with Seedream 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0. |
+| **Seedream** | Text-to-image and image editing with Seedream 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0; early-access text-to-image with Seedream 5.5. |
 | **Seedream 5.0 Layer Separation** | Splits one image into a base image and up to 16 transparent layers (5.0 Pro or Flash). |
 
-**Seedream 4.5 & 5.0**
+**Seedream**
 - Sizes: presets for 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2 and 21:9 at each supported resolution (5.0 Pro and Flash add 1.5K, priced like 1K on Pro); "adaptive" levels where the model picks the ratio; or a custom width × height from 1:16 to 16:1.
 - Up to 10 reference images (14 on 5.0 Lite, 4.5 and 4.0). `max_images` for related image sets (Lite, 4.5, 4.0). Prompt optimization and "thinking" where supported.
 - Advanced: parallel generations, PNG output, transparent background on Pro and Flash (connect Load Image's `MASK` to `reference_mask`; the `mask` output holds the result's transparency).
+
+**Seedream 5.5 (early access):** select `seedream 5.5` to use `dola-seedream-5-5-261028`. This initial integration exposes `2K (adaptive)` text-to-image with PNG output, watermark and parallel generations. Set `background` to `transparent` to generate transparency without a reference image; the alpha channel is returned as the `mask` output. The default background is `opaque`. The `seed` widget is only a local rerun control, not a generation parameter for this model.
+
+The 5.5 option follows the supplied early-access API example, not a live-verified capability catalog. Other sizes, reference images, JPEG, prompt optimization and layer separation are deferred until their BytePlus contract is confirmed. Availability depends on your account's early-access entitlement. Existing models and the default selection are unchanged.
 
 **Seedream 5.0 Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and a JSON list of layer names and descriptions. Its opt-in `save_layers` is the only setting in the pack that writes files itself.
 

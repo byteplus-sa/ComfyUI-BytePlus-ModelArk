@@ -87,7 +87,7 @@ LAYER_SEPARATION_DESCRIPTION = (
     "each with stacking order, bounding box, name and description."
 )
 
-URL_MODELS = (SEEDREAM_PRO, SEEDREAM_FLASH)
+URL_MODELS = tuple(model for model, caps in SEEDREAM_MODEL_CAPS.items() if not caps["batch"])
 # Layer decomposition input: at least 262,144 total pixels (512x512), any shape.
 LAYER_MIN_PIXELS = 262_144
 # Core downscales the layer-separation input to about 4 MP before upload.
@@ -106,7 +106,7 @@ def _json_default(value):
     return str(value)
 
 
-# --- BytePlus Seedream 4.5 & 5.0 ---------------------------------------------
+# --- BytePlus Seedream -------------------------------------------------------
 
 
 def _seedream_model_inputs(model):
@@ -117,25 +117,34 @@ def _seedream_model_inputs(model):
         comfy_io.Combo.Input(
             "size_preset",
             options=seedream_size_options(model),
-            tooltip="Pick a recommended size. Select Custom to use the width and height below.",
-        ),
-        comfy_io.Int.Input(
-            "width",
-            default=2048,
-            min=caps["min_side"],
-            max=caps["max_side"],
-            step=2,
-            tooltip="Custom width for image. Value is working only if `size_preset` is set to `Custom`",
-        ),
-        comfy_io.Int.Input(
-            "height",
-            default=2048,
-            min=caps["min_side"],
-            max=caps["max_side"],
-            step=2,
-            tooltip="Custom height for image. Value is working only if `size_preset` is set to `Custom`",
+            tooltip=(
+                "Pick a recommended size. Select Custom to use the width and height below."
+                if caps.get("custom_sizes", True)
+                else "Early access: 2K text-to-image is currently exposed by this node."
+            ),
         ),
     ]
+    if caps.get("custom_sizes", True):
+        inputs.extend(
+            [
+                comfy_io.Int.Input(
+                    "width",
+                    default=2048,
+                    min=caps["min_side"],
+                    max=caps["max_side"],
+                    step=2,
+                    tooltip="Custom width for image. Value is working only if `size_preset` is set to `Custom`",
+                ),
+                comfy_io.Int.Input(
+                    "height",
+                    default=2048,
+                    min=caps["min_side"],
+                    max=caps["max_side"],
+                    step=2,
+                    tooltip="Custom height for image. Value is working only if `size_preset` is set to `Custom`",
+                ),
+            ]
+        )
     if caps["batch"]:
         inputs.append(
             comfy_io.Int.Input(
@@ -151,18 +160,19 @@ def _seedream_model_inputs(model):
                 "Total images (input + generated) cannot exceed 15.",
             )
         )
-    inputs.append(
-        comfy_io.Autogrow.Input(
-            "images",
-            template=comfy_io.Autogrow.TemplateNames(
-                comfy_io.Image.Input("image"),
-                names=[f"image_{i}" for i in range(1, max_refs + 1)],
-                min=0,
-            ),
-            tooltip=f"Optional reference image(s) for image-to-image or multi-reference generation. "
-            f"Up to {max_refs} images.",
+    if max_refs:
+        inputs.append(
+            comfy_io.Autogrow.Input(
+                "images",
+                template=comfy_io.Autogrow.TemplateNames(
+                    comfy_io.Image.Input("image"),
+                    names=[f"image_{i}" for i in range(1, max_refs + 1)],
+                    min=0,
+                ),
+                tooltip=f"Optional reference image(s) for image-to-image or multi-reference generation. "
+                f"Up to {max_refs} images.",
+            )
         )
-    )
     if caps["batch"]:
         inputs.append(
             comfy_io.Boolean.Input(
@@ -183,7 +193,15 @@ def _seedream_model_inputs(model):
                 advanced=True,
             )
         )
-    inputs.append(seed_input(default=42, tooltip=SEEDREAM_SEED_TOOLTIP))
+    inputs.append(
+        seed_input(
+            default=42,
+            tooltip=(
+                SEEDREAM_SEED_TOOLTIP if caps.get("send_seed", True)
+                else "Change this value to run again. A generation seed is not set for the early-access model."
+            ),
+        )
+    )
     inputs.append(watermark_input(tooltip=IMAGE_WATERMARK_TOOLTIP))
     if caps["thinking"]:
         inputs.append(
@@ -200,14 +218,16 @@ def _seedream_model_inputs(model):
         )
 
     # This pack's extras.
-    inputs.append(generation_count_input())
+    inputs.append(generation_count_input(seeded=caps.get("send_seed", True)))
     if model in URL_MODELS:
+        output_formats = caps.get("output_formats", ["jpeg", "png"])
+        requires_reference = caps.get("transparent_requires_reference", True)
         inputs.extend(
             [
                 comfy_io.Combo.Input(
                     "output_format",
-                    options=["jpeg", "png"],
-                    default="jpeg",
+                    options=output_formats,
+                    default=output_formats[0],
                     tooltip="File format of the generated image. A transparent background needs png.",
                     advanced=True,
                 ),
@@ -219,9 +239,16 @@ def _seedream_model_inputs(model):
                         "transparent: edit one reference image that has an alpha channel "
                         "(connect its mask to reference_mask) and return a PNG with "
                         "transparency, also as the mask output. Needs output_format png."
+                        if requires_reference else
+                        "transparent: generate a PNG with transparency from text-to-image, "
+                        "also returned as the mask output. Needs output_format png."
                     ),
                     advanced=True,
                 ),
+            ]
+        )
+        if requires_reference:
+            inputs.append(
                 comfy_io.Mask.Input(
                     "reference_mask",
                     optional=True,
@@ -229,9 +256,8 @@ def _seedream_model_inputs(model):
                         "Alpha of the reference image for a transparent background "
                         "(connect the MASK output of Load Image)."
                     ),
-                ),
-            ]
-        )
+                )
+            )
     return inputs
 
 
@@ -245,6 +271,8 @@ def resolve_seedream_size(model, size_preset, width, height):
     for level in caps["adaptive_sizes"]:
         if size_preset == seedream_adaptive_label(level):
             return level
+    if not caps.get("custom_sizes", True):
+        raise BytePlusException(get_text("seedream_err_size_preset", model=model, preset=size_preset))
     w = h = None
     for label, preset_w, preset_h in SEEDREAM_PRESETS[model]:
         if label == size_preset:
@@ -300,7 +328,7 @@ def build_seedream_plan(model_config, prompt):
 
     size = resolve_seedream_size(
         model,
-        model_config.get("size_preset", SEEDREAM_PRESETS[model][0][0]),
+        model_config.get("size_preset", seedream_size_options(model)[0]),
         model_config.get("width", 2048),
         model_config.get("height", 2048),
     )
@@ -311,6 +339,8 @@ def build_seedream_plan(model_config, prompt):
     images = model_config.get("images") or {}
     ref_tensors = _collect_image_tensors(images)
     n_refs = len(ref_tensors)
+    if n_refs and not caps["max_refs"]:
+        raise BytePlusException(get_text("seedream_err_refs_not_exposed", model=model))
     if n_refs > caps["max_refs"]:
         raise BytePlusException(
             get_text("seedream_err_ref_count", max=caps["max_refs"], count=n_refs)
@@ -324,18 +354,26 @@ def build_seedream_plan(model_config, prompt):
                 limit=SEEDREAM_MAX_TOTAL_IMAGES,
             )
         )
-    if not thinking and n_refs > 0:
+    if caps["thinking"] and not thinking and n_refs > 0:
         raise BytePlusException(get_text("seedream_err_thinking_with_refs"))
     for index, tensor in enumerate(ref_tensors, start=1):
         _check_aspect_ratio(tensor, "seedream_err_ref_aspect", index=index)
 
-    output_format = model_config.get("output_format", "jpeg")
-    transparent = is_url_model and model_config.get("background", "opaque") == "transparent"
+    output_formats = caps.get("output_formats", ["jpeg", "png"])
+    output_format = model_config.get("output_format", output_formats[0])
+    background = model_config.get("background", "opaque")
+    if is_url_model and output_format not in output_formats:
+        raise BytePlusException(get_text("seedream_err_output_format", model=model, format=output_format))
+    if is_url_model and background not in ("opaque", "transparent"):
+        raise BytePlusException(get_text("seedream_err_background", background=background))
+    transparent = is_url_model and background == "transparent"
+    requires_reference = caps.get("transparent_requires_reference", True)
     if transparent:
-        if n_refs != 1:
+        if requires_reference and n_refs != 1:
             raise BytePlusException(get_text("err_transparent_needs_one_image", n=n_refs))
         if output_format != "png":
             raise BytePlusException(get_text("err_transparent_needs_png"))
+    if transparent and requires_reference:
         # The API needs an input with an alpha channel; without a mask the
         # image is sent fully opaque.
         image_param = _image_to_png_data_uri(
@@ -347,11 +385,11 @@ def build_seedream_plan(model_config, prompt):
     # Core: thinking on/off for text-to-image (every model but Flash); "fast"
     # mode when reference images are given (Pro only).
     optimize_prompt_options = None
-    if n_refs == 0 and model != SEEDREAM_FLASH:
+    if n_refs == 0 and caps["thinking"]:
         optimize_prompt_options = OptimizePromptOptions(
             thinking="enabled" if thinking else "disabled"
         )
-    elif prompt_optimization == "fast":
+    elif caps["fast"] and prompt_optimization == "fast":
         optimize_prompt_options = OptimizePromptOptions(mode="fast")
 
     return {
@@ -365,12 +403,13 @@ def build_seedream_plan(model_config, prompt):
         "image_param": image_param,
         "n_refs": n_refs,
         "optimize_prompt_options": optimize_prompt_options,
-        "seed": int(model_config.get("seed", 42)),
+        "seed": int(model_config.get("seed", 42)) if caps.get("send_seed", True) else None,
         "watermark": bool(model_config.get("watermark", False)),
         "fail_on_partial": bool(model_config.get("fail_on_partial", False)) and caps["batch"],
         "generation_count": max(1, int(model_config.get("generation_count", 1))),
         "output_format": output_format,
         "transparent": transparent,
+        "background": background if is_url_model and not requires_reference else None,
     }
 
 
@@ -382,12 +421,13 @@ def build_seedream_request(plan, idx=0):
         "size": plan["size"],
         "response_format": "url" if plan["is_url_model"] else "b64_json",
         "watermark": plan["watermark"],
-        "seed": (plan["seed"] + idx) % (SEED_MAX + 1),
     }
+    if plan["seed"] is not None:
+        request["seed"] = (plan["seed"] + idx) % (SEED_MAX + 1)
     if plan["is_url_model"]:
         request["output_format"] = plan["output_format"]
-        if plan["transparent"]:
-            request["extra_body"] = {"background": "transparent"}
+        if plan["background"] is not None or plan["transparent"]:
+            request["extra_body"] = {"background": plan["background"] or "transparent"}
     else:
         request["sequential_image_generation"] = plan["sequential"]
         if plan["sequential"] == "auto":
@@ -403,17 +443,19 @@ def build_seedream_request(plan, idx=0):
 
 class BytePlusSeedream(EndpointDefaultsRerun, comfy_io.ComfyNode):
     """
-    Seedream 5.0 Pro / Flash / Lite, 4.5 and 4.0 with core's ByteDanceSeedreamNodeV3
-    inputs. Pro and Flash return one image by URL; Lite, 4.5 and 4.0 stream b64
-    images and can generate up to max_images related images.
+    Seedream with core's ByteDanceSeedreamNodeV3 inputs and an early-access 5.5 option.
+    Pro, Flash and 5.5 return images by URL; Lite, 4.5 and 4.0 stream b64 images
+    and can generate up to max_images related images.
     """
 
     @classmethod
     def define_schema(cls) -> comfy_io.Schema:
         return comfy_io.Schema(
             node_id="BytePlusSeedream",
-            display_name="BytePlus Seedream 4.5 & 5.0",
-            search_aliases=core_search_aliases("BytePlusSeedream"),
+            display_name="BytePlus Seedream",
+            search_aliases=core_search_aliases(
+                "BytePlusSeedream", "Seedream 5.5", "BytePlus Seedream 4.5 & 5.0"
+            ),
             category=GLOBAL_CATEGORY,
             description=SEEDREAM_DESCRIPTION,
             inputs=[

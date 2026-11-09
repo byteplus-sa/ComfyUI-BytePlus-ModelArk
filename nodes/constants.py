@@ -590,9 +590,13 @@ MESSAGES = {
     # Seedream and Layer Separation (nodes_seedream.py)
     "seedream_err_prompt_empty": "Prompt cannot be empty.",
     "seedream_err_unknown_model": "Unknown Seedream model: {model}.",
+    "seedream_err_size_preset": "The size preset {preset} is not exposed for {model}. Select a listed size preset.",
+    "seedream_err_output_format": "The output format {format} is not exposed for {model}. Select a listed output format.",
+    "seedream_err_background": "Unknown background mode: {background}. Select opaque or transparent.",
     "seedream_err_min_pixels": "Minimum image resolution for the selected model is {min_mp:.2f}MP, but {mp:.2f}MP provided.",
     "seedream_err_max_pixels": "Maximum image resolution for the selected model is {max_mp:.2f}MP, but {mp:.2f}MP provided.",
     "seedream_err_size_aspect": "Size {width}x{height} is outside the supported aspect ratio range (1:{max} to {max}:1).",
+    "seedream_err_refs_not_exposed": "This node does not yet expose reference images for {model}. Use text-to-image.",
     "seedream_err_ref_count": "Maximum of {max} reference images are supported, but {count} received.",
     "seedream_err_refs_plus_outputs": "The maximum number of generated images ({max_images}) plus the number of reference images ({count}) cannot exceed {limit}.",
     "seedream_err_thinking_with_refs": "'thinking' can only be disabled for text-to-image; enable it when using reference images.",
