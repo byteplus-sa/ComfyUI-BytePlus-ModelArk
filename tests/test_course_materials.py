@@ -81,15 +81,17 @@ class CourseMaterialsTests(unittest.TestCase):
                 self.assertNotIn("Download workflow", first_step.group(1))
 
     def test_downloads_are_optional_and_have_json_import_instructions(self):
-        for lesson in (
-            "install-comfyui",
-            "set-up-api-key",
-            "build-your-first-workflow",
-            "image-to-video",
+        for lesson, filename in (
+            ("install-comfyui", "Seedream.json"),
+            ("set-up-api-key", "Seedream.json"),
+            ("build-your-first-workflow", "Seedream.json"),
+            ("image-to-video", "Image to Draft to 1080p.json"),
         ):
             text = (COURSE / f"{lesson}.mdx").read_text()
             with self.subTest(lesson=lesson):
                 self.assertIn("optional", text.lower())
+                self.assertIn(f"click **{filename}**", text)
+                self.assertNotIn("**Download workflow**", text)
                 self.assertIn("save the JSON", text)
                 self.assertIn("drag", text)
                 self.assertIn("canvas", text)
