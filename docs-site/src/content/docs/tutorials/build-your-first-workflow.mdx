@@ -1,0 +1,130 @@
+---
+title: "Build your first workflow"
+description: "Connect Load Image, Seedream and Save Image to create an image, then save, reopen and adapt your own reusable ComfyUI workflow."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+import { base } from '../../../components/lib';
+
+**Module 3. Your goal:** Build a three-node image workflow and explain how the image moves through it. You will create an image with Seedream, save the result and keep a workflow you can reuse.
+
+## Before you start
+
+- Complete [Module 1](../install-comfyui/) and [Module 2](../set-up-api-key/).
+- Confirm access to Seedream 5.0 Pro in your key's region.
+- Have the successful first image and product brief from Module 2.
+- Use the practice logo for the walkthrough, or upload a reference image you have permission to use.
+
+<a href={`${base}/course/comfyui_logo.png`} download>Download the practice logo (PNG)</a>. Keep this reference file with your workflow; it is not included inside the JSON.
+
+Keep your key in **Settings > BytePlus**. Never put it in a prompt, workflow or screenshot. Running generation uses your BytePlus account balance.
+
+## What you will build
+
+**Load Image -> Seedream -> Save Image**
+
+A **node** performs one step. A **connection** passes data between nodes. A **workflow** is the connected graph, including its settings.
+
+- **Load Image** supplies your reference through its `IMAGE` output.
+- **BytePlus Seedream** combines that reference with your prompt and generates an image.
+- **Save Image** receives the generated image and writes it to ComfyUI's `output` folder.
+
+<Shot src="tutorials/image-connections.webp" alt="Load Image connected to the first Seedream reference input, with Seedream's IMAGE output connected to Save Image" caption="Follow the two image connections from left to right." />
+
+The screenshot may show a model-version label in the node title. Search for **BytePlus Seedream** in the current pack.
+
+The **Seedream** template is your reference and downloadable worked example:
+
+<TemplateFacts file="Seedream.json" />
+
+## Build the workflow
+
+<Steps>
+
+1. Press **+** beside the workflow tabs to start a blank workflow.
+2. Open **Nodes** in the left sidebar. Search for **Load Image**, then drag its result onto the canvas. Repeat for **BytePlus Seedream** from the BytePlus ModelArk category, and **Save Image**.
+3. Move each node by dragging its title bar. Arrange Load Image, Seedream and Save Image from left to right.
+4. In Seedream, choose `seedream 5.0 pro`. Press and hold the small `IMAGE` circle on the right of **Load Image**, drag to Seedream's `image_1` circle on the left, then release. A line should remain.
+5. Drag Seedream's `IMAGE` circle on the right to Save Image's `images` circle on the left. Leave `MASK`, `mask` and `response` unconnected.
+6. In **Load Image**, press **choose file to upload** and select the downloaded logo or your reference. Confirm a preview appears.
+7. Select `(2K) 2048x2048 (1:1)` for `size_preset`. For the logo example, paste the prompt below into Seedream. Keep other model settings at their defaults.
+
+</Steps>
+
+<Shot src="tutorials/node-search.webp" alt="Nodes library with BytePlus Seedream searched and the generation node identified for dragging onto the canvas" caption="Add the generation node, not Layer Separation." />
+
+<Shot src="tutorials/socket-connections.webp" alt="Close-up showing Load Image IMAGE linked to Seedream image_1 and Seedream IMAGE linked to Save Image images" caption="Drag from an output circle on the right to the matching input circle on the left." />
+
+If labels are too small, zoom in on the canvas. Inputs may show a prefix such as `model.images.image_1`; use the first reference image socket ending in `image_1`.
+
+```text
+Turn this logo into a glossy 3D badge on a clean white studio background with soft shadows.
+```
+
+For your own reference, replace "this logo" with the subject and describe what you want to keep and change.
+
+Before running, trace the graph: the reference enters Seedream, the prompt describes the change, and the generated image goes to **Save Image**. Image sockets connect to image sockets; the text `response` output is not an image.
+
+## Run and review
+
+<Steps>
+
+1. Press **Run** and wait for the Seedream node to finish.
+2. Review the image displayed in **Save Image**. For the logo prompt, look for a 3D badge, a white background and soft shadows.
+3. Find the saved image in ComfyUI's `output` folder. The Save Image `filename_prefix` controls its name and subfolder: `Course/product-image` saves in `output/Course`, with filenames beginning `product-image`. ComfyUI adds a counter and file extension.
+
+</Steps>
+
+<Shot src="templates/seedream-result.webp" alt="Generated ComfyUI logo shown as a glossy purple 3D badge with a yellow ring and soft shadows on white" caption="Example output for the logo prompt; your result can differ." />
+
+The generation node does not save images itself. **Save Image** both keeps the result and gives the graph an output to execute.
+
+Copy the generated image to your course folder. The `output` folder is inside the ComfyUI file location from Module 1, not inside the folder where your browser downloads JSON.
+
+## Save and reopen
+
+<Steps>
+
+1. Open **Graph** in the top toolbar and choose **Export**, not **Export (API)**.
+2. Enter `first-seedream-workflow` and press **Confirm**. Locate the downloaded `first-seedream-workflow.json` in your browser's download location and move it to your course folder.
+3. Press **+** to open a blank workflow, then drag the saved JSON onto the canvas.
+4. Confirm the three nodes, two connections and prompt are restored. Reselect or upload the reference image if it is not available on this machine.
+5. Run the reopened image workflow and confirm an image appears in **Save Image**.
+
+</Steps>
+
+<Shot src="tutorials/workflow-export.webp" alt="Graph menu identifying Export as the reusable workflow JSON option and distinguishing it from Export API" caption="Export downloads your workflow; it is different from saving the generated image." />
+
+<Shot src="tutorials/export-dialog.webp" alt="Export Workflow dialog with first-seedream-workflow entered as the filename above the Confirm button" caption="Confirm the name, then collect the JSON from your download location." />
+
+The JSON stores the graph and settings, not the reference image file. Keep that image with your workflow when sharing. The recipient also needs ComfyUI, this node pack, model access and their own ModelArk API key.
+
+## Practice
+
+Adapt the graph using the original product reference and brief you prepared in Module 2. Replace the reference and prompt; do not create another brief yet. If you chose the logo-badge practice, use that subject instead.
+
+Try this starting prompt:
+
+```text
+Keep the product's shape, colour and label from the reference. Place it on a clean white studio background with soft shadows. Do not add extra text or objects.
+```
+
+Review the result against the brief and note any unwanted changes to the product or label. Save the image and workflow, then explain what each node contributes.
+
+## Completion check
+
+- You built the graph yourself and can trace both image connections.
+- You can identify where to change the reference image and prompt.
+- A generated image appears in **Save Image** and is saved in `output`.
+- Your workflow JSON reopens with the same graph and settings.
+- Your shared materials include the reference image but no credentials.
+
+## Next lesson
+
+[Module 4: Create and refine product images](../refine-product-images/).
+
+Previous: [Module 2: Set up your API key](../set-up-api-key/).
+
+Return to the [course learning path](../).
