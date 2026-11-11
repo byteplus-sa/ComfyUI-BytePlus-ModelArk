@@ -65,6 +65,48 @@ class CourseMaterialsTests(unittest.TestCase):
             with self.subTest(page=page.name):
                 self.assertNotIn("bundled `comfyui_logo.png`", page.read_text())
 
+    def test_generation_lessons_start_with_the_included_templates(self):
+        for lesson, heading, template in (
+            ("set-up-api-key", "Generate your first image", "Seedream"),
+            ("image-to-video", "Prepare your shot", "Image to Draft to 1080p"),
+        ):
+            text = (COURSE / f"{lesson}.mdx").read_text()
+            section = text.split(f"## {heading}", 1)[1].split("\n## ", 1)[0]
+            first_step = re.search(r"^1\. (.+)$", section, re.MULTILINE)
+            with self.subTest(lesson=lesson):
+                self.assertIsNotNone(first_step)
+                self.assertIn("**Templates**", first_step.group(1))
+                self.assertIn("**ComfyUI-BytePlus-ModelArk**", first_step.group(1))
+                self.assertIn(f"**{template}**", first_step.group(1))
+                self.assertNotIn("Download workflow", first_step.group(1))
+
+    def test_downloads_are_optional_and_have_json_import_instructions(self):
+        for lesson in (
+            "install-comfyui",
+            "set-up-api-key",
+            "build-your-first-workflow",
+            "image-to-video",
+        ):
+            text = (COURSE / f"{lesson}.mdx").read_text()
+            with self.subTest(lesson=lesson):
+                self.assertIn("optional", text.lower())
+                self.assertIn("save the JSON", text)
+                self.assertIn("drag", text)
+                self.assertIn("canvas", text)
+        overview = (COURSE / "index.mdx").read_text()
+        self.assertIn("included with the node pack", overview)
+        self.assertIn("reference image", overview)
+        self.assertIn("Module 3", overview)
+
+    def test_module_three_teaches_importing_the_learners_own_export(self):
+        text = (COURSE / "build-your-first-workflow.mdx").read_text()
+        section = text.split("## Save and reopen", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("**Graph**", section)
+        self.assertIn("**Export**", section)
+        self.assertIn("first-seedream-workflow.json", section)
+        self.assertIn("drag the saved JSON onto the canvas", section)
+        self.assertIn("reference image", section)
+
 
 if __name__ == "__main__":
     unittest.main()
