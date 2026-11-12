@@ -10,7 +10,9 @@ import PIL.Image
 import folder_paths
 import random
 import urllib.parse
+import ipaddress
 import comfy.model_management
+from .core_style import PublicOnlyResolver
 from .nodes_shared import log_msg, wait_interruptible
 
 DEFAULT_DOWNLOAD_TIMEOUT = 60
@@ -20,6 +22,57 @@ RETRYABLE_CLIENT_STATUSES = (408, 429)
 # Generated videos can be large: no total time limit, only a stalled connection
 # times out (like ComfyUI core's download_url_to_video_output).
 VIDEO_DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=None, sock_connect=60, sock_read=120)
+
+
+def validate_public_url(url: str) -> str:
+    if not isinstance(url, str) or not url or any(character.isspace() for character in url):
+        raise aiohttp.InvalidURL("Expected a public HTTP(S) media URL")
+    try:
+        parsed = urllib.parse.urlsplit(url)
+        host = (parsed.hostname or "").rstrip(".").lower()
+        port = parsed.port
+    except ValueError:
+        raise aiohttp.InvalidURL("Invalid media URL") from None
+    if (
+        parsed.scheme not in ("http", "https")
+        or not host
+        or parsed.username is not None
+        or parsed.password is not None
+        or port == 0
+        or host == "localhost"
+        or host.endswith((".localhost", ".local"))
+    ):
+        raise aiohttp.InvalidURL("Expected a public HTTP(S) media URL without credentials")
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        address = None
+    if address is not None and not address.is_global:
+        raise aiohttp.InvalidURL("Private media addresses are not allowed")
+    return url
+
+
+def public_download_session(*, timeout=None, force_close=False):
+    kwargs = {"timeout": timeout} if timeout is not None else {}
+    connector = aiohttp.TCPConnector(resolver=PublicOnlyResolver(), force_close=force_close)
+    return aiohttp.ClientSession(connector=connector, **kwargs)
+
+
+@contextlib.asynccontextmanager
+async def public_download_response(session, url, timeout):
+    current = url
+    for _ in range(6):
+        validate_public_url(current)
+        async with session.get(current, timeout=timeout, allow_redirects=False) as response:
+            if response.status in (301, 302, 303, 307, 308):
+                location = response.headers.get("Location")
+                if not location:
+                    raise aiohttp.InvalidURL("Media redirect has no destination")
+                current = urllib.parse.urljoin(current, location)
+                continue
+            yield response
+            return
+    raise aiohttp.InvalidURL("Too many media redirects")
 
 
 def link_without_query(url: str) -> str:
@@ -127,7 +180,7 @@ async def _fetch_data_from_url_async(
     client_timeout = aiohttp.ClientTimeout(total=timeout)
 
     async def attempt_once():
-        async with session.get(url, timeout=client_timeout) as response:
+        async with public_download_response(session, url, client_timeout) as response:
             response.raise_for_status()
             return await response.read()
 
@@ -204,7 +257,7 @@ async def _download_to_file_stream_async(
     client_timeout = timeout if isinstance(timeout, aiohttp.ClientTimeout) else aiohttp.ClientTimeout(total=timeout)
 
     async def attempt_once():
-        async with session.get(url, timeout=client_timeout) as response:
+        async with public_download_response(session, url, client_timeout) as response:
             response.raise_for_status()
             with open(file_path, "wb") as f:
                 while True:

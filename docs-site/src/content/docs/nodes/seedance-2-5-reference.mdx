@@ -52,7 +52,7 @@ The node bills for every video it generates and waits until the task finishes. I
 - You need at least one reference image or video, connected or as an asset. Audio alone is accepted on Seedance 2.5 and Flash.
 - Reference videos go through Comfy.org storage: log in to your Comfy.org account in ComfyUI. This does not work with `--disable-api-nodes`. To skip the upload, pass a link or an asset ID in `asset_N`.
 - Each reference video needs 300 to 6000 px per side, 407,696 to 8,295,044 pixels in total, an aspect ratio of 0.4 to 2.5, 24 to 60 fps, at most 200 MB and at least 2 s. `auto_downscale` (on by default) shrinks oversize videos and `auto_upscale` enlarges small ones.
-- Total reference video length is at most 15.2 s on Seedance 2.0 and 30.2 s on 2.5. Audio has the same total limit, and each connected audio clip needs at least 2 s. An `edit` task on Seedance 2.5 needs a video of at least 4 s.
+- Total reference video length is at most 15.2 s on Seedance 2.0 and 30.2 s on 2.5 and Flash. Audio has the same total limit, and each connected audio clip needs at least 2 s. An `edit` task on Seedance 2.5 or Flash needs a video of at least 4 s.
 - Connected images and audio are sent inside the request. A whole request may not exceed 64 MiB.
 - Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again. See [Interrupts and cancelling](../../concepts/interrupts/).
 - Only use media you are allowed to use. Input containing a real person can be refused by BytePlus.
@@ -61,7 +61,7 @@ The node bills for every video it generates and waits until the task finishes. I
 
 | Message | What to do |
 |---|---|
-| `At least one reference image or video or asset is required.` | Connect an image or video, or put an image or video asset or link in an `asset_N` slot. Audio alone works on Seedance 2.5 only. |
+| `At least one reference image or video or asset is required.` | Connect an image or video, or put an image or video asset or link in an `asset_N` slot. Audio alone works on Seedance 2.5 and Flash. |
 | `task needs at least one reference video` | `edit` and `extend` need a video. Connect it, or set `task_type` to `reference`. |
 | `The task type is incompatible with the current parameters` | With a video connected, set `task_type` to `reference`, `edit` or `extend` instead of `auto`. |
 | `Uploading the reference video to Comfy.org storage failed` | Log in to Comfy.org in ComfyUI, or pass a public mp4/mov link or an asset ID in an `asset_N` slot. |

@@ -3,6 +3,7 @@ import asyncio
 import aiohttp
 
 from .nodes_shared import BytePlusException, sleep_interruptible, wait_interruptible
+from .utils_download import public_download_session, validate_public_url
 
 
 class RetryableRequestError(BytePlusException):
@@ -23,9 +24,10 @@ def is_retryable_status(status):
 
 async def send_http_request(method, url, headers, body, timeout_seconds):
     """One HTTP request with an optional JSON body: (status, response headers, response bytes)."""
+    validate_public_url(url)
     client_timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-    async with aiohttp.ClientSession(timeout=client_timeout) as session:
-        async with session.request(method, url, headers=headers, json=body) as response:
+    async with public_download_session(timeout=client_timeout) as session:
+        async with session.request(method, url, headers=headers, json=body, allow_redirects=False) as response:
             return response.status, dict(response.headers), await response.read()
 
 
@@ -40,7 +42,7 @@ async def await_request(send, timeout_message, network_message):
     except asyncio.TimeoutError:
         raise RetryableRequestError(timeout_message, retryable=True) from None
     except aiohttp.ClientError as e:
-        raise RetryableRequestError(network_message(e), retryable=True) from e
+        raise RetryableRequestError(network_message(e), retryable=not isinstance(e, aiohttp.InvalidURL)) from e
 
 
 async def retry_transient(request, *, max_errors, poll_seconds):

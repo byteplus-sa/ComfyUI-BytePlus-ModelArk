@@ -4,13 +4,15 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.7.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.8.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.7.0:** optional default ModelArk endpoint IDs for Seedance 2.0, Seedance 2.5 and Seedream 5.0 Pro in **Settings → Other → BytePlus → Default credentials**. Endpoint overrides use your existing key and region, keep the selected model's capabilities and invalidate cached outputs when changed. Leave a field blank to use the built-in model. No workflow changes are needed. All three endpoint paths were checked with real generation requests.
+**New in v0.8.0:** Seedream 5.5 image generation and layer separation, with ten references, automatic transparency, 1K/1.5K/2K output, custom sizes and optional rich-text OCR. Omitted advanced inputs now use their defaults correctly. Media downloads reject private addresses and unsafe redirects. Existing node IDs and model defaults are unchanged; 5.5 requires early-access entitlement.
 
-**Seedance 2.5 4K is available in source.** Select `Seedance 2.5` and set `resolution` to `4k`; the separate Premium choices have been removed. This update is not yet published to the Registry.
+**Unreleased Seedance changes ([PR #31](https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/pull/31)):** the following changes are in this PR's source, not in v0.8.0 or a published Registry package.
 
-**Seedance 2.5 Flash is available in source.** Select `Seedance 2.5 Flash` in any of the three Seedance 2.5 generation nodes. It uses `dreamina-seedance-2-5-flash-261115`, supports 480p/720p videos from 4 to 30 seconds and shares the 30-image/10-video/10-audio reference limits. Flash uses the API's default output format and has no Draft option. Your account needs private-model access and activation.
+**Seedance 2.5 4K:** select `Seedance 2.5` and set `resolution` to `4k`. The separate Premium and Premium Draft choices are removed without compatibility aliases. Update those selections manually before running an older workflow.
+
+**Seedance 2.5 Flash:** select `Seedance 2.5 Flash` in any of the three Seedance 2.5 generation nodes. It uses `dreamina-seedance-2-5-flash-261115`, supports 480p/720p videos from 4 to 30 seconds and shares the 30-image/10-video/10-audio reference limits. Flash uses the API's default output format and has no Draft option. Your account needs private-model access and activation.
 
 ## Contents
 
@@ -58,7 +60,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 
 | Service | Nodes | Key |
 |---|---|---|
-| **ModelArk** – images | Seedream 4.5 & 5.0, Seedream 5.0 Layer Separation | ModelArk API key |
+| **ModelArk** – images | Seedream, Seedream Layer Separation | ModelArk API key |
 | **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 and Flash (3 shared nodes), Draft to Final | ModelArk API key |
 | **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
@@ -170,15 +172,23 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 
 | Node | What it does |
 |---|---|
-| **Seedream 4.5 & 5.0** | Text-to-image and image editing with Seedream 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0. |
-| **Seedream 5.0 Layer Separation** | Splits one image into a base image and up to 16 transparent layers (5.0 Pro or Flash). |
+| **Seedream** | Text-to-image and image editing with Seedream 5.5 (early access), 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0. |
+| **Seedream Layer Separation** | Splits one image into a base image and up to 99 transparent layers on 5.5, or 16 on 5.0 Pro/Flash. |
 
-**Seedream 4.5 & 5.0**
+**Seedream**
 - Sizes: presets for 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2 and 21:9 at each supported resolution (5.0 Pro and Flash add 1.5K, priced like 1K on Pro); "adaptive" levels where the model picks the ratio; or a custom width × height from 1:16 to 16:1.
 - Up to 10 reference images (14 on 5.0 Lite, 4.5 and 4.0). `max_images` for related image sets (Lite, 4.5, 4.0). Prompt optimization and "thinking" where supported.
 - Advanced: parallel generations, PNG output, transparent background on Pro and Flash (connect Load Image's `MASK` to `reference_mask`; the `mask` output holds the result's transparency).
 
-**Seedream 5.0 Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and a JSON list of layer names and descriptions. Its opt-in `save_layers` is the only setting in the pack that writes files itself.
+**Seedream 5.5 (early access):** select `seedream 5.5` to use `dola-seedream-5-5-261028`. It supports text-to-image and up to 10 reference images, with `1K`, `1.5K`, `2K` and custom sizes (921,600 to 4,624,220 total pixels, aspect ratio 1:16 to 16:1). Defaults are `2K (adaptive)`, PNG and `background=auto`. Auto mode follows the prompt and preserves the resulting transparency in the `mask` output; JPEG is always opaque. Explicit `transparent` requires PNG but does not require a reference image or input alpha channel.
+
+5.5 supports only `standard` prompt optimization, not `fast`, streaming or related-image group generation. `generation_count` runs separate requests in parallel. Its `seed` widget remains a local rerun control, not a generation parameter. The optional `safety_identifier` accepts a stable hashed end-user ID of up to 64 ASCII characters; avoid personal data. Availability depends on your account's early-access entitlement. Existing model defaults are unchanged.
+
+**Save transparency:** connect the Seedream `IMAGE` and `mask` outputs to **Join Image with Alpha**, then connect its output to **Save Image**. Saving the RGB output alone discards transparency. For ten-reference workflows, if the frontend loses an image socket after reopening, combine references with **Batch Images** (`ImageBatch`) and connect the batch to one image slot; the ten-image limit still applies.
+
+**Seedream Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and `layers_json`. On 5.5, `max_images` controls the total including the base (2-100, default 30), and `text_recognition` optionally returns rich-text OCR with line coordinates and style runs in `layers_json`. Not every text layer returns OCR. Background mode is not accepted for layer separation; the base is opaque and layers are transparent PNGs. For large layer counts, prefer `crop_layers` to reduce memory use. Its opt-in `save_layers` is the only setting in the pack that writes files itself.
+
+Layer separation is generative, not lossless reconstruction, and the image count is a ceiling rather than a guaranteed total. ComfyUI's current **Create Layered Image** compositor accepts at most 50 layers including the base; keep `max_images` at 50 or below for that path, or save and process larger sets separately.
 
 ### Video (ModelArk)
 

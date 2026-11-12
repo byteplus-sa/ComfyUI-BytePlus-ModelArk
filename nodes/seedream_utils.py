@@ -35,6 +35,7 @@ from .models_config import (
     SEEDREAM_LITE,
     SEEDREAM_4_5,
     SEEDREAM_4_0,
+    SEEDREAM_5_5,
     SEEDREAM_MODEL_CAPS,
 )
 
@@ -120,6 +121,7 @@ SEEDREAM_PRESETS = {
     SEEDREAM_LITE: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_3K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_5: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_0: _PRESETS_SEEDREAM_1K + _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,
+    SEEDREAM_5_5: _PRESETS_SEEDREAM_5_FLASH,
 }
 
 
@@ -183,7 +185,7 @@ def _split_rgba(tensor):
 
 async def request_url_images(session, ark_client, request_kwargs, idx, model_id, transparent=False):
     """
-    One Seedream request with response_format="url" (5.0 Pro / Flash): download
+    One Seedream request with response_format="url": download
     every returned image. transparent keeps the alpha channel (RGBA tensor).
     Returns (tensor, metadata) for BytePlusGenerationExecutor.run_parallel_requests.
     """
@@ -211,6 +213,18 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
             "created": getattr(response, "created", None),
             "urls": urls,
         }
+        details = [
+            {
+                "url": item.url,
+                "background": getattr(item, "background", None),
+                "size": getattr(item, "size", None),
+                "output_format": getattr(item, "output_format", None),
+            }
+            for item in (getattr(response, "data", None) or [])
+            if getattr(item, "url", None)
+        ]
+        if any(item["background"] is not None for item in details):
+            metadata["images"] = details
         return safe_cat_tensors(downloaded), metadata
     except comfy.model_management.InterruptProcessingException:
         raise

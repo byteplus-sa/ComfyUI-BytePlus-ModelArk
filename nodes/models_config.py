@@ -14,11 +14,13 @@ SEEDREAM_5_MODEL_MAP = {
     "dola-seedream-5-0-pro": "dola-seedream-5-0-pro-260628",
     "dola-seedream-5-0-flash": "dola-seedream-5-0-flash-260915",
     "seedream-5-0-lite": "seedream-5-0-260128",
+    "dola-seedream-5-5": "dola-seedream-5-5-261028",
 }
 
 SEEDREAM_5_PRO_UI_MODEL = "dola-seedream-5-0-pro"
 SEEDREAM_5_FLASH_UI_MODEL = "dola-seedream-5-0-flash"
 SEEDREAM_5_LITE_UI_MODEL = "seedream-5-0-lite"
+SEEDREAM_5_5_UI_MODEL = "dola-seedream-5-5"
 
 # Model ID -> regions where it must not be used. Seedream 5.0 Lite was
 # deactivated in eu-west-1 on 2026-09-10 (model deprecation notice).
@@ -149,6 +151,7 @@ SEEDREAM_FLASH = "seedream 5.0 flash"
 SEEDREAM_LITE = "seedream 5.0 lite"
 SEEDREAM_4_5 = "seedream-4-5-251128"
 SEEDREAM_4_0 = "seedream-4-0-250828"
+SEEDREAM_5_5 = "seedream 5.5"
 
 # BytePlus Seedream: core's option label -> BytePlus model ID.
 SEEDREAM_MODELS = {
@@ -157,6 +160,7 @@ SEEDREAM_MODELS = {
     SEEDREAM_LITE: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_LITE_UI_MODEL],
     SEEDREAM_4_5: SEEDREAM_4_MODEL_MAP["seedream-4-5"],
     SEEDREAM_4_0: SEEDREAM_4_MODEL_MAP["seedream-4-0"],
+    SEEDREAM_5_5: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_5_UI_MODEL],
 }
 
 # Per model: reference-image cap (BytePlus docs: 14 on 5.0 Lite, 4.5 and 4.0;
@@ -220,6 +224,28 @@ SEEDREAM_MODEL_CAPS = {
         "max_pixels": 16_777_216,
         "adaptive_sizes": ["1K", "2K", "4K"],
     },
+    SEEDREAM_5_5: {
+        "max_refs": 10,
+        "min_ref_side": 15,
+        "max_ref_pixels": 36_000_000,
+        "min_side": 240,
+        "max_side": 8600,
+        "min_pixels": 921_600,
+        "max_pixels": 4_624_220,
+        "batch": False,
+        "fast": False,
+        "thinking": False,
+        "send_seed": False,
+        "prompt_modes": ["standard"],
+        "adaptive_sizes": ["1K", "1.5K", "2K"],
+        "default_size_preset": "2K (adaptive)",
+        "output_formats": ["png", "jpeg"],
+        "backgrounds": ["auto", "transparent", "opaque"],
+        "transparent_requires_reference": False,
+        "safety_identifier": True,
+        "layer_max_images": 100,
+        "layer_default_max_images": 30,
+    },
 }
 # Custom width / height follow the BytePlus size rule (total pixels in the
 # model's range, aspect ratio 1:16 to 16:1), not core's 1024 minimum:
@@ -233,6 +259,7 @@ SEEDREAM_MAX_TOTAL_IMAGES = 15
 SEEDREAM_LAYER_SEPARATION_MODELS = {
     SEEDREAM_PRO: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_PRO_UI_MODEL],
     SEEDREAM_FLASH: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_FLASH_UI_MODEL],
+    SEEDREAM_5_5: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_5_UI_MODEL],
 }
 
 # Seedance 1.x (nodes_seedance1.py)
