@@ -1,0 +1,83 @@
+---
+title: "Install ComfyUI"
+description: "Install ComfyUI and the BytePlus ModelArk node pack, then confirm that the nodes, templates and Settings page are available."
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Shot from '../../../components/Shot.astro';
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+
+**Module 1. Your goal:** Open ComfyUI with the BytePlus nodes ready to use. You do not need to download local image or video models for this course; Seedream and Seedance run through BytePlus ModelArk.
+
+## Before you start
+
+- Use a computer supported by ComfyUI, with internet access and permission to install applications.
+- Choose a folder for your course reference images, workflows and results.
+- If ComfyUI is already installed, go straight to installing the BytePlus pack below.
+
+ComfyUI must still meet its own installation requirements, even though generation happens in the cloud.
+
+## Install and launch ComfyUI
+
+<Steps>
+
+1. Choose the official guide for your computer: [Windows Desktop](https://docs.comfy.org/installation/desktop/windows), [macOS Desktop](https://docs.comfy.org/installation/desktop/macos) or [Linux Desktop](https://docs.comfy.org/installation/desktop/linux). Check the guide's hardware requirements before downloading.
+2. Download the installer from the [official ComfyUI download page](https://comfy.org/download). Install the application and follow its initial setup, including choosing the folder for ComfyUI's files.
+3. Let setup finish, then launch ComfyUI. You should see the canvas where nodes are connected.
+
+</Steps>
+
+For a computer or environment that needs another installation method, follow the [official manual installation guide](https://docs.comfy.org/installation/manual_install). A default manual server opens at `http://127.0.0.1:8188`; Desktop presents the interface in its application.
+
+<Shot src="tutorials/canvas-overview.webp" alt="ComfyUI interface with callouts locating the new-workflow plus button, Templates, Settings, Run and the empty canvas" caption="Find these four controls before moving on; your layout may differ." />
+
+## Install the BytePlus pack
+
+Open the **ComfyUI menu** at the **top left** of the workspace: click the ComfyUI logo beside the small down arrow, just left of **Graph**. Choose **Extensions** to open **Nodes Manager**. You can also press **Extensions** in the top toolbar, near **Run**.
+
+<Shot src="tutorials/extensions-entry.webp" alt="ComfyUI menu at the top left with Extensions highlighted and callouts showing the menu route and toolbar shortcut" caption="Open the ComfyUI logo menu, then choose Extensions; the toolbar button opens the same manager." />
+
+In older layouts with a **Manager** button, open **ComfyUI-Manager > Custom Nodes Manager** instead.
+
+<Shot src="tutorials/extensions-manager.webp" alt="Nodes Manager header with Node Pack selected and BytePlus entered in its search box" caption="In Nodes Manager, keep Node Pack selected and use the search field beside it." />
+
+<Steps>
+
+1. In **Nodes Manager**, keep **Node Pack** selected in the dropdown. Click the search field beside it and search for **BytePlus ModelArk**. Check that the package is **ComfyUI-BytePlus-ModelArk** from BytePlus.
+2. Press **Install** and wait for the package and its requirements to finish installing.
+3. Restart ComfyUI. In Desktop, close and reopen the application. For a manual server, stop and restart the server process, then reload the browser tab. Reloading a tab alone does not load a newly installed Python node pack.
+
+</Steps>
+
+If Manager is unavailable or the pack is not listed, use the [pack installation guide](../../get-started/install/) for the Comfy CLI or manual installation method.
+
+## Find your course tools
+
+Open **Nodes** in the left sidebar and search for **BytePlus Seedream**. Look under **BytePlus ModelArk** for the generation node, not **Layer Separation**. Its title may include model-version numbers.
+
+<Shot src="tutorials/node-search.webp" alt="Nodes sidebar searched for BytePlus Seedream, with a callout identifying the generation node rather than Layer Separation" caption="The course uses the Seedream generation node." />
+
+The **Seedream** and **Image to Draft to 1080p** templates are included when you install the pack. Open **Templates** in the left sidebar, look under **ComfyUI-BytePlus-ModelArk**, and open **Seedream**. For a manual installation, the group may use your installation folder's name. Do not choose a core ByteDance partner template; those use a different account connection.
+
+<TemplateFacts file="Seedream.json" showDownload={false} />
+
+Open **Settings** and search for **BytePlus**. Find **Default credentials** and its **ModelArk API key** row. Leave it empty for now; you configure it in Module 2.
+
+<Shot src="tutorials/settings-entry.webp" alt="Settings searched for BytePlus, showing the ModelArk API key field, matching region selector and Save button" caption="Find the ModelArk row; other service credentials are not needed for this course." />
+
+## Practice
+
+Find the Seedream node, open the Seedream template, and locate the ModelArk key row. Do not run generation yet.
+
+## Completion check
+
+- ComfyUI opens and shows its canvas.
+- You can find BytePlus Seedream in node search.
+- The course's Seedream template opens with BytePlus nodes.
+- Settings includes the ModelArk API key row.
+
+## Next lesson
+
+[Module 2: Set up your API key](../set-up-api-key/).
+
+Return to the [course overview](../).

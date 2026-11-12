@@ -69,6 +69,18 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Tutorials',
+					items: [
+						{ slug: 'tutorials', label: 'Course overview' },
+						{ slug: 'tutorials/install-comfyui', label: '1. Install ComfyUI' },
+						{ slug: 'tutorials/set-up-api-key', label: '2. Set up your API key' },
+						{ slug: 'tutorials/build-your-first-workflow', label: '3. Understand and build a workflow' },
+						{ slug: 'tutorials/refine-product-images', label: '4. Create and refine product images' },
+						{ slug: 'tutorials/image-to-video', label: '5. Turn an image into video' },
+						{ slug: 'tutorials/final-project', label: '6. Final project' },
+					],
+				},
+				{
 					label: 'Concepts',
 					items: [
 						{ slug: 'concepts/keys-and-regions' },
