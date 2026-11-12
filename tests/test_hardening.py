@@ -92,7 +92,7 @@ class FakeSession:
         self.statuses = list(statuses)
         self.calls = 0
 
-    def get(self, url, timeout=None):
+    def get(self, url, timeout=None, allow_redirects=False):
         self.calls += 1
         return FakeResponse(url, self.statuses.pop(0))
 
@@ -156,7 +156,7 @@ class DownloadLogTests(unittest.IsolatedAsyncioTestCase):
         session = InvalidLinkSession()
         with self.assertRaises(aiohttp.InvalidURL):
             await utils_download._fetch_data_from_url_async(session, "not a link")
-        self.assertEqual(session.calls, 1)
+        self.assertEqual(session.calls, 0)
 
     async def test_timeouts_and_rate_limits_are_retried(self):
         for status in (408, 429, 502):

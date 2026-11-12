@@ -26,7 +26,6 @@ import uuid
 import zipfile
 from urllib.parse import urlsplit
 
-import aiohttp
 import comfy.model_management
 import folder_paths
 
@@ -73,7 +72,7 @@ from .nodes_shared import (
     wait_interruptible,
     with_client,
 )
-from .utils_download import download_to_file
+from .utils_download import download_to_file, public_download_session
 
 THREE_D_CATEGORY = f"{GLOBAL_CATEGORY}/3D"
 THREE_D_POLL_SECONDS = 4
@@ -324,7 +323,7 @@ def new_result_dir(task_id):
 
 
 async def download_result(url, destination, task_id):
-    async with aiohttp.ClientSession() as session:
+    async with public_download_session() as session:
         try:
             await download_to_file(session, url, destination)
         except comfy.model_management.InterruptProcessingException:

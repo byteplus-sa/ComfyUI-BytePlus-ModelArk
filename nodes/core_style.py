@@ -127,8 +127,8 @@ def video_extra_inputs(include_offline=False, seeded=True):
 # ComfyUI core's display name for each node this pack mirrors, added to the
 # node's search_aliases so people who know core's nodes find these.
 CORE_DISPLAY_NAMES = {
-    "BytePlusSeedream": "ByteDance Seedream 4.5 & 5.0",
-    "BytePlusSeedreamLayerSeparation": "ByteDance Seedream 5.0 Layer Separation",
+    "BytePlusSeedream": "ByteDance Seedream 4.5, 5.0 & 5.5",
+    "BytePlusSeedreamLayerSeparation": "ByteDance Seedream 5.0 & 5.5 Layer Separation",
     "BytePlusSeedanceTextToVideo": "ByteDance Text to Video",
     "BytePlusSeedanceImageToVideo": "ByteDance Image to Video",
     "BytePlusSeedanceFirstLastFrame": "ByteDance First-Last-Frame to Video",
@@ -143,11 +143,16 @@ CORE_DISPLAY_NAMES = {
     "BytePlusVideoEnhance": "ByteDance vCube Video Enhance",
 }
 
+CORE_PREVIOUS_DISPLAY_NAMES = {
+    "BytePlusSeedream": ("ByteDance Seedream 4.5 & 5.0",),
+    "BytePlusSeedreamLayerSeparation": ("ByteDance Seedream 5.0 Layer Separation",),
+}
+
 
 def core_search_aliases(node_id, *extra):
     """search_aliases for a core-style node: core's display name, then any extras."""
     core_name = CORE_DISPLAY_NAMES.get(node_id)
-    return [*([core_name] if core_name else []), *extra]
+    return [*([core_name] if core_name else []), *CORE_PREVIOUS_DISPLAY_NAMES.get(node_id, ()), *extra]
 
 
 class NonBlockingRerun(EndpointDefaultsRerun):

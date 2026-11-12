@@ -7,6 +7,10 @@ import { Steps, Aside } from '@astrojs/starlight/components';
 
 New versions are published on the Comfy Registry: **[ComfyUI-BytePlus-ModelArk on registry.comfy.org](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. Its **Versions** tab lists every release. Use the method that matches how you [installed](../install/) the pack. Your saved keys and settings stay where they are: they live in `user/.env`, not in the pack folder.
 
+Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-separation options](../../nodes/seedream-layer-separation/). After updating, select `seedream 5.5` on either node; existing workflows keep their previous model. Your account needs early-access entitlement. Media URLs must resolve to public addresses; local and private-network download URLs are rejected.
+
+Registry publication and security review are separate steps. A pending or flagged version may not be offered by Manager yet; check its version status rather than enabling unsafe installation overrides.
+
 ## Update with ComfyUI-Manager
 
 <Steps>

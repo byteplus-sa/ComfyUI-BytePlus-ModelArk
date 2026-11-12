@@ -8,6 +8,7 @@ The Ark SDK and the asset library are faked; nothing reaches the network.
 
 import asyncio
 import base64
+import copy
 import importlib
 import io
 import json
@@ -17,6 +18,7 @@ import sys
 import time
 import types
 import unittest
+from contextlib import ExitStack, contextmanager
 from fractions import Fraction
 from types import SimpleNamespace
 from unittest import mock
@@ -101,6 +103,40 @@ def option_inputs(node_cls, label):
     _info, required, _optional = v1_inputs(node_cls)
     option = next(o for o in required["model"][1]["options"] if o["key"] == label)
     return option["inputs"]
+
+
+@contextmanager
+def core_enterprise_4k_schemas():
+    core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+    node_classes = (
+        core.ByteDance2TextToVideoNode,
+        core.ByteDance2FirstLastFrameNode,
+        core.ByteDance2ReferenceNodeV2,
+        core.ByteDance2DraftToFinalVideoNode,
+    )
+    schemas = {}
+    with ExitStack() as patches:
+        for node_cls in node_classes:
+            info = copy.deepcopy(node_cls.GET_NODE_INFO_V1())
+            if node_cls is core.ByteDance2DraftToFinalVideoNode:
+                info["input"].setdefault("optional", {})["resolution"] = (
+                    "COMBO",
+                    {
+                        "options": ["1080p", "4k"],
+                        "default": "1080p",
+                        "multiselect": False,
+                        "tooltip": "Resolution of the final video. 4k is available to enterprise accounts only.",
+                    },
+                )
+            else:
+                options = info["input"]["required"]["model"][1]["options"]
+                option = next(item for item in options if item["key"] == "Seedance 2.5")
+                resolution = option["inputs"]["required"]["resolution"][1]
+                resolution["options"] = ["480p", "720p", "1080p", "4k"]
+                resolution["tooltip"] = "Resolution of the output video. 4k is available to enterprise accounts only."
+            schemas[node_cls] = info
+            patches.enter_context(mock.patch.object(node_cls, "GET_NODE_INFO_V1", return_value=info))
+        yield schemas
 
 
 def image(width, height, value=0.5):
@@ -395,8 +431,7 @@ class SchemaTests(unittest.TestCase):
                 obj = getattr(module, name)
                 if isinstance(obj, type) and name.startswith("ByteDance") and hasattr(obj, "define_schema"):
                     schema = obj.define_schema()
-                    if not schema.is_deprecated:
-                        core_names.add(schema.display_name)
+                    core_names.add(schema.display_name)
         ours = {}
         for module_name in (
             "nodes_seedream",
@@ -415,8 +450,81 @@ class SchemaTests(unittest.TestCase):
         core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
         for node_id, core_name in core_style.CORE_DISPLAY_NAMES.items():
             with self.subTest(node=node_id):
-                self.assertIn(core_name, core_names)
-                self.assertIn(core_name, ours[node_id].search_aliases)
+                known_names = {core_name, *core_style.CORE_PREVIOUS_DISPLAY_NAMES.get(node_id, ())}
+                self.assertTrue(known_names & core_names, node_id)
+                self.assertTrue(known_names <= set(ours[node_id].search_aliases), node_id)
+
+    def test_seedream_search_aliases_preserve_previous_and_current_names(self):
+        for node_id, names in (
+            ("BytePlusSeedream", {"ByteDance Seedream 4.5 & 5.0", "ByteDance Seedream 4.5, 5.0 & 5.5"}),
+            (
+                "BytePlusSeedreamLayerSeparation",
+                {"ByteDance Seedream 5.0 Layer Separation", "ByteDance Seedream 5.0 & 5.5 Layer Separation"},
+            ),
+        ):
+            with self.subTest(node=node_id):
+                self.assertTrue(names <= set(core_style.core_search_aliases(node_id)))
+
+    def test_search_aliases_remain_valid_when_core_deprecates_a_node(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        schema = core.ByteDanceTextToVideoNode.define_schema()
+        schema.is_deprecated = True
+        with mock.patch.object(core.ByteDanceTextToVideoNode, "define_schema", return_value=schema):
+            self.test_core_display_names_are_search_aliases()
+
+    def test_matches_core_nodes_accepts_enterprise_4k_additions(self):
+        with core_enterprise_4k_schemas():
+            self.test_matches_core_nodes()
+
+    def test_matches_core_nodes_accepts_removed_enterprise_wording(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        with core_enterprise_4k_schemas() as schemas:
+            for node_cls, info in schemas.items():
+                if node_cls is core.ByteDance2DraftToFinalVideoNode:
+                    resolution = info["input"]["optional"]["resolution"][1]
+                    resolution["tooltip"] = "Resolution of the final video."
+                else:
+                    options = info["input"]["required"]["model"][1]["options"]
+                    option = next(item for item in options if item["key"] == "Seedance 2.5")
+                    option["inputs"]["required"]["resolution"][1]["tooltip"] = "Resolution of the output video."
+            self.test_matches_core_nodes()
+
+    def test_matches_core_nodes_rejects_other_generation_schema_changes(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        cases = (
+            ("Seedance 2.5", "prompt", "tooltip", "Changed prompt guidance"),
+            ("Seedance 2.5", "resolution", "options", ["480p", "720p", "1080p", "8k"]),
+            ("Seedance 2.5", "resolution", "tooltip", "Different enterprise restriction"),
+            ("Seedance 2.5", "resolution", "default", "1080p"),
+            ("Seedance 2.5 Draft", "resolution", "tooltip", "Changed draft restriction"),
+            ("Seedance 2.0", "resolution", "tooltip", "Changed model restriction"),
+        )
+        for label, name, field, value in cases:
+            with self.subTest(model=label, input=name, field=field), core_enterprise_4k_schemas() as schemas:
+                options = schemas[core.ByteDance2TextToVideoNode]["input"]["required"]["model"][1]["options"]
+                option = next(item for item in options if item["key"] == label)
+                option["inputs"]["required"][name][1][field] = value
+                with self.assertRaisesRegex(AssertionError, f"{label}\\.{name}\\.{field}"):
+                    self.test_matches_core_nodes()
+
+    def test_matches_core_nodes_rejects_other_final_schema_changes(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        for field, value in (
+            ("options", ["1080p", "4k", "8k"]),
+            ("default", "4k"),
+            ("tooltip", "Different enterprise restriction"),
+            ("multiselect", True),
+        ):
+            with self.subTest(field=field), core_enterprise_4k_schemas() as schemas:
+                optional = schemas[core.ByteDance2DraftToFinalVideoNode]["input"]["optional"]
+                optional["resolution"][1][field] = value
+                with self.assertRaises(AssertionError):
+                    self.test_matches_core_nodes()
+        with core_enterprise_4k_schemas() as schemas:
+            optional = schemas[core.ByteDance2DraftToFinalVideoNode]["input"]["optional"]
+            optional["unexpected"] = ("BOOLEAN", {"default": False})
+            with self.assertRaises(AssertionError):
+                self.test_matches_core_nodes()
 
     def test_matches_core_nodes(self):
         try:
@@ -442,6 +550,12 @@ class SchemaTests(unittest.TestCase):
         def compare(where, name, ours, theirs):
             self.assertEqual(ours[0], theirs[0], where)
             a, b = (ours[1] if len(ours) > 1 else {}), (theirs[1] if len(theirs) > 1 else {})
+            if where == "Seedance 2.5.resolution":
+                b = dict(b)
+                if b.get("options") == ["480p", "720p", "1080p", "4k"]:
+                    b["options"] = ["480p", "720p", "1080p"]
+                if b.get("tooltip") == ("Resolution of the output video. 4k is available to enterprise accounts only."):
+                    b["tooltip"] = "Resolution of the output video."
             if name == "output_format":
                 # Ours adds mov after core's mp4.
                 self.assertEqual(a["options"][: len(b["options"])], b["options"], where)
@@ -460,7 +574,30 @@ class SchemaTests(unittest.TestCase):
             ours = {**req, **opt}
             core_info = core_cls.GET_NODE_INFO_V1()
             theirs_req = core_info["input"]["required"]
-            theirs_opt = core_info["input"].get("optional") or {}
+            theirs_opt = dict(core_info["input"].get("optional") or {})
+            if ours_cls is nodes_seedance2.BytePlusSeedanceDraftToFinal and "resolution" in theirs_opt:
+                final_resolution = theirs_opt.pop("resolution")
+                final_metadata = dict(final_resolution[1])
+                self.assertIn(
+                    final_metadata.pop("tooltip"),
+                    (
+                        "Resolution of the final video.",
+                        "Resolution of the final video. 4k is available to enterprise accounts only.",
+                    ),
+                    f"{ours_cls.NODE_ID}.resolution.tooltip",
+                )
+                self.assertEqual(
+                    (final_resolution[0], final_metadata),
+                    (
+                        "COMBO",
+                        {
+                            "options": ["1080p", "4k"],
+                            "default": "1080p",
+                            "multiselect": False,
+                        },
+                    ),
+                    f"{ours_cls.NODE_ID}.resolution",
+                )
             theirs = {**theirs_req, **theirs_opt}
             self.assertEqual([n for n in req if n not in EXTRAS], list(theirs_req))
             self.assertEqual([n for n in opt if n not in EXTRAS], list(theirs_opt))

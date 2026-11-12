@@ -5,7 +5,6 @@ import time
 import math
 import datetime
 import json
-import aiohttp
 import random
 from byteplussdkarkruntime.types.responses.response_completed_event import ResponseCompletedEvent
 from byteplussdkarkruntime.types.responses.response_reasoning_summary_text_delta_event import (
@@ -42,7 +41,7 @@ from .ark_tasks import FAILED_TASK_STATUSES, poll_failure_is_final
 from .constants import SEEDANCE_REQUEST_MAX_BYTES, VIDEO_MAX_SEED
 from .models_config import VIDEO_MODEL_MAP, VIDEO_2_UI_OPTIONS
 from .model_endpoints import canonical_model_id, request_model_id
-from .utils_download import b64_image_to_tensor_async
+from .utils_download import b64_image_to_tensor_async, public_download_session
 
 # Seedance task polling: interval, and how many failed polls in a row are
 # tolerated before a task is reported as lost (about 30 s of errors).
@@ -1000,7 +999,7 @@ class BytePlusGenerationExecutor:
 
         request_func: async function(index, session) -> (result_tensor, result_metadata)
         """
-        async with aiohttp.ClientSession() as session:
+        async with public_download_session() as session:
             # An interrupt cancels the other requests and is re-raised; other errors are collected.
             results = await gather_cancelling(
                 [request_func(i, session) for i in range(generation_count)],
