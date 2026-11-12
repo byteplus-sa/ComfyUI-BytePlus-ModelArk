@@ -16,9 +16,9 @@ import Media from '../../../components/Media.astro';
 - Confirm access to Seedance 2.5 in the region of your saved ModelArk key.
 - Use the **Image to Draft to 1080p** template for this lesson.
 
-This template is included with the node pack. The download below is optional: if you cannot find it or want to practise importing it, click **Image to Draft to 1080p.json**, save the JSON, and drag it onto the canvas.
+This template is included with the node pack. Open it from ComfyUI's **Templates** sidebar.
 
-<TemplateFacts file="Image to Draft to 1080p.json" />
+<TemplateFacts file="Image to Draft to 1080p.json" showDownload={false} />
 
 ## Understand the two stages
 
@@ -34,7 +34,7 @@ A **bypassed** node is skipped. The template starts with both final-stage nodes 
 
 <Steps>
 
-1. Open **Templates** in the left sidebar, look under **ComfyUI-BytePlus-ModelArk**, and open **Image to Draft to 1080p**. If you already imported the optional download, use that graph instead.
+1. Open **Templates** in the left sidebar, look under **ComfyUI-BytePlus-ModelArk**, and open **Image to Draft to 1080p**.
 2. In **Load Image**, press **choose file to upload** and select the generated image you kept in Module 4, not the original product photo. Check its preview.
 3. Keep **Seedance 2.5 Draft**, **480p**, **16:9** and **5 seconds** selected.
 4. Keep every **control after generate** row on `fixed`. Leave **Draft to Final** and its **Save Video** node bypassed.

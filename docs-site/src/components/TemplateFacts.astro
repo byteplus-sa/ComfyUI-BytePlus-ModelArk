@@ -1,11 +1,11 @@
 ---
 import { getTemplate, getNode, nodeUrl, base, shortName } from './lib';
-const { file } = Astro.props;
+const { file, showDownload = true } = Astro.props;
 const t = getTemplate(file);
 ---
 <dl class="facts">
 	<dt>Template</dt><dd>{t.title}, in the ComfyUI template browser under BytePlus</dd>
-	<dt>Workflow file</dt><dd><a href={`${base}/workflows/${t.slug}.json`} download={t.file}>{t.file}</a></dd>
+	{showDownload && <><dt>Workflow file</dt><dd><a href={`${base}/workflows/${t.slug}.json`} download={t.file}>{t.file}</a></dd></>}
 	<dt>BytePlus nodes</dt>
 	<dd>
 		{t.nodes.map((n: any, index: number) => (

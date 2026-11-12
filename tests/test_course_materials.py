@@ -80,23 +80,19 @@ class CourseMaterialsTests(unittest.TestCase):
                 self.assertIn(f"**{template}**", first_step.group(1))
                 self.assertNotIn("Download workflow", first_step.group(1))
 
-    def test_downloads_are_optional_and_have_json_import_instructions(self):
-        for lesson, filename in (
-            ("install-comfyui", "Seedream.json"),
-            ("set-up-api-key", "Seedream.json"),
-            ("build-your-first-workflow", "Seedream.json"),
-            ("image-to-video", "Image to Draft to 1080p.json"),
-        ):
-            text = (COURSE / f"{lesson}.mdx").read_text()
-            with self.subTest(lesson=lesson):
-                self.assertIn("optional", text.lower())
-                self.assertIn(f"click **{filename}**", text)
-                self.assertNotIn("**Download workflow**", text)
-                self.assertIn("save the JSON", text)
-                self.assertIn("drag", text)
-                self.assertIn("canvas", text)
+    def test_course_uses_included_templates_without_starter_downloads(self):
+        for page in COURSE.glob("*.mdx"):
+            text = page.read_text()
+            with self.subTest(lesson=page.name):
+                for attributes in re.findall(r"<TemplateFacts\s+([^>]+)", text):
+                    self.assertIn("showDownload={false}", attributes)
+                self.assertNotIn("optional download", text.lower())
+                self.assertNotIn("fallback", text.lower())
+                self.assertNotIn("/workflows/", text)
+                self.assertNotRegex(text, r"click \*\*[^*]+\.json\*\*")
         overview = (COURSE / "index.mdx").read_text()
         self.assertIn("included with the node pack", overview)
+        self.assertIn("Comfy Registry", overview)
         self.assertIn("reference image", overview)
         self.assertIn("Module 3", overview)
 
@@ -108,6 +104,13 @@ class CourseMaterialsTests(unittest.TestCase):
         self.assertIn("first-seedream-workflow.json", section)
         self.assertIn("drag the saved JSON onto the canvas", section)
         self.assertIn("reference image", section)
+
+    def test_final_project_retains_the_learners_workflow_exports(self):
+        text = (COURSE / "final-project.mdx").read_text()
+        self.assertIn("**Graph > Export**", text)
+        self.assertIn("image-workflow.json", text)
+        self.assertIn("video-workflow.json", text)
+        self.assertIn("Both JSON files reopen", text)
 
 
 if __name__ == "__main__":
