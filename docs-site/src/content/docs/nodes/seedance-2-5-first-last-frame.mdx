@@ -1,6 +1,6 @@
 ---
 title: "Seedance 2.5 First-Last-Frame to Video"
-description: "Animate a first frame, and optionally a last frame, into a video with Seedance 2.5, 2.5 Premium or 2.0, with draft previews."
+description: "Animate a first frame and optional last frame with Seedance 2.5 up to 4k, Flash at 480p/720p, or Seedance 2.0."
 node_id: BytePlusSeedance2FirstLastFrame
 ---
 
@@ -30,8 +30,8 @@ The node bills for every video it generates and waits until the task finishes. I
 
 - **Frames:** use either `first_frame` or `first_frame_asset_id`, never both. The same rule applies to the last frame. The first frame is required, the last is optional.
 - **Asset IDs and links:** the `*_asset_id` fields take an asset ID, `asset://<asset_id>` or an https link to an image. With IAM keys saved in **Settings → BytePlus**, an asset ID is checked to be active and an image. Without them it is sent unchecked. A link is only checked against its file extension.
-- **Aspect ratio:** on Seedance 2.5 the video keeps the aspect of the first frame. On Seedance 2.0, 2.0 Fast and 2.0 Mini the `ratio` setting is back and defaults to `adaptive`. When you connect images (no asset IDs) on these models, the node crops them from the center and resizes them to the exact output size of the chosen `resolution` and `ratio`. With `adaptive` it uses the supported ratio closest to the first frame.
-- **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/): 2.5 (480p to 1080p, up to 30 s), 2.5 Premium (4k only), the two Draft options (480p only) and 2.0, 2.0 Fast and 2.0 Mini (up to 15 s).
+- **Aspect ratio:** on Seedance 2.5 and Flash the video keeps the aspect of the first frame. On Seedance 2.0, 2.0 Fast and 2.0 Mini the `ratio` setting is back and defaults to `adaptive`. When you connect images (no asset IDs) on these models, the node crops them from the center and resizes them to the exact output size of the chosen `resolution` and `ratio`. With `adaptive` it uses the supported ratio closest to the first frame.
+- **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/): 2.5 (480p to 4k, up to 30 s), 2.5 Flash (480p/720p, up to 30 s), Seedance 2.5 Draft (480p only) and 2.0, 2.0 Fast and 2.0 Mini (up to 15 s). Flash uses the API's default output format and has no Draft option.
 - **Several videos:** raise `generation_count`. The tasks run in parallel and generation N uses `seed` + N.
 
 ## Outputs
@@ -42,7 +42,7 @@ The node bills for every video it generates and waits until the task finishes. I
 
 - The `last_frame` output is the last frame of each generated video. It is not the `last_frame` image you connected.
 - With `generation_count` above 1, `VIDEO` is a list: the next node runs once per video, and `last_frame` holds their last frames as one batch in the same order.
-- `draft_task_id` is for the two Draft models. Send it to [Draft to Final Video](../seedance-2-5-draft-to-final/). Linking it while another model is selected stops the run.
+- `draft_task_id` is for Seedance 2.5 Draft. Send it to [Draft to Final Video](../seedance-2-5-draft-to-final/). Linking it while another model is selected stops the run.
 - With `non_blocking` on, the first run returns at once with the task IDs in `response` and no video, so nodes connected to `VIDEO` or `last_frame` are skipped. Run the node again to collect the finished video.
 
 ## Limits and tips

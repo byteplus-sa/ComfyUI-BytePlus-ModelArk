@@ -28,19 +28,21 @@ ModelArk API keys belong to a region, `ap-southeast-1` (the default) or `eu-west
 
 | Model | Resolutions | Longest video |
 |---|---|---|
-| Seedance 2.5 | 480p, 720p, 1080p | 30 s |
-| Seedance 2.5 Premium | 4k | 30 s |
+| Seedance 2.5 | 480p, 720p, 1080p, 4k | 30 s |
+| Seedance 2.5 Flash | 480p, 720p | 30 s |
 | Seedance 2.0 | 480p, 720p, 1080p, 4k | 15 s |
 | Seedance 2.0 Fast | 480p, 720p | 15 s |
 | Seedance 2.0 Mini | 480p, 720p | 15 s |
 
-A draft is always 480p. The final rendered from a draft is 1080p for Seedance 2.5 and 4k for Seedance 2.5 Premium. Other resolutions are rejected. See [Draft mode](../concepts/draft-mode/).
+A draft is always 480p. The final rendered from a draft is 1080p for Seedance 2.5. For direct 4k generation, select Seedance 2.5 and set `resolution` to `4k`. See [Draft mode](../concepts/draft-mode/).
+
+Seedance 2.5 Flash uses the API's default output format and has no Draft option. It shares standard 2.5's reference limits: 30 images, 10 videos and 10 audio clips per request.
 
 ## Models with extra requirements
 
-- **Seedance 2.5 Premium (4K)** is whitelist only, so your account may need access from BytePlus before it accepts requests. Ask BytePlus about access if a request is refused.
 - **Seed Speech ASR:** the table above repeats the option name in the ID column, but the node sends these BytePlus resource IDs: `seed-asr-fast` uses `volc.seedasr.auc_turbo` (one request, audio up to 2 hours), `seed-asr-2.0` uses `volc.seedasr.auc` and `seed-asr-1.0` uses `volc.bigasr.auc` (both submit a task, audio up to 5 hours).
 - **Seedance 1.0 First-Last-Frame to Video** offers Seedance 1.0 Pro only. Pro Fast has no last-frame support.
+- **Seedance 2.5 Flash** is shown as private in ModelArk. Your account needs access and model activation before it can generate.
 - **BytePlus LLM audio input** works only on Seed 2.0 Lite and Mini. Seed 2.0 Pro and Seed 2.1 Turbo reject audio. DeepSeek V4.1 Flash and GLM 5.3 Flash accept it but cannot hear it, so the node offers the audio input only for Lite and Mini.
 - **Asset library nodes** need Advanced Creation Rights on your account. See [Reference media](../concepts/reference-media/).
 

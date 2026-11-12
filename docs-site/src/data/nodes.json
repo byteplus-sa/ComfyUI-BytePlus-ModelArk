@@ -1088,12 +1088,11 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Premium for 4k output, and Seedance 2.5 Premium Draft for its 480p preview (rendered in 4k); Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds with the API's default output format; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
-     "Seedance 2.5 Premium",
-     "Seedance 2.5 Premium Draft",
+     "Seedance 2.5 Flash",
      "Seedance 2.0",
      "Seedance 2.0 Fast",
      "Seedance 2.0 Mini"
@@ -1121,7 +1120,8 @@
         "options": [
          "480p",
          "720p",
-         "1080p"
+         "1080p",
+         "4k"
         ]
        },
        {
@@ -1248,7 +1248,7 @@
       ]
      },
      {
-      "key": "Seedance 2.5 Premium",
+      "key": "Seedance 2.5 Flash",
       "inputs": [
        {
         "name": "prompt",
@@ -1265,9 +1265,10 @@
         "required": true,
         "advanced": false,
         "tooltip": "Resolution of the output video.",
-        "default": "4k",
+        "default": "720p",
         "options": [
-         "4k"
+         "480p",
+         "720p"
         ]
        },
        {
@@ -1305,91 +1306,6 @@
         "advanced": false,
         "tooltip": "Enable audio generation for the output video.",
         "default": true
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
-        ]
-       }
-      ]
-     },
-     {
-      "key": "Seedance 2.5 Premium Draft",
-      "inputs": [
-       {
-        "name": "prompt",
-        "type": "text",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Text prompt for video generation. Put spoken lines in double quotes to steer the generated dialogue.",
-        "default": "",
-        "multiline": true
-       },
-       {
-        "name": "resolution",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Resolution of the output video.",
-        "default": "480p",
-        "options": [
-         "480p"
-        ]
-       },
-       {
-        "name": "ratio",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
-        "options": [
-         "16:9",
-         "4:3",
-         "1:1",
-         "3:4",
-         "9:16",
-         "21:9",
-         "adaptive"
-        ]
-       },
-       {
-        "name": "duration",
-        "type": "integer",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
-        "default": 5,
-        "min": 4,
-        "max": 30,
-        "step": 1
-       },
-       {
-        "name": "generate_audio",
-        "type": "on/off",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Enable audio generation for the output video.",
-        "default": true
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
-        ]
        }
       ]
      },
@@ -1629,7 +1545,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the final (1080p, or 4k for Premium). Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the 1080p final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -1665,12 +1581,11 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Premium for 4k output, and Seedance 2.5 Premium Draft for its 480p preview (rendered in 4k); Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds with the API's default output format; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
-     "Seedance 2.5 Premium",
-     "Seedance 2.5 Premium Draft",
+     "Seedance 2.5 Flash",
      "Seedance 2.0",
      "Seedance 2.0 Fast",
      "Seedance 2.0 Mini"
@@ -1698,7 +1613,8 @@
         "options": [
          "480p",
          "720p",
-         "1080p"
+         "1080p",
+         "4k"
         ]
        },
        {
@@ -1791,7 +1707,7 @@
       ]
      },
      {
-      "key": "Seedance 2.5 Premium",
+      "key": "Seedance 2.5 Flash",
       "inputs": [
        {
         "name": "prompt",
@@ -1808,9 +1724,10 @@
         "required": true,
         "advanced": false,
         "tooltip": "Resolution of the output video.",
-        "default": "4k",
+        "default": "720p",
         "options": [
-         "4k"
+         "480p",
+         "720p"
         ]
        },
        {
@@ -1831,74 +1748,6 @@
         "advanced": false,
         "tooltip": "Enable audio generation for the output video.",
         "default": true
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
-        ]
-       }
-      ]
-     },
-     {
-      "key": "Seedance 2.5 Premium Draft",
-      "inputs": [
-       {
-        "name": "prompt",
-        "type": "text",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Text prompt for video generation. Put spoken lines in double quotes to steer the generated dialogue.",
-        "default": "",
-        "multiline": true
-       },
-       {
-        "name": "resolution",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Resolution of the output video.",
-        "default": "480p",
-        "options": [
-         "480p"
-        ]
-       },
-       {
-        "name": "duration",
-        "type": "integer",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
-        "default": 5,
-        "min": 4,
-        "max": 30,
-        "step": 1
-       },
-       {
-        "name": "generate_audio",
-        "type": "on/off",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Enable audio generation for the output video.",
-        "default": true
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
-        ]
        }
       ]
      },
@@ -2168,7 +2017,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the final (1080p, or 4k for Premium). Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the 1080p final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -2204,12 +2053,11 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Premium for 4k output, and Seedance 2.5 Premium Draft for its 480p preview (rendered in 4k); Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds with the API's default output format; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
-     "Seedance 2.5 Premium",
-     "Seedance 2.5 Premium Draft",
+     "Seedance 2.5 Flash",
      "Seedance 2.0",
      "Seedance 2.0 Fast",
      "Seedance 2.0 Mini"
@@ -2237,7 +2085,8 @@
         "options": [
          "480p",
          "720p",
-         "1080p"
+         "1080p",
+         "4k"
         ]
        },
        {
@@ -2712,7 +2561,7 @@
       ]
      },
      {
-      "key": "Seedance 2.5 Premium",
+      "key": "Seedance 2.5 Flash",
       "inputs": [
        {
         "name": "prompt",
@@ -2729,9 +2578,10 @@
         "required": true,
         "advanced": false,
         "tooltip": "Resolution of the output video.",
-        "default": "4k",
+        "default": "720p",
         "options": [
-         "4k"
+         "480p",
+         "720p"
         ]
        },
        {
@@ -2782,265 +2632,6 @@
          "reference",
          "edit",
          "extend"
-        ]
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
-        ]
-       },
-       {
-        "name": "reference_images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20",
-         "image_21",
-         "image_22",
-         "image_23",
-         "image_24",
-         "image_25",
-         "image_26",
-         "image_27",
-         "image_28",
-         "image_29",
-         "image_30"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4",
-         "video_5",
-         "video_6",
-         "video_7",
-         "video_8",
-         "video_9",
-         "video_10"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3",
-         "audio_4",
-         "audio_5",
-         "audio_6",
-         "audio_7",
-         "audio_8",
-         "audio_9",
-         "audio_10"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_assets",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
-        "item_type": "text",
-        "slots": [
-         "asset_1",
-         "asset_2",
-         "asset_3",
-         "asset_4",
-         "asset_5",
-         "asset_6",
-         "asset_7",
-         "asset_8",
-         "asset_9",
-         "asset_10",
-         "asset_11",
-         "asset_12",
-         "asset_13",
-         "asset_14",
-         "asset_15",
-         "asset_16",
-         "asset_17",
-         "asset_18",
-         "asset_19",
-         "asset_20",
-         "asset_21",
-         "asset_22",
-         "asset_23",
-         "asset_24",
-         "asset_25",
-         "asset_26",
-         "asset_27",
-         "asset_28",
-         "asset_29",
-         "asset_30",
-         "asset_31",
-         "asset_32",
-         "asset_33",
-         "asset_34",
-         "asset_35",
-         "asset_36",
-         "asset_37",
-         "asset_38",
-         "asset_39",
-         "asset_40",
-         "asset_41",
-         "asset_42",
-         "asset_43",
-         "asset_44",
-         "asset_45",
-         "asset_46",
-         "asset_47",
-         "asset_48",
-         "asset_49",
-         "asset_50"
-        ],
-        "min": 0
-       },
-       {
-        "name": "auto_downscale",
-        "type": "on/off",
-        "required": false,
-        "advanced": false,
-        "tooltip": "Automatically downscale reference videos that exceed the model's pixel budget for the selected resolution. Aspect ratio is preserved; videos already within limits are untouched.",
-        "default": true
-       },
-       {
-        "name": "auto_upscale",
-        "type": "on/off",
-        "required": false,
-        "advanced": true,
-        "tooltip": "Automatically upscale reference videos that are below the model's minimum pixel count for the selected resolution. Aspect ratio is preserved; videos already meeting the minimum are untouched. Note: upscaling a low-resolution source does not add real detail and may produce lower-quality generations.",
-        "default": false
-       }
-      ]
-     },
-     {
-      "key": "Seedance 2.5 Premium Draft",
-      "inputs": [
-       {
-        "name": "prompt",
-        "type": "text",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Text prompt for video generation. Put spoken lines in double quotes to steer the generated dialogue.",
-        "default": "",
-        "multiline": true
-       },
-       {
-        "name": "resolution",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Resolution of the output video.",
-        "default": "480p",
-        "options": [
-         "480p"
-        ]
-       },
-       {
-        "name": "ratio",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
-        "options": [
-         "16:9",
-         "4:3",
-         "1:1",
-         "3:4",
-         "9:16",
-         "21:9",
-         "adaptive"
-        ]
-       },
-       {
-        "name": "duration",
-        "type": "integer",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
-        "default": 5,
-        "min": 4,
-        "max": 30,
-        "step": 1
-       },
-       {
-        "name": "generate_audio",
-        "type": "on/off",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Enable audio generation for the output video.",
-        "default": true
-       },
-       {
-        "name": "task_type",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs, and settings that conflict with its reading fail only after generation has started. reference: generate a new video guided by the reference images, videos, and audio. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
-        "default": "auto",
-        "options": [
-         "auto",
-         "reference",
-         "edit",
-         "extend"
-        ]
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
         ]
        },
        {
@@ -3711,7 +3302,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the final (1080p, or 4k for Premium). Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the 1080p final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -3733,7 +3324,7 @@
   "group": "Video: Seedance 2.5",
   "display_name": "BytePlus Seedance 2.5 Draft to Final Video",
   "category": "BytePlus ModelArk",
-  "description": "Render the final video of a Seedance 2.5 Draft (1080p) or Seedance 2.5 Premium Draft (4k). The final keeps the draft's scene and motion, and reuses its prompt, references, duration, aspect ratio, and audio setting. The model is read from the draft task.",
+  "description": "Render the 1080p final video of a Seedance 2.5 Draft. The final keeps the draft's scene and motion, and reuses its prompt, references, duration, aspect ratio, and audio setting. The model is read from the draft task.",
   "search_aliases": [
    "ByteDance Seedance 2.5 Draft to Final Video"
   ],
@@ -3747,7 +3338,7 @@
     "type": "text",
     "required": true,
     "advanced": false,
-    "tooltip": "The draft_task_id output of a BytePlus Seedance 2.5 node run with a Draft model (Seedance 2.5 Draft or Seedance 2.5 Premium Draft), or pasted draft task IDs (one per line, or separated by commas). Set that node's seed control to fixed, otherwise the next run generates a new draft instead of reusing the one you reviewed. A draft can be rendered for 7 days after it was created.",
+    "tooltip": "The draft_task_id output of a BytePlus Seedance 2.5 node run with Seedance 2.5 Draft, or pasted draft task IDs (one per line, or separated by commas). Set that node's seed control to fixed, otherwise the next run generates a new draft instead of reusing the one you reviewed. A draft can be rendered for 7 days after it was created.",
     "default": ""
    },
    {
@@ -4349,7 +3940,7 @@
      "dreamina-seedance-2-0-fast",
      "dreamina-seedance-2-0-mini",
      "dreamina-seedance-2-5",
-     "dreamina-seedance-2-5-premium",
+     "dreamina-seedance-2-5-flash",
      "seedance-1-5-pro"
     ]
    },

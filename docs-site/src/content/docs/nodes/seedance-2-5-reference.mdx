@@ -1,6 +1,6 @@
 ---
 title: "Seedance 2.5 Reference to Video"
-description: "Generate, edit or extend video from reference images, videos and audio with Seedance 2.5, 2.5 Premium or 2.0."
+description: "Generate, edit or extend video from image, video and audio references with Seedance 2.5, Flash or Seedance 2.0."
 node_id: BytePlusSeedance2Reference
 ---
 
@@ -28,7 +28,8 @@ The node bills for every video it generates and waits until the task finishes. I
 
 ### Notes on inputs
 
-- **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/). The Draft options render a 480p preview for [Draft to Final Video](../seedance-2-5-draft-to-final/). `task_type` and `output_format` exist on the Seedance 2.5 options only.
+- **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/). Seedance 2.5 offers 480p, 720p, 1080p and 4k; Flash offers 480p and 720p. Both support `task_type`. Only standard 2.5 and its Draft option expose `output_format`; Flash uses the API's default format and has no Draft option.
+- **Drafts:** Seedance 2.5 Draft renders a 480p preview for [Draft to Final Video](../seedance-2-5-draft-to-final/).
 - **task_type:** `reference` makes a new video from the references. `edit` changes a connected reference video; the result keeps the source clip's length and aspect ratio, and `duration` and `ratio` are ignored. `extend` continues a connected video; the prompt should say "extend forward", "extend backward" or "continue", and the result holds only the new segment, not the source clip.
 - **auto is risky with a video:** with a reference video connected, `auto` can be rejected after generation has started. Set `reference`, `edit` or `extend` instead. Every value except `auto` is validated when the task is submitted, so a mismatch fails before generation starts.
 - **Slots:** `image_N`, `video_N`, `audio_N` take connected media. `asset_N` takes an asset ID, `asset://<asset_id>` or an https link to an image, video or audio file. A link is recognized by its file extension, or else by the content type its host returns. Asset IDs are looked up in your asset library, which needs the IAM keys in **Settings → BytePlus**. See [Create Image Asset](../create-image-asset/), [Asset Library](../asset-library/) and [Reference media](../../concepts/reference-media/).
@@ -42,13 +43,13 @@ The node bills for every video it generates and waits until the task finishes. I
 ### Notes on outputs
 
 - With `generation_count` above 1, `VIDEO` is a list: the next node runs once per video, and `last_frame` holds their last frames as one batch in the same order.
-- `draft_task_id` is for the two Draft models. Send it to [Draft to Final Video](../seedance-2-5-draft-to-final/). Linking it while another model is selected stops the run.
+- `draft_task_id` is for Seedance 2.5 Draft. Send it to [Draft to Final Video](../seedance-2-5-draft-to-final/). Linking it while another model is selected stops the run.
 - With `non_blocking` on, the first run returns at once with the task IDs in `response` and no video, so nodes connected to `VIDEO` or `last_frame` are skipped. Run the node again to collect the finished video.
 
 ## Limits and tips
 
-- Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips) and 15 on Seedance 2.0 (9, 3 and 3). Connected media and `asset_N` entries count together.
-- You need at least one reference image or video, connected or as an asset. Audio alone is accepted on Seedance 2.5 only.
+- Up to 50 references in total on Seedance 2.5 and Flash (30 images, 10 videos, 10 audio clips) and 15 on Seedance 2.0 (9, 3 and 3). Connected media and `asset_N` entries count together.
+- You need at least one reference image or video, connected or as an asset. Audio alone is accepted on Seedance 2.5 and Flash.
 - Reference videos go through Comfy.org storage: log in to your Comfy.org account in ComfyUI. This does not work with `--disable-api-nodes`. To skip the upload, pass a link or an asset ID in `asset_N`.
 - Each reference video needs 300 to 6000 px per side, 407,696 to 8,295,044 pixels in total, an aspect ratio of 0.4 to 2.5, 24 to 60 fps, at most 200 MB and at least 2 s. `auto_downscale` (on by default) shrinks oversize videos and `auto_upscale` enlarges small ones.
 - Total reference video length is at most 15.2 s on Seedance 2.0 and 30.2 s on 2.5. Audio has the same total limit, and each connected audio clip needs at least 2 s. An `edit` task on Seedance 2.5 needs a video of at least 4 s.

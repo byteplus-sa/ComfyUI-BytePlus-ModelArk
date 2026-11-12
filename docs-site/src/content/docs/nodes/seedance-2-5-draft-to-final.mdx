@@ -1,6 +1,6 @@
 ---
 title: "Seedance 2.5 Draft to Final Video"
-description: "Render the final 1080p or 4k video from a Seedance 2.5 or 2.5 Premium draft, keeping the scene and motion you reviewed."
+description: "Render the final 1080p video from a Seedance 2.5 draft, keeping the scene and motion you reviewed."
 node_id: BytePlusSeedanceDraftToFinal
 ---
 
@@ -14,7 +14,7 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Turns a finished 480p draft into the full-quality video. The final keeps the draft's scene and motion and reuses its prompt, references, duration, aspect ratio and audio setting. It renders at 1080p for a Seedance 2.5 Draft and at 4k for a Seedance 2.5 Premium Draft; the model is read from the draft task, so you do not pick one.
+Turns a finished 480p draft into the full-quality video. The final keeps the draft's scene and motion and reuses its prompt, references, duration, aspect ratio and audio setting. It renders at 1080p for a Seedance 2.5 Draft; the model is read from the draft task, so you do not pick one.
 
 The node bills for every final video it renders and waits until the task finishes. It does not save anything itself: connect **Save Video** to keep the result.
 
@@ -28,10 +28,10 @@ The node bills for every final video it renders and waits until the task finishe
 
 ### Notes on inputs
 
-- **Getting a draft:** on [Text to Video](../seedance-2-5-text-to-video/), [First-Last-Frame to Video](../seedance-2-5-first-last-frame/) or [Reference to Video](../seedance-2-5-reference/), select Seedance 2.5 Draft or Seedance 2.5 Premium Draft. Each outputs `draft_task_id`.
+- **Getting a draft:** on [Text to Video](../seedance-2-5-text-to-video/), [First-Last-Frame to Video](../seedance-2-5-first-last-frame/) or [Reference to Video](../seedance-2-5-reference/), select Seedance 2.5 Draft. Each outputs `draft_task_id`.
 - **Fixed seed:** set `control after generate` under `seed` on the draft node to `fixed`. Otherwise the next run generates a new draft instead of reusing the one you reviewed. See [Draft mode](../../concepts/draft-mode/).
 - **Pasting IDs:** `draft_task_id` also takes IDs typed or pasted in, one per line or separated by commas. With several IDs, the node renders one final per draft and ignores `generation_count`.
-- **Same model:** all drafts in one run must come from the same model. Render Seedance 2.5 drafts and Premium drafts in separate nodes.
+- **Same model:** all drafts in one run must come from the same model. Only Seedance 2.5 drafts are supported.
 - **No seed here:** unlike the other video nodes, this node has no `seed` input and sends no seed, so `generation_count` does not add `seed` + N. The final reuses the draft's seed.
 
 ## Outputs
@@ -49,6 +49,7 @@ The node bills for every final video it renders and waits until the task finishe
 - A draft can be rendered for 7 days after it was created. After that, generate a new draft.
 - The draft task must have succeeded. A task that is still queued or running, or that failed, is refused with its status.
 - Only drafts are accepted: a task that is already a final video, or a task that is not 480p, is refused.
+- For direct 4k generation, select Seedance 2.5 with `resolution` set to `4k` on a generation node instead.
 - The final keeps the draft's `output_format`. With several draft IDs, the node takes it from the first draft.
 - With one draft ID, `generation_count` above 1 renders several finals from that draft and every one is billed. See [Billing and cost](../../concepts/billing-and-cost/).
 - Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again. See [Interrupts and cancelling](../../concepts/interrupts/).
@@ -59,7 +60,7 @@ The node bills for every final video it renders and waits until the task finishe
 | Message | What to do |
 |---|---|
 | `Enter a draft task ID` | Connect the `draft_task_id` output of a Draft run, or paste an ID. |
-| `is not a draft` | Use the `draft_task_id` of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. |
+| `is not a draft` | Use the `draft_task_id` of a Seedance 2.5 Draft run. |
 | `is more than 7 days old` | The draft is too old to render. Generate a new draft. |
 | `Render the final video after the draft has succeeded` | The draft is still queued or running. Wait for it to finish, then run again. |
 | `The draft task IDs come from different models` | Put each model's drafts in its own Draft to Final node. |

@@ -2,6 +2,43 @@
 
 Core ComfyUI ships its own ByteDance nodes in `comfy_api_nodes/nodes_bytedance.py` (+ `apis/bytedance.py` pydantic models). They call BytePlus **through the Comfy.org proxy** and bill Comfy credits; this pack calls ModelArk **directly** with the user's key. Core usually adds new Seedream/Seedance models quickly, so its code is a useful early signal for payload fields, limits and error codes. Read on 2026-10-18 from ComfyUI v0.41.0 (98cc0bf; last ByteDance change still 9f932548f, 2026-09-25; all parity tests pass). Deliberate gap: core's `seed-audio-1.0-multilingual` model option is not offered (the API ignores the model name, checked live 2026-10-18). Core has no BytePlus 3D nodes; the closest are its Rodin nodes (`nodes_rodin.py`, Deemos API via the Comfy.org proxy), whose File3D output convention the 3D nodes follow. Core's retired models are deleted outright; core's partner-proxy Idempotency-Key (a8686f2b3) has no ModelArk equivalent, which is why paid calls here never auto-retry (`nodes_shared.call_billed`).
 
+## Seedance 2.5 unified 4K and Flash
+
+On 2026-11-12 the maintainer supplied a console screenshot of standard
+`dreamina-seedance-2-5-260628` with 480p/720p/1080p/4K choices. The pack now
+uses that one model at every resolution, keeps its 720p default and removes
+Premium and Premium Draft without aliases or historical query entries.
+
+The maintainer also supplied a private-model screenshot and multimodal request
+for `dreamina-seedance-2-5-flash-261115`: 480p/720p, 4-30 seconds,
+image/video/audio references, edit, extension and first/last-frame generation.
+Reference counts of 30 images, 10 videos and 10 audio clips were separately
+confirmed. Flash uses the API's default output format, has no Draft option and
+is not overridden by the standard 2.5 endpoint. Keep family membership,
+explicit-format support and draft-final support in separate capability tables.
+The supplied multimodal request is covered by mocked node tests, not a live
+reference generation. The cached Ark MCP catalog omitted Flash and retained
+Premium during implementation; use the supplied contract and live evidence.
+
+Two approved text-only ComfyUI generations succeeded in Singapore, with
+16:9, four seconds, watermark off and audio off. Standard 2.5 returned
+3840x2160 HEVC in MP4 through the existing endpoint override, identifying its
+canonical dated model; Flash returned 1280x720 H.264 in MP4 with its exact
+dated ID. Both decoded completely: 97 frames at 24 fps (4.041667 seconds).
+Native Save Video, Save Image and Preview Any outputs and local Chrome
+playback passed. Provider JPEG last-frame previews matched the saved images,
+but were not pixel-identical to the last decoded MP4 frame.
+
+Draft previews remain 480p and Draft to Final remains 1080p. Direct-API 4K
+draft conversion, Flash explicit formats/Draft, maximum reference counts,
+live reference/audio generation, Europe and Nodes 2.0 were not verified.
+Upstream [fd7105477](https://github.com/Comfy-Org/ComfyUI/commit/fd7105477a348a5357f98d3a6b783027fa1ba3fe)
+adds enterprise-only 4K and an optional final-resolution selector to the
+Comfy.org proxy. Parity tests accept only the known older resolution list,
+proxy entitlement tooltip and exact optional final-resolution schema;
+other defaults, tooltips, options and inputs remain checked. Proxy pricing
+and access handling are not copied into this direct-API pack.
+
 Read it with:
 
 ```bash
@@ -22,7 +59,7 @@ Core: `/proxy/byteplus/api/v3/images/generations`, `/proxy/byteplus/api/v3/conte
 | `seedream-5-0-260128` (5.0 lite) | same |
 | `seedream-4-5-251128`, `seedream-4-0-250828` | same |
 | `dreamina-seedance-2-5-260628` (+ "Draft" variant = same ID with `draft`) | same |
-| — | `dreamina-seedance-2-5-premium-260915` |
+| — | `dreamina-seedance-2-5-flash-261115` |
 | `dreamina-seedance-2-0-260128`, `-fast-260128` | same |
 | `dreamina-seedance-2-0-mini` (undated) | `dreamina-seedance-2-0-mini-260615` |
 | `seedance-1-5-pro-251215`, `seedance-1-0-pro-250528`, `seedance-1-0-pro-fast-251015` | same |
