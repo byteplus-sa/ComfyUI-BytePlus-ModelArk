@@ -1,0 +1,52 @@
+---
+title: "LAS Task Result"
+description: "Collect an existing LAS Genjutsu or Video Translation task and save its video without submitting new generation work."
+template_file: LAS Task Result.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="LAS Task Result.json" />
+
+## What it makes
+
+No new generation. This template collects an existing LAS task and saves available video results. Use it after an interrupted wait, ComfyUI restart or failed download, with the original task account's LAS key.
+
+## The workflow
+
+<Shot src="templates/las-task-result-workflow.webp" alt="LAS Task Result workflow with setup note, existing-task collector and video saving" caption="Collect the accepted task instead of submitting replacement generation work." />
+
+1. Read the **MarkdownNote** and find the accepted LAS task ID from your original run.
+2. **[LAS Task Result](../../nodes/las-task-result/)** looks up the ID using the selected operator and collects available artifacts.
+3. **Save Video** keeps the returned video or language results. Other collector outputs remain available for downstream use.
+
+## Run it
+
+1. Set the LAS API key for the account that submitted the task in **Settings > BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Open **LAS Task Result**. Paste your accepted `task_id`, not a ModelArk ID or an operator's nested generation ID.
+3. Select `Genjutsu` or `Video Translation` to match the original operator.
+4. Choose whether to wait for completion, then press **Run**. Save available videos; requeue a pending task later when checking without waiting.
+
+## Settings worth changing
+
+- **`operator` and `task_id`:** must identify the original LAS task and submitting operator.
+- **`wait_for_completion`:** wait for completion or inspect once. Pending tasks return task information with blocked media outputs.
+- **`download_audio`:** collects existing clean speech; it does not request new speech generation.
+- **`download_captions` and `primary_caption_format`:** collect captions the original task produced. Specified-audio lip sync does not provide standard translation captions.
+- **`download_repaired_video`:** selects an existing repaired source, not a new repair task. Connect another **Save Video** to keep it.
+- **`return_last_frame`:** selects the optional Genjutsu image output. Connect **Save Image** if you need to keep that image.
+
+## Example result
+
+No example output is published here. Inspect your original task's information and available artifacts. A pending status is not a generation failure, and the collector cannot create artifacts absent from the submitted task.
+
+## Time and cost
+
+The collector submits no new generation work. The original task may still be running and billed, and local downloads take time. Requeueing the collector refreshes its status rather than relying on an unchanged cached lookup. LAS task lookup is documented for three days; result links also expire, so save available media promptly. Interrupting collection does not cancel the remote task.
+
+## Related
+
+- Node: [LAS Task Result](../../nodes/las-task-result/)
+- Original edit: [LAS Genjutsu](../las-genjutsu/)
+- Original translation: [LAS Video Translation](../las-video-translation/)

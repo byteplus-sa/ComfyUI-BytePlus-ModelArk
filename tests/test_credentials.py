@@ -46,6 +46,7 @@ if COMFY_ROOT:
     core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
+    nodes_las = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_las")
     nodes_3d = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_3d")
     nodes_assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
     nodes_seedream = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedream")
@@ -73,6 +74,8 @@ CREDENTIAL_ENV_VARS = (
     "BYTEPLUS_REGION",
     "BYTEPLUS_SEED_SPEECH_API_KEY",
     "BYTEPLUS_VOD_MEDIAKIT_API_KEY",
+    "BYTEPLUS_LAS_API_KEY",
+    "LAS_API_KEY",
     "BYTEPLUS_ACCESS_KEY",
     "BYTEPLUS_ACCESSKEY",
     "BYTEPLUS_SECRET_KEY",
@@ -164,6 +167,14 @@ class EnvFileTests(IsolatedCredentials):
         self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "")
         self.assertIsNone(credentials.setting_source("BYTEPLUS_API_KEY"))
         self.assertIsNone(credentials.get_asset_credentials())
+
+    def test_las_key_alias_is_read_and_removed_when_canonical_value_is_saved(self):
+        self.write_env("LAS_API_KEY=legacy-value\n")
+        self.assertEqual(credentials.get_setting(*credentials.LAS_API_KEY_ENVS), "legacy-value")
+        credentials.update_env_file({"BYTEPLUS_LAS_API_KEY": "canonical-value"})
+        self.assertEqual(credentials.get_setting(*credentials.LAS_API_KEY_ENVS), "canonical-value")
+        with open(self.env_path, encoding="utf-8") as file:
+            self.assertEqual(file.read(), "BYTEPLUS_LAS_API_KEY=canonical-value\n")
 
     def test_file_changes_are_picked_up_without_a_restart(self):
         self.write_env("BYTEPLUS_API_KEY=one\n")
@@ -498,6 +509,15 @@ class ClientTests(IsolatedCredentials):
         self.assertEqual(nodes_speech.get_speech_client().api_key, "speech-key")
         self.assertEqual(nodes_mediakit.get_mediakit_client().api_key, "mk-key")
 
+    def test_las_client_uses_its_own_key_and_fixed_region(self):
+        with self.assertRaisesRegex(BytePlusException, "BYTEPLUS_LAS_API_KEY"):
+            nodes_las.get_las_client()
+        self.write_env("BYTEPLUS_LAS_API_KEY=las-key\nBYTEPLUS_REGION=eu-west-1\n")
+        client = nodes_las.get_las_client()
+        self.assertEqual(client.api_key, "las-key")
+        self.assertEqual(client.region, "ap-southeast-1")
+        self.assertNotIn("las-key", repr(client))
+
     def test_a_node_runs_with_the_saved_key(self):
         # Asset Library sends one ListAssets call; the fake library records which client it got.
         seen = []
@@ -581,6 +601,7 @@ ALL_NODES = (
         *nodes_assets.NODES,
         *nodes_speech.NODES,
         *nodes_mediakit.NODES,
+        *nodes_las.NODES,
         *nodes_3d.NODES,
         nodes_video.BytePlusVideoQueryTasks,
     ]
@@ -596,11 +617,11 @@ class NoClientInputTests(unittest.TestCase):
             with self.subTest(node=node_cls.__name__):
                 info = node_cls.GET_NODE_INFO_V1()
                 inputs = {**info["input"]["required"], **info["input"].get("optional", {})}
-                self.assertFalse({"client", "speech_client", "mediakit_client"} & set(inputs))
+                self.assertFalse({"client", "speech_client", "mediakit_client", "las_client"} & set(inputs))
                 self.assertFalse(any("CLIENT" in str(spec[0]) for spec in inputs.values()))
                 self.assertTrue(hasattr(node_cls.execute.__func__, "__wrapped__"))
                 params = list(inspect.signature(node_cls.execute.__func__.__wrapped__).parameters)
-                self.assertIn(params[1], ("client", "speech_client", "mediakit_client"))
+                self.assertIn(params[1], ("client", "speech_client", "mediakit_client", "las_client"))
 
 
 @requires_comfyui
@@ -677,6 +698,29 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         status, body = await self.save({"credential": "speech", "clear": True})
         self.assertEqual(status, 200)
         self.assertFalse(body["credentials"]["speech"]["configured"])
+
+    async def test_save_and_clear_las_without_modelark_validation_or_region_changes(self):
+        self.write_env("BYTEPLUS_REGION=eu-west-1\n")
+        with mock.patch.object(credentials_routes, "check_api_key", side_effect=AssertionError("No API calls")):
+            status, body = await self.save(
+                {"credential": "las", "value": "  las-key-123456 ", "region": "ap-southeast-1"}
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(credentials.get_setting("BYTEPLUS_LAS_API_KEY"), "las-key-123456")
+            self.assertEqual(credentials.get_default_region(), "eu-west-1")
+            self.assertEqual(body["credentials"]["las"]["hint"], "ends in 3456")
+            self.assertNotIn("las-key-123456", json.dumps(body))
+            status, body = await self.save({"credential": "las", "clear": True})
+        self.assertEqual(status, 200)
+        self.assertFalse(body["credentials"]["las"]["configured"])
+        self.assertEqual(credentials.get_default_region(), "eu-west-1")
+
+    async def test_invalid_las_key_values_are_not_written(self):
+        for value in (None, [], {}, 123, True, "key\nOTHER=value", "key\rOTHER=value"):
+            with self.subTest(value=value):
+                status, _ = await self.save({"credential": "las", "value": value})
+                self.assertEqual(status, 400)
+        self.assertFalse(os.path.exists(self.env_path))
 
     async def test_save_and_clear_endpoints_without_api_calls(self):
         with mock.patch.object(credentials_routes, "check_api_key", side_effect=AssertionError("No API calls")):

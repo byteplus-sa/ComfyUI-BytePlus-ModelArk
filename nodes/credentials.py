@@ -18,6 +18,7 @@ import threading
 
 from .constants import (
     DEFAULT_REGION,
+    LAS_API_KEY_ENV,
     MEDIAKIT_API_KEY_ENV,
     REGION_BASE_URLS,
     SPEECH_API_KEY_ENV,
@@ -44,16 +45,22 @@ def valid_endpoint_id(value):
 
 
 # Credential id (as used by the Settings dialog and the routes) -> variable.
+LAS_API_KEY_ENVS = (LAS_API_KEY_ENV, "LAS_API_KEY")
 CREDENTIAL_VARS = {
     "modelark": MODELARK_KEY_ENV,
     "speech": SPEECH_API_KEY_ENV,
     "mediakit": MEDIAKIT_API_KEY_ENV,
+    "las": LAS_API_KEY_ENV,
     "access_key": ACCESS_KEY_ENVS[0],
     "secret_key": SECRET_KEY_ENVS[0],
 }
 # Other spellings read for a variable. Writing or removing the variable also
 # removes them, or a stale alias would keep the old value active.
-ALIASES = {ACCESS_KEY_ENVS[0]: ACCESS_KEY_ENVS[1:], SECRET_KEY_ENVS[0]: SECRET_KEY_ENVS[1:]}
+ALIASES = {
+    ACCESS_KEY_ENVS[0]: ACCESS_KEY_ENVS[1:],
+    SECRET_KEY_ENVS[0]: SECRET_KEY_ENVS[1:],
+    LAS_API_KEY_ENV: LAS_API_KEY_ENVS[1:],
+}
 # Variables a request may write; everything else in the file is left alone.
 WRITABLE_VARS = set(CREDENTIAL_VARS.values()) | set(ENDPOINT_VARS.values()) | {REGION_ENV, SESSION_TOKEN_ENV}
 
@@ -285,7 +292,11 @@ def credential_status():
     path = env_file_path()
     status = {"env_file": path, "env_file_display": display_path(path), "credentials": {}}
     for credential, variable in CREDENTIAL_VARS.items():
-        names = {"access_key": ACCESS_KEY_ENVS, "secret_key": SECRET_KEY_ENVS}.get(credential, (variable,))
+        names = {
+            "access_key": ACCESS_KEY_ENVS,
+            "secret_key": SECRET_KEY_ENVS,
+            "las": LAS_API_KEY_ENVS,
+        }.get(credential, (variable,))
         value = get_setting(*names)
         source = setting_source(*names)
         file_values = read_env_file()

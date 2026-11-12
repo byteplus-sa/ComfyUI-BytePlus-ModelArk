@@ -77,7 +77,7 @@ const BUTTON_STYLE = {
  * {name, placeholder, type?} (password inputs by default); `select` an optional
  * {name, options} dropdown. `payload(values)` builds the POST body.
  */
-function credentialEditor({ credential, endpoint, fields, select, label, showFile = false }) {
+function credentialEditor({ credential, endpoint, fields, select, label, showFile = false, guideUrl }) {
     const root = element("div", {}, {
         display: "flex",
         flexDirection: "column",
@@ -120,6 +120,14 @@ function credentialEditor({ credential, endpoint, fields, select, label, showFil
     // Where the keys are saved, so the file can be found and edited by hand.
     const fileLine = element("div", {}, { fontSize: "0.75rem", opacity: "0.6", wordBreak: "break-all" });
     if (showFile) root.append(fileLine);
+    if (guideUrl) {
+        root.append(element("a", {
+            href: guideUrl,
+            textContent: "API key setup guide",
+            target: "_blank",
+            rel: "noopener noreferrer",
+        }, { fontSize: "0.8rem" }));
+    }
 
     const show = (text, isError = false) => {
         status.textContent = text;
@@ -275,6 +283,17 @@ app.registerExtension({
                 credential: "mediakit",
                 label: "AI MediaKit API key",
                 fields: [{ name: "value", placeholder: "AI MediaKit API key" }],
+            },
+        ),
+        setting(
+            "LAS",
+            "LAS API key",
+            "Separate LAS key for Genjutsu, Video Translation and Task Result in Johor (ap-southeast-1). Saved as BYTEPLUS_LAS_API_KEY. Saving does not validate the key or submit work; the ModelArk region is unchanged.",
+            {
+                credential: "las",
+                label: "LAS API key",
+                fields: [{ name: "value", placeholder: "LAS API key" }],
+                guideUrl: "https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key",
             },
         ),
         setting(

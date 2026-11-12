@@ -1,0 +1,913 @@
+{
+  "id": "9839342f-4544-42d2-9a09-c3e2295750c0",
+  "revision": 0,
+  "last_node_id": 7,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadVideo",
+      "pos": [
+        20,
+        40
+      ],
+      "size": [
+        410,
+        82
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "file",
+          "name": "file",
+          "type": "COMBO",
+          "widget": {
+            "name": "file"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "choose file to upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VIDEO",
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            1,
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "",
+        "image"
+      ],
+      "widgets_values_named": {
+        "file": "",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 2,
+      "type": "LoadAudio",
+      "pos": [
+        20,
+        430
+      ],
+      "size": [
+        410,
+        136
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "COMBO",
+          "widget": {
+            "name": "audio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "audioUI",
+          "name": "audioUI",
+          "type": "AUDIO_UI",
+          "widget": {
+            "name": "audioUI"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "choose file to upload",
+          "name": "upload",
+          "type": "AUDIOUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "AUDIO",
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "audio": "",
+        "upload": ""
+      }
+    },
+    {
+      "id": 3,
+      "type": "BytePlusLASVideoTranslation",
+      "pos": [
+        480,
+        40
+      ],
+      "size": [
+        410,
+        558
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 1
+        },
+        {
+          "localized_name": "dubbing_audio",
+          "name": "dubbing_audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 2
+        },
+        {
+          "localized_name": "subtitle_video",
+          "name": "subtitle_video",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "dubbing_audio_url",
+          "name": "mode.dubbing_audio_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "mode.dubbing_audio_url"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "dubbing_language",
+          "name": "mode.dubbing_language",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "mode.dubbing_language"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ignore_audio_video_duration_mismatch",
+          "name": "mode.ignore_audio_video_duration_mismatch",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "mode.ignore_audio_video_duration_mismatch"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_tos_path",
+          "name": "output_tos_path",
+          "type": "STRING",
+          "widget": {
+            "name": "output_tos_path"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "video_url",
+          "name": "video_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "video_url"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "caption_formats",
+          "name": "caption_formats",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "caption_formats"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "primary_caption_format",
+          "name": "primary_caption_format",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "primary_caption_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_dubbing_audio",
+          "name": "output_dubbing_audio",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "output_dubbing_audio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "burn_translated_subtitles",
+          "name": "burn_translated_subtitles",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "burn_translated_subtitles"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "subtitle_video_url",
+          "name": "subtitle_video_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "subtitle_video_url"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "restoration",
+          "name": "restoration",
+          "shape": 7,
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "restoration"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "subtitle_style",
+          "name": "subtitle_style",
+          "shape": 7,
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "subtitle_style"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "callback_url",
+          "name": "callback_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "callback_url"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            3
+          ]
+        },
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "shape": 6,
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "localized_name": "subtitle",
+          "name": "subtitle",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "language",
+          "name": "language",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "repaired_video",
+          "name": "repaired_video",
+          "type": "VIDEO",
+          "links": null
+        },
+        {
+          "localized_name": "artifacts_json",
+          "name": "artifacts_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "task_id",
+          "name": "task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BytePlusLASVideoTranslation",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.7.0"
+      },
+      "widgets_values": [
+        "lip_sync_external_audio",
+        "",
+        "auto",
+        false,
+        "",
+        "",
+        ".srt",
+        ".srt",
+        false,
+        false,
+        "",
+        "off",
+        "automatic",
+        "",
+        0,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "mode": "lip_sync_external_audio",
+        "mode.dubbing_audio_url": "",
+        "mode.dubbing_language": "auto",
+        "mode.ignore_audio_video_duration_mismatch": false,
+        "output_tos_path": "",
+        "video_url": "",
+        "caption_formats": ".srt",
+        "primary_caption_format": ".srt",
+        "output_dubbing_audio": false,
+        "burn_translated_subtitles": false,
+        "subtitle_video_url": "",
+        "restoration": "off",
+        "subtitle_style": "automatic",
+        "callback_url": "",
+        "seed": 0,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 4,
+      "type": "SaveVideo",
+      "pos": [
+        1040,
+        40
+      ],
+      "size": [
+        360,
+        106
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "VIDEO",
+          "link": 3
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "codec",
+          "name": "format.codec",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "format.codec"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "format",
+          "name": "format",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "codec",
+          "name": "codec",
+          "shape": 7,
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/LAS/ExternalAudioLipSync",
+        "auto",
+        "auto",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/LAS/ExternalAudioLipSync",
+        "format": "auto",
+        "format.codec": "auto",
+        "codec": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "BytePlusLASVideoTranslation",
+      "pos": [
+        480,
+        750
+      ],
+      "size": [
+        410,
+        510
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 4
+        },
+        {
+          "localized_name": "dubbing_audio",
+          "name": "dubbing_audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "localized_name": "subtitle_video",
+          "name": "subtitle_video",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "audio_language",
+          "name": "mode.audio_language",
+          "type": "COMBO",
+          "widget": {
+            "name": "mode.audio_language"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_tos_path",
+          "name": "output_tos_path",
+          "type": "STRING",
+          "widget": {
+            "name": "output_tos_path"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "video_url",
+          "name": "video_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "video_url"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "caption_formats",
+          "name": "caption_formats",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "caption_formats"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "primary_caption_format",
+          "name": "primary_caption_format",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "primary_caption_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "output_dubbing_audio",
+          "name": "output_dubbing_audio",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "output_dubbing_audio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "burn_translated_subtitles",
+          "name": "burn_translated_subtitles",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "burn_translated_subtitles"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "subtitle_video_url",
+          "name": "subtitle_video_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "subtitle_video_url"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "restoration",
+          "name": "restoration",
+          "shape": 7,
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "restoration"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "subtitle_style",
+          "name": "subtitle_style",
+          "shape": 7,
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "subtitle_style"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "callback_url",
+          "name": "callback_url",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "callback_url"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "shape": 6,
+          "type": "VIDEO",
+          "links": [
+            5
+          ]
+        },
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "shape": 6,
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "localized_name": "subtitle",
+          "name": "subtitle",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "language",
+          "name": "language",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "repaired_video",
+          "name": "repaired_video",
+          "type": "VIDEO",
+          "links": null
+        },
+        {
+          "localized_name": "artifacts_json",
+          "name": "artifacts_json",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "task_id",
+          "name": "task_id",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "response",
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BytePlusLASVideoTranslation",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.7.0"
+      },
+      "widgets_values": [
+        "lip_sync_source_audio",
+        "en-US",
+        "",
+        "",
+        ".srt",
+        ".srt",
+        false,
+        false,
+        "",
+        "off",
+        "automatic",
+        "",
+        0,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "mode": "lip_sync_source_audio",
+        "mode.audio_language": "en-US",
+        "output_tos_path": "",
+        "video_url": "",
+        "caption_formats": ".srt",
+        "primary_caption_format": ".srt",
+        "output_dubbing_audio": false,
+        "burn_translated_subtitles": false,
+        "subtitle_video_url": "",
+        "restoration": "off",
+        "subtitle_style": "automatic",
+        "callback_url": "",
+        "seed": 0,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 6,
+      "type": "SaveVideo",
+      "pos": [
+        1040,
+        750
+      ],
+      "size": [
+        360,
+        106
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "VIDEO",
+          "link": 5
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "codec",
+          "name": "format.codec",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "format.codec"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "format",
+          "name": "format",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "codec",
+          "name": "codec",
+          "shape": 7,
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/LAS/SourceAudioLipSync",
+        "auto",
+        "auto",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/LAS/SourceAudioLipSync",
+        "format": "auto",
+        "format.codec": "auto",
+        "codec": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "MarkdownNote",
+      "pos": [
+        20,
+        850
+      ],
+      "size": [
+        390,
+        240
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "Set the LAS key in Settings > BytePlus. Two independent examples: external audio replaces speech, while source-audio mode retains the video's audio. Choose one branch to run by disconnecting the other Save Video. Set a writable TOS directory on the branch you run. External audio must match video duration within one second unless override loops/trims video. No translated captions or TTS in these modes."
+      ],
+      "widgets_values_named": {
+        "text": "Set the LAS key in Settings > BytePlus. Two independent examples: external audio replaces speech, while source-audio mode retains the video's audio. Choose one branch to run by disconnecting the other Save Video. Set a writable TOS directory on the branch you run. External audio must match video duration within one second unless override loops/trims video. No translated captions or TTS in these modes."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      0,
+      "VIDEO"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      1,
+      "AUDIO"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "VIDEO"
+    ],
+    [
+      4,
+      1,
+      0,
+      5,
+      0,
+      "VIDEO"
+    ],
+    [
+      5,
+      5,
+      0,
+      6,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        100,
+        200
+      ]
+    }
+  },
+  "version": 0.4
+}

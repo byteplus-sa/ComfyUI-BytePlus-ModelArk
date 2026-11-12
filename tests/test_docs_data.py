@@ -72,13 +72,21 @@ class DocsDataTests(unittest.TestCase):
             f[:-4] for f in os.listdir(os.path.join(PAGES, "templates")) if f.endswith(".mdx") and f != "index.mdx"
         }
         downloads = {f[:-5] for f in os.listdir(os.path.join(site, "public", "workflows"))}
+        image_files = os.listdir(os.path.join(site, "src", "assets", "templates"))
         images = {
-            f.rsplit("-workflow.", 1)[0].rsplit("-result.", 1)[0].rsplit(".jpg", 1)[0]
-            for f in os.listdir(os.path.join(site, "src", "assets", "templates"))
+            slug
+            for slug in slugs
+            if f"{slug}.jpg" in image_files or any(name.startswith(f"{slug}-") for name in image_files)
         }
+        orphan_images = [
+            name
+            for name in image_files
+            if not any(name == f"{slug}.jpg" or name.startswith(f"{slug}-") for slug in slugs)
+        ]
         self.assertEqual(pages, slugs)
         self.assertEqual(downloads, slugs)
         self.assertEqual(images, slugs)
+        self.assertEqual(orphan_images, [])
         for name in os.listdir(os.path.join(site, "public", "media")):
             stem = name.rsplit(".", 1)[0]
             self.assertTrue(stem in slugs or stem.rsplit("-", 1)[0] in slugs, f"orphan sample media: {name}")
