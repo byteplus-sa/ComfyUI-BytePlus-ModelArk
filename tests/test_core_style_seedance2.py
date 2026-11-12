@@ -470,6 +470,18 @@ class SchemaTests(unittest.TestCase):
         with core_enterprise_4k_schemas():
             self.test_matches_core_nodes()
 
+    def test_matches_core_nodes_accepts_4k_without_enterprise_wording(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        with core_enterprise_4k_schemas() as schemas:
+            for node_cls, info in schemas.items():
+                if node_cls is core.ByteDance2DraftToFinalVideoNode:
+                    info["input"]["optional"]["resolution"][1]["tooltip"] = "Resolution of the final video."
+                else:
+                    options = info["input"]["required"]["model"][1]["options"]
+                    option = next(item for item in options if item["key"] == "Seedance 2.5")
+                    option["inputs"]["required"]["resolution"][1]["tooltip"] = "Resolution of the output video."
+            self.test_matches_core_nodes()
+
     def test_matches_core_nodes_rejects_other_generation_schema_changes(self):
         core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
         cases = (
@@ -557,15 +569,21 @@ class SchemaTests(unittest.TestCase):
             theirs_req = core_info["input"]["required"]
             theirs_opt = dict(core_info["input"].get("optional") or {})
             if ours_cls is nodes_seedance2.BytePlusSeedanceDraftToFinal and "resolution" in theirs_opt:
+                resolution_type, resolution_options = theirs_opt.pop("resolution")
+                resolution_options = dict(resolution_options)
+                if resolution_options.get("tooltip") == (
+                    "Resolution of the final video. 4k is available to enterprise accounts only."
+                ):
+                    resolution_options["tooltip"] = "Resolution of the final video."
                 self.assertEqual(
-                    theirs_opt.pop("resolution"),
+                    (resolution_type, resolution_options),
                     (
                         "COMBO",
                         {
                             "options": ["1080p", "4k"],
                             "default": "1080p",
                             "multiselect": False,
-                            "tooltip": "Resolution of the final video. 4k is available to enterprise accounts only.",
+                            "tooltip": "Resolution of the final video.",
                         },
                     ),
                     f"{ours_cls.NODE_ID}.resolution",

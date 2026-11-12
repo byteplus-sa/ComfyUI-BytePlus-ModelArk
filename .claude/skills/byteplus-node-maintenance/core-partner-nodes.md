@@ -36,7 +36,9 @@ Upstream [fd7105477](https://github.com/Comfy-Org/ComfyUI/commit/fd7105477a348a5
 adds enterprise-only 4K and an optional final-resolution selector to the
 Comfy.org proxy. Parity tests accept only the known older resolution list,
 proxy entitlement tooltip and exact optional final-resolution schema;
-other defaults, tooltips, options and inputs remain checked. Proxy pricing
+the final selector also accepts the exact tooltip without enterprise wording
+from upstream [b2f670744](https://github.com/Comfy-Org/ComfyUI/commit/b2f670744386d36d39c41cc37cd1e30151046222).
+Other defaults, tooltips, options and inputs remain checked. Proxy pricing
 and access handling are not copied into this direct-API pack.
 
 Read it with:
