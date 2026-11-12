@@ -112,6 +112,19 @@ class CourseMaterialsTests(unittest.TestCase):
         self.assertIn("video-workflow.json", text)
         self.assertIn("Both JSON files reopen", text)
 
+    def test_installation_shows_how_to_reach_the_node_pack_manager(self):
+        text = (COURSE / "install-comfyui.mdx").read_text()
+        section = text.split("## Install the BytePlus pack", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("**ComfyUI menu**", section)
+        self.assertIn("top left", section)
+        self.assertIn("**Extensions**", section)
+        self.assertIn("**Nodes Manager**", section)
+        self.assertIn("**Node Pack**", section)
+        self.assertLess(
+            section.index('src="tutorials/extensions-entry.webp"'),
+            section.index('src="tutorials/extensions-manager.webp"'),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
