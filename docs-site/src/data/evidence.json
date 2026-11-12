@@ -439,5 +439,35 @@
   "tested": "2026-10-15",
   "media": [],
   "extra_runs": []
+ },
+ "las-genjutsu": {
+  "status": "unverified",
+  "media": [],
+  "extra_runs": []
+ },
+ "las-video-translation": {
+  "status": "unverified",
+  "media": [],
+  "extra_runs": []
+ },
+ "las-multilingual-translation": {
+  "status": "unverified",
+  "media": [],
+  "extra_runs": []
+ },
+ "las-lip-sync": {
+  "status": "unverified",
+  "media": [],
+  "extra_runs": []
+ },
+ "las-translation-and-restoration": {
+  "status": "unverified",
+  "media": [],
+  "extra_runs": []
+ },
+ "las-task-result": {
+  "status": "unverified",
+  "media": [],
+  "extra_runs": []
  }
 }

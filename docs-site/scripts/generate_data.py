@@ -47,6 +47,9 @@ NODES = [
     ("BytePlusVideoEnhance", "vcube-video-enhance", "MediaKit"),
     ("BytePlusVideoSmoothness", "video-smoothness-enhance", "MediaKit"),
     ("BytePlusImageEnhance", "image-quality-enhance", "MediaKit"),
+    ("BytePlusLASGenjutsu", "las-genjutsu", "LAS"),
+    ("BytePlusLASVideoTranslation", "las-video-translation", "LAS"),
+    ("BytePlusLASTaskResult", "las-task-result", "LAS"),
     ("BytePlusHyper3D", "hyper3d", "3D"),
     ("BytePlusHitem3D", "hitem3d", "3D"),
     ("BytePlusCreateImageAsset", "create-image-asset", "Assets"),
@@ -89,6 +92,17 @@ TEMPLATE_GROUPS = [
     ("3D", ["Hyper3D Text to 3D", "Hyper3D and Hitem3D Image to 3D"]),
     ("Language", ["Seed Prompt Writer"]),
     ("Speech", ["Seed Audio", "Seed Speech TTS and ASR", "Seed Voice Clone"]),
+    (
+        "LAS",
+        [
+            "LAS Genjutsu",
+            "LAS Video Translation",
+            "LAS Multilingual Translation",
+            "LAS Lip Sync",
+            "LAS Translation and Restoration",
+            "LAS Task Result",
+        ],
+    ),
     ("Assets", ["Virtual Portrait - Existing Asset", "Virtual Portrait - New Asset", "Video and Audio Assets"]),
     (
         "Showcase",
@@ -111,6 +125,7 @@ KEYS_BY_CATEGORY = {
     "BytePlus ModelArk/3D": ["ModelArk API key"],
     "BytePlus ModelArk/Speech": ["Seed Speech API key"],
     "BytePlus ModelArk/MediaKit": ["AI MediaKit API key"],
+    "BytePlus ModelArk/LAS": ["LAS API key"],
 }
 KEYS_BY_CLASS = {
     "BytePlusCreateImageAsset": ["ModelArk API key", "IAM access key and secret key"],

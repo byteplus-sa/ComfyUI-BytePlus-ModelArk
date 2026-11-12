@@ -779,6 +779,147 @@
   "has_thumbnail": true
  },
  {
+  "file": "LAS Genjutsu.json",
+  "title": "LAS Genjutsu",
+  "slug": "las-genjutsu",
+  "group": "LAS",
+  "nodes": [
+   {
+    "id": "BytePlusLASGenjutsu",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Image",
+   "Load Video",
+   "MarkdownNote",
+   "Save Video"
+  ],
+  "keys": [
+   "LAS API key"
+  ],
+  "groups": [],
+  "note": "Set the LAS key in Settings > BytePlus. Connect your source video and optional reference image. Set the edit prompt. LAS key is separate from ModelArk. Person edits require rights and LAS access. Keep seed fixed for task recovery. Cancel stops local waiting, not paid remote work.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "LAS Video Translation.json",
+  "title": "LAS Video Translation",
+  "slug": "las-video-translation",
+  "group": "LAS",
+  "nodes": [
+   {
+    "id": "BytePlusLASVideoTranslation",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Video",
+   "MarkdownNote",
+   "Save Audio (Advanced)",
+   "Save Video"
+  ],
+  "keys": [
+   "LAS API key"
+  ],
+  "groups": [],
+  "note": "Set the LAS key in Settings > BytePlus. Choose an input video containing speech and its source language. Set a writable Johor TOS output directory. This example returns video, clean audio, SRT and ASS. Each language and added service can incur charges. Use LAS Task Result after interruption.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "LAS Multilingual Translation.json",
+  "title": "LAS Multilingual Translation",
+  "slug": "las-multilingual-translation",
+  "group": "LAS",
+  "nodes": [
+   {
+    "id": "BytePlusLASVideoTranslation",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Video",
+   "MarkdownNote",
+   "Save Audio (Advanced)",
+   "Save Video"
+  ],
+  "keys": [
+   "LAS API key"
+  ],
+  "groups": [],
+  "note": "Set the LAS key in Settings > BytePlus. Set your input and writable TOS output directory. video, audio, subtitle and language lists share target order: Spanish, then Japanese. Core save nodes consume each list item. artifacts_json contains all caption formats. Every output language is billed separately.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "LAS Lip Sync.json",
+  "title": "LAS Lip Sync",
+  "slug": "las-lip-sync",
+  "group": "LAS",
+  "nodes": [
+   {
+    "id": "BytePlusLASVideoTranslation",
+    "count": 2
+   }
+  ],
+  "other_nodes": [
+   "Load Audio",
+   "Load Video",
+   "MarkdownNote",
+   "Save Video"
+  ],
+  "keys": [
+   "LAS API key"
+  ],
+  "groups": [],
+  "note": "Set the LAS key in Settings > BytePlus. Two independent examples: external audio replaces speech, while source-audio mode retains the video's audio. Choose one branch to run by disconnecting the other Save Video. Set a writable TOS directory on the branch you run. External audio must match video duration within one second unless override loops/trims video. No translated captions or TTS in these modes.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "LAS Translation and Restoration.json",
+  "title": "LAS Translation and Restoration",
+  "slug": "las-translation-and-restoration",
+  "group": "LAS",
+  "nodes": [
+   {
+    "id": "BytePlusLASVideoTranslation",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Video",
+   "MarkdownNote",
+   "Save Video"
+  ],
+  "keys": [
+   "LAS API key"
+  ],
+  "groups": [],
+  "note": "Set the LAS key in Settings > BytePlus. Remove owned source subtitles, translate speech and burn in styled subtitles. Set a writable TOS directory. Restoration adds charges and narrows input to 3 hours/4K. Repaired source is a separate shared output, not a per-language translation. ASS uses the subtitle style controls; SRT does not.",
+  "has_thumbnail": true
+ },
+ {
+  "file": "LAS Task Result.json",
+  "title": "LAS Task Result",
+  "slug": "las-task-result",
+  "group": "LAS",
+  "nodes": [
+   {
+    "id": "BytePlusLASTaskResult",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "MarkdownNote",
+   "Save Video"
+  ],
+  "keys": [
+   "LAS API key"
+  ],
+  "groups": [],
+  "note": "Set the LAS key in Settings > BytePlus. Choose the original operator and paste its LAS task ID. This node only polls and downloads: it never submits paid generation. IDs expire after three days; signed media links also expire. Save the results promptly. Poll once and requeue, or wait for completion.",
+  "has_thumbnail": true
+ },
+ {
   "file": "Virtual Portrait - Existing Asset.json",
   "title": "Virtual Portrait - Existing Asset",
   "slug": "virtual-portrait-existing-asset",

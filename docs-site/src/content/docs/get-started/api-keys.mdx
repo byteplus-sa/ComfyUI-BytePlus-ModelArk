@@ -8,7 +8,7 @@ import Shot from '../../../components/Shot.astro';
 
 The nodes call BytePlus with **your own keys**. You save each key once in **Settings → BytePlus**. Workflows contain no keys and no client nodes, so you can share a workflow safely.
 
-## The four key types
+## The five key types
 
 Each BytePlus product has its own key. They are not interchangeable: a ModelArk API key does not work on a Seed Speech node.
 
@@ -17,6 +17,7 @@ Each BytePlus product has its own key. They are not interchangeable: a ModelArk 
 | ModelArk API key | [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) | Seedream, Seedance, Video Query Tasks, BytePlus LLM and the asset library nodes |
 | Seed Speech API key | [Seed Speech console](https://console.byteplus.com/voice/new/overview?projectName=default), then Settings → API Keys. Activate the services first. | Seed Audio, Seed Speech TTS, ASR and Voice Clone |
 | AI MediaKit API key | [AI MediaKit console](https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey), then Settings → API key | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance |
+| LAS API key | Follow the [official LAS API-key guide](https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key): LAS console, Operator service, API key management | LAS Genjutsu, LAS Video Translation and LAS Task Result |
 | IAM access key and secret key | IAM console. Use a sub-user whose policy allows only the asset library. | Create Image, Video and Audio Asset, Asset Library, and looking up an asset ID in an `asset_N` input |
 
 You only need the keys for the nodes you use. Each node page lists them in its **Keys needed** row.
@@ -34,7 +35,9 @@ You only need the keys for the nodes you use. Each node page lists them in its *
 
 <Shot src="guides/settings-byteplus-not-set.jpg" alt="Settings, BytePlus page: three default endpoint rows using built-in models and four empty credential rows, including ModelArk with a region drop-down" caption="Before saving: keys are not set and optional endpoints use the built-in models." />
 
-ModelArk API keys are checked with BytePlus before they are saved. A wrong key is refused and nothing is written. If BytePlus cannot be reached, the key is saved and Settings says it could not be checked. The key takes effect at once, with no restart. Seed Speech and AI MediaKit API keys are saved without a check.
+ModelArk API keys are checked with BytePlus before they are saved. A wrong key is refused and nothing is written. If BytePlus cannot be reached, the key is saved and Settings says it could not be checked. The key takes effect at once, with no restart. Seed Speech, AI MediaKit and LAS API keys are saved without a check.
+
+Use the separate **LAS API key** row for LAS. Saving it does not submit work or change the ModelArk region. The LAS row links to the official API-key guide.
 
 <Shot src="guides/settings-byteplus-key-set.jpg" alt="Settings, BytePlus page: ModelArk key set with the sample suffix abcd; other credentials are not set and three default endpoint rows use built-in models" caption="After saving: the row shows only the last four characters (here the sample value abcd) and where the key is stored." />
 
@@ -61,6 +64,7 @@ BYTEPLUS_API_KEY=your-modelark-key
 BYTEPLUS_REGION=ap-southeast-1
 BYTEPLUS_SEED_SPEECH_API_KEY=your-seed-speech-key
 BYTEPLUS_VOD_MEDIAKIT_API_KEY=your-mediakit-key
+BYTEPLUS_LAS_API_KEY=your-las-key
 BYTEPLUS_ACCESS_KEY=your-iam-access-key
 BYTEPLUS_SECRET_KEY=your-iam-secret-key
 ```
@@ -72,6 +76,8 @@ The file is read again whenever it changes, so no restart is needed. The pack ne
 ## Region
 
 Pick the region where you created the ModelArk API key: `ap-southeast-1` (the default) or `eu-west-1`. A key and a region that do not match give an *Invalid API Key (401)* error. Settings catches this when you save: it says BytePlus rejected the key for the selected region. See [Keys and regions](../../concepts/keys-and-regions/).
+
+LAS uses Johor (`ap-southeast-1`) independently of `BYTEPLUS_REGION`. Translation also needs a writable TOS output directory in the same account and region. Saving a LAS key does not grant TOS permissions or real-person processing access.
 
 ## Environment variables win
 

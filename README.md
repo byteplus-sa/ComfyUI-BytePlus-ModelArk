@@ -1,12 +1,14 @@
-# ComfyUI BytePlus ModelArk & AI MediaKit
+# ComfyUI BytePlus ModelArk, AI MediaKit & LAS
 
-Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, and AI MediaKit video and image enhancement.
+Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, AI MediaKit enhancement, and LAS video editing and translation.
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
 > **Status: v0.7.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
 **New in v0.7.0:** optional default ModelArk endpoint IDs for Seedance 2.0, Seedance 2.5 and Seedream 5.0 Pro in **Settings → Other → BytePlus → Default credentials**. Endpoint overrides use your existing key and region, keep the selected model's capabilities and invalidate cached outputs when changed. Leave a field blank to use the built-in model. No workflow changes are needed. All three endpoint paths were checked with real generation requests.
+
+**LAS nodes are available in this source branch.** Updating to the current Registry release alone does not install them; the release version and Registry metadata are unchanged.
 
 ## Contents
 
@@ -61,6 +63,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 | **ModelArk** – asset library | Create Image / Video / Audio Asset, Asset Library | ModelArk API key + IAM AK/SK |
 | **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
 | **AI MediaKit** | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance | AI MediaKit API key |
+| **LAS** (source integration) | LAS Genjutsu, LAS Video Translation, LAS Task Result | LAS API key |
 
 The image, video, LLM and asset nodes match ComfyUI's built-in ByteDance nodes input for input, but use BytePlus model IDs. This pack's extras (parallel generations, non-blocking runs and so on) sit under each node's advanced inputs.
 
@@ -68,7 +71,8 @@ The image, video, LLM and asset nodes match ComfyUI's built-in ByteDance nodes i
 
 - **Nodes only run when their output is used.** They save nothing themselves: connect `Save Image` / `Save Video`. A node with nothing connected doesn't run and isn't billed.
 - **Regions:** `ap-southeast-1` (default) or `eu-west-1` for ModelArk. Seedream 5.0 Lite isn't available in `eu-west-1`. Seed Speech and AI MediaKit run in `ap-southeast-1` only.
-- **Comfy.org login** is needed for a few features that upload local media to Comfy.org storage (BytePlus only accepts links there): Seedance reference videos, standard ASR, MediaKit sources and new private assets.
+- **LAS region:** Johor (`ap-southeast-1`), independent of the ModelArk region selector.
+- **Comfy.org login** is needed for features that upload local media to Comfy.org storage: Seedance reference videos, standard ASR, MediaKit sources, LAS connected media and new private assets.
 
 ## API Keys
 
@@ -79,6 +83,7 @@ Each BytePlus product has its own key; they are not interchangeable.
 | ModelArk API key | [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) | Image, video, LLM and asset nodes | `BYTEPLUS_API_KEY` (+ `BYTEPLUS_REGION`) |
 | Seed Speech API key | [Seed Speech console](https://console.byteplus.com/voice/new/overview?projectName=default) → Settings → API Keys (activate the services first) | Speech nodes | `BYTEPLUS_SEED_SPEECH_API_KEY` |
 | AI MediaKit API key | [AI MediaKit console](https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey) → Settings → API key | Enhancement nodes | `BYTEPLUS_VOD_MEDIAKIT_API_KEY` |
+| LAS API key | [Official LAS key guide](https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key): LAS console → Operator service → API key management | LAS Genjutsu, Video Translation and Task Result | `BYTEPLUS_LAS_API_KEY` |
 | IAM AK/SK | IAM console (a sub-user allowed only the asset library) | Asset library nodes | `BYTEPLUS_ACCESS_KEY`, `BYTEPLUS_SECRET_KEY` (+ `BYTEPLUS_SESSION_TOKEN` for STS) |
 
 ### Option A: Settings → BytePlus (recommended)
@@ -86,6 +91,7 @@ Each BytePlus product has its own key; they are not interchangeable.
 Open **Settings** (gear icon, or Ctrl+, / Cmd+,), search for **BytePlus**, paste a key and press **Save**.
 
 - ModelArk keys are checked against BytePlus first; a wrong key is refused and nothing is saved.
+- The separate LAS row stores its key without validation or a generation request and does not change `BYTEPLUS_REGION`.
 - Keys are written to `user/.env` in your ComfyUI folder and take effect immediately.
 - Settings only ever shows whether a key is set and its last four characters. The row also shows where the file is (*Saved in ~/…/user/.env*).
 
@@ -110,6 +116,7 @@ BYTEPLUS_API_KEY=your-modelark-key
 BYTEPLUS_REGION=ap-southeast-1
 BYTEPLUS_SEED_SPEECH_API_KEY=your-seed-speech-key
 BYTEPLUS_VOD_MEDIAKIT_API_KEY=your-mediakit-key
+BYTEPLUS_LAS_API_KEY=your-las-key
 BYTEPLUS_ACCESS_KEY=your-iam-ak
 BYTEPLUS_SECRET_KEY=your-iam-sk
 ```
@@ -161,6 +168,20 @@ Change the prompt or seed between test runs: ComfyUI reuses the cached result of
 ## Node Reference
 
 Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_config.py). Activate each model in the ModelArk console for the region you use.
+
+### Video Editing and Translation (LAS)
+
+LAS uses its own **LAS API key** and Johor operator endpoint. ModelArk, Seed Speech and AI MediaKit keys do not substitute for it.
+
+| Node | Purpose |
+|---|---|
+| **LAS Genjutsu** | Video editing through LAS Video Edit Enhance 2.0. |
+| **LAS Video Translation** | Translation and dubbing, with captions, lip sync and integrated restoration controls. Translation defaults to `high_quality` dubbing. |
+| **LAS Task Result** | Collects an existing LAS task without submitting new generation work. |
+
+- Translation requires your own writable `output_tos_path` in the same account and Johor region.
+- LAS submissions are not automatically retried. Interrupting local waiting does not cancel remote work; recover accepted tasks with **LAS Task Result** rather than resubmitting.
+- Connected media uses Comfy.org storage. Use only media you are authorized to process; real-person processing also requires the appropriate LAS access.
 
 ### Image (ModelArk)
 

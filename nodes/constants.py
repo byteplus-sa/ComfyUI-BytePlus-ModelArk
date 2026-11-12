@@ -50,6 +50,17 @@ MEDIAKIT_DOWNLOAD_STALL_SECONDS = 120
 MEDIAKIT_MAX_POLL_ERRORS = 5
 # Submit retries after network errors, timeouts, 429 and 5xx (safe: same client_token).
 MEDIAKIT_SUBMIT_RETRIES = 2
+LAS_REGION_BASE_URLS = {
+    "ap-southeast-1": "https://operator.las.ap-southeast-1.bytepluses.com",
+}
+DEFAULT_LAS_REGION = "ap-southeast-1"
+LAS_API_KEY_ENV = "BYTEPLUS_LAS_API_KEY"
+LAS_API_KEYS_GUIDE_URL = "https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key"
+LAS_REQUEST_TIMEOUT_SECONDS = 60
+LAS_POLL_SECONDS = 10
+LAS_MAX_POLL_ERRORS = 5
+LAS_DOWNLOAD_STALL_SECONDS = 120
+LAS_TASK_RETENTION_SECONDS = 259200
 SEED_AUDIO_PATH = "/api/v3/tts/create"
 SEED_TTS_PATH = "/api/v3/tts/unidirectional"
 SEED_ASR_FAST_PATH = "/api/v3/auc/bigmodel/recognize/flash"
@@ -442,6 +453,27 @@ MESSAGES = {
     "msg3d_cancelled": "[BytePlus] Cancelled the 3D task {task_id}.",
     "msg3d_cancel_failed": "[BytePlus] Could not cancel the 3D task {task_id}: {reason}",
     "err_no_mediakit_key": "No AI MediaKit API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_VOD_MEDIAKIT_API_KEY=... in {path} (or set the environment variable).",
+    "err_no_las_key": "No LAS API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_LAS_API_KEY=... (or LAS_API_KEY=...) in {path} or the environment. ModelArk, Speech and MediaKit keys are not LAS keys.",
+    "err_las_input": "Invalid LAS input: {detail}",
+    "err_las_region": "Unsupported LAS region {region}. This integration uses Johor (ap-southeast-1), independently of the ModelArk region.",
+    "err_las_protocol": "Unexpected LAS response: {detail}",
+    "err_las_api": "LAS request failed (HTTP {status}, {code}): {message}",
+    "err_las_timeout": "LAS did not answer within {seconds}s.",
+    "err_las_network": "Could not reach LAS: {e}",
+    "err_las_submit_unknown": "LAS task acceptance is unknown: {detail}. Do not submit again until you check the LAS console; remote work may continue and incur charges.",
+    "err_las_task_failed": "LAS task {task_id} is {status}: {detail}",
+    "err_las_deadline": "LAS task {task_id} exceeded the three-day retrieval window. Check its result in LAS/TOS; no new task was submitted.",
+    "err_las_poll_failed": "Could not poll LAS task {task_id}: {detail}. Recover with LAS Task Result; do not resubmit generation.",
+    "err_las_resume_changed": "LAS task {task_id} remains unresolved for this node. Restore its original inputs and fixed seed to resume, or collect it with LAS Task Result. Use a new node for different work.",
+    "las_task_submitted": "LAS accepted task {task_id}. Recovery is saved locally; interrupting stops local collection, not remote processing.",
+    "las_task_resuming": "Resuming saved LAS task {task_id} ({status}). No new task was submitted.",
+    "las_task_waiting": "LAS task {task_id}: {status}, {elapsed}s elapsed. Recovery stays available locally; remote processing may continue after interruption.",
+    "err_las_download": "Could not collect LAS artifact ({reason}). Recover task {task_id} with LAS Task Result; result links expire.",
+    "las_upload_unavailable": "Connected {kind} needs Comfy.org storage, which is unavailable ({e}). Use a persistent public URL or TOS reference instead.",
+    "las_upload_failed": "Could not upload connected {kind} through Comfy.org ({e}). Sign in to Comfy.org or use a persistent public URL or TOS reference.",
+    "las_video_upload_unavailable": "Connected video needs Comfy.org storage, which is unavailable ({e}). Use video_url instead.",
+    "las_video_upload_failed": "Could not upload connected video through Comfy.org ({e}). Sign in to Comfy.org or use video_url instead.",
+    "las_collection_pending": "LAS task {task_id} is {status}. Requeue LAS Task Result to collect it. Interrupting does not cancel remote work.",
     "cred_unknown": "Unknown credential.",
     "cred_bad_request": "The request is not valid.",
     "cred_forbidden_origin": "Requests from another origin are not accepted.",

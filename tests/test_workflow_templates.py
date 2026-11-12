@@ -7,6 +7,14 @@ import unittest
 
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKFLOW_DIR = os.path.join(PLUGIN_ROOT, "example_workflows")
+LAS_WORKFLOWS = {
+    "LAS Genjutsu.json",
+    "LAS Video Translation.json",
+    "LAS Multilingual Translation.json",
+    "LAS Lip Sync.json",
+    "LAS Translation and Restoration.json",
+    "LAS Task Result.json",
+}
 EXPECTED_WORKFLOWS = {
     "2.5 Model Updates.json",
     "Seedance 2.json",
@@ -49,7 +57,7 @@ EXPECTED_WORKFLOWS = {
     "Storyboard Grid.json",
     "Hyper3D Text to 3D.json",
     "Hyper3D and Hitem3D Image to 3D.json",
-}
+} | LAS_WORKFLOWS
 FRONTEND_SAVED_IMAGE_TEMPLATES = {"Image Edit.json", "Image Variations.json"}
 NEW_TEMPLATE_FILES = {
     "Seedance Video Extension.json",  # rebuilt on Seedance 2.5 task_type = extend (saved by frontend 1.53.6)
@@ -1258,7 +1266,34 @@ class WorkflowTemplateTests(unittest.TestCase):
             for node in load_workflow(name)["nodes"]:
                 with self.subTest(workflow=name, node=node["type"]):
                     names = {item["name"] for item in node.get("inputs", [])}
-                    self.assertFalse(names & {"client", "speech_client", "mediakit_client"})
+                    self.assertFalse(names & {"client", "speech_client", "mediakit_client", "las_client"})
+
+    def test_las_translation_workflows_use_high_quality_by_default(self):
+        workflows = (
+            ("LAS Video Translation.json", "las-video-translation.json"),
+            ("LAS Multilingual Translation.json", "las-multilingual-translation.json"),
+            ("LAS Translation and Restoration.json", "las-translation-and-restoration.json"),
+        )
+        for name, download in workflows:
+            with open(
+                os.path.join(PLUGIN_ROOT, "docs-site", "public", "workflows", download), encoding="utf-8"
+            ) as file:
+                downloaded_workflow = json.load(file)
+            for workflow in (
+                load_workflow(name),
+                downloaded_workflow,
+            ):
+                with self.subTest(workflow=name, download=download):
+                    nodes = [
+                        node
+                        for node in workflow["nodes"]
+                        if node["type"] == "BytePlusLASVideoTranslation"
+                        and node["widgets_values_named"]["mode"] == "translate"
+                    ]
+                    self.assertTrue(nodes)
+                    for node in nodes:
+                        self.assertEqual(node["widgets_values"][3], "high_quality")
+                        self.assertEqual(node["widgets_values_named"]["mode.dubbing_mode"], "high_quality")
 
     # ---- showcase and coverage templates -------------------------------------------------
 

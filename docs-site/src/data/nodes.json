@@ -6842,6 +6842,1156 @@
   ]
  },
  {
+  "id": "BytePlusLASGenjutsu",
+  "slug": "las-genjutsu",
+  "group": "LAS",
+  "display_name": "BytePlus LAS Genjutsu",
+  "category": "BytePlus ModelArk/LAS",
+  "description": "Edit a video through LAS Video Edit Enhance 2.0. Uses a separate LAS key in Johor. Real-person references require rights and LAS access; interruption does not cancel remote work.",
+  "search_aliases": [],
+  "keys": [
+   "LAS API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "user_prompt",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": "",
+    "multiline": true
+   },
+   {
+    "name": "template",
+    "type": "choice with options",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Five documented template IDs. Template-specific style enums are withheld pending a complete official contract.",
+    "options": [
+     "basic",
+     "general",
+     "replace/person_replace",
+     "replace/subject_replace",
+     "style_transfer/general"
+    ],
+    "variants": [
+     {
+      "key": "basic",
+      "inputs": []
+     },
+     {
+      "key": "general",
+      "inputs": []
+     },
+     {
+      "key": "replace/person_replace",
+      "inputs": []
+     },
+     {
+      "key": "replace/subject_replace",
+      "inputs": []
+     },
+     {
+      "key": "style_transfer/general",
+      "inputs": []
+     }
+    ]
+   },
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "required": false,
+    "advanced": false,
+    "tooltip": ""
+   },
+   {
+    "name": "video_url",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Use a persistent public HTTP(S) URL or TOS reference, or connect video, not both. Large uploads may exceed Comfy.org limits.",
+    "default": ""
+   },
+   {
+    "name": "model",
+    "type": "choice",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": "server_default",
+    "options": [
+     "server_default",
+     "Seedance 2.0 Mini",
+     "Seedance 2.0 Fast",
+     "Seedance 2.0",
+     "Seedance 2.5"
+    ]
+   },
+   {
+    "name": "reference_images",
+    "type": "IMAGE",
+    "required": false,
+    "advanced": false,
+    "tooltip": ""
+   },
+   {
+    "name": "image_urls",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "HTTP(S), TOS or LAS asset references, one per line. Connected images precede these references; repetitions preserve positions.",
+    "default": "",
+    "multiline": true
+   },
+   {
+    "name": "reference_audio",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": ""
+   },
+   {
+    "name": "audio_urls",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One reference per line. Connected audio batch clips precede these references.",
+    "default": "",
+    "multiline": true
+   },
+   {
+    "name": "allow_fallback",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": false
+   },
+   {
+    "name": "resolution",
+    "type": "choice",
+    "required": false,
+    "advanced": false,
+    "tooltip": "1080p requires the explicit Seedance 2.0 model. No 4K option until the contract conflict is resolved.",
+    "default": "server_default",
+    "options": [
+     "server_default",
+     "480p",
+     "720p",
+     "1080p"
+    ]
+   },
+   {
+    "name": "duration",
+    "type": "choice with options",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Seedance 2.5 and server-default routing only support auto duration when specified.",
+    "options": [
+     "server_default",
+     "auto",
+     "explicit"
+    ],
+    "variants": [
+     {
+      "key": "server_default",
+      "inputs": []
+     },
+     {
+      "key": "auto",
+      "inputs": []
+     },
+     {
+      "key": "explicit",
+      "inputs": [
+       {
+        "name": "duration_seconds",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "",
+        "default": 5,
+        "min": 1
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "ratio",
+    "type": "choice",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": "adaptive",
+    "options": [
+     "16:9",
+     "4:3",
+     "1:1",
+     "3:4",
+     "9:16",
+     "21:9",
+     "adaptive"
+    ]
+   },
+   {
+    "name": "generate_audio",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   },
+   {
+    "name": "watermark",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": false
+   },
+   {
+    "name": "return_last_frame",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": false
+   },
+   {
+    "name": "priority",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "",
+    "default": 0
+   },
+   {
+    "name": "execution_expires_after",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "",
+    "default": 172800,
+    "min": 3600,
+    "max": 259200
+   },
+   {
+    "name": "use_asset_api",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Opt in to LAS media-to-asset conversion. Requires appropriate rights and LAS allowlist access.",
+    "default": false
+   },
+   {
+    "name": "asset_group_id",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "",
+    "default": ""
+   },
+   {
+    "name": "safety_identifier",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "",
+    "default": ""
+   },
+   {
+    "name": "callback_url",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "",
+    "default": ""
+   },
+   {
+    "name": "seed",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Local rerun control, not an API generation seed. Keep fixed when recovering an accepted task.",
+    "default": 0,
+    "min": 0,
+    "max": 18446744073709551615
+   }
+  ],
+  "outputs": [
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "last_frame",
+    "type": "IMAGE",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "task_id",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "BytePlusLASVideoTranslation",
+  "slug": "las-video-translation",
+  "group": "LAS",
+  "display_name": "BytePlus LAS Video Translation",
+  "category": "BytePlus ModelArk/LAS",
+  "description": "Translate and dub video into ordered target languages, or synchronize lips to external/source audio. Optional subtitle styling, separate picture source and restoration. Requires LAS key and writable Johor TOS directory; each target and added service can incur charges.",
+  "search_aliases": [],
+  "keys": [
+   "LAS API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "mode",
+    "type": "choice with options",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Translation/TTS or lip sync to specified audio. Specified-audio modes do not produce translated captions.",
+    "options": [
+     "translate",
+     "lip_sync_external_audio",
+     "lip_sync_source_audio"
+    ],
+    "variants": [
+     {
+      "key": "translate",
+      "inputs": [
+       {
+        "name": "audio_language",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "",
+        "default": "en-US",
+        "options": [
+         "ar-SA",
+         "bn-BD",
+         "de-DE",
+         "el-GR",
+         "en-US",
+         "es-MX",
+         "fil-PH",
+         "fr-FR",
+         "id-ID",
+         "it-IT",
+         "ja-JP",
+         "ko-KR",
+         "ms-MY",
+         "ne-NP",
+         "nl-NL",
+         "pl-PL",
+         "pt-BR",
+         "ro-RO",
+         "ru-RU",
+         "th-TH",
+         "tr-TR",
+         "uk-UA",
+         "vi-VN",
+         "yue-CN",
+         "zh-CN"
+        ]
+       },
+       {
+        "name": "output_languages",
+        "type": "text",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Case-sensitive LAS language codes, comma-separated or one per line. Outputs follow this order.",
+        "default": "es-MX",
+        "multiline": true
+       },
+       {
+        "name": "dubbing_mode",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "",
+        "default": "high_quality",
+        "options": [
+         "emotion",
+         "timbre",
+         "high_quality"
+        ]
+       },
+       {
+        "name": "enable_fast_mode",
+        "type": "on/off",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Requires high_quality dubbing.",
+        "default": false
+       },
+       {
+        "name": "enable_dynamic_duration",
+        "type": "on/off",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Cannot combine with lip sync.",
+        "default": false
+       },
+       {
+        "name": "lip_translate",
+        "type": "on/off",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Lip synchronization incurs additional charges.",
+        "default": false
+       },
+       {
+        "name": "lip_fuzzy_matching",
+        "type": "on/off",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Visual-only face matching; requires lip_translate.",
+        "default": false
+       }
+      ]
+     },
+     {
+      "key": "lip_sync_external_audio",
+      "inputs": [
+       {
+        "name": "dubbing_audio_url",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "Connect one AUDIO clip or provide HTTP(S)/TOS audio, not both.",
+        "default": ""
+       },
+       {
+        "name": "dubbing_language",
+        "type": "choice",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": "auto",
+        "options": [
+         "auto",
+         "ar-SA",
+         "bn-BD",
+         "de-DE",
+         "el-GR",
+         "en-US",
+         "es-MX",
+         "fil-PH",
+         "fr-FR",
+         "id-ID",
+         "it-IT",
+         "ja-JP",
+         "ko-KR",
+         "ms-MY",
+         "ne-NP",
+         "nl-NL",
+         "pl-PL",
+         "pt-BR",
+         "ro-RO",
+         "ru-RU",
+         "th-TH",
+         "tr-TR",
+         "uk-UA",
+         "vi-VN",
+         "yue-CN",
+         "zh-CN"
+        ]
+       },
+       {
+        "name": "ignore_audio_video_duration_mismatch",
+        "type": "on/off",
+        "required": false,
+        "advanced": false,
+        "tooltip": "Normally durations must differ by at most 1 second. Override loops or trims video to audio and can affect billing.",
+        "default": false
+       }
+      ]
+     },
+     {
+      "key": "lip_sync_source_audio",
+      "inputs": [
+       {
+        "name": "audio_language",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "",
+        "default": "en-US",
+        "options": [
+         "ar-SA",
+         "bn-BD",
+         "de-DE",
+         "el-GR",
+         "en-US",
+         "es-MX",
+         "fil-PH",
+         "fr-FR",
+         "id-ID",
+         "it-IT",
+         "ja-JP",
+         "ko-KR",
+         "ms-MY",
+         "ne-NP",
+         "nl-NL",
+         "pl-PL",
+         "pt-BR",
+         "ro-RO",
+         "ru-RU",
+         "th-TH",
+         "tr-TR",
+         "uk-UA",
+         "vi-VN",
+         "yue-CN",
+         "zh-CN"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "output_tos_path",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Required writable TOS output directory in the same account and Johor region, for example tos://your-bucket/output/.",
+    "default": ""
+   },
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "required": false,
+    "advanced": false,
+    "tooltip": ""
+   },
+   {
+    "name": "video_url",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Use a persistent public HTTP(S) URL or TOS reference, or connect video, not both. Large uploads may exceed Comfy.org limits.",
+    "default": ""
+   },
+   {
+    "name": "dubbing_audio",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "External-audio lip sync only. Connect exactly one clip, or use the mode's dubbing_audio_url."
+   },
+   {
+    "name": "caption_formats",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Comma-separated .ass, .txt, .srt, .xml, .vtt.",
+    "default": ".srt"
+   },
+   {
+    "name": "primary_caption_format",
+    "type": "choice",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": ".srt",
+    "options": [
+     ".ass",
+     ".txt",
+     ".srt",
+     ".xml",
+     ".vtt"
+    ]
+   },
+   {
+    "name": "output_dubbing_audio",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Return clean speech as WAV/AUDIO. Long AUDIO tensors can use substantial memory.",
+    "default": false
+   },
+   {
+    "name": "burn_translated_subtitles",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": false
+   },
+   {
+    "name": "subtitle_video",
+    "type": "VIDEO",
+    "required": false,
+    "advanced": false,
+    "tooltip": ""
+   },
+   {
+    "name": "subtitle_video_url",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Optional separate picture source, timeline matched within one second. Requires burn-in and cannot combine with restoration.",
+    "default": ""
+   },
+   {
+    "name": "restoration",
+    "type": "choice with options",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Remove subtitles or watermarks before translation; additional restoration charges apply. Custom bitrate is withheld pending contract verification.",
+    "options": [
+     "off",
+     "on"
+    ],
+    "variants": [
+     {
+      "key": "off",
+      "inputs": []
+     },
+     {
+      "key": "on",
+      "inputs": [
+       {
+        "name": "output_tos_path",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "Empty inherits the translation output TOS directory.",
+        "default": ""
+       },
+       {
+        "name": "model_level",
+        "type": "choice",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": "pro",
+        "options": [
+         "lite",
+         "pro"
+        ]
+       },
+       {
+        "name": "detection_mode",
+        "type": "choice",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": "standard_subtitle",
+        "options": [
+         "standard_subtitle",
+         "standard_watermark",
+         "standard_subtitle_watermark",
+         "precise"
+        ]
+       },
+       {
+        "name": "targets",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "Comma-separated target types: watermark, subtitle, scrolling_subtitle, drama_info.",
+        "default": ""
+       },
+       {
+        "name": "fixed_bboxes",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "JSON array [[left, top, right, bottom]] in integer 0-1000 coordinates. Empty uses detection.",
+        "default": ""
+       },
+       {
+        "name": "return_subtitle_bbox",
+        "type": "on/off",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": true
+       },
+       {
+        "name": "max_process_frames",
+        "type": "integer",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": -1
+       },
+       {
+        "name": "maximum_output_fps",
+        "type": "integer",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 30,
+        "min": 1
+       },
+       {
+        "name": "maximum_resolution",
+        "type": "choice",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": "1080p",
+        "options": [
+         "720p",
+         "1080p",
+         "4k"
+        ]
+       },
+       {
+        "name": "output_video_mode",
+        "type": "choice",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": "balanced",
+        "options": [
+         "economy",
+         "balanced",
+         "high",
+         "source"
+        ]
+       },
+       {
+        "name": "output_codec",
+        "type": "choice",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": "server_default",
+        "options": [
+         "server_default",
+         "h264",
+         "h265"
+        ]
+       },
+       {
+        "name": "subtitle_persistent",
+        "type": "on/off",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": false
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "subtitle_style",
+    "type": "choice with options",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Styling affects ASS files and burned-in subtitles, not plain SRT text.",
+    "options": [
+     "automatic",
+     "custom"
+    ],
+    "variants": [
+     {
+      "key": "automatic",
+      "inputs": []
+     },
+     {
+      "key": "custom",
+      "inputs": [
+       {
+        "name": "subtitle_font_by_language",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "JSON array of supported font IDs in target-language order. null entries use automatic fonts.",
+        "default": ""
+       },
+       {
+        "name": "subtitle_font_size",
+        "type": "integer",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 40,
+        "min": 8,
+        "max": 128
+       },
+       {
+        "name": "subtitle_font_color",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "#RRGGBB or #RRGGBBAA, where FF is opaque and 00 transparent.",
+        "default": "#FFFFFF"
+       },
+       {
+        "name": "subtitle_bold",
+        "type": "on/off",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": false
+       },
+       {
+        "name": "subtitle_outline_color",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "#RRGGBB or #RRGGBBAA, where FF is opaque and 00 transparent.",
+        "default": "#000000"
+       },
+       {
+        "name": "subtitle_outline_width",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.0,
+        "min": 0,
+        "max": 16
+       },
+       {
+        "name": "subtitle_background_color",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "#RRGGBB or #RRGGBBAA, where FF is opaque and 00 transparent.",
+        "default": "#00000000"
+       },
+       {
+        "name": "subtitle_background_padding_x",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.0,
+        "min": 0,
+        "max": 128
+       },
+       {
+        "name": "subtitle_background_padding_y",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.0,
+        "min": 0,
+        "max": 128
+       },
+       {
+        "name": "subtitle_shadow_color",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "#RRGGBB or #RRGGBBAA, where FF is opaque and 00 transparent.",
+        "default": "#00000000"
+       },
+       {
+        "name": "subtitle_opacity",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 1.0,
+        "min": 0,
+        "max": 1
+       },
+       {
+        "name": "subtitle_shadow_offset_x",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.0,
+        "min": -32,
+        "max": 32
+       },
+       {
+        "name": "subtitle_shadow_offset_y",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.0,
+        "min": -32,
+        "max": 32
+       },
+       {
+        "name": "subtitle_shadow_blur",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.0,
+        "min": 0,
+        "max": 10
+       },
+       {
+        "name": "subtitle_line_spacing",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.0,
+        "min": 0,
+        "max": 64
+       },
+       {
+        "name": "subtitle_width_ratio",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.88,
+        "min": 0.1,
+        "max": 1
+       },
+       {
+        "name": "subtitle_top_margin_ratio",
+        "type": "number",
+        "required": false,
+        "advanced": false,
+        "tooltip": "",
+        "default": 0.77,
+        "min": 0,
+        "max": 0.999
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "callback_url",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "",
+    "default": ""
+   },
+   {
+    "name": "seed",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Local rerun control, not an API generation seed. Keep fixed when recovering an accepted task.",
+    "default": 0,
+    "min": 0,
+    "max": 18446744073709551615
+   }
+  ],
+  "outputs": [
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "audio",
+    "type": "AUDIO",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "subtitle",
+    "type": "text",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "language",
+    "type": "text",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "repaired_video",
+    "type": "VIDEO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "artifacts_json",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "task_id",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "BytePlusLASTaskResult",
+  "slug": "las-task-result",
+  "group": "LAS",
+  "display_name": "BytePlus LAS Task Result",
+  "category": "BytePlus ModelArk/LAS",
+  "description": "Poll and collect an existing LAS task without starting generation. Task IDs expire after three days; result links also expire. Requeue to check a pending task again.",
+  "search_aliases": [],
+  "keys": [
+   "LAS API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "operator",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": "Video Translation",
+    "options": [
+     "Genjutsu",
+     "Video Translation"
+    ]
+   },
+   {
+    "name": "task_id",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": ""
+   },
+   {
+    "name": "wait_for_completion",
+    "type": "on/off",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   },
+   {
+    "name": "primary_caption_format",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": ".srt",
+    "options": [
+     ".ass",
+     ".txt",
+     ".srt",
+     ".xml",
+     ".vtt"
+    ]
+   },
+   {
+    "name": "download_audio",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   },
+   {
+    "name": "download_captions",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   },
+   {
+    "name": "download_repaired_video",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   },
+   {
+    "name": "return_last_frame",
+    "type": "on/off",
+    "required": false,
+    "advanced": false,
+    "tooltip": "",
+    "default": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "audio",
+    "type": "AUDIO",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "subtitle",
+    "type": "text",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "language",
+    "type": "text",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "repaired_video",
+    "type": "VIDEO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "artifacts_json",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "task_id",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "last_frame",
+    "type": "IMAGE",
+    "is_list": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
   "id": "BytePlusHyper3D",
   "slug": "hyper3d",
   "group": "3D",

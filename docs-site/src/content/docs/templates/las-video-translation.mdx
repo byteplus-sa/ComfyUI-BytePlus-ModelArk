@@ -1,0 +1,53 @@
+---
+title: "LAS Video Translation"
+description: "Translate and dub your video into one language with LAS, collect captions and optionally save clean dubbed audio."
+template_file: LAS Video Translation.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="LAS Video Translation.json" />
+
+## What it makes
+
+A translated and dubbed video for one target language, with captions in the formats you request. You can also request clean dubbed audio. LAS needs your separate API key and a writable TOS output directory in the same account and Johor region.
+
+## The workflow
+
+<Shot src="templates/las-video-translation-workflow.webp" alt="LAS Video Translation workflow with source video, translation controls and video and optional audio saving" caption="Translate a source video and save the media you request." />
+
+1. Read the **MarkdownNote** and load a video with a speech track using **Load Video**.
+2. **[LAS Video Translation](../../nodes/las-video-translation/)** uses `translate` mode, your source language, target language and TOS output directory.
+3. **Save Video** keeps the translated video. **Save Audio** can keep clean speech when `output_dubbing_audio` is enabled.
+
+## Run it
+
+1. Save your LAS API key in **Settings > BytePlus** ([API keys](../../get-started/api-keys/)). A ModelArk key does not work here.
+2. Open **LAS Video Translation** and select your source video. Connected media needs a Comfy.org login; persistent public or account-authorized TOS references are alternatives.
+3. Fill `output_tos_path` with your own writable Johor TOS directory. The key alone does not grant bucket permissions.
+4. Select `translate`, set `audio_language`, and enter one supported target code in `output_languages`, different from the source language.
+5. Choose captions and optional audio, then press **Run**. Inspect and save the returned media.
+
+## Settings worth changing
+
+- **`audio_language` and `output_languages`:** use LAS language codes. Input and output language sets differ.
+- **`dubbing_mode`:** defaults to `high_quality`; choose another supported speech treatment when needed. `enable_fast_mode` requires `high_quality`.
+- **`caption_formats` and `primary_caption_format`:** request the formats you need and choose one of them for the text output.
+- **`output_dubbing_audio`:** enables clean speech collection. Long audio tensors can use substantial local memory.
+- **`lip_translate` and `enable_dynamic_duration`:** choose lip sync or dynamic duration, not both. Lip sync adds charges.
+- **`burn_translated_subtitles`:** embeds captions in the video. Custom styling affects burned-in subtitles and ASS, not plain SRT.
+
+## Example result
+
+No example output is published here. Review your translated speech and caption timing before sharing the result.
+
+## Time and cost
+
+Translation bills on your LAS account. Source duration, target languages and extra services affect work and cost; lip sync and restoration can add charges. Upload and download time also varies with media size. Interrupting local execution does not cancel the remote task. Keep its accepted `task_id` and recover collection without another translation submission.
+
+## Related
+
+- Node: [LAS Video Translation](../../nodes/las-video-translation/)
+- Recovery: [LAS Task Result](../las-task-result/)
+- Next step: [LAS Multilingual Translation](../las-multilingual-translation/)
