@@ -4,9 +4,9 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.7.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.8.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.7.0:** optional default ModelArk endpoint IDs for Seedance 2.0, Seedance 2.5 and Seedream 5.0 Pro in **Settings → Other → BytePlus → Default credentials**. Endpoint overrides use your existing key and region, keep the selected model's capabilities and invalidate cached outputs when changed. Leave a field blank to use the built-in model. No workflow changes are needed. All three endpoint paths were checked with real generation requests.
+**New in v0.8.0:** Seedream 5.5 image generation and layer separation, with ten references, automatic transparency, 1K/1.5K/2K output, custom sizes and optional rich-text OCR. Omitted advanced inputs now use their defaults correctly. Media downloads reject private addresses and unsafe redirects. Existing node IDs and model defaults are unchanged; 5.5 requires early-access entitlement.
 
 ## Contents
 
@@ -178,7 +178,11 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 
 5.5 supports only `standard` prompt optimization, not `fast`, streaming or related-image group generation. `generation_count` runs separate requests in parallel. Its `seed` widget remains a local rerun control, not a generation parameter. The optional `safety_identifier` accepts a stable hashed end-user ID of up to 64 ASCII characters; avoid personal data. Availability depends on your account's early-access entitlement. Existing model defaults are unchanged.
 
+**Save transparency:** connect the Seedream `IMAGE` and `mask` outputs to **Join Image with Alpha**, then connect its output to **Save Image**. Saving the RGB output alone discards transparency. For ten-reference workflows, if the frontend loses an image socket after reopening, combine references with **Batch Images** (`ImageBatch`) and connect the batch to one image slot; the ten-image limit still applies.
+
 **Seedream Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and `layers_json`. On 5.5, `max_images` controls the total including the base (2-100, default 30), and `text_recognition` optionally returns rich-text OCR with line coordinates and style runs in `layers_json`. Not every text layer returns OCR. Background mode is not accepted for layer separation; the base is opaque and layers are transparent PNGs. For large layer counts, prefer `crop_layers` to reduce memory use. Its opt-in `save_layers` is the only setting in the pack that writes files itself.
+
+Layer separation is generative, not lossless reconstruction, and the image count is a ceiling rather than a guaranteed total. ComfyUI's current **Create Layered Image** compositor accepts at most 50 layers including the base; keep `max_images` at 50 or below for that path, or save and process larger sets separately.
 
 ### Video (ModelArk)
 

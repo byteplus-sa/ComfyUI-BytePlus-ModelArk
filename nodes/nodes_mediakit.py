@@ -374,14 +374,14 @@ async def _download(url, prefix, ext="mp4"):
     Stream url to a temp file. Results can be gigabytes, so only a stalled
     connection times out, not a long download. Interruptible.
     """
-    from .utils_download import download_to_file
+    from .utils_download import download_to_file, public_download_session
 
     path = _temp_path(prefix, ext)
     timeout = aiohttp.ClientTimeout(
         total=None, sock_connect=MEDIAKIT_REQUEST_TIMEOUT_SECONDS, sock_read=MEDIAKIT_DOWNLOAD_STALL_SECONDS
     )
     try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with public_download_session(timeout=timeout) as session:
             await download_to_file(session, url, path, timeout)
     except comfy.model_management.InterruptProcessingException:
         raise

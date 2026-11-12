@@ -699,6 +699,11 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         fake, _, _ = await self.run_node(V55, safety_identifier="")
         self.assertNotIn("safety_identifier", fake.calls[0]["extra_body"])
 
+    async def test_55_omitted_optional_identifier_accepts_comfyui_none(self):
+        fake, _, result = await self.run_node(V55, safety_identifier=None)
+        self.assertNotIn("safety_identifier", fake.calls[0]["extra_body"])
+        self.assertEqual(result[0].shape[0], 1)
+
     async def test_55_response_preserves_actual_background_metadata(self):
         class BackgroundImages(FakeImages):
             def generate(self, **kwargs):
@@ -1077,6 +1082,23 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(calls[0]["extra_body"]["layer_decomposition_options"],
                                  {"max_images": 30 if count is None else count, "text_recognition": False})
                 self.assertNotIn("text_recognition", json.loads(result[-1])["layers"][1])
+
+    async def test_55_omitted_layer_options_accept_comfyui_none(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        for options in (
+            {"safety_identifier": None},
+            {"max_images": None},
+            {"text_recognition": None},
+            {"safety_identifier": None, "max_images": None, "text_recognition": None},
+        ):
+            with self.subTest(options=options):
+                calls, _, result = await self.run_node(
+                    [self.base_item(), leaf], model=V55, **options,
+                )
+                self.assertEqual(calls[0]["extra_body"], {
+                    "layer_decomposition_options": {"max_images": 30, "text_recognition": False},
+                })
+                self.assertEqual(result[2].shape[0], 1)
 
     async def test_55_layer_invalid_parameters_fail_before_submission(self):
         leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])

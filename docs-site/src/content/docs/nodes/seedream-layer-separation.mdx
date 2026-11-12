@@ -16,6 +16,8 @@ import Shot from '../../../components/Shot.astro';
 
 Takes one image and separates it into a base image plus transparent layers: up to 99 on early-access 5.5, or 16 on 5.0 Pro/Flash. Each layer comes with its stacking order, bounding box, name and description, with optional rich-text OCR on 5.5.
 
+Separation is generative, so recombining layers does not guarantee a pixel-perfect reconstruction.
+
 The node bills for every run and does not save anything itself unless you turn on `save_layers`: connect **Save Image**, or send `layer_stack` to **Create Layered Image**, to keep the result.
 
 ## On the canvas
@@ -32,7 +34,7 @@ The node bills for every run and does not save anything itself unless you turn o
 - **Model:** 5.0 Pro offers `standard` and `fast` prompt optimization; 5.5 supports only `standard`. 5.0 Flash has no such setting. On 5.5, `seed` is a local rerun control, not a generation parameter.
 - **crop_layers:** `full canvas` puts every layer on a canvas the size of the base image, ready for **ImageCompositeMasked**. `minimal size` crops each layer to its bounding box, which makes much smaller tensors. Rebuild the placement from the `bboxes` output with **Layers From Bounding Boxes**.
 - **Saving files:** `save_layers` writes the base image and the original layer PNGs to the ComfyUI output folder under `filename_prefix`. `output_format` sets the format of the base image; layers are always PNG. It is the only setting in the pack that writes files by itself.
-- **Layer count** (5.5): `max_images` includes the base image, with a range of 2-100 and default 30. Larger values permit finer decomposition; the model may return fewer images.
+- **Layer count** (5.5): `max_images` includes the base image, with a range of 2-100 and default 30. Larger values permit finer decomposition; the model may return fewer images. Leaving advanced options unset uses 30 images and disables text recognition.
 - **Text recognition** (5.5): enable `text_recognition` for rich-text OCR in `layers_json`. It may include recognized text, line boxes and style runs; non-text or irregular lettering may have no OCR result.
 
 ## Outputs
@@ -43,7 +45,7 @@ The node bills for every run and does not save anything itself unless you turn o
 
 - `layers` and `masks` list the layers from bottom to top and share the same order as `bboxes`.
 - `masks` use the Load Image convention (1 means transparent). Add **InvertMask** before **ImageCompositeMasked**.
-- `layer_stack` is always tight-cropped, whatever `crop_layers` says. Connect it to **Create Layered Image**, or extend it with **Add Layer**.
+- `layer_stack` includes the base and is always tight-cropped, whatever `crop_layers` says. Connect it to **Create Layered Image**, or extend it with **Add Layer**. The current ComfyUI compositor accepts at most 50 layers including the base: use `max_images` of 50 or below for this path, or save and process larger sets separately.
 - `base_mask` is currently always fully opaque.
 - `layers_json` lists the `z_index`, name, description and bounding box of each image, its background type and OCR when returned, and the saved file when `save_layers` is on. OCR retains the API's base-image coordinates, font matches, colors and text styles.
 

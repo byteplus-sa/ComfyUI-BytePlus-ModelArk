@@ -271,7 +271,7 @@ def _safety_identifier_input():
 
 def _seedream_extra_body(model_config, caps):
     identifier = model_config.get("safety_identifier", "")
-    if identifier == "" or not caps.get("safety_identifier"):
+    if identifier is None or identifier == "" or not caps.get("safety_identifier"):
         return {}
     if not isinstance(identifier, str) or len(identifier) > 64 or not identifier.isascii() or not identifier.isprintable():
         raise BytePlusException(get_text("seedream_err_safety_identifier"))
@@ -716,10 +716,14 @@ def _layer_extra_body(model_config, caps):
         return extra_body
     if "background" in model_config:
         raise BytePlusException(get_text("seedream_layers_err_background"))
-    max_images = model_config.get("max_images", caps["layer_default_max_images"])
+    max_images = model_config.get("max_images")
+    if max_images is None:
+        max_images = caps["layer_default_max_images"]
     if isinstance(max_images, bool) or not isinstance(max_images, int) or not 2 <= max_images <= caps["layer_max_images"]:
         raise BytePlusException(get_text("seedream_layers_err_max_images", max=caps["layer_max_images"]))
-    text_recognition = model_config.get("text_recognition", False)
+    text_recognition = model_config.get("text_recognition")
+    if text_recognition is None:
+        text_recognition = False
     if not isinstance(text_recognition, bool):
         raise BytePlusException(get_text("seedream_layers_err_text_recognition"))
     extra_body["layer_decomposition_options"] = {
