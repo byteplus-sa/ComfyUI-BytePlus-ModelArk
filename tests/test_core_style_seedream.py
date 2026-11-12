@@ -1,4 +1,5 @@
 import base64
+import copy
 import importlib
 import io
 import json
@@ -415,6 +416,67 @@ class SeedreamSchemaTests(unittest.TestCase):
             self.assertIn("262,144 pixels", inputs["image"].tooltip)
             self.assertIn("0-999", inputs["prompt"].tooltip)
 
+    def test_matches_core_schema_rejects_unrelated_input_changes(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        for node in (core.ByteDanceSeedreamNodeV3, core.ByteDanceSeedreamLayerSeparationNodeV2):
+            schema = node.define_schema()
+            combo = next(item for item in schema.inputs if item.id == "model")
+            for option in combo.options:
+                for name, field, value in (
+                    ("seed", "default", 99),
+                    ("watermark", "advanced", False),
+                    ("images", "tooltip", "Changed reference requirements"),
+                    ("size", "default", "2K"),
+                    ("max_images", "max", 101),
+                    ("background", "default", "opaque"),
+                ):
+                    if name not in {item.id for item in option.inputs}:
+                        continue
+                    pack_id = (
+                        "BytePlusSeedream" if node is core.ByteDanceSeedreamNodeV3
+                        else "BytePlusSeedreamLayerSeparation"
+                    )
+                    if (pack_id, option.key, name) in BYTEPLUS_LIMIT_DEVIATIONS:
+                        continue
+                    with self.subTest(node=node.__name__, model=option.key, input=name, field=field):
+                        changed = copy.deepcopy(schema)
+                        inputs, _ = option_inputs(changed, option.key)
+                        setattr(inputs[name], field, value)
+                        with mock.patch.object(node, "define_schema", return_value=changed):
+                            with self.assertRaises(AssertionError):
+                                SeedreamSchemaTests().test_matches_core_schema()
+
+    def test_matches_core_schema_rejects_unknown_models_and_inputs(self):
+        from comfy_api.latest import io as comfy_io
+
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        node = core.ByteDanceSeedreamNodeV3
+        for change in ("model", "input"):
+            with self.subTest(change=change):
+                schema = copy.deepcopy(node.define_schema())
+                combo = next(item for item in schema.inputs if item.id == "model")
+                if change == "model":
+                    combo.options.append(comfy_io.DynamicCombo.Option("unknown model", []))
+                else:
+                    combo.options[0].inputs.append(comfy_io.Boolean.Input("unexpected"))
+                with mock.patch.object(node, "define_schema", return_value=schema):
+                    with self.assertRaises(AssertionError):
+                        SeedreamSchemaTests().test_matches_core_schema()
+
+    def test_matches_core_schema_rejects_changed_presets(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        node = core.ByteDanceSeedreamNodeV3
+        schema = node.define_schema()
+        combo = next(item for item in schema.inputs if item.id == "model")
+        for option in combo.options:
+            with self.subTest(model=option.key):
+                changed = copy.deepcopy(schema)
+                inputs, _ = option_inputs(changed, option.key)
+                inputs["size_preset"].options.append("(8K) 8192x8192 (1:1)")
+                with mock.patch.object(node, "define_schema", return_value=changed):
+                    with self.assertRaises(AssertionError):
+                        SeedreamSchemaTests().test_matches_core_schema()
+
     def test_matches_core_schema(self):
         """Every core input (id, type, default, limits, tooltip, advanced) is copied as is."""
         try:
@@ -436,6 +498,73 @@ class SeedreamSchemaTests(unittest.TestCase):
             data.pop("template", None)
             return item.id, item.io_type, data
 
+        def compare_55_metadata(node_id, core_item, our_item):
+            core_description = describe(core_item)
+            our_description = describe(our_item)
+            core_data = core_description[2]
+            our_data = our_description[2]
+            differences = {}
+            if core_item.id == "seed":
+                differences["tooltip"] = (
+                    "Seed to use for generation.",
+                    "Change this value to run again. A generation seed is not set for the early-access model.",
+                )
+            if node_id == "BytePlusSeedream":
+                if core_item.id == "size_preset":
+                    differences["default"] = ("(2K) 2048x2048 (1:1)", "2K (adaptive)")
+                elif core_item.id in ("width", "height"):
+                    differences["max"] = (8594, 8600)
+                elif core_item.id == "background":
+                    differences.update({
+                        "advanced": (None, True),
+                        "tooltip": (
+                            "Transparent works best when the prompt describes an isolated subject. "
+                            "Auto decides from the prompt and returns transparency mainly for stickers and logos.",
+                            "auto: choose from the prompt (JPEG is always opaque). transparent: generate "
+                            "a PNG with transparency from text-to-image or up to 10 references, also "
+                            "returned as the mask output. opaque: generate without transparency.",
+                        ),
+                    })
+            else:
+                if core_item.id == "image":
+                    differences["tooltip"] = (
+                        "The image to separate. Exactly one image, at least 512x512 pixels, aspect ratio "
+                        "between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload.",
+                        "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio "
+                        "between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload.",
+                    )
+                elif core_item.id == "prompt":
+                    prefix = (
+                        "How to separate the image. Leave empty to auto-detect and separate all major elements. "
+                        "Describe elements in natural language to control the separation, or target exact regions "
+                        "with <bbox>left top right bottom</bbox> tags "
+                    )
+                    differences["tooltip"] = (
+                        prefix + "(0-1000 per-mille coordinates).",
+                        prefix + "(coordinates 0-999, relative to the image).",
+                    )
+                elif core_item.id == "crop_layers":
+                    differences["default"] = (True, False)
+                elif core_item.id == "max_images":
+                    differences.update({
+                        "optional": (False, True),
+                        "advanced": (None, True),
+                        "step": (1, None),
+                        "display": ("number", None),
+                        "tooltip": (
+                            "Maximum number of images returned, base image included. "
+                            "The model decides how many it needs; each returned image is billed.",
+                            "Maximum total images, including the base image. Larger values allow finer decomposition.",
+                        ),
+                    })
+            for field, (core_value, our_value) in differences.items():
+                where = f"{node_id}.{V55}.{core_item.id}.{field}"
+                self.assertEqual(core_data.get(field), core_value, where)
+                self.assertEqual(our_data.get(field), our_value, where)
+                core_data.pop(field, None)
+                our_data.pop(field, None)
+            self.assertEqual(core_description, our_description, f"{node_id}.{V55}.{core_item.id}")
+
         for core_node, our_node, extras in pairs:
             core_schema = core_node.define_schema()
             our_schema = our_node.define_schema()
@@ -447,22 +576,62 @@ class SeedreamSchemaTests(unittest.TestCase):
                 if core_input.io_type != "COMFY_DYNAMICCOMBO_V3":
                     self.assertEqual(describe(core_input), describe(our_input))
                     continue
-                shared_options = [o for o in our_input.options if o.key != V55]
+                core_keys = [o.key for o in core_input.options]
+                shared_options = [o for o in our_input.options if o.key != V55 or V55 in core_keys]
                 self.assertEqual(
-                    [o.key for o in core_input.options], [o.key for o in shared_options]
+                    [key for key in core_keys if key != V55],
+                    [o.key for o in shared_options if o.key != V55],
                 )
-                for core_option, our_option in zip(core_input.options, shared_options, strict=True):
-                    ours = [i for i in our_option.inputs if i.id not in extras]
+                self.assertEqual(set(core_keys), {o.key for o in shared_options})
+                our_options = {o.key: o for o in shared_options}
+                for core_option in core_input.options:
+                    our_option = our_options[core_option.key]
+                    core_ids = {i.id for i in core_option.inputs}
+                    option_extras = extras
+                    if core_option.key == V55:
+                        option_extras = extras | {"prompt_optimization", "text_recognition", "safety_identifier"}
+                    ours = [i for i in our_option.inputs if i.id not in option_extras or i.id in core_ids]
+                    core_items = list(core_option.inputs)
+                    if core_option.key == V55:
+                        moved = {"background", "max_images"}
+                        core_items = [i for i in core_items if i.id not in moved] + [
+                            i for i in core_items if i.id in moved
+                        ]
+                        ours = [i for i in ours if i.id not in moved] + [i for i in ours if i.id in moved]
                     self.assertEqual(
-                        [i.id for i in core_option.inputs], [i.id for i in ours], core_option.key
+                        [i.id for i in core_items], [i.id for i in ours], core_option.key
                     )
-                    for core_item, our_item in zip(core_option.inputs, ours, strict=True):
+                    for core_item, our_item in zip(core_items, ours, strict=True):
                         if (our_schema.node_id, core_option.key, core_item.id) in BYTEPLUS_LIMIT_DEVIATIONS:
                             continue  # checked in test_documented_byteplus_limits
                         with self.subTest(node=our_schema.node_id, option=core_option.key, input=core_item.id):
-                            self.assertEqual(describe(core_item), describe(our_item))
+                            if core_option.key == V55:
+                                compare_55_metadata(our_schema.node_id, core_item, our_item)
+                            else:
+                                core_description = describe(core_item)
+                                our_description = describe(our_item)
+                                if core_item.id == "size_preset" and "default" not in our_description[2]:
+                                    self.assertEqual(core_description[2].pop("default", our_item.options[0]),
+                                                     our_item.options[0])
+                                self.assertEqual(core_description, our_description)
                             if core_item.io_type == "COMBO":
                                 core_options = list(core_item.options)
+                                if core_option.key == V55 and core_item.id == "background":
+                                    self.assertEqual(core_options, ["auto", "opaque", "transparent"])
+                                    self.assertEqual(our_item.options, ["auto", "transparent", "opaque"])
+                                    continue
+                                if core_option.key == V55 and core_item.id == "size_preset":
+                                    preset_changes = {
+                                        "880x1184": "864x1152", "1184x880": "1152x864",
+                                        "1360x768": "1424x800", "768x1360": "800x1424",
+                                        "1328x1776": "1344x1792", "1776x1328": "1792x1344",
+                                        "1248x1888": "1248x1872", "1888x1248": "1872x1248",
+                                        "2736x1536": "2816x1584", "1536x2736": "1584x2816",
+                                        "1680x2512": "1664x2496", "2512x1680": "2496x1664",
+                                    }
+                                    for before, after in preset_changes.items():
+                                        self.assertTrue(any(before in option for option in core_options), before)
+                                        core_options = [option.replace(before, after) for option in core_options]
                                 self.assertEqual(
                                     [o for o in our_item.options if o in core_options], core_options
                                 )

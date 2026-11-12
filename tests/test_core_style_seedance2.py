@@ -450,8 +450,20 @@ class SchemaTests(unittest.TestCase):
         core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
         for node_id, core_name in core_style.CORE_DISPLAY_NAMES.items():
             with self.subTest(node=node_id):
-                self.assertIn(core_name, core_names)
-                self.assertIn(core_name, ours[node_id].search_aliases)
+                known_names = {core_name, *core_style.CORE_PREVIOUS_DISPLAY_NAMES.get(node_id, ())}
+                self.assertTrue(known_names & core_names, node_id)
+                self.assertTrue(known_names <= set(ours[node_id].search_aliases), node_id)
+
+    def test_seedream_search_aliases_preserve_previous_and_current_names(self):
+        for node_id, names in (
+            ("BytePlusSeedream", {"ByteDance Seedream 4.5 & 5.0", "ByteDance Seedream 4.5, 5.0 & 5.5"}),
+            (
+                "BytePlusSeedreamLayerSeparation",
+                {"ByteDance Seedream 5.0 Layer Separation", "ByteDance Seedream 5.0 & 5.5 Layer Separation"},
+            ),
+        ):
+            with self.subTest(node=node_id):
+                self.assertTrue(names <= set(core_style.core_search_aliases(node_id)))
 
     def test_search_aliases_remain_valid_when_core_deprecates_a_node(self):
         core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
@@ -462,6 +474,19 @@ class SchemaTests(unittest.TestCase):
 
     def test_matches_core_nodes_accepts_enterprise_4k_additions(self):
         with core_enterprise_4k_schemas():
+            self.test_matches_core_nodes()
+
+    def test_matches_core_nodes_accepts_removed_enterprise_wording(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        with core_enterprise_4k_schemas() as schemas:
+            for node_cls, info in schemas.items():
+                if node_cls is core.ByteDance2DraftToFinalVideoNode:
+                    resolution = info["input"]["optional"]["resolution"][1]
+                    resolution["tooltip"] = "Resolution of the final video."
+                else:
+                    options = info["input"]["required"]["model"][1]["options"]
+                    option = next(item for item in options if item["key"] == "Seedance 2.5")
+                    option["inputs"]["required"]["resolution"][1]["tooltip"] = "Resolution of the output video."
             self.test_matches_core_nodes()
 
     def test_matches_core_nodes_rejects_other_generation_schema_changes(self):
@@ -551,15 +576,24 @@ class SchemaTests(unittest.TestCase):
             theirs_req = core_info["input"]["required"]
             theirs_opt = dict(core_info["input"].get("optional") or {})
             if ours_cls is nodes_seedance2.BytePlusSeedanceDraftToFinal and "resolution" in theirs_opt:
+                final_resolution = theirs_opt.pop("resolution")
+                final_metadata = dict(final_resolution[1])
+                self.assertIn(
+                    final_metadata.pop("tooltip"),
+                    (
+                        "Resolution of the final video.",
+                        "Resolution of the final video. 4k is available to enterprise accounts only.",
+                    ),
+                    f"{ours_cls.NODE_ID}.resolution.tooltip",
+                )
                 self.assertEqual(
-                    theirs_opt.pop("resolution"),
+                    (final_resolution[0], final_metadata),
                     (
                         "COMBO",
                         {
                             "options": ["1080p", "4k"],
                             "default": "1080p",
                             "multiselect": False,
-                            "tooltip": "Resolution of the final video. 4k is available to enterprise accounts only.",
                         },
                     ),
                     f"{ours_cls.NODE_ID}.resolution",

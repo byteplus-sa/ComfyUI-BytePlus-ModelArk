@@ -10,6 +10,14 @@ The direct-API pack retains its existing model split: base 2.5 offers 480p/720p/
 
 Comfy.org pricing and `PARTNER_MODEL_UNAVAILABLE` access handling are proxy-only and are not copied. Revisit the resolution deviations when direct BytePlus support and entitlement rules are verified; then update capability tables, draft-final behavior and workflows together.
 
+## Seedream 5.5 release parity check
+
+Read on 2026-11-12 against release `v0.45.0` (`989d93d0`) and master `c5751c81`. Upstream [b40cca229](https://github.com/Comfy-Org/ComfyUI/commit/b40cca229d23cc1d0b16f4d5946cb14a35ba88f6) adds Seedream 5.5 to both existing nodes, renames their display names, and gives older size presets explicit defaults. The pack preserves both historical and current search aliases and compares every shared model, including 5.5, by its stable label without changing existing model selections.
+
+Seedream 5.5 retains the supplied BytePlus API revision 579: adaptive sizes and its fixed presets, a 240-8600 side widget range subject to the stricter pixel/aspect validation, standard-only prompt optimization, output formats and safety identifiers. Core uses slightly different fixed presets, a fixed-square default and 8594 maximum side widgets. Background stays advanced and after the shared inputs; its supported values are identical. The seed remains a local rerun control because the direct contract does not document an API seed. Layer separation keeps full-canvas outputs by default, an optional advanced count ceiling and OCR. Shared metadata is checked field by field; only these exact known differences are normalized, with negative tests for changed defaults, limits, presets and unexpected inputs/models.
+
+Upstream [b2f670744](https://github.com/Comfy-Org/ComfyUI/commit/b2f670744386d36d39c41cc37cd1e30151046222) removes enterprise-only 4k wording and proxy access handling. The parity check accepts the exact old and new final-resolution tooltips but still pins the optional selector's type, options and default. This does not enable new direct-API Seedance capabilities.
+
 Read it with:
 
 ```bash
