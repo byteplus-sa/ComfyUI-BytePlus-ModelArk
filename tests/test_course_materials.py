@@ -29,6 +29,21 @@ class CourseMaterialsTests(unittest.TestCase):
             with self.subTest(lesson=lesson):
                 self.assertRegex((COURSE / f"{lesson}.mdx").read_text(), r"<Shot\s")
 
+    def test_image_workflow_lessons_show_the_actual_canvas_graph(self):
+        for lesson, image in (
+            ("build-your-first-workflow", "byteplus-image-canvas.webp"),
+            ("refine-product-images", "byteplus-refine-canvas.webp"),
+        ):
+            text = (COURSE / f"{lesson}.mdx").read_text()
+            with self.subTest(lesson=lesson):
+                self.assertIn(f'src="tutorials/{image}"', text)
+                self.assertTrue((DOCS / "src/assets/tutorials" / image).is_file())
+                self.assertIn("Load Image", text)
+                self.assertIn("Save Image", text)
+        refinement = (COURSE / "refine-product-images.mdx").read_text()
+        self.assertIn("## Your workflow on the canvas", refinement)
+        self.assertIn("same three-node graph", refinement)
+
     def test_all_course_screenshots_exist_and_have_descriptive_alt_text(self):
         for page in COURSE.glob("*.mdx"):
             for attributes in re.findall(r"<Shot\s+([^>]+)", page.read_text()):

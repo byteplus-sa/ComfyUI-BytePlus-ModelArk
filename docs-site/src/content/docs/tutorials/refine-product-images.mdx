@@ -18,6 +18,16 @@ You will keep the graph and change its instructions. This is how a reusable work
 
 If you reopen the included Seedream template instead, it still defaults to **Pro**. Override its model with `seedream 5.5`, replace the reference and use the full course prompt. If the option is missing, update the BytePlus pack and restart ComfyUI.
 
+## Your workflow on the canvas
+
+Reuse the **same three-node graph** from Module 3: **Load Image -> BytePlus Seedream -> Save Image**. You do not need extra nodes or a separate branch for each variation.
+
+<Shot src="tutorials/byteplus-refine-canvas.webp" alt="ComfyUI image refinement workflow with the original BytePlus logo connected to Seedream 5.5, the glossy enamel prompt and Course variation-A filename in Save Image" caption="Variation A before Run: keep the original logo and connections, append the finish sentence, and label the saved output." />
+
+In **BytePlus Seedream**, change only the final finish sentence between A and B. In **Save Image**, change `filename_prefix` to `Course/variation-A` or `Course/variation-B` so you can identify the outputs. Keep the original reference, model and generation settings the same. **Save Image** shows the new result after each run.
+
+Click or tap the screenshot to inspect the connections and controls at full size, or zoom in when reading the PDF.
+
 ## Prepare the reference and brief
 
 <Steps>
@@ -30,6 +40,8 @@ If you reopen the included Seedream template instead, it still defaults to **Pro
 </Steps>
 
 Use the [course settings table in Module 2](../set-up-api-key/#generate-your-first-image) to check the values. Keep them and the original reference unchanged across the comparison.
+
+<Shot src="tutorials/byteplus-image-settings.webp" alt="Seedream 5.5 settings with seed 42, both control after generate rows fixed, square 2K size, standard optimization, PNG, opaque background and one image" caption="Keep these controls unchanged for A and B; fixed is a local rerun setting, not a guarantee of matching results." />
 
 For **Seedream 5.5**, the seed widget is a **local rerun control**. Its value is **not sent** to the image API. `fixed` stops ComfyUI changing that local number after a run; changing it can make ComfyUI rerun the node instead of reusing its cache. It is **not a deterministic** A/B guarantee. Even with the same number and original reference, results can differ beyond the finish instruction you changed. Each new generation can use your account balance.
 

@@ -31,9 +31,9 @@ A **node** performs one step. A **connection** passes data between nodes. A **wo
 - **BytePlus Seedream** combines that reference with your prompt and generates an image.
 - **Save Image** receives the generated image and writes it to ComfyUI's `output` folder.
 
-<Shot src="tutorials/byteplus-image-workflow.webp" alt="Workflow diagram linking the original BytePlus logo through Load Image and Seedream 5.5 to Save Image" caption="Workflow diagram, not a UI screenshot: follow the two image connections from left to right." />
+<Shot src="tutorials/byteplus-image-canvas.webp" alt="ComfyUI canvas with the original BytePlus logo in Load Image connected to Seedream 5.5 and Save Image, with the square PNG settings visible" caption="Your completed three-node workflow before Run: follow the two blue image connections from left to right." />
 
-The diagram explains the connections, not the exact placement of controls. Search for **BytePlus Seedream** in the current pack.
+Use this canvas view as your wiring reference. **Save Image** is empty before the first run; its preview appears after generation. Click or tap the screenshot to inspect it at full size, or zoom in when reading the PDF. Search for **BytePlus Seedream** in the current pack.
 
 The included **Seedream** template is your worked example. Open it from **Templates > ComfyUI-BytePlus-ModelArk** to compare the connections. It still defaults to **Pro**: override the model with `seedream 5.5`, upload the original BytePlus logo and replace the prompt. If the option is missing, update the BytePlus pack in Nodes Manager and restart ComfyUI. For this lesson, build the graph yourself.
 
@@ -54,6 +54,8 @@ The included **Seedream** template is your worked example. Open it from **Templa
 </Steps>
 
 Check the [course settings table in Module 2](../set-up-api-key/#generate-your-first-image). Upload the original logo, not a previously generated badge, and confirm its preview appears in Load Image.
+
+<Shot src="tutorials/byteplus-image-settings.webp" alt="Seedream 5.5 controls showing the square 2048 preset, standard optimization, one PNG image, opaque background and fixed local seed controls" caption="Settings close-up: select Seedream 5.5, square 2K, PNG, opaque and one image." />
 
 If labels are too small, zoom in on the canvas. Inputs may show a prefix such as `model.images.image_1`; use the first reference image socket ending in `image_1`.
 
