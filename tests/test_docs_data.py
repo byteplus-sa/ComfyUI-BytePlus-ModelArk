@@ -79,9 +79,19 @@ class DocsDataTests(unittest.TestCase):
         self.assertEqual(pages, slugs)
         self.assertEqual(downloads, slugs)
         self.assertEqual(images, slugs)
+        course_media = set()
+        course = os.path.join(PAGES, "tutorials")
+        if os.path.isdir(course):
+            for filename in os.listdir(course):
+                if filename.endswith(".mdx"):
+                    with open(os.path.join(course, filename), encoding="utf-8") as file:
+                        course_media.update(re.findall(r'<Media\b[^>]*\bfile="([^"]+)"', file.read()))
         for name in os.listdir(os.path.join(site, "public", "media")):
             stem = name.rsplit(".", 1)[0]
-            self.assertTrue(stem in slugs or stem.rsplit("-", 1)[0] in slugs, f"orphan sample media: {name}")
+            self.assertTrue(
+                stem in slugs or stem.rsplit("-", 1)[0] in slugs or name in course_media,
+                f"orphan sample media: {name}",
+            )
         self.assertEqual(set(load("evidence.json")), slugs)
 
     def test_the_site_is_left_out_of_the_registry_package(self):

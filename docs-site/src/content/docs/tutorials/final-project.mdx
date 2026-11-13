@@ -6,13 +6,13 @@ description: "Independently adapt your image and video workflows to a new produc
 import { Steps } from '@astrojs/starlight/components';
 import Shot from '../../../components/Shot.astro';
 
-**Module 6. Your goal:** Use what you learned to adapt a workflow independently. Create a product image and a Seedance 2.5 **480p draft and matching 1080p final** for a new brief.
+**Module 6. Your goal:** Use what you learned to adapt a workflow independently. Create a product image with **Seedream 5.5** and a **Dreamina Seedance 2.5** **480p draft and matching 1080p final** for a new brief.
 
 ## Before you start
 
 - Complete [Modules 1-5](../).
 - Keep your saved image workflow and draft-to-final video workflow.
-- Choose a different product and intended use from your practice project. For logo-badge practice, reuse the supplied logo with a new audience, intended use and visual brief.
+- Choose a different product and intended use from your practice project. For logo-badge practice, reuse the original BytePlus logo with a new audience, intended use and visual brief, respecting the usage notice from Module 2. Do not imply endorsement or present a generated badge as an official logo.
 - Have permission to use the reference image.
 
 You may use templates and documentation. Independence means making and explaining your own choices, not memorizing every setting.
@@ -28,22 +28,28 @@ Record these four things before generating:
 
 For example: a square studio image of a reusable bottle for an online shop, followed by a five-second 16:9 promotional clip with a gentle camera push-in. Use your own product and brief rather than copying this example.
 
-<Shot src="tutorials/image-connections.webp" alt="Three-node image workflow showing the reference, Seedream prompt and Save Image output to adapt for a new brief" caption="Reuse the graph; make the subject and creative decisions your own." />
+<Shot src="tutorials/byteplus-image-workflow.webp" alt="Workflow diagram showing the original BytePlus reference passing through Load Image and Seedream 5.5 to Save Image" caption="Workflow diagram, not a UI screenshot: reuse the graph and make the creative decisions your own." />
 
 ## Adapt and run the workflows
 
 <Steps>
 
-1. Reopen your image workflow. Replace the reference and prompt, and choose an output size that fits your brief.
+1. Reopen your image workflow. Replace the reference and prompt, keeping **Seedream 5.5** selected as `seedream 5.5`. Keep `size_preset` at `(2K) 2048x2048 (1:1)`, `output_format` at `png`, `background` at `opaque`, `generation_count` at `1` (one image), and `prompt_optimization` at `standard` for this course project.
 2. Generate and review the product image. Compare it against your requirements and keep the selected result.
 3. Open your saved video workflow, or start with **Templates > ComfyUI-BytePlus-ModelArk > Image to Draft to 1080p**. Upload the selected image and write a motion prompt referring to **Image 1**.
-4. Keep **Seedance 2.5 Draft**, **480p** and a fixed seed. Leave both final-stage nodes bypassed, then run and review the draft.
+4. Select the exact UI option **Seedance 2.5 Draft**, **480p**, **16:9**, **5 seconds** and a fixed seed. Keep one video and audio off for the studio shot. Leave both final-stage nodes bypassed, then run and review the draft.
 5. With the reviewed draft inputs unchanged, enable both final-stage nodes and run again to save the **1080p final**.
 6. After completing the video, bypass both final nodes again so the saved graph starts with draft review. Export the two workflows as JSON. Explain at least two changes you made and why your new brief needed them.
 
 </Steps>
 
 Use [Module 4](../refine-product-images/) for image review and [Module 5](../image-to-video/) for the draft-to-final controls.
+
+The included Seedream template still defaults to **Pro**. If you use it, override the model, original reference and prompt before running. If `seedream 5.5` or **Seedance 2.5 Draft** is missing, update the BytePlus pack and restart ComfyUI before generating. Model visibility does not confirm account access.
+
+For a badge finish comparison, generate the base, A and B from the same original BytePlus logo, not from one another. Seedream 5.5's seed is a **local rerun control**, **not sent** to the image API and **not a deterministic** A/B guarantee. Keep the reviewed glossy base as the video reference for the guided badge shot: a slow, gentle push-in with stable badge and typography, no transformations or added lettering, and a white studio background.
+
+Changed-input image runs, video drafts and final renders can each incur charges. Keep keys in **Settings > BytePlus**, avoid confidential cloud inputs, and do not queue extra runs merely to check an export.
 
 <Shot src="tutorials/final-bypassed.webp" alt="Both final-stage video nodes bypassed, showing the starting state to restore before sharing a reusable workflow" caption="Return the video graph to its draft-review starting state before exporting." />
 

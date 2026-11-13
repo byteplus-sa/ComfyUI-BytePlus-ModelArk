@@ -1,6 +1,6 @@
 ---
 title: "Turn an image into video"
-description: "Use Seedance 2.5 to review a 480p draft from your product image, then render that reviewed draft as a 1080p final."
+description: "Use Dreamina Seedance 2.5 to review a 480p draft from your glossy badge or product image, then render its 1080p final."
 ---
 
 import { Steps } from '@astrojs/starlight/components';
@@ -8,12 +8,12 @@ import TemplateFacts from '../../../components/TemplateFacts.astro';
 import Shot from '../../../components/Shot.astro';
 import Media from '../../../components/Media.astro';
 
-**Module 5. Your goal:** Turn the selected image from Module 4 into a short video. Review a **480p draft** before rendering its **1080p final** with Seedance 2.5.
+**Module 5. Your goal:** Turn the selected image from Module 4 into a short video. Review a **480p draft** before rendering its **1080p final** with **Dreamina Seedance 2.5**. The guided demo uses the selected glossy BytePlus base, not a finish variation or the original flat logo.
 
 ## Before you start
 
 - Complete [Module 4](../refine-product-images/) and keep the selected image.
-- Confirm access to Seedance 2.5 in the region of your saved ModelArk key.
+- Confirm access to Dreamina Seedance 2.5 in the region of your saved ModelArk key.
 - Use the **Image to Draft to 1080p** template for this lesson.
 
 This template is included with the node pack. Open it from ComfyUI's **Templates** sidebar.
@@ -22,37 +22,37 @@ This template is included with the node pack. Open it from ComfyUI's **Templates
 
 ## Understand the two stages
 
-**Stage 1:** Load Image supplies the reference to Seedance 2.5 Draft. The first Save Video node saves the 480p preview.
+**Stage 1:** Load Image supplies the reference to Dreamina Seedance 2.5, using the exact UI model option **Seedance 2.5 Draft**. The first Save Video node saves the 480p preview.
 
 **Stage 2:** Draft to Final receives the draft's `draft_task_id` and produces the 1080p video. The second Save Video node saves the final.
 
 A **bypassed** node is skipped. The template starts with both final-stage nodes bypassed, so you can review the draft first.
 
-<Shot src="templates/image-to-draft-to-1080p-workflow.webp" alt="Load Image connected to Seedance Draft and Save Video, with both final-stage nodes bypassed" caption="Run the draft first, then enable both final-stage nodes." />
+<Shot src="tutorials/byteplus-video-workflow.webp" alt="Workflow diagram linking the glossy BytePlus base to Seedance 2.5 Draft, draft Save Video, Draft to Final and final Save Video" caption="Workflow diagram, not a UI screenshot: review the draft before enabling both final-stage nodes." />
 
 ## Prepare your shot
 
 <Steps>
 
 1. Open **Templates** in the left sidebar, look under **ComfyUI-BytePlus-ModelArk**, and open **Image to Draft to 1080p**.
-2. In **Load Image**, press **choose file to upload** and select the generated image you kept in Module 4, not the original product photo. Check its preview.
-3. Keep **Seedance 2.5 Draft**, **480p**, **16:9** and **5 seconds** selected.
-4. Keep every **control after generate** row on `fixed`. Leave **Draft to Final** and its **Save Video** node bypassed.
-5. Edit the draft prompt. Refer to your reference as **Image 1**, then describe the motion and camera movement you want.
+2. In **Load Image**, press **choose file to upload** and replace the template reference with `selected-image.png` from Module 4. For the guided demo, this is the reviewed glossy base `byteplus-badge-base.png`, not A, B or the original logo. For your own product, use the selected generated image, not the original product photo. Check its preview.
+3. Select the exact UI option **Seedance 2.5 Draft**, with **480p**, **16:9** and **5 seconds**. Keep `generation_count` at `1`, and turn `generate_audio` off for this silent studio shot.
+4. Keep every **control after generate** row on `fixed`. Leave **Draft to Final** and its **Save Video** node bypassed. If the required model option is missing, update the BytePlus pack and restart ComfyUI before creating the draft.
+5. Replace the template's draft prompt with the badge prompt below. Describe the subject, motion and camera movement you want.
 
 </Steps>
 
-<Shot src="tutorials/reference-upload.webp" alt="Load Image node with its choose file to upload control identified for selecting a reference file" caption="The control is the same as in the image lesson; select your generated product image here." />
+Check Load Image's preview yourself: it should show the selected glossy base, not the original logo or the template's old reference. The diagram above describes the stages; it is not a capture of the UI.
 
 <Shot src="tutorials/final-bypassed.webp" alt="Close-up of the Draft to Final and final Save Video nodes, both tinted purple because they are bypassed" caption="Before running a draft, both final nodes should be bypassed." />
 
-Try this starting prompt:
+Use this motion prompt for the glossy badge:
 
 ```text
-Use the product in Image 1 as the subject. Keep the product stationary on the studio surface while the camera makes a slow, smooth push-in. Preserve its appearance and keep the lighting soft. Do not add extra objects or text.
+A slow, gentle camera push-in toward the BytePlus badge in the reference image. Keep the badge, blue symbol, dark lettering and white studio background stable and recognizable. Soft shadows and subtle changing reflections. No transformations, no added lettering, no new objects. One continuous five-second product shot.
 ```
 
-The prompt guides the result; inspect product details rather than assuming they are preserved exactly.
+For your own product, replace the badge-specific preservation instructions with its important details. The prompt guides the result; inspect the full clip rather than assuming details and typography are preserved exactly. The video reference is the generated glossy base; unlike the image comparison, it is not the original flat logo.
 
 ## Run and review the 480p draft
 
@@ -64,7 +64,11 @@ Use the video's play control to watch from beginning to end. The template saves 
 - Does the camera follow the requested motion?
 - Are there visible distortions, unwanted objects or changed text?
 
+For the badge, also check that its symbol and lettering stay stable, the shot remains in a white studio, and the only intended movement is the gentle camera push-in.
+
 If you need another draft, keep both final-stage nodes bypassed. Change the prompt, image or seed deliberately, then run and review again.
+
+The draft and final are separate billed generations. Bypassing both final-stage nodes prevents an unreviewed draft from immediately triggering a final render; it does not make the draft free. Run once and wait rather than queuing duplicate requests.
 
 ## Render the 1080p final
 
@@ -84,9 +88,9 @@ If your shortcuts are customized, open **Shortcuts** in the sidebar and look up 
 
 The final renders the reviewed draft at 1080p; do not switch the draft node to a regular video model or a new resolution. Before changing the shot again, bypass both final-stage nodes.
 
-<Shot src="templates/image-to-draft-to-1080p-result.webp" alt="Draft and final Save Video nodes showing the same illustrated character example" caption="The template's character example shows the draft and final together." />
+<Shot src="tutorials/byteplus-video-final.webp" alt="Result poster from the BytePlus badge 1080p final showing the glossy blue-and-white badge in a white studio" caption="Poster from the glossy badge final; play the clip to review motion and typography." />
 
-<Media kind="video" file="image-to-draft-to-1080p.mp4" caption="Example 1080p final, displayed here as a resized playback preview." />
+<Media kind="video" file="byteplus-badge-final.mp4" caption="Glossy BytePlus badge with a gentle push-in: a browser-compatible encoding of the 1080p final." />
 
 The **cache** is ComfyUI's temporary memory of an unchanged node's result. Keep ComfyUI running between draft review and final generation. Restarting clears that memory; reopening a JSON does not restore it. The [draft-mode reference](../../concepts/draft-mode/) explains rendering a saved draft ID in a separate workflow.
 

@@ -1,82 +1,95 @@
 ---
 title: "Create and refine product images"
-description: "Adapt your Seedream workflow to a product brief, compare two image variations and select a reference for the video lesson."
+description: "Use Seedream 5.5 to compare two badge finishes from the original BytePlus logo and prepare the glossy base for the video lesson."
 ---
 
 import { Steps } from '@astrojs/starlight/components';
 import Shot from '../../../components/Shot.astro';
-import TemplateFacts from '../../../components/TemplateFacts.astro';
 
-**Module 4. Your goal:** Create two product-image variations, compare them against your brief, and choose one to animate.
+**Module 4. Your goal:** Create two finish variations from the original reference, compare them against your brief, and keep the glossy base for the guided video.
 
 ## Before you start
 
 - Complete [Module 3](../build-your-first-workflow/) and reopen your saved image workflow.
 - Have the product brief and reference image you prepared earlier.
-- Keep using **Seedream 5.0 Pro** so the model and workflow stay familiar.
+- Keep using **Seedream 5.5** so the model and workflow stay familiar. Select the exact UI option `seedream 5.5`.
 
 You will keep the graph and change its instructions. This is how a reusable workflow adapts to a new creative task.
+
+If you reopen the included Seedream template instead, it still defaults to **Pro**. Override its model with `seedream 5.5`, replace the reference and use the full course prompt. If the option is missing, update the BytePlus pack and restart ComfyUI.
 
 ## Prepare the reference and brief
 
 <Steps>
 
-1. Upload your original product image in **Load Image**. Keep its connection to Seedream's `image_1` input.
-2. Compare two compositions: a centred product presentation versus clear headline space on the right. Use your brief to decide which fits better. Check the background and product details in both.
-3. Keep `(2K) 2048x2048 (1:1)` selected for this comparison.
-4. Find **control after generate** and choose `fixed`. If your frontend shows this row twice, set both rows to `fixed`. Keep the same seed number, reference and model for both variations. Keep `generation_count` at `1`.
+1. Upload the original `byteplus_logo.png` in **Load Image**, or your original product reference. Keep its connection to Seedream's `image_1` input. The base, variation A and variation B all use this original reference; do not feed a generated badge back into Seedream.
+2. Compare finishes: glossy enamel versus matte ceramic. Keep the full logo, placement, background and lighting instructions the same. Use your brief to judge which finish fits better.
+3. Keep `size_preset` at `(2K) 2048x2048 (1:1)`, `output_format` at `png`, `background` at `opaque`, `generation_count` at `1` (one image), and `prompt_optimization` at `standard`.
+4. Find **control after generate** and choose `fixed`. If your frontend shows this row twice, set both rows to `fixed`. Keep the same seed number, reference and model for the base and both variations.
 
 </Steps>
 
-<Shot src="tutorials/seedream-fixed.webp" alt="Seedream 5.0 Pro controls showing a square 2K preset, seed 42, generation count 1 and both control after generate rows set to fixed" caption="Keep the seed unchanged; this frontend shows two seed-control rows." />
+Use the [course settings table in Module 2](../set-up-api-key/#generate-your-first-image) to check the values. Keep them and the original reference unchanged across the comparison.
 
-A **seed** is the number used for a generation. `fixed` stops ComfyUI changing that number after a run. It keeps one setting constant for your comparison; it does not guarantee identical results.
+For **Seedream 5.5**, the seed widget is a **local rerun control**. Its value is **not sent** to the image API. `fixed` stops ComfyUI changing that local number after a run; changing it can make ComfyUI rerun the node instead of reusing its cache. It is **not a deterministic** A/B guarantee. Even with the same number and original reference, results can differ beyond the finish instruction you changed. Each new generation can use your account balance.
+
+## Keep the glossy base
+
+Use the reviewed base from Module 3 if it already uses the original BytePlus logo and these settings. Otherwise, run this exact base prompt once and save the PNG as `byteplus-badge-base.png`:
+
+```text
+Turn the supplied BytePlus logo into a glossy 3D badge on a clean white studio background with soft shadows. Preserve the exact BytePlus symbol, the word BytePlus, and their proportions. Use BytePlus blue (#0066FC) for the symbol and dark charcoal lettering. Mount the full logo on one rounded white badge, centered with generous empty space. Front-facing product photography, soft diffused lighting, crisp edges. No other text, no extra logos, no decorative props.
+```
+
+<Shot src="tutorials/byteplus-badge.webp" alt="Glossy base BytePlus badge on a white studio background with the blue symbol and dark charcoal lettering" caption="Keep this glossy base for the guided video; both finish variations still start from the original logo." />
 
 ## Create variation A
 
-Use a prompt that separates the details to keep from the changes you want:
+Use the same full base prompt and append the glossy enamel finish sentence:
 
 ```text
-Keep the product's shape, colour and label from the reference. Place the product in the centre of a clean white studio background with soft shadows. Do not add extra text or objects.
+Turn the supplied BytePlus logo into a glossy 3D badge on a clean white studio background with soft shadows. Preserve the exact BytePlus symbol, the word BytePlus, and their proportions. Use BytePlus blue (#0066FC) for the symbol and dark charcoal lettering. Mount the full logo on one rounded white badge, centered with generous empty space. Front-facing product photography, soft diffused lighting, crisp edges. No other text, no extra logos, no decorative props. Give the badge a glossy enamel finish.
 ```
 
 Before running, set Save Image's `filename_prefix` to `Course/variation-A`. Press **Run**, review the output and copy its file from `output/Course` into your course folder. Record the prompt as `variation-A-prompt.txt`. Instructions to preserve details are requests, not a guarantee.
 
+<Shot src="tutorials/byteplus-badge-a.webp" alt="BytePlus badge finish variation A with a glossy enamel surface, blue symbol and charcoal wordmark on white" caption="Variation A requests glossy enamel; compare the finish and preserved logo details." />
+
 ## Create variation B
 
-Change only the composition request. Keep the other generation settings unchanged:
+Use the same full prompt as A, replacing only its final finish sentence with the matte ceramic instruction. Keep the original BytePlus logo reference and all other generation settings unchanged:
 
 ```text
-Keep the product's shape, colour and label from the reference. Place the product on the left of a clean white studio background with soft shadows, leaving clear space on the right for advertising copy. Do not add extra text or objects.
+Turn the supplied BytePlus logo into a glossy 3D badge on a clean white studio background with soft shadows. Preserve the exact BytePlus symbol, the word BytePlus, and their proportions. Use BytePlus blue (#0066FC) for the symbol and dark charcoal lettering. Mount the full logo on one rounded white badge, centered with generous empty space. Front-facing product photography, soft diffused lighting, crisp edges. No other text, no extra logos, no decorative props. Give the badge a matte ceramic finish.
 ```
 
 Change Save Image's `filename_prefix` to `Course/variation-B`. Press **Run**, then copy its file from `output/Course` into your course folder. Record `variation-B-prompt.txt`. Changing this filename only labels the output; keep the model's generation settings unchanged.
 
 Open the two saved image files in separate image-viewer windows and place them side by side. Compare at the same zoom, then zoom in on the product shape and label. Match the filename beginning `variation-A` or `variation-B` to its prompt.
 
-<Shot src="tutorials/image-connections.webp" alt="Reusable Load Image, Seedream and Save Image graph with filename prefix inside the Save Image node" caption="Label A and B in Save Image; keep the two image connections unchanged." />
+<Shot src="tutorials/byteplus-badge-b.webp" alt="BytePlus badge finish variation B with a matte ceramic surface, blue symbol and charcoal wordmark on white" caption="Variation B requests matte ceramic; check for unwanted differences as well as the intended finish." />
+
+In these samples, A is a rounded-square badge while B is circular. That shape change was not requested. Record it as an unwanted difference if your brief requires the same badge shape; do not describe these results as a finish-only controlled experiment.
 
 ## Review and select
 
 Check each variation against the same questions:
 
 - Are the product's shape, colour and important label details still recognizable?
-- Does the composition meet your selected requirement?
+- Does the visible finish meet the enamel or ceramic request while keeping the composition suitable for your brief?
 - Are there unwanted objects, distorted details or altered text?
 
 Select the stronger image and explain your choice using visible evidence. If neither meets the brief, revise one prompt instruction and review another result.
 
-<Shot src="templates/image-edit-result.webp" alt="Original illustrated character beside an edited version with changed colours and background" caption="A separate illustrated example shows why both intended edits and preserved details need review." />
-
-The [Image Edit guide](../../templates/image-edit/) provides another worked example. It uses Seedream Flash; keep using your saved Pro workflow for this lesson. To compare that separate example, open **Image Edit** from **Templates > ComfyUI-BytePlus-ModelArk**.
-
-<TemplateFacts file="Image Edit.json" showDownload={false} />
+This comparison changes one prompt instruction, not every source of variation. Do not attribute all visible differences to the finish sentence or claim a controlled deterministic experiment.
 
 ## Practice
 
-Use one requirement from your existing brief for this comparison. If you chose the logo-badge practice, replace "product" with "logo badge" in both prompts. Keep the two images, their prompts, and a short selection note.
+Use the finish requirement from your existing brief for this comparison. With your own product, adapt the preservation instructions but still use its original reference for all three images. Keep the base, both variations, their full prompts and a short selection note.
 
-Copy your chosen image as `selected-image.png` if its original file is PNG, or `selected-image.jpg` if it is JPEG. Do not change the extension to convert a file. Restore your chosen variation's prompt in Seedream, then use **Graph > Export** to keep `product-image-workflow.json` with it. Restoring the prompt for export does not require another generation.
+For the guided BytePlus video, review the glossy base's symbol and typography, then copy `byteplus-badge-base.png` as `selected-image.png`. Your A/B finish choice remains in the selection note; it does not replace the video reference. For an independent product brief, keep your chosen reviewed PNG instead. Do not change an extension to convert a file.
+
+Restore the selected image's prompt in Seedream, then use **Graph > Export** to keep `product-image-workflow.json` with it. Restoring the prompt for export does not require another generation. Keep the original reference separately from the JSON.
 
 ## Completion check
 

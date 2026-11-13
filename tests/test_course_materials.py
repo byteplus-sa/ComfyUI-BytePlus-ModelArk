@@ -50,15 +50,62 @@ class CourseMaterialsTests(unittest.TestCase):
                     self.assertIn(f"../{LESSONS[index + 1]}/", text)
 
     def test_practice_logo_has_a_download_and_license(self):
-        self.assertTrue((DOCS / "public/course/comfyui_logo.png").is_file())
+        self.assertTrue((DOCS / "public/course/byteplus_logo.png").is_file())
+        self.assertTrue((DOCS / "public/course/byteplus-logo.svg").is_file())
         license_text = (DOCS / "public/course/LOGO-LICENSE.txt").read_text()
-        self.assertIn("MIT License", license_text)
+        self.assertIn("BytePlus", license_text)
+        self.assertIn("sf-bpcms.bytepluscdn.com", license_text)
+        self.assertNotIn("MIT License", license_text)
         for lesson in ("set-up-api-key", "build-your-first-workflow"):
             with self.subTest(lesson=lesson):
                 self.assertIn(
-                    "/course/comfyui_logo.png",
+                    "/course/byteplus_logo.png",
                     (COURSE / f"{lesson}.mdx").read_text(),
                 )
+
+    def test_image_lessons_use_seedream_55_and_explicit_output_settings(self):
+        for lesson in (
+            "set-up-api-key",
+            "build-your-first-workflow",
+            "refine-product-images",
+            "final-project",
+        ):
+            text = (COURSE / f"{lesson}.mdx").read_text()
+            with self.subTest(lesson=lesson):
+                self.assertIn("Seedream 5.5", text)
+                self.assertNotIn("5.0 Pro", text)
+                self.assertNotIn("saved Pro workflow", text)
+        for lesson in ("set-up-api-key", "build-your-first-workflow"):
+            text = (COURSE / f"{lesson}.mdx").read_text()
+            with self.subTest(lesson=lesson):
+                self.assertIn("`seedream 5.5`", text)
+                self.assertIn("`opaque`", text)
+                self.assertIn("`png`", text)
+                self.assertIn("update", text.lower())
+
+    def test_course_does_not_present_old_logo_or_character_demo_outputs(self):
+        for page in COURSE.glob("*.mdx"):
+            text = page.read_text()
+            with self.subTest(page=page.name):
+                self.assertNotIn("/course/comfyui_logo.png", text)
+                self.assertNotIn("templates/seedream-result.webp", text)
+                self.assertNotIn("templates/image-edit-result.webp", text)
+                self.assertNotIn("templates/image-to-draft-to-1080p-result.webp", text)
+                self.assertNotIn('file="image-to-draft-to-1080p.mp4"', text)
+
+    def test_image_seed_is_explained_as_a_local_rerun_control(self):
+        text = (COURSE / "refine-product-images.mdx").read_text()
+        self.assertIn("local rerun control", text)
+        self.assertIn("not sent", text)
+        self.assertIn("not a deterministic", text)
+
+    def test_course_uses_dreamina_product_name_and_exact_video_ui_label(self):
+        for lesson in ("index", "image-to-video", "final-project"):
+            text = (COURSE / f"{lesson}.mdx").read_text()
+            with self.subTest(lesson=lesson):
+                self.assertIn("Dreamina Seedance 2.5", text)
+        video = (COURSE / "image-to-video.mdx").read_text()
+        self.assertIn("**Seedance 2.5 Draft**", video)
 
     def test_course_does_not_require_a_preinstalled_logo(self):
         for page in COURSE.glob("*.mdx"):

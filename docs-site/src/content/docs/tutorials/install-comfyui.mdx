@@ -7,7 +7,7 @@ import { Steps } from '@astrojs/starlight/components';
 import Shot from '../../../components/Shot.astro';
 import TemplateFacts from '../../../components/TemplateFacts.astro';
 
-**Module 1. Your goal:** Open ComfyUI with the BytePlus nodes ready to use. You do not need to download local image or video models for this course; Seedream and Seedance run through BytePlus ModelArk.
+**Module 1. Your goal:** Open ComfyUI with the BytePlus nodes ready to use. You do not need to download local image or video models for this course; Seedream 5.5 and Dreamina Seedance 2.5 run through BytePlus ModelArk.
 
 ## Before you start
 
@@ -55,11 +55,11 @@ If Manager is unavailable or the pack is not listed, use the [pack installation 
 
 Open **Nodes** in the left sidebar and search for **BytePlus Seedream**. Look under **BytePlus ModelArk** for the generation node, not **Layer Separation**. Its title may include model-version numbers.
 
-<Shot src="tutorials/node-search.webp" alt="Nodes sidebar searched for BytePlus Seedream, with a callout identifying the generation node rather than Layer Separation" caption="The course uses the Seedream generation node." />
-
 The **Seedream** and **Image to Draft to 1080p** templates are included when you install the pack. Open **Templates** in the left sidebar, look under **ComfyUI-BytePlus-ModelArk**, and open **Seedream**. For a manual installation, the group may use your installation folder's name. Do not choose a core ByteDance partner template; those use a different account connection.
 
 <TemplateFacts file="Seedream.json" showDownload={false} />
+
+The included Seedream template still defaults to **Pro**. The course uses `seedream 5.5` instead. If that option is missing, update the BytePlus pack through Nodes Manager and restart ComfyUI. In Module 2, you will override the model, reference and prompt before running.
 
 Open **Settings** and search for **BytePlus**. Find **Default credentials** and its **ModelArk API key** row. Leave it empty for now; you configure it in Module 2.
 
