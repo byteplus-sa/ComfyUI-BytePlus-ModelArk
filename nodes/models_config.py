@@ -38,7 +38,7 @@ VIDEO_MODEL_MAP = {
     "dreamina-seedance-2-0-fast": "dreamina-seedance-2-0-fast-260128",
     "dreamina-seedance-2-0-mini": "dreamina-seedance-2-0-mini-260615",
     "dreamina-seedance-2-5": "dreamina-seedance-2-5-260628",
-    "dreamina-seedance-2-5-premium": "dreamina-seedance-2-5-premium-260915",
+    "dreamina-seedance-2-5-flash": "dreamina-seedance-2-5-flash-261115",
 }
 
 # Seedance 1.0 node options
@@ -64,21 +64,19 @@ VIDEO_2_UI_OPTIONS = [
     "dreamina-seedance-2-0-fast",
     "dreamina-seedance-2-0-mini",
     "dreamina-seedance-2-5",
-    "dreamina-seedance-2-5-premium",
+    "dreamina-seedance-2-5-flash",
 ]
 
 SEEDANCE_2_5_UI_MODEL = "dreamina-seedance-2-5"
-SEEDANCE_2_5_PREMIUM_UI_MODEL = "dreamina-seedance-2-5-premium"
-# Models with Seedance 2.5 features: 30 s output, audio-only references,
-# task_type, output_format and draft mode.
-SEEDANCE_2_5_FAMILY = (SEEDANCE_2_5_UI_MODEL, SEEDANCE_2_5_PREMIUM_UI_MODEL)
+SEEDANCE_2_5_FLASH_UI_MODEL = "dreamina-seedance-2-5-flash"
+SEEDANCE_2_5_FAMILY = (SEEDANCE_2_5_UI_MODEL, SEEDANCE_2_5_FLASH_UI_MODEL)
 
 VIDEO_2_MODEL_RESOLUTIONS = {
     "dreamina-seedance-2-0": ["480p", "720p", "1080p", "4k"],
     "dreamina-seedance-2-0-fast": ["480p", "720p"],
     "dreamina-seedance-2-0-mini": ["480p", "720p"],
-    "dreamina-seedance-2-5": ["480p", "720p", "1080p"],
-    "dreamina-seedance-2-5-premium": ["4k"],
+    "dreamina-seedance-2-5": ["480p", "720p", "1080p", "4k"],
+    "dreamina-seedance-2-5-flash": ["480p", "720p"],
 }
 
 VIDEO_2_MODEL_MAX_DURATIONS = {
@@ -86,7 +84,7 @@ VIDEO_2_MODEL_MAX_DURATIONS = {
     "dreamina-seedance-2-0-fast": 15,
     "dreamina-seedance-2-0-mini": 15,
     "dreamina-seedance-2-5": 30,
-    "dreamina-seedance-2-5-premium": 30,
+    "dreamina-seedance-2-5-flash": 30,
 }
 
 # Per request: images, videos and audio clips (BytePlus: 50 references in total on
@@ -96,21 +94,18 @@ VIDEO_2_MODEL_REFERENCE_LIMITS = {
     "dreamina-seedance-2-0-fast": {"images": 9, "videos": 3, "audios": 3},
     "dreamina-seedance-2-0-mini": {"images": 9, "videos": 3, "audios": 3},
     "dreamina-seedance-2-5": {"images": 30, "videos": 10, "audios": 10},
-    "dreamina-seedance-2-5-premium": {"images": 30, "videos": 10, "audios": 10},
+    "dreamina-seedance-2-5-flash": {"images": 30, "videos": 10, "audios": 10},
 }
 
-# Draft mode: the draft is always 480p; the final video generated from a draft
-# task supports only these resolutions (verified against the live API: a
-# Premium final at 1080p is rejected with InvalidResolutionParameter).
 SEEDANCE_DRAFT_RESOLUTION = "480p"
 SEEDANCE_DRAFT_FINAL_RESOLUTIONS = {
     "dreamina-seedance-2-5": ["1080p"],
-    "dreamina-seedance-2-5-premium": ["4k"],
 }
 
 # Seedance 2.5 omni reference task types (omni_reference_task_type)
 SEEDANCE_2_5_TASK_TYPES = ["auto", "reference", "edit", "extend"]
 SEEDANCE_2_5_OUTPUT_FORMATS = ["mp4", "mov"]
+SEEDANCE_2_5_OUTPUT_FORMAT_MODELS = (SEEDANCE_2_5_UI_MODEL,)
 
 # Model list for the task query node
 # Retired models stay last so their task history can still be queried.
@@ -289,18 +284,15 @@ SEEDANCE_1_MAX_DURATION = 12
 SEEDANCE_1_DEFAULT_DURATION = 5
 
 # Seedance 2 / 2.5 (nodes_seedance2.py)
-# Model option label -> VIDEO_MODEL_MAP key. Core's labels plus the Premium
-# pair; the Draft options render a 480p draft (SEEDANCE_DRAFT_RESOLUTION).
 SEEDANCE2_CORE_MODEL_OPTIONS = {
     "Seedance 2.5": SEEDANCE_2_5_UI_MODEL,
     "Seedance 2.5 Draft": SEEDANCE_2_5_UI_MODEL,
-    "Seedance 2.5 Premium": SEEDANCE_2_5_PREMIUM_UI_MODEL,
-    "Seedance 2.5 Premium Draft": SEEDANCE_2_5_PREMIUM_UI_MODEL,
+    "Seedance 2.5 Flash": SEEDANCE_2_5_FLASH_UI_MODEL,
     "Seedance 2.0": "dreamina-seedance-2-0",
     "Seedance 2.0 Fast": "dreamina-seedance-2-0-fast",
     "Seedance 2.0 Mini": "dreamina-seedance-2-0-mini",
 }
-SEEDANCE2_CORE_DRAFT_OPTIONS = ("Seedance 2.5 Draft", "Seedance 2.5 Premium Draft")
+SEEDANCE2_CORE_DRAFT_OPTIONS = ("Seedance 2.5 Draft",)
 
 # auto_downscale targets for reference videos (total pixels), per model and
 # output resolution, from ComfyUI core's SEEDANCE2_REF_VIDEO_PIXEL_LIMITS. They

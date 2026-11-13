@@ -1,22 +1,22 @@
 ---
 title: "Nodes"
-description: "All 22 BytePlus nodes by group, with what each one does and which API key it needs."
+description: "All 24 BytePlus nodes by group, with what each one does and which API key it needs."
 ---
 
 A node is one block on the ComfyUI canvas. Each node here calls a BytePlus service directly, billed to your own BytePlus account, with a key you save once in **Settings → BytePlus** (see [API keys](../get-started/api-keys/)). Generation nodes only run when something uses their output, such as **Save Image** or **Save Video**, and one with nothing connected is not run and not billed. The exceptions are the two lookup nodes, Video Query Tasks and Asset Library, which run on their own.
 
-All 22 nodes are listed below. Open a node's page for its inputs, outputs, limits and common errors.
+All 24 nodes are listed below. Open a node's page for its inputs, outputs, limits and common errors.
 
 ## Images
 
 | Node | What it does | Key |
 |---|---|---|
-| [Seedream 4.5 & 5.0](./seedream/) | Creates or edits images from a text prompt and optional reference images, up to 4K. | ModelArk |
-| [Seedream 5.0 Layer Separation](./seedream-layer-separation/) | Splits one image into a base image and up to 16 transparent layers, each with a name and position. | ModelArk |
+| [Seedream](./seedream/) | Creates or edits images with Seedream 5.5, 5.0 and 4.x, using a text prompt and optional reference images. | ModelArk |
+| [Seedream Layer Separation](./seedream-layer-separation/) | Splits one image into a base and up to 99 transparent layers on 5.5, or 16 on 5.0 Pro/Flash. | ModelArk |
 
 ## Video: Seedance 2.5
 
-The first three nodes offer Seedance 2.5, 2.5 Premium and the 2.0 models in one `model` choice. Draft to Final has no `model` choice: it reads the model from the draft.
+The first three nodes offer Seedance 2.5, 2.5 Flash and the 2.0 models in one `model` choice. Seedance 2.5 supports 480p, 720p, 1080p and 4k; Flash supports 480p and 720p. Draft to Final has no `model` choice: it reads the model from the draft.
 
 | Node | What it does | Key |
 |---|---|---|

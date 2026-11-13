@@ -8,6 +8,12 @@ Calls go straight to BytePlus and are billed to your BytePlus account (contract 
 
 **New in v0.8.0:** Seedream 5.5 image generation and layer separation, with ten references, automatic transparency, 1K/1.5K/2K output, custom sizes and optional rich-text OCR. Omitted advanced inputs now use their defaults correctly. Media downloads reject private addresses and unsafe redirects. Existing node IDs and model defaults are unchanged; 5.5 requires early-access entitlement.
 
+**Unreleased Seedance changes ([PR #31](https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/pull/31)):** the following changes are in this PR's source, not in v0.8.0 or a published Registry package.
+
+**Seedance 2.5 4K:** select `Seedance 2.5` and set `resolution` to `4k`. The separate Premium and Premium Draft choices are removed without compatibility aliases. Update those selections manually before running an older workflow.
+
+**Seedance 2.5 Flash:** select `Seedance 2.5 Flash` in any of the three Seedance 2.5 generation nodes. It uses `dreamina-seedance-2-5-flash-261115`, supports 480p/720p videos from 4 to 30 seconds and shares the 30-image/10-video/10-audio reference limits. Flash uses the API's default output format and has no Draft option. Your account needs private-model access and activation.
+
 ## Contents
 
 Full documentation, with a page for every node and template: **https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/**. Install and update from the [Comfy Registry](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk).
@@ -55,7 +61,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 | Service | Nodes | Key |
 |---|---|---|
 | **ModelArk** – images | Seedream, Seedream Layer Separation | ModelArk API key |
-| **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 (3 nodes), Draft to Final | ModelArk API key |
+| **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 and Flash (3 shared nodes), Draft to Final | ModelArk API key |
 | **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
 | **ModelArk** – asset library | Create Image / Video / Audio Asset, Asset Library | ModelArk API key + IAM AK/SK |
@@ -99,7 +105,7 @@ Under **Settings → Other → BytePlus → Default credentials**, the **Seedanc
 
 Use an endpoint deployed for exactly that model in the key's region. Saving checks the ID format, not its model, region or access, and makes no generation request. Blank **Save** or **Remove** restores the built-in model unless an environment variable overrides it. Changes take effect without restarting and invalidate the selected model's cached output on the next run.
 
-Seedance 2.5 Draft shares the 2.5 endpoint; Seedream Pro layer separation shares the Pro endpoint. Fast, Mini, Premium, Flash and other models are unchanged. Draft to Final keeps the model or endpoint recorded on the draft. If a draft reports an endpoint ID, keep that endpoint configured until its final is rendered. Pending non-blocking tasks keep running if you change endpoints; collect their results with **Video Query Tasks**, using `all`.
+Seedance 2.5 uses the same endpoint at every resolution, including `4k`; Seedance 2.5 Draft shares it. Seedance 2.5 Flash keeps its own built-in model ID and is not overridden by the standard 2.5 endpoint. Seedream Pro layer separation shares the Pro endpoint. Fast, Mini and other models are unchanged. Draft to Final keeps the model or endpoint recorded on the draft. If a draft reports an endpoint ID, keep that endpoint configured until its final is rendered. Pending non-blocking tasks keep running if you change endpoints; collect their results with **Video Query Tasks**, using `all`.
 
 ### Option B: Edit `user/.env`
 
@@ -189,11 +195,11 @@ Layer separation is generative, not lossless reconstruction, and the image count
 | Node | Models | Highlights |
 |---|---|---|
 | **Seedance Text to Video**, **Image to Video**, **First-Last-Frame to Video** | `seedance-1-0-pro`, `seedance-1-0-pro-fast` (First-Last-Frame: Pro only) | 480p–1080p, 2–12 s, `camera_fixed`, `watermark` |
-| **Seedance 2.5 Text to Video**, **First-Last-Frame to Video**, **Reference to Video** | 2.5 (1080p, 30 s), 2.5 Premium (4K, whitelist only), 2.0 (4K), 2.0 Fast, 2.0 Mini | Draft options for 2.5 and 2.5 Premium; `output_format` mp4 / mov on 2.5 |
+| **Seedance 2.5 Text to Video**, **First-Last-Frame to Video**, **Reference to Video** | 2.5 (480p, 720p, 1080p, 4K; 30 s), 2.5 Flash (480p, 720p; 30 s), 2.0 (4K), 2.0 Fast, 2.0 Mini | 480p Draft and mp4 / mov on standard 2.5 only; Flash uses the API's default format |
 | **Seedance 2.5 Draft to Final Video** | Reads the model from the draft | See [Draft Mode](#draft-mode) |
 | **Video Query Tasks** | All Seedance models, including retired ones | Lists your recent video tasks (by status, model or task ID) as JSON, to find a task ID again |
 
-- **Reference to Video** takes up to 50 references on 2.5 (30 images, 10 videos, 10 audio clips) and 15 on 2.0 (9 + 3 + 3), connected or as `asset_N` [links or assets](#reference-links-and-assets). `task_type`: auto / reference / edit / extend. Reference videos can be down- or upscaled.
+- **Reference to Video** takes up to 50 references on 2.5 and Flash (30 images, 10 videos, 10 audio clips) and 15 on 2.0 (9 + 3 + 3), connected or as `asset_N` [links or assets](#reference-links-and-assets). `task_type`: auto / reference / edit / extend on 2.5 and Flash. Reference videos can be down- or upscaled.
 - **Batches:** with `generation_count` above 1, every video reaches the `VIDEO` output (each with its own seed; the next node runs once per video), and `last_frame` holds their last frames as one batch.
 - **Advanced:** offline inference, parallel generations, non-blocking runs.
 
@@ -324,10 +330,10 @@ With **Dreamina Seedance Advanced Creation Rights** you can keep authorized medi
 
 Seedance 2.5 can render a quick 480p draft before the full-quality video:
 
-1. On a Seedance 2.5 node pick `Seedance 2.5 Draft` or `Seedance 2.5 Premium Draft`, set the seed control to **fixed**, and run. The node outputs `draft_task_id`.
+1. On a Seedance 2.5 node pick `Seedance 2.5 Draft`, set the seed control to **fixed**, and run. The node outputs `draft_task_id`.
 2. Connect `draft_task_id` to `Seedance 2.5 Draft to Final Video` (or paste IDs, one per line) and run again. The draft node isn't re-run while its inputs are unchanged, so the final uses the draft you reviewed.
 
-The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting, and renders at 1080p (2.5) or 4K (2.5 Premium). Draft task IDs are valid for 7 days.
+The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting, and renders at 1080p. Draft task IDs are valid for 7 days. For direct 4K generation, select `Seedance 2.5` with `resolution` set to `4k` instead of the Draft option.
 
 ## Example Workflows
 

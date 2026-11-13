@@ -72,8 +72,7 @@ EXTRAS = ["generation_count", "non_blocking"]
 MODEL_LABELS = [
     "Seedance 2.5",
     "Seedance 2.5 Draft",
-    "Seedance 2.5 Premium",
-    "Seedance 2.5 Premium Draft",
+    "Seedance 2.5 Flash",
     "Seedance 2.0",
     "Seedance 2.0 Fast",
     "Seedance 2.0 Mini",
@@ -279,6 +278,12 @@ class SchemaTests(unittest.TestCase):
         self.assertEqual(list(nodes_seedance2.NODES), list(expected)[:4])
         self.assertEqual(list(nodes_assets.NODES)[:3], list(expected)[4:])
 
+    def test_premium_is_absent_from_seedance_schemas_and_task_query_choices(self):
+        for node_cls in (*nodes_seedance2.NODES, nodes_video.BytePlusVideoQueryTasks):
+            with self.subTest(node=node_cls.__name__):
+                info = node_cls.GET_NODE_INFO_V1()
+                self.assertNotIn("premium", json.dumps(info).lower())
+
     def test_asset_library_node(self):
         library = nodes_assets.BytePlusAssetLibrary.define_schema()
         self.assertFalse(library.is_deprecated)
@@ -324,10 +329,13 @@ class SchemaTests(unittest.TestCase):
         for label in MODEL_LABELS:
             is_25 = "2.5" in label
             with self.subTest(label=label):
+                text_fields = list(SEEDANCE25_TEXT if is_25 else SEEDANCE20_TEXT)
+                if label == "Seedance 2.5 Flash":
+                    text_fields.remove("output_format")
                 t2v = option_inputs(nodes_seedance2.BytePlusSeedance2TextToVideo, label)
-                self.assertEqual(list(t2v["required"]), SEEDANCE25_TEXT if is_25 else SEEDANCE20_TEXT)
+                self.assertEqual(list(t2v["required"]), text_fields)
                 flf = option_inputs(nodes_seedance2.BytePlusSeedance2FirstLastFrame, label)
-                expected_flf = [n for n in SEEDANCE25_TEXT if n != "ratio"] if is_25 else SEEDANCE20_TEXT
+                expected_flf = [n for n in text_fields if n != "ratio"] if is_25 else text_fields
                 self.assertEqual(list(flf["required"]), expected_flf)
                 ref = option_inputs(nodes_seedance2.BytePlusSeedance2Reference, label)
                 text = (
@@ -335,6 +343,8 @@ class SchemaTests(unittest.TestCase):
                     if is_25
                     else SEEDANCE20_TEXT
                 )
+                if label == "Seedance 2.5 Flash":
+                    text.remove("output_format")
                 self.assertEqual(list(ref["required"]), text + REFERENCE_TAIL)
                 self.assertEqual(list(ref["optional"]), ["auto_downscale", "auto_upscale"])
                 self.assertTrue(ref["optional"]["auto_upscale"][1]["advanced"])
@@ -342,10 +352,9 @@ class SchemaTests(unittest.TestCase):
 
     def test_resolutions_durations_and_defaults(self):
         expected = {
-            "Seedance 2.5": (["480p", "720p", "1080p"], "720p", 30, 5),
+            "Seedance 2.5": (["480p", "720p", "1080p", "4k"], "720p", 30, 5),
             "Seedance 2.5 Draft": (["480p"], "480p", 30, 5),
-            "Seedance 2.5 Premium": (["4k"], "4k", 30, 5),
-            "Seedance 2.5 Premium Draft": (["480p"], "480p", 30, 5),
+            "Seedance 2.5 Flash": (["480p", "720p"], "720p", 30, 5),
             "Seedance 2.0": (["480p", "720p", "1080p", "4k"], None, 15, 7),
             "Seedance 2.0 Fast": (["480p", "720p"], None, 15, 7),
             "Seedance 2.0 Mini": (["480p", "720p"], None, 15, 7),
@@ -359,6 +368,9 @@ class SchemaTests(unittest.TestCase):
                 self.assertEqual(req["duration"][1]["default"], default_duration)
                 self.assertEqual(req["ratio"][1]["default"], "16:9")
                 flf = option_inputs(nodes_seedance2.BytePlusSeedance2FirstLastFrame, label)["required"]
+                self.assertEqual(flf["resolution"][1]["options"], resolutions)
+                reference = option_inputs(nodes_seedance2.BytePlusSeedance2Reference, label)["required"]
+                self.assertEqual(reference["resolution"][1]["options"], resolutions)
                 if "ratio" in flf:
                     self.assertEqual(flf["ratio"][1]["default"], "adaptive")
 
@@ -552,8 +564,8 @@ class SchemaTests(unittest.TestCase):
             a, b = (ours[1] if len(ours) > 1 else {}), (theirs[1] if len(theirs) > 1 else {})
             if where == "Seedance 2.5.resolution":
                 b = dict(b)
-                if b.get("options") == ["480p", "720p", "1080p", "4k"]:
-                    b["options"] = ["480p", "720p", "1080p"]
+                if b.get("options") == ["480p", "720p", "1080p"]:
+                    b["options"] = ["480p", "720p", "1080p", "4k"]
                 if b.get("tooltip") == ("Resolution of the output video. 4k is available to enterprise accounts only."):
                     b["tooltip"] = "Resolution of the output video."
             if name == "output_format":
@@ -770,7 +782,7 @@ class TextToVideoTests(_ExecutorHarness):
             "duration": 5,
             "generate_audio": True,
         }
-        if "2.5" in label:
+        if "2.5" in label and label != "Seedance 2.5 Flash":
             values["output_format"] = "mp4"
         values.update(overrides)
         return values
@@ -838,10 +850,13 @@ class TextToVideoTests(_ExecutorHarness):
             for label, resolution in (
                 ("Seedance 2.0 Fast", "720p"),
                 ("Seedance 2.0 Mini", "720p"),
-                ("Seedance 2.5 Premium", "4k"),
+                ("Seedance 2.5 Flash", "720p"),
             ):
                 await self.run_node(self.T2V, model=self.model(label, resolution=resolution), seed=42)
                 self.assertFalse(self.submitted[-1]["model"].startswith("ep-"))
+            await self.run_node(self.T2V, model=self.model(resolution="4k"), seed=42)
+            self.assertEqual(self.submitted[-1]["model"], "ep-25")
+            self.assertEqual(self.submitted[-1]["resolution"], "4k")
             await self.run_node(self.T2V, model=self.model("Seedance 2.5 Draft", resolution="480p"), seed=42)
             self.assertEqual(self.submitted[-1]["model"], "ep-25")
             self.assertTrue(self.submitted[-1]["draft"])
@@ -858,18 +873,83 @@ class TextToVideoTests(_ExecutorHarness):
             self.assertFalse(request["return_last_frame"])
             self.assertEqual(request["model"], "dreamina-seedance-2-5-260628")
         self.assertEqual(result.args[1], "cgt-1\ncgt-2")
-        self.submitted.clear()
-        nodes_video.NON_BLOCKING_TASK_CACHE.clear()
-        await self.run_node(self.T2V, model=self.model("Seedance 2.5 Premium Draft", resolution="480p"), seed=1)
-        self.assertEqual(self.submitted[0]["model"], "dreamina-seedance-2-5-premium-260915")
-        self.assertTrue(self.submitted[0]["draft"])
 
-    async def test_premium_is_4k_only(self):
-        await self.run_node(self.T2V, model=self.model("Seedance 2.5 Premium", resolution="4k", duration=30), seed=1)
-        self.assertEqual(self.submitted[0]["model"], "dreamina-seedance-2-5-premium-260915")
-        self.assertEqual((self.submitted[0]["resolution"], self.submitted[0]["duration"]), ("4k", 30))
-        with self.assertRaises(Exception):
-            await self.run_node(self.T2V, model=self.model("Seedance 2.5 Premium", resolution="1080p"), seed=1)
+    async def test_seedance25_all_resolutions_use_the_same_model(self):
+        for resolution in ("480p", "720p", "1080p", "4k"):
+            with self.subTest(resolution=resolution):
+                await self.run_node(self.T2V, model=self.model(resolution=resolution, duration=30), seed=1)
+                request = self.submitted[-1]
+                self.assertEqual(request["model"], "dreamina-seedance-2-5-260628")
+                self.assertEqual((request["resolution"], request["duration"]), (resolution, 30))
+                self.assertNotIn("draft", request)
+
+    async def test_flash_uses_its_dated_model_and_api_default_format(self):
+        for resolution, duration in (("480p", 4), ("720p", 30)):
+            with self.subTest(resolution=resolution, duration=duration):
+                result = await self.run_node(
+                    self.T2V,
+                    model=self.model(
+                        "Seedance 2.5 Flash", resolution=resolution, duration=duration, output_format="mov"
+                    ),
+                    seed=0,
+                )
+                request = self.submitted[-1]
+                self.assertEqual(request["model"], "dreamina-seedance-2-5-flash-261115")
+                self.assertEqual((request["resolution"], request["duration"]), (resolution, duration))
+                self.assertEqual(request["seed"], 0)
+                for absent in ("output_format", "draft", "service_tier", "execution_expires_after"):
+                    self.assertNotIn(absent, request)
+                self.assertTrue(json.loads(result.args[3])["task_ids"])
+
+    async def test_flash_rejects_invalid_resolutions_and_durations_before_submission(self):
+        for inputs in (
+            {"resolution": "1080p"},
+            {"resolution": "4k"},
+            {"resolution": ""},
+            {"resolution": None},
+            {"duration": 3},
+            {"duration": 31},
+            {"duration": 4.5},
+            {"duration": None},
+        ):
+            with self.subTest(inputs=inputs):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    await self.run_node(self.T2V, model=self.model("Seedance 2.5 Flash", **inputs), seed=1)
+        self.assertEqual(self.submitted, [])
+
+    async def test_flash_has_no_draft_choice_or_draft_output(self):
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.run_node(self.T2V, model=self.model("Seedance 2.5 Flash Draft"), seed=1)
+        linked = {"9": {"class_type": "BytePlusSeedanceDraftToFinal", "inputs": {"draft_task_id": ["5", 1]}}}
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.run_node(self.T2V, model=self.model("Seedance 2.5 Flash"), seed=1, prompt=linked)
+        self.assertEqual(self.submitted, [])
+
+    async def test_flash_non_blocking_rerun_collects_the_existing_task(self):
+        model = self.model("Seedance 2.5 Flash")
+        first = await self.run_node(self.T2V, model=model, seed=1)
+        task_id = json.loads(first.args[3])["task_ids"][0]
+        self.task_lookups[task_id] = SimpleNamespace(id=task_id, status="queued")
+        second = await self.run_node(self.T2V, model=model, seed=1)
+        self.assertEqual(len(self.submitted), 1)
+        self.assertEqual(json.loads(first.args[3])["task_ids"], json.loads(second.args[3])["task_ids"])
+
+    async def test_removed_premium_options_are_rejected_before_submission(self):
+        for node_cls in (
+            self.T2V,
+            nodes_seedance2.BytePlusSeedance2FirstLastFrame,
+            nodes_seedance2.BytePlusSeedance2Reference,
+        ):
+            for label in ("Seedance 2.5 Premium", "Seedance 2.5 Premium Draft"):
+                with self.subTest(node=node_cls.NODE_ID, model=label):
+                    with self.assertRaises(nodes_shared.BytePlusException):
+                        await self.run_node(node_cls, model=self.model(label, resolution="4k"), seed=1)
+        self.assertEqual(self.submitted, [])
+
+    async def test_draft_rejects_4k_before_submission(self):
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.run_node(self.T2V, model=self.model("Seedance 2.5 Draft", resolution="4k"), seed=1)
+        self.assertEqual(self.submitted, [])
 
     async def test_seedance20_request(self):
         model = {
@@ -954,7 +1034,7 @@ class FirstLastFrameTests(_ExecutorHarness):
 
     def model(self, label="Seedance 2.0", **overrides):
         values = {"model": label, "prompt": "walk", "resolution": "1080p", "duration": 5, "generate_audio": True}
-        if "2.5" in label:
+        if "2.5" in label and label != "Seedance 2.5 Flash":
             values["output_format"] = "mp4"
         else:
             values["ratio"] = "16:9"
@@ -989,10 +1069,25 @@ class FirstLastFrameTests(_ExecutorHarness):
         self.submitted.clear()
         nodes_video.NON_BLOCKING_TASK_CACHE.clear()
         await self.run_node(
-            self.FLF, model=self.model("Seedance 2.5 Premium", resolution="4k"), seed=1, first_frame=image(1000, 800)
+            self.FLF, model=self.model("Seedance 2.5", resolution="4k"), seed=1, first_frame=image(1000, 800)
         )
+        self.assertEqual(self.submitted[0]["model"], "dreamina-seedance-2-5-260628")
         self.assertEqual(self.submitted[0]["ratio"], "adaptive")
         self.assertEqual(self.submitted[0]["resolution"], "4k")
+
+    async def test_flash_first_last_frames_use_adaptive_ratio(self):
+        await self.run_node(
+            self.FLF,
+            model=self.model("Seedance 2.5 Flash", resolution="720p", duration=30),
+            seed=1,
+            first_frame_asset_id="https://cdn.example/first.jpg",
+            last_frame_asset_id="https://cdn.example/last.jpg",
+        )
+        request = self.submitted[0]
+        self.assertEqual(request["model"], "dreamina-seedance-2-5-flash-261115")
+        self.assertEqual((request["resolution"], request["ratio"], request["duration"]), ("720p", "adaptive", 30))
+        self.assertEqual([item["role"] for item in request["content"][1:]], ["first_frame", "last_frame"])
+        self.assertNotIn("output_format", request)
 
     async def test_asset_ids_and_links(self):
         await self.run_node(
@@ -1105,9 +1200,77 @@ class ReferenceTests(_ExecutorHarness):
             "reference_assets": {},
         }
         if "2.5" in label:
-            values.update(task_type="auto", output_format="mp4")
+            values["task_type"] = "auto"
+            if label != "Seedance 2.5 Flash":
+                values["output_format"] = "mp4"
         values.update(overrides)
         return values
+
+    async def test_seedance25_reference_supports_4k(self):
+        await self.run_node(
+            self.REF,
+            model=self.model(resolution="4k", task_type="reference", reference_images={"image_1": image(640, 640)}),
+            seed=1,
+        )
+        request = self.submitted[0]
+        self.assertEqual(request["model"], "dreamina-seedance-2-5-260628")
+        self.assertEqual(request["resolution"], "4k")
+        self.assertEqual(request["omni_reference_task_type"], "reference")
+        self.assertEqual(request["content"][1]["role"], "reference_image")
+
+    async def test_flash_matches_the_supplied_multimodal_request(self):
+        root = "https://ark-doc.tos-ap-southeast-1.bytepluses.com"
+        urls = [
+            f"{root}/doc_image/r2v_tea_pic1.jpg",
+            f"{root}/doc_image/r2v_tea_pic2.jpg",
+            f"{root}/doc_video/r2v_tea_video1.mp4",
+            f"{root}/doc_audio/r2v_tea_audio1.mp3",
+        ]
+        await self.run_node(
+            self.REF,
+            model=self.model(
+                "Seedance 2.5 Flash",
+                prompt="Use Video 1 for framing and Audio 1 for music, with Image 1 and Image 2 as references.",
+                duration=11,
+                reference_assets={f"asset_{index + 1}": url for index, url in enumerate(urls)},
+            ),
+            seed=1,
+            watermark=False,
+        )
+        request = self.submitted[0]
+        self.assertEqual(request["model"], "dreamina-seedance-2-5-flash-261115")
+        self.assertEqual((request["ratio"], request["duration"], request["watermark"]), ("16:9", 11, False))
+        self.assertTrue(request["generate_audio"])
+        self.assertEqual(
+            request["content"][1:],
+            [
+                {"type": "image_url", "image_url": {"url": urls[0]}, "role": "reference_image"},
+                {"type": "image_url", "image_url": {"url": urls[1]}, "role": "reference_image"},
+                {"type": "video_url", "video_url": {"url": urls[2]}, "role": "reference_video"},
+                {"type": "audio_url", "audio_url": {"url": urls[3]}, "role": "reference_audio"},
+            ],
+        )
+        for absent in ("output_format", "draft", "omni_reference_task_type"):
+            self.assertNotIn(absent, request)
+
+    async def test_flash_supports_edit_and_extend_requests(self):
+        for task_type, duration, ratio in (("edit", -1, "adaptive"), ("extend", 11, "adaptive")):
+            with self.subTest(task_type=task_type):
+                await self.run_node(
+                    self.REF,
+                    model=self.model(
+                        "Seedance 2.5 Flash",
+                        task_type=task_type,
+                        duration=11,
+                        reference_assets={"asset_1": "https://cdn.example/clip.mp4"},
+                    ),
+                    seed=1,
+                )
+                request = self.submitted[-1]
+                self.assertEqual(request["model"], "dreamina-seedance-2-5-flash-261115")
+                self.assertEqual(request["omni_reference_task_type"], task_type)
+                self.assertEqual((request["duration"], request["ratio"]), (duration, ratio))
+                self.assertNotIn("output_format", request)
 
     async def test_reference_values_are_one_per_slot(self):
         # The Asset Library's asset_uris output is newline-joined: one slot cannot take a list.
@@ -1278,14 +1441,18 @@ class ReferenceTests(_ExecutorHarness):
             )
             return {f"asset_{slot}": value for slot, value in enumerate(values, 1)}
 
-        for label, caps in (("Seedance 2.5", (30, 10, 10)), ("Seedance 2.0", (9, 3, 3))):
+        for label, caps in (
+            ("Seedance 2.5", (30, 10, 10)),
+            ("Seedance 2.5 Flash", (30, 10, 10)),
+            ("Seedance 2.0", (9, 3, 3)),
+        ):
             with self.subTest(label=label):
                 nodes_video.NON_BLOCKING_TASK_CACHE.clear()
                 await self.run_node(self.REF, model=self.model(label, reference_assets=links(*caps)), seed=1)
                 content = self.submitted[-1]["content"]
                 kinds = [item["type"] for item in content if item["type"] != "text"]
                 self.assertEqual((kinds.count("image_url"), kinds.count("video_url"), kinds.count("audio_url")), caps)
-                self.assertEqual(len(kinds), 50 if label == "Seedance 2.5" else 15)
+                self.assertEqual(len(kinds), sum(caps))
                 for index in range(3):
                     over = list(caps)
                     over[index] += 1
@@ -1582,7 +1749,7 @@ class ReferenceTests(_ExecutorHarness):
         self.assertEqual(limits("dreamina-seedance-2-0", "720p"), {**documented, "max_target": 927_408})
         self.assertEqual(limits("dreamina-seedance-2-0", "1080p")["max_target"], 2_073_600)
         self.assertEqual(limits("dreamina-seedance-2-5", "1080p"), {**documented, "max_target": 8_295_044})
-        self.assertEqual(limits("dreamina-seedance-2-5-premium", "4k"), {**documented, "max_target": 8_295_044})
+        self.assertEqual(limits("dreamina-seedance-2-5", "4k"), {**documented, "max_target": 8_295_044})
         self.assertEqual(limits("dreamina-seedance-2-0", "4k"), {**documented, "max_target": 8_295_044})
 
     def test_label_and_rewrite_helpers(self):
@@ -1643,13 +1810,31 @@ class DraftToFinalTests(_ExecutorHarness):
     def test_model_key_mapping(self):
         mapping = nodes_seedance2.video_model_key_for_id
         self.assertEqual(mapping("dreamina-seedance-2-5-260628"), "dreamina-seedance-2-5")
-        self.assertEqual(mapping("dreamina-seedance-2-5-premium-260915"), "dreamina-seedance-2-5-premium")
-        self.assertEqual(mapping("dreamina-seedance-2-5-premium-261201"), "dreamina-seedance-2-5-premium")
+        self.assertEqual(mapping("dreamina-seedance-2-5-261201"), "dreamina-seedance-2-5")
+        self.assertEqual(mapping("dreamina-seedance-2-5-flash-261115"), "dreamina-seedance-2-5-flash")
+        self.assertIsNone(nodes_seedance2.draft_final_resolution("dreamina-seedance-2-5-flash"))
+        for model_id in (
+            "dreamina-seedance-2-5-premium",
+            "dreamina-seedance-2-5-premium-260915",
+            "dreamina-seedance-2-5-premium-261201",
+            "dreamina-seedance-2-5-other-261201",
+            "dreamina-seedance-2-5-",
+            "",
+            None,
+        ):
+            with self.subTest(model=model_id):
+                self.assertIsNone(mapping(model_id))
         # Seedance 1.5 Pro is deprecated by BytePlus: no longer a known model.
         self.assertIsNone(mapping("seedance-1-5-pro-251215"))
         self.assertIsNone(nodes_seedance2.draft_final_resolution("seedance-1-5-pro"))
         self.assertEqual(mapping("seedance-1-0-pro-fast-251015"), "seedance-1-0-pro-fast")
         self.assertIsNone(mapping("ep-20260101-xyz"))
+
+    async def test_flash_drafts_are_not_supported(self):
+        self.draft("dreamina-seedance-2-5-flash-261115")
+        with self.assertRaisesRegex(nodes_shared.BytePlusException, "Supported: Seedance 2.5 drafts"):
+            await self.run_node(self.D2F, draft_task_id="cgt-draft-1")
+        self.assertEqual(self.submitted, [])
 
     async def test_seedance25_draft_renders_1080p(self):
         self.draft("dreamina-seedance-2-5-260628")
@@ -1662,12 +1847,12 @@ class DraftToFinalTests(_ExecutorHarness):
             self.assertNotIn(reused, request)
         self.assertEqual(len(result.args), 3)
 
-    async def test_premium_draft_renders_4k_and_keeps_mov(self):
-        self.draft("dreamina-seedance-2-5-premium-260915", output_format="mov")
+    async def test_seedance25_draft_keeps_mov(self):
+        self.draft("dreamina-seedance-2-5-260628", output_format="mov")
         await self.run_node(self.D2F, draft_task_id="cgt-draft-1", watermark=False)
         request = self.submitted[0]
-        self.assertEqual(request["model"], "dreamina-seedance-2-5-premium-260915")
-        self.assertEqual((request["resolution"], request["output_format"]), ("4k", "mov"))
+        self.assertEqual(request["model"], "dreamina-seedance-2-5-260628")
+        self.assertEqual((request["resolution"], request["output_format"]), ("1080p", "mov"))
 
     async def test_draft_endpoint_is_recognized_and_preserved(self):
         with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-draft"}):
@@ -1730,12 +1915,13 @@ class DraftToFinalTests(_ExecutorHarness):
             ("cgt-running", "is running"),
             ("cgt-failed", "cannot be rendered"),
             ("cgt-20", "dreamina-seedance-2-0-260128"),
-            ("cgt-ok, cgt-premium", "different models"),
+            ("cgt-premium", "dreamina-seedance-2-5-premium-260915"),
+            ("cgt-ok, cgt-premium", "dreamina-seedance-2-5-premium-260915"),
             # Seedance 1.5 Pro drafts are no longer rendered (model deprecated by BytePlus).
             (
                 "cgt-15",
                 "made with seedance-1-5-pro-251215, which cannot render a final from a draft. "
-                "Supported: Seedance 2.5 and Seedance 2.5 Premium drafts.",
+                "Supported: Seedance 2.5 drafts.",
             ),
             ("cgt-ok, cgt-15", "seedance-1-5-pro-251215"),
             ("cgt-missing", "Could not look up draft task cgt-missing"),

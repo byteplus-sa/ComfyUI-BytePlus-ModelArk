@@ -48,7 +48,7 @@ In **Settings → Other → BytePlus → Default credentials**, you can also set
 
 Each endpoint must serve exactly the named model in your key's region. Saving checks the ID format only, without generating media or checking model access. Leave the field blank and press **Save**, or press **Remove**, to return to the built-in model. Environment variables still take precedence.
 
-The Seedance 2.5 endpoint also applies to **Seedance 2.5 Draft**. The Seedream Pro endpoint also applies to **Layer Separation** with Pro selected. Fast, Mini, Premium, Flash and other model variants keep their own built-in IDs.
+The Seedance 2.5 endpoint applies at every resolution, including `4k`, and also applies to **Seedance 2.5 Draft**. It does not override **Seedance 2.5 Flash**, which keeps its own built-in model ID. The Seedream Pro endpoint also applies to **Layer Separation** with Pro selected. Fast, Mini and other model variants keep their own built-in IDs.
 
 Changes take effect without restarting and invalidate cached outputs for the selected model on the next run. A pending non-blocking task keeps running when you change endpoints; find it with **Video Query Tasks** and `model` set to `all`. **Draft to Final** keeps the model or endpoint recorded on its draft. If the draft reports an endpoint ID, keep it configured until you render the final.
 

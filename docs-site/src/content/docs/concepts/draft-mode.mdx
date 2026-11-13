@@ -13,14 +13,16 @@ Draft mode lets you check a Seedance 2.5 idea with a quick, low-resolution video
 2. You review it.
 3. A **final** run takes the draft and renders the high-quality video. The final keeps the draft's scene and motion.
 
-The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting. It renders at 1080p for Seedance 2.5 and at 4K for Seedance 2.5 Premium.
+The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting. It renders at 1080p for Seedance 2.5. For direct 4K generation, select **Seedance 2.5** and set `resolution` to `4k` instead of using the Draft option.
+
+Seedance 2.5 Flash has no Draft option. If your workflow still selects Premium or Premium Draft, follow the [upgrade guide](../../get-started/update/#seedance-25-4k-and-flash) to replace that removed choice.
 
 ## Run a draft and a final
 
 <Steps>
 
 1. Add a Seedance 2.5 node: [Text to Video](../../nodes/seedance-2-5-text-to-video/), [First-Last-Frame to Video](../../nodes/seedance-2-5-first-last-frame/) or [Reference to Video](../../nodes/seedance-2-5-reference/).
-2. Set `model` to **Seedance 2.5 Draft** (or **Seedance 2.5 Premium Draft**).
+2. Set `model` to **Seedance 2.5 Draft**.
 3. Set the node's seed control to **fixed**.
 4. Run. Watch the 480p video.
 5. Connect the `draft_task_id` output to [Seedance 2.5 Draft to Final Video](../../nodes/seedance-2-5-draft-to-final/), connect **Save Video**, and run again.
@@ -33,11 +35,11 @@ Keep the seed control on **fixed**. With a changing seed, the draft node runs ag
 
 ## Draft to Final reads the model from the draft
 
-The final node has no `model` input. It looks up the draft task at BytePlus and reads the model from it, so a Seedance 2.5 draft gets a 1080p final and a Seedance 2.5 Premium draft gets a 4K final. Drafts from different models cannot go into the same node. Use one Draft to Final node for each model.
+The final node has no `model` input. It looks up the draft task at BytePlus and reads the model from it. Only Seedance 2.5 drafts are accepted, and the final renders at 1080p.
 
 ## The `draft_task_id` output
 
-- Only the two Draft models produce a `draft_task_id`. If you connect that output while another model is selected, the node tells you to pick a Draft model or disconnect it.
+- Only Seedance 2.5 Draft produces a `draft_task_id`. If you connect that output while another model is selected, the node tells you to pick Seedance 2.5 Draft or disconnect it.
 - With `generation_count` above 1, you get one ID per line.
 - You can also paste draft task IDs into the Draft to Final node, one per line, to render a draft from an earlier session.
 - A draft can be rendered for **7 days** after it was created. Older drafts are refused.

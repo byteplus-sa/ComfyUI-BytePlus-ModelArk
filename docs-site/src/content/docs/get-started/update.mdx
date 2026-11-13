@@ -11,6 +11,17 @@ Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-sepa
 
 Registry publication and security review are separate steps. A pending or flagged version may not be offered by Manager yet; check its version status rather than enabling unsafe installation overrides.
 
+## Seedance 2.5 4K and Flash
+
+The [Seedance source update in PR #31](https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/pull/31) is not included in v0.8.0. Updating to v0.8.0 alone does not add these changes.
+
+When you install that source update:
+
+- For direct 4K generation, select **Seedance 2.5** and set `resolution` to `4k`. It uses the same model as 480p, 720p and 1080p.
+- **Seedance 2.5 Premium** and **Premium Draft** are removed without aliases or automatic migration. Replace a Premium selection with **Seedance 2.5** and `4k`. If you used Premium Draft, generate a new **Seedance 2.5 Draft** for a 1080p final, or use direct 4K generation instead. Old Premium drafts cannot be converted by this update.
+- Select **Seedance 2.5 Flash** in the same [Text to Video](../../nodes/seedance-2-5-text-to-video/), [First-Last-Frame](../../nodes/seedance-2-5-first-last-frame/) or [Reference to Video](../../nodes/seedance-2-5-reference/) node. Flash supports 480p/720p and 4-30 seconds, uses the API's default output format and has no Draft option. Your account needs private-model access and activation.
+- The standard Seedance 2.5 endpoint applies at every standard resolution, including 4K. It does not override Flash. Your saved keys stay unchanged.
+
 ## Update with ComfyUI-Manager
 
 <Steps>
@@ -65,5 +76,5 @@ If the BytePlus nodes do not appear after an update, the BytePlus SDK may be too
 ## After updating
 
 - Reload the browser page, not only the server, so the new Settings page and node definitions load.
-- A workflow that was saved with an older version keeps working: node IDs do not change between versions. Workflows saved with an older version of a template keep their own node settings; open the template again from the template browser to get the newest one.
+- Node IDs do not change, but a removed model choice must be replaced manually as described above. Saved workflows keep their own node settings; open a template again from the template browser to get the newest one.
 - Before reporting a problem, check the version you run in ComfyUI-Manager and compare it with the latest one on the Registry page.
