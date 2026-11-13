@@ -4,15 +4,17 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.8.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.9.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.8.0:** Seedream 5.5 image generation and layer separation, with ten references, automatic transparency, 1K/1.5K/2K output, custom sizes and optional rich-text OCR. Omitted advanced inputs now use their defaults correctly. Media downloads reject private addresses and unsafe redirects. Existing node IDs and model defaults are unchanged; 5.5 requires early-access entitlement.
+**New in v0.9.0:** standard Seedance 2.5 supports 480p, 720p, 1080p and 4K through one resolution input. Seedance 2.5 Flash is available in the existing generation and task-query nodes. Premium and Premium Draft choices are removed without compatibility aliases or automatic migration.
 
-**Unreleased Seedance changes ([PR #31](https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/pull/31)):** the following changes are in this PR's source, not in v0.8.0 or a published Registry package.
+Registry publication and security review are separate. Check the version status before updating through Manager; a pending or flagged version may not be offered yet.
 
 **Seedance 2.5 4K:** select `Seedance 2.5` and set `resolution` to `4k`. The separate Premium and Premium Draft choices are removed without compatibility aliases. Update those selections manually before running an older workflow.
 
 **Seedance 2.5 Flash:** select `Seedance 2.5 Flash` in any of the three Seedance 2.5 generation nodes. It uses `dreamina-seedance-2-5-flash-261115`, supports 480p/720p videos from 4 to 30 seconds and shares the 30-image/10-video/10-audio reference limits. Flash uses the API's default output format and has no Draft option. Your account needs private-model access and activation.
+
+**Previously in v0.8.0:** Seedream 5.5 image generation and layer separation, with ten references, automatic transparency, 1K/1.5K/2K output, custom sizes and optional rich-text OCR. Omitted advanced inputs use their defaults correctly. Media downloads reject private addresses and unsafe redirects. Existing node IDs and model defaults are unchanged; 5.5 requires early-access entitlement.
 
 ## Contents
 
