@@ -278,6 +278,12 @@ class SchemaTests(unittest.TestCase):
         self.assertEqual(list(nodes_seedance2.NODES), list(expected)[:4])
         self.assertEqual(list(nodes_assets.NODES)[:3], list(expected)[4:])
 
+    def test_premium_is_absent_from_seedance_schemas_and_task_query_choices(self):
+        for node_cls in (*nodes_seedance2.NODES, nodes_video.BytePlusVideoQueryTasks):
+            with self.subTest(node=node_cls.__name__):
+                info = node_cls.GET_NODE_INFO_V1()
+                self.assertNotIn("premium", json.dumps(info).lower())
+
     def test_asset_library_node(self):
         library = nodes_assets.BytePlusAssetLibrary.define_schema()
         self.assertFalse(library.is_deprecated)

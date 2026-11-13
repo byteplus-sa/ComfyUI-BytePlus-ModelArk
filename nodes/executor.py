@@ -334,7 +334,6 @@ async def _get_api_estimated_time_async(
         return (fallback_time, "est_fallback")
 
 
-# After this long the node status adds a hint (4K Premium tasks and the Flex tier can take an hour or more).
 LONG_WAIT_HINT_SECONDS = 20 * 60
 
 

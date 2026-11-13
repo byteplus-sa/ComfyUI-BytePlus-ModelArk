@@ -387,12 +387,12 @@ class EndpointTests(IsolatedCredentials):
     def test_comfy_cache_tracks_only_the_selected_models_endpoint(self):
         node = nodes_seedance2.BytePlusSeedance2TextToVideo
         before = node.fingerprint_inputs(model={"model": "Seedance 2.5"})
-        unrelated = node.fingerprint_inputs(model={"model": "Seedance 2.5 Premium"})
+        unrelated = node.fingerprint_inputs(model={"model": "Seedance 2.5 Flash"})
         credentials.update_env_file({"BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-video"})
         after = node.fingerprint_inputs(model={"model": "Seedance 2.5"})
         self.assertNotEqual(before, after)
         self.assertEqual(after, node.fingerprint_inputs(model={"model": "Seedance 2.5 Draft"}))
-        self.assertEqual(unrelated, node.fingerprint_inputs(model={"model": "Seedance 2.5 Premium"}))
+        self.assertEqual(unrelated, node.fingerprint_inputs(model={"model": "Seedance 2.5 Flash"}))
         self.assertEqual(node.fingerprint_inputs(non_blocking=False), 0)
         self.assertNotEqual(node.fingerprint_inputs(non_blocking=True), node.fingerprint_inputs(non_blocking=True))
         for node in nodes_seedream.NODES:
