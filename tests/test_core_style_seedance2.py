@@ -138,6 +138,39 @@ def core_enterprise_4k_schemas():
         yield schemas
 
 
+@contextmanager
+def core_flash_schemas():
+    core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+    schemas = {}
+    with ExitStack() as patches:
+        for node_cls in (
+            core.ByteDance2TextToVideoNode,
+            core.ByteDance2FirstLastFrameNode,
+            core.ByteDance2ReferenceNodeV2,
+        ):
+            info = copy.deepcopy(node_cls.GET_NODE_INFO_V1())
+            options = info["input"]["required"]["model"][1]["options"]
+            flash = next((option for option in options if option["key"] == "Seedance 2.5 Flash"), None)
+            if flash is None:
+                flash = copy.deepcopy(next(option for option in options if option["key"] == "Seedance 2.5"))
+                flash["key"] = "Seedance 2.5 Flash"
+                options.append(flash)
+            required = flash["inputs"]["required"]
+            required["resolution"][1]["options"] = ["480p", "720p"]
+            required["resolution"][1]["tooltip"] = "Resolution of the output video."
+            for name, prefix, count in (
+                ("reference_images", "image", 10),
+                ("reference_videos", "video", 5),
+                ("reference_audios", "audio", 5),
+                ("reference_assets", "asset", 10),
+            ):
+                if name in required:
+                    required[name][1]["template"]["names"] = [f"{prefix}_{index}" for index in range(1, count + 1)]
+            schemas[node_cls] = flash["inputs"]
+            patches.enter_context(mock.patch.object(node_cls, "GET_NODE_INFO_V1", return_value=info))
+        yield schemas
+
+
 def image(width, height, value=0.5):
     import torch
 
@@ -501,6 +534,40 @@ class SchemaTests(unittest.TestCase):
                     option["inputs"]["required"]["resolution"][1]["tooltip"] = "Resolution of the output video."
             self.test_matches_core_nodes()
 
+    def test_matches_core_nodes_accepts_known_flash_proxy_schema(self):
+        with core_flash_schemas():
+            self.test_matches_core_nodes()
+
+    def test_matches_core_nodes_rejects_other_flash_proxy_schema_changes(self):
+        for name, field, value in (
+            ("output_format", "options", ["mp4", "mov"]),
+            ("output_format", "default", "mov"),
+            ("output_format", "tooltip", "Changed container guidance"),
+            ("duration", "max", 31),
+            ("resolution", "options", ["480p", "720p", "1080p"]),
+        ):
+            with self.subTest(input=name, field=field), core_flash_schemas() as schemas:
+                for inputs in schemas.values():
+                    inputs["required"][name][1][field] = value
+                with self.assertRaises(AssertionError):
+                    self.test_matches_core_nodes()
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        for name in REFERENCE_TAIL:
+            for field, value in (
+                ("names", ["unexpected_1"]),
+                ("min", 1),
+                ("input", {"required": {"unexpected": ("STRING", {})}}),
+            ):
+                with self.subTest(input=name, field=field), core_flash_schemas() as schemas:
+                    schemas[core.ByteDance2ReferenceNodeV2]["required"][name][1]["template"][field] = value
+                    with self.assertRaises(AssertionError):
+                        self.test_matches_core_nodes()
+        with core_flash_schemas() as schemas:
+            for inputs in schemas.values():
+                inputs["required"]["unexpected"] = ("BOOLEAN", {"default": False})
+            with self.assertRaises(AssertionError):
+                self.test_matches_core_nodes()
+
     def test_matches_core_nodes_rejects_other_generation_schema_changes(self):
         core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
         cases = (
@@ -571,7 +638,23 @@ class SchemaTests(unittest.TestCase):
             if name == "output_format":
                 # Ours adds mov after core's mp4.
                 self.assertEqual(a["options"][: len(b["options"])], b["options"], where)
-            if name == "reference_assets":
+            flash_reference_limits = {
+                "reference_images": ("image", 10, 30),
+                "reference_videos": ("video", 5, 10),
+                "reference_audios": ("audio", 5, 10),
+                "reference_assets": ("asset", 10, 50),
+            }
+            if where.startswith("Seedance 2.5 Flash.") and name in flash_reference_limits:
+                prefix, core_count, byteplus_count = flash_reference_limits[name]
+                b = copy.deepcopy(b)
+                self.assertEqual(
+                    b["template"]["names"],
+                    [f"{prefix}_{index}" for index in range(1, core_count + 1)],
+                    where,
+                )
+                b["template"]["names"] = [f"{prefix}_{index}" for index in range(1, byteplus_count + 1)]
+                self.assertEqual(a["template"], b["template"], where)
+            elif name == "reference_assets":
                 # Ours extends core's slots (image cap) to the BytePlus total (15 / 50).
                 core_names = b["template"]["names"]
                 self.assertEqual(a["template"]["names"][: len(core_names)], core_names, where)
@@ -620,8 +703,22 @@ class SchemaTests(unittest.TestCase):
                         key = option["key"]
                         mine = ours_options[key]
                         for section in ("required", "optional"):
-                            core_children = option["inputs"].get(section) or {}
+                            core_children = dict(option["inputs"].get(section) or {})
                             my_children = mine.get(section) or {}
+                            if key == "Seedance 2.5 Flash" and section == "required":
+                                self.assertEqual(
+                                    core_children.pop("output_format"),
+                                    (
+                                        "COMBO",
+                                        {
+                                            "options": ["mp4"],
+                                            "default": "mp4",
+                                            "multiselect": False,
+                                            "tooltip": "Container format of the output video.",
+                                        },
+                                    ),
+                                    f"{key}.output_format",
+                                )
                             self.assertEqual(list(my_children), list(core_children), f"{key} {section}")
                             for child, child_spec in core_children.items():
                                 compare(f"{key}.{child}", child, my_children[child], child_spec)

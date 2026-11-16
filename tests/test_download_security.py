@@ -27,6 +27,9 @@ if COMFY_ROOT:
         sys.modules[PACKAGE_NAME] = package
     downloads = importlib.import_module(f"{PACKAGE_NAME}.nodes.utils_download")
     http_requests = importlib.import_module(f"{PACKAGE_NAME}.nodes.http_requests")
+    nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
+    core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
+    constants = importlib.import_module(f"{PACKAGE_NAME}.nodes.constants")
 
 
 def setUpModule():
@@ -100,6 +103,8 @@ class PublicDownloadTests(unittest.IsolatedAsyncioTestCase):
             "https://user:password@example.com/a",
             "https://example.com:invalid/a",
             "https://example.com/\nprivate",
+            "https://example.com/\x00private",
+            "https://example.com/\x7fprivate",
         ]
         for url in urls:
             with self.subTest(url=url):
@@ -142,15 +147,52 @@ class PublicDownloadTests(unittest.IsolatedAsyncioTestCase):
         session.__aenter__.return_value = session
         session.request.return_value = Response(302, "https://other.example/private")
         headers = {"Authorization": "Bearer test-only"}
+        url = constants.MEDIAKIT_REGION_BASE_URLS["ap-southeast-1"] + "/task"
         with mock.patch.object(http_requests, "public_download_session", return_value=session):
             status, response_headers, _ = await http_requests.send_http_request(
-                "POST", "https://api.example/task", headers, {"prompt": "test"}, 5
+                "POST", url, headers, {"prompt": "test"}, 5
             )
         self.assertEqual(status, 302)
         self.assertEqual(response_headers["Location"], "https://other.example/private")
         session.request.assert_called_once_with(
-            "POST", "https://api.example/task", headers=headers, json={"prompt": "test"}, allow_redirects=False
+            "POST", url, headers=headers, json={"prompt": "test"}, allow_redirects=False
         )
+
+    async def test_api_credentials_are_never_sent_outside_their_provider(self):
+        cases = (
+            ("https://evil.example/task", {"Authorization": "Bearer test-only"}),
+            ("http://ark.ap-southeast.bytepluses.com/api/v3", {"Authorization": "Bearer test-only"}),
+            ("https://ark.ap-southeast.bytepluses.com:8443/api/v3", {"Authorization": "Bearer test-only"}),
+            ("https://ark.ap-southeast.bytepluses.com.evil.example/api/v3", {"authorization": "Bearer test-only"}),
+            ("https://voice.ap-southeast-1.bytepluses.com/api/v3", {"Authorization": "Bearer test-only"}),
+            ("https://ark.ap-southeast.bytepluses.com/api/v3", {"x-api-key": "test-only"}),
+        )
+        fake = mock.MagicMock()
+        fake.__aenter__.return_value = fake
+        fake.request.return_value = Response()
+        with mock.patch.object(http_requests, "public_download_session", return_value=fake) as session:
+            for url, headers in cases:
+                with self.subTest(url=url, headers=list(headers)):
+                    with self.assertRaises(aiohttp.InvalidURL):
+                        await http_requests.send_http_request("POST", url, headers, {}, 5)
+            session.assert_not_called()
+
+    async def test_valid_provider_credentials_and_unsigned_media_keep_working(self):
+        cases = [
+            (url, {"Authorization": "Bearer test-only"})
+            for url in (*constants.REGION_BASE_URLS.values(), *constants.MEDIAKIT_REGION_BASE_URLS.values())
+        ]
+        cases.extend((url, {"X-Api-Key": "test-only"}) for url in constants.SPEECH_REGION_BASE_URLS.values())
+        cases.append(("https://cdn.example/media?signature=test-only", {}))
+        for url, headers in cases:
+            with self.subTest(url=url):
+                session = mock.MagicMock()
+                session.__aenter__.return_value = session
+                session.request.return_value = Response(body=b"ok")
+                with mock.patch.object(http_requests, "public_download_session", return_value=session):
+                    status, _, body = await http_requests.send_http_request("GET", url, headers, None, 5)
+                self.assertEqual((status, body), (200, b"ok"))
+                self.assertEqual(session.request.call_args.args[1], url)
 
     async def test_invalid_url_is_a_permanent_request_failure(self):
         async def send():
@@ -194,3 +236,116 @@ class PublicDownloadTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(requests, ["/private"])
         finally:
             await runner.cleanup()
+
+
+@requires_comfyui
+class CredentialValidationSecurityTests(unittest.TestCase):
+    def test_only_fixed_modelark_endpoints_are_checked(self):
+        import requests
+
+        with (
+            mock.patch.object(requests, "get", return_value=types.SimpleNamespace(status_code=200)) as legacy,
+            mock.patch.object(http_requests, "send_http_request", return_value=(200, {}, b"")) as send,
+        ):
+            for url in (
+                "https://evil.example",
+                "http://127.0.0.1",
+                constants.REGION_BASE_URLS["ap-southeast-1"] + "/other",
+            ):
+                with self.subTest(url=url):
+                    self.assertIsNone(nodes_shared.check_api_key("test-only", url))
+            legacy.assert_not_called()
+            send.assert_not_called()
+
+    def test_malformed_keys_are_not_sent_or_logged(self):
+        import requests
+
+        with (
+            mock.patch.object(requests, "get", return_value=types.SimpleNamespace(status_code=200)) as legacy,
+            mock.patch.object(http_requests, "send_http_request", return_value=(200, {}, b"")) as send,
+        ):
+            for key in ("", None, "test-only\nkey", "test-only\rkey", "test-only\x00key", "test-only key"):
+                with self.subTest(key=repr(key)):
+                    self.assertIsNone(nodes_shared.check_api_key(key, constants.REGION_BASE_URLS["ap-southeast-1"]))
+            legacy.assert_not_called()
+            send.assert_not_called()
+
+    def test_key_validation_errors_do_not_echo_credentials(self):
+        import requests
+
+        secret = "test-only-sensitive-key"
+        with (
+            mock.patch.object(requests, "get", side_effect=ValueError(secret)),
+            mock.patch.object(http_requests, "send_http_request", side_effect=aiohttp.ClientError(secret)),
+            self.assertLogs("BytePlus", level="ERROR") as captured,
+        ):
+            self.assertIsNone(nodes_shared.check_api_key(secret, constants.REGION_BASE_URLS["ap-southeast-1"]))
+        self.assertNotIn(secret, "\n".join(captured.output))
+
+    def test_a_redirect_does_not_validate_a_key_or_reach_its_destination(self):
+        import requests
+
+        with (
+            mock.patch.object(requests, "get", return_value=types.SimpleNamespace(status_code=302)),
+            mock.patch.object(
+                http_requests, "send_http_request", return_value=(302, {"Location": "http://127.0.0.1/private"}, b"")
+            ) as send,
+        ):
+            self.assertIsNone(nodes_shared.check_api_key("test-only", constants.REGION_BASE_URLS["ap-southeast-1"]))
+        send.assert_called_once()
+
+
+@requires_comfyui
+class ReferenceUrlSecurityTests(unittest.IsolatedAsyncioTestCase):
+    async def test_reference_urls_are_validated_even_when_the_extension_or_slot_gives_the_type(self):
+        urls = (
+            "https://user:test-only@example.com/x.png",
+            "https://127.0.0.1/x.png",
+            "https://localhost/x.png",
+            "https://example.com:invalid/x.png",
+            "https://[invalid/x.png",
+        )
+        for url in urls:
+            with self.subTest(url=url):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    await core_style.resolve_reference_values(None, [url])
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    await core_style.resolve_typed_reference(None, url, "image")
+
+    async def test_probes_reject_userinfo_and_malformed_destinations_without_requesting_them(self):
+        for probe in (core_style._probe_url_kind, core_style.sniff_audio_format):
+            for url in ("https://user:test-only@example.com/x", "https://example.com:invalid/x", "https://[invalid/x"):
+                session = mock.MagicMock()
+                session.__aenter__.return_value = session
+                session.request.return_value = Response()
+                session.get.return_value = Response()
+                with (
+                    self.subTest(probe=probe.__name__, url=url),
+                    mock.patch.object(core_style, "_public_probe_session", return_value=session),
+                    mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)),
+                ):
+                    self.assertIsNone(await probe(url))
+                session.request.assert_not_called()
+                session.get.assert_not_called()
+
+    async def test_probe_redirects_cannot_introduce_credentials_or_invalid_urls(self):
+        start = "https://cdn.example/start"
+        for probe in (core_style._probe_url_kind, core_style.sniff_audio_format):
+            for location in (
+                "https://user:test-only@example.com/x",
+                "https://example.com:invalid/x",
+                "https://[invalid/x",
+            ):
+                session = mock.MagicMock()
+                session.__aenter__.return_value = session
+                session.request.return_value = Response(302, location)
+                session.get.return_value = Response(302, location)
+                with (
+                    self.subTest(probe=probe.__name__, location=location),
+                    mock.patch.object(core_style, "_public_probe_session", return_value=session),
+                    mock.patch.object(core_style, "_host_is_public", mock.AsyncMock(return_value=True)),
+                ):
+                    self.assertIsNone(await probe(start))
+                for request in (*session.request.call_args_list, *session.get.call_args_list):
+                    self.assertIn(start, request.args)
+                    self.assertNotIn(location, request.args)

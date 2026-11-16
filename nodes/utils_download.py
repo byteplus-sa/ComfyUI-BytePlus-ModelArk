@@ -25,7 +25,11 @@ VIDEO_DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=None, sock_connect=60, sock
 
 
 def validate_public_url(url: str) -> str:
-    if not isinstance(url, str) or not url or any(character.isspace() for character in url):
+    if (
+        not isinstance(url, str)
+        or not url
+        or any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in url)
+    ):
         raise aiohttp.InvalidURL("Expected a public HTTP(S) media URL")
     try:
         parsed = urllib.parse.urlsplit(url)

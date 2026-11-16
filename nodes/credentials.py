@@ -43,6 +43,10 @@ def valid_endpoint_id(value):
     return isinstance(value, str) and re.fullmatch(r"ep-[A-Za-z0-9][A-Za-z0-9-]{0,124}", value) is not None
 
 
+def valid_api_key(value):
+    return isinstance(value, str) and bool(value) and all(32 < ord(character) < 127 for character in value)
+
+
 # Credential id (as used by the Settings dialog and the routes) -> variable.
 CREDENTIAL_VARS = {
     "modelark": MODELARK_KEY_ENV,

@@ -749,17 +749,18 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "key-0001")
 
     async def test_the_endpoint_answer_decides_how_the_key_is_saved(self):
+        http_requests = importlib.import_module(f"{PACKAGE_NAME}.nodes.http_requests")
         cases = (
             (200, 200, "Saved."),
             (403, 422, None),
             (503, 200, "could not be checked"),
             (429, 200, "could not be checked"),
+            (302, 200, "could not be checked"),
             (404, 200, "Saved."),
         )
         for endpoint_status, expected_status, message in cases:
             with self.subTest(endpoint=endpoint_status):
-                answer = SimpleNamespace(status_code=endpoint_status)
-                with mock.patch.object(nodes_shared.requests, "get", lambda *a, answer=answer, **k: answer):
+                with mock.patch.object(http_requests, "send_http_request", return_value=(endpoint_status, {}, b"")):
                     status, body = await self.save({"credential": "modelark", "value": "key-0001"})
                 self.assertEqual(status, expected_status)
                 if message:
@@ -824,6 +825,25 @@ class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status, 400)
         self.assertFalse(os.path.exists(self.env_path))
         self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "")
+
+    async def test_malformed_keys_are_rejected_before_validation_without_echoing_the_value(self):
+        with mock.patch.object(credentials_routes, "check_api_key") as check:
+            for credential in ("modelark", "speech", "mediakit"):
+                for value in (
+                    123,
+                    {},
+                    ["test-only"],
+                    "test-only\nkey",
+                    "test-only\rkey",
+                    "test-only\x00key",
+                    "test-only key",
+                ):
+                    with self.subTest(credential=credential, value=repr(value)):
+                        status, body = await self.save({"credential": credential, "value": value})
+                        self.assertEqual(status, 400)
+                        self.assertNotIn("test-only", json.dumps(body))
+            check.assert_not_called()
+        self.assertFalse(os.path.exists(self.env_path))
 
     async def test_write_failure_is_reported_without_the_key(self):
         with mock.patch.object(credentials, "update_env_file", side_effect=PermissionError("denied")):

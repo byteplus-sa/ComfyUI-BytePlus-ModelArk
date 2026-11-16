@@ -11,6 +11,15 @@ Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-sepa
 
 Registry publication and security review are separate steps. A pending or flagged version may not be offered by Manager yet; check its version status rather than enabling unsafe installation overrides.
 
+## Credential and reference-link hardening
+
+Version **0.9.1** hardens key validation and reference links without changing node IDs or model choices. Your saved keys stay in `user/.env`.
+
+- ModelArk key validation contacts only the fixed regional BytePlus HTTPS endpoint, uses public-only networking and does not follow redirects. A redirect leaves the key unchecked instead of accepting it.
+- Malformed API keys are rejected before validation. Validation-error logs do not include credential text.
+- Shared HTTP requests carrying API credentials are restricted to the corresponding BytePlus HTTPS services.
+- Reference links must use public HTTPS URLs without embedded usernames or passwords. Private addresses and malformed destinations are rejected, including probe redirects. Use a public media link or a connected media input instead.
+
 ## Seedance 2.5 4K and Flash
 
 Version **0.9.0** adds unified Seedance 2.5 4K and Seedance 2.5 Flash support. These changes are not included in v0.8.0.
