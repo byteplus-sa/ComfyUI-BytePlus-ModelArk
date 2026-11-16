@@ -4,9 +4,11 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.9.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.9.1.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.9.0:** standard Seedance 2.5 supports 480p, 720p, 1080p and 4K through one resolution input. Seedance 2.5 Flash is available in the existing generation and task-query nodes. Premium and Premium Draft choices are removed without compatibility aliases or automatic migration.
+**New in v0.9.1:** security hardening for credential validation and reference links. ModelArk key validation uses public-only networking, does not follow redirects and never logs credential-bearing exception text. Malformed keys are rejected before validation. Shared HTTP requests with API credentials are restricted to the corresponding BytePlus HTTPS services; reference probes reject embedded credentials and unsafe or malformed destinations.
+
+**Previously in v0.9.0:** standard Seedance 2.5 supports 480p, 720p, 1080p and 4K through one resolution input. Seedance 2.5 Flash is available in the existing generation and task-query nodes. Premium and Premium Draft choices are removed without compatibility aliases or automatic migration.
 
 Registry publication and security review are separate. Check the version status before updating through Manager; a pending or flagged version may not be offered yet.
 

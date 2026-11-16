@@ -121,9 +121,14 @@ async def handle_save(request):
         if clear:
             updates[variable] = ""
         else:
-            value = str(body.get("value") or "").strip()
+            value = body.get("value")
+            if not isinstance(value, str):
+                return _error("cred_bad_request")
+            value = value.strip()
             if not value:
                 return _error("cred_empty")
+            if not credentials.valid_api_key(value):
+                return _error("cred_bad_request")
             if credential == "modelark":
                 region = body.get("region") or credentials.get_default_region()
                 if not isinstance(region, str) or region not in REGION_BASE_URLS:

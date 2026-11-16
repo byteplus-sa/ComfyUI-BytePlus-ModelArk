@@ -526,6 +526,7 @@ MESSAGES = {
     # Shared helpers in core_style.py
     "err_output_linked": "{reason} (currently linked: {consumers}).",
     "err_reference_value_invalid": "Not a valid reference: '{value}'. Use an asset ID, asset://<asset_id> or an https:// link.",
+    "err_reference_url_invalid": "Reference links must be public HTTPS URLs without embedded credentials.",
     "err_reference_value_multiple": "Each reference input takes one asset ID, asset://<asset_id> or https:// link, but got several (or spaces): '{value}'. Connect each reference to its own asset_N slot.",
     "err_reference_url_type_unknown": "Could not tell whether {url} is an image, video or audio file. Use a link ending in the file extension (for example .png, .mp4 or .mp3).",
     "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add them in Settings > BytePlus (Asset library IAM AK/SK).",

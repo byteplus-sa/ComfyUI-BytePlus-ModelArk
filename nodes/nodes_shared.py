@@ -12,7 +12,6 @@ import numpy
 import PIL.Image
 import torch
 import torch.nn.functional as F
-import requests
 import asyncio
 import threading
 import comfy.model_management
@@ -224,20 +223,24 @@ def format_api_error(e):
 def check_api_key(api_key: str, base_url: str):
     """
     Ask the region's endpoint about the API key: False when it is rejected
-    (401/403), None when nothing is known about it (unreachable, 408, 429,
-    5xx), True for any other answer (the endpoint did not refuse it).
+    (401/403), None when nothing is known about it (unreachable, redirect,
+    408, 429, 5xx), True for any other answer (the endpoint did not refuse it).
     Checked live 2026-10-18 (ap-southeast-1 /api/v3): a valid key gets 200,
     a malformed or missing key 401.
     """
+    from .http_requests import send_http_request
+
+    if base_url not in REGION_BASE_URLS.values() or not credentials.valid_api_key(api_key):
+        return None
     try:
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-        response = requests.get(base_url, headers=headers, timeout=10)
+        status, _, _ = asyncio.run(send_http_request("GET", base_url, headers, None, 10))
     except Exception as e:
-        logger.error(f"API Key validation error: {e}")
+        logger.error("API Key validation error: %s", type(e).__name__)
         return None
-    if response.status_code in (401, 403):
+    if status in (401, 403):
         return False
-    if response.status_code in (408, 429) or response.status_code >= 500:
+    if 300 <= status < 400 or status in (408, 429) or status >= 500:
         return None
     return True
 

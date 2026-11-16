@@ -1,7 +1,9 @@
 import asyncio
+from urllib.parse import urlsplit
 
 import aiohttp
 
+from .constants import MEDIAKIT_REGION_BASE_URLS, REGION_BASE_URLS, SPEECH_REGION_BASE_URLS
 from .nodes_shared import BytePlusException, sleep_interruptible, wait_interruptible
 from .utils_download import public_download_session, validate_public_url
 
@@ -22,9 +24,30 @@ def is_retryable_status(status):
     return status == 429 or status >= 500
 
 
+def _origin(url):
+    parsed = urlsplit(url)
+    return parsed.scheme, parsed.hostname, parsed.port or 443
+
+
+def _validate_credential_destination(url, headers):
+    providers = {
+        "authorization": (*REGION_BASE_URLS.values(), *MEDIAKIT_REGION_BASE_URLS.values()),
+        "x-api-key": tuple(SPEECH_REGION_BASE_URLS.values()),
+    }
+    for name, value in headers.items():
+        allowed = providers.get(name.lower())
+        if allowed is None:
+            continue
+        if _origin(url) not in {_origin(base) for base in allowed}:
+            raise aiohttp.InvalidURL("API credentials may only be sent to their BytePlus HTTPS service")
+        if not isinstance(value, str) or any(ord(character) < 32 or ord(character) >= 127 for character in value):
+            raise aiohttp.InvalidURL("Invalid API credential header")
+
+
 async def send_http_request(method, url, headers, body, timeout_seconds):
     """One HTTP request with an optional JSON body: (status, response headers, response bytes)."""
     validate_public_url(url)
+    _validate_credential_destination(url, headers)
     client_timeout = aiohttp.ClientTimeout(total=timeout_seconds)
     async with public_download_session(timeout=client_timeout) as session:
         async with session.request(method, url, headers=headers, json=body, allow_redirects=False) as response:
