@@ -41,6 +41,18 @@ from upstream [b2f670744](https://github.com/Comfy-Org/ComfyUI/commit/b2f6707443
 Other defaults, tooltips, options and inputs remain checked. Proxy pricing
 and access handling are not copied into this direct-API pack.
 
+### Flash upstream parity, 2026-11-16
+
+Upstream [63351607b](https://github.com/Comfy-Org/ComfyUI/commit/63351607b4212284e8f2d1e319ffc4d6120217f0)
+adds Flash to the same three generation nodes. Its proxy exposes a required
+MP4-only output-format selector and 10 image / 5 video / 5 audio slots. This
+pack retains the maintainer-approved API-default-only format and 30/10/10
+reference limits. The parity comparison pins the exact proxy selector metadata
+and reference templates before normalizing these differences; negative tests
+reject changed formats, defaults, durations, resolutions, template shapes and
+unexpected inputs. No new direct-API capability is inferred from the proxy.
+Verified against current master `e9afbccc` without paid calls.
+
 ## Seedream 5.5 release parity check
 
 Read on 2026-11-12 against release `v0.45.0` (`989d93d0`) and master `c5751c81`. Upstream [b40cca229](https://github.com/Comfy-Org/ComfyUI/commit/b40cca229d23cc1d0b16f4d5946cb14a35ba88f6) adds Seedream 5.5 to both existing nodes, renames their display names, and gives older size presets explicit defaults. The pack preserves both historical and current search aliases and compares every shared model, including 5.5, by its stable label without changing existing model selections.
