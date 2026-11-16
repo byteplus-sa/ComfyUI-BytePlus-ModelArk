@@ -29,7 +29,7 @@ The node bills for every video it generates and waits until the task finishes. I
 ### Notes on inputs
 
 - **Seedance 2.5:** 480p, 720p, 1080p or 4k, 4 to 30 seconds, output as `mp4` or `mov`. Choose `4k` in `resolution`; it uses the same model as the lower resolutions.
-- **Seedance 2.5 Flash:** 480p or 720p, 4 to 30 seconds. Flash uses the API's default output format, so there is no `output_format` selector. It has no Draft option.
+- **Seedance 2.5 Flash:** 480p or 720p, 4 to 30 seconds, with MP4 or MOV output. MP4 is the default. Flash has no Draft option.
 - **Seedance 2.0, 2.0 Fast and 2.0 Mini:** 4 to 15 seconds and no `output_format`. 2.0 offers 480p to 4k, Fast and Mini offer 480p and 720p. Fast is tuned for speed, Mini for the fastest and lowest-cost generation.
 - **Draft option:** Seedance 2.5 Draft only offers 480p. Use it for a quick preview, then render the 1080p final with [Seedance 2.5 Draft to Final Video](../seedance-2-5-draft-to-final/).
 - **Prompt:** on Seedance 2.5, put spoken lines in double quotes to steer the dialogue. Do not write `--ratio`, `--seed` or similar flags in the prompt: use the widgets.

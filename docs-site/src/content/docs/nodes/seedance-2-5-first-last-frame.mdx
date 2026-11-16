@@ -31,7 +31,7 @@ The node bills for every video it generates and waits until the task finishes. I
 - **Frames:** use either `first_frame` or `first_frame_asset_id`, never both. The same rule applies to the last frame. The first frame is required, the last is optional.
 - **Asset IDs and links:** the `*_asset_id` fields take an asset ID, `asset://<asset_id>` or an https link to an image. With IAM keys saved in **Settings → BytePlus**, an asset ID is checked to be active and an image. Without them it is sent unchecked. A link is only checked against its file extension.
 - **Aspect ratio:** on Seedance 2.5 and Flash the video keeps the aspect of the first frame. On Seedance 2.0, 2.0 Fast and 2.0 Mini the `ratio` setting is back and defaults to `adaptive`. When you connect images (no asset IDs) on these models, the node crops them from the center and resizes them to the exact output size of the chosen `resolution` and `ratio`. With `adaptive` it uses the supported ratio closest to the first frame.
-- **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/): 2.5 (480p to 4k, up to 30 s), 2.5 Flash (480p/720p, up to 30 s), Seedance 2.5 Draft (480p only) and 2.0, 2.0 Fast and 2.0 Mini (up to 15 s). Flash uses the API's default output format and has no Draft option.
+- **Models:** the options match [Text to Video](../seedance-2-5-text-to-video/): 2.5 (480p to 4k, up to 30 s), 2.5 Flash (480p/720p, up to 30 s), Seedance 2.5 Draft (480p only) and 2.0, 2.0 Fast and 2.0 Mini (up to 15 s). Flash supports MP4/MOV output and has no Draft option.
 - **Several videos:** raise `generation_count`. The tasks run in parallel and generation N uses `seed` + N.
 
 ## Outputs

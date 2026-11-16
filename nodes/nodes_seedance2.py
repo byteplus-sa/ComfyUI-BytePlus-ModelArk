@@ -92,7 +92,7 @@ SEEDANCE_MODEL_TOOLTIP = (
     "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; "
     "Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final "
     "in the BytePlus Seedance 2.5 Draft to Final Video node; "
-    "Seedance 2.5 Flash for 480p/720p videos up to 30 seconds with the API's default output format; "
+    "Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; "
     "Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; "
     "Mini for the fastest, lowest-cost generation."
 )
@@ -107,9 +107,10 @@ TASK_TYPE_TOOLTIP = (
     "What to do with the reference media. Every value except auto is "
     "validated when the task is submitted, so mismatched settings fail before "
     "generation starts. auto: the model infers the task from the prompt and "
-    "inputs, and settings that conflict with its reading fail only after "
-    "generation has started. reference: generate a new video guided by the "
-    "reference images, videos, and audio. edit: change a connected reference "
+    "inputs; the ratio and duration widgets are ignored and the API receives "
+    "adaptive ratio and automatic duration. reference: generate a new video "
+    "guided by the reference images, videos, and audio with the ratio and duration "
+    "you set. edit: change a connected reference "
     "video (add, remove, replace); the output keeps the source clip's own length "
     "and aspect ratio, and the duration and ratio widgets are ignored. extend: "
     "continue a connected reference video forward or backward; the prompt should "
@@ -129,8 +130,9 @@ AUTO_UPSCALE_TOOLTIP = (
 )
 REFERENCE_ASSETS_TOOLTIP = (
     "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to "
-    "image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, "
-    "10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in "
+    "image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, "
+    "10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 "
+    "(9 + 3 + 3), counting connected inputs. Refer to a slot in "
     "the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label."
 )
 
@@ -240,7 +242,7 @@ def _seedance25_text_inputs(label, with_ratio=True, with_task_type=False):
             comfy_io.Combo.Input(
                 "ratio",
                 options=list(RATIO_OPTIONS),
-                default="16:9",
+                default="adaptive" if with_task_type else "16:9",
                 tooltip="Aspect ratio of the output video.",
             )
         )
@@ -251,7 +253,12 @@ def _seedance25_text_inputs(label, with_ratio=True, with_task_type=False):
             min=4,
             max=max_duration,
             step=1,
-            tooltip=f"Duration of the output video in seconds (4-{max_duration}).",
+            tooltip=(
+                f"Duration of the output video in seconds (4-{max_duration}). "
+                "Ignored for auto and edit reference tasks."
+                if with_task_type
+                else f"Duration of the output video in seconds (4-{max_duration})."
+            ),
             display_mode=comfy_io.NumberDisplay.slider,
         ),
         comfy_io.Boolean.Input(
@@ -399,15 +406,15 @@ def task_ids_from_response(response_text):
     return "\n".join(str(task_id) for task_id in ids if task_id)
 
 
-def build_seedance2_request_params(model, label, ratio, watermark):
+def build_seedance2_request_params(model, label, ratio, watermark, *, reference_mode=False):
     """
     Core's _seedance2_build_request as (duration, auto_duration, ratio,
-    extra_api_params) for the shared executor. edit -> adaptive ratio and
-    duration -1; extend -> adaptive ratio.
+    extra_api_params) for the shared executor. Automatic reference tasks and
+    edit use adaptive ratio and duration -1; extend uses adaptive ratio.
     """
     task_type = model.get("task_type", "auto") or "auto"
     auto_duration = False
-    if task_type == "edit":
+    if task_type == "edit" or (_is_2_5_family(label) and reference_mode and task_type == "auto"):
         ratio, auto_duration = "adaptive", True
     elif task_type == "extend":
         ratio = "adaptive"
@@ -415,8 +422,11 @@ def build_seedance2_request_params(model, label, ratio, watermark):
         "generate_audio": bool(model.get("generate_audio", True)),
         "watermark": bool(watermark),
     }
-    if model.get("output_format") and _model_key(label) in SEEDANCE_2_5_OUTPUT_FORMAT_MODELS:
-        extra["output_format"] = model["output_format"]
+    output_format = model.get("output_format")
+    if output_format is not None and _model_key(label) in SEEDANCE_2_5_OUTPUT_FORMAT_MODELS:
+        if output_format not in SEEDANCE_2_5_OUTPUT_FORMATS:
+            raise BytePlusException(get_text("err_seedance2_output_format_unsupported", format=output_format))
+        extra["output_format"] = output_format
     if task_type != "auto":
         extra["omni_reference_task_type"] = task_type
     if _is_draft(label):
@@ -427,7 +437,12 @@ def build_seedance2_request_params(model, label, ratio, watermark):
 async def _generate(cls, client, model, label, content, prompt, ratio, seed, watermark, extras):
     """Submit, poll and collect through BytePlusVideoBase; returns core's outputs plus ours."""
     model_key = _model_key(label)
-    duration, auto_duration, ratio, extra_api_params = build_seedance2_request_params(model, label, ratio, watermark)
+    reference_mode = any(
+        item.get("role") in ("reference_image", "reference_video", "reference_audio") for item in content
+    )
+    duration, auto_duration, ratio, extra_api_params = build_seedance2_request_params(
+        model, label, ratio, watermark, reference_mode=reference_mode
+    )
     resolution = validate_seedance2_resolution(model_key, model.get("resolution"), draft_mode=_is_draft(label))
     duration = validate_seedance2_duration(model_key, duration, auto_duration)
     helper = BytePlusVideoBase()

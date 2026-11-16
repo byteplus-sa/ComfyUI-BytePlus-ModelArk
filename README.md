@@ -14,9 +14,9 @@ Registry publication and security review are separate. Check the version status 
 
 **Seedance 2.5 4K:** select `Seedance 2.5` and set `resolution` to `4k`. The separate Premium and Premium Draft choices are removed without compatibility aliases. Update those selections manually before running an older workflow.
 
-**Seedance 2.5 Flash:** select `Seedance 2.5 Flash` in any of the three Seedance 2.5 generation nodes. It uses `dreamina-seedance-2-5-flash-261115`, supports 480p/720p videos from 4 to 30 seconds and shares the 30-image/10-video/10-audio reference limits. Flash uses the API's default output format and has no Draft option. Your account needs private-model access and activation.
+**Seedance 2.5 Flash:** select `Seedance 2.5 Flash` in any of the three Seedance 2.5 generation nodes. It uses `dreamina-seedance-2-5-flash-261115`, supports 480p/720p videos from 4 to 30 seconds, MP4/MOV output and up to 20 references (10 images, 5 videos, 5 audio clips). Flash has no Draft option. Activate the model for the region you use.
 
-**Previously in v0.8.0:** Seedream 5.5 image generation and layer separation, with ten references, automatic transparency, 1K/1.5K/2K output, custom sizes and optional rich-text OCR. Omitted advanced inputs use their defaults correctly. Media downloads reject private addresses and unsafe redirects. Existing node IDs and model defaults are unchanged; 5.5 requires early-access entitlement.
+**Previously in v0.8.0:** Seedream 5.5 image generation and layer separation, with ten references, automatic transparency, 1K/1.5K/2K output, custom sizes and optional rich-text OCR. Omitted advanced inputs use their defaults correctly. Media downloads reject private addresses and unsafe redirects. Existing node IDs and model defaults are unchanged. Seedream 5.5 is officially released; activate it for the region you use.
 
 ## Contents
 
@@ -176,7 +176,7 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 
 | Node | What it does |
 |---|---|
-| **Seedream** | Text-to-image and image editing with Seedream 5.5 (early access), 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0. |
+| **Seedream** | Text-to-image and image editing with Seedream 5.5, 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0. |
 | **Seedream Layer Separation** | Splits one image into a base image and up to 99 transparent layers on 5.5, or 16 on 5.0 Pro/Flash. |
 
 **Seedream**
@@ -184,9 +184,9 @@ Model names map to dated model IDs in [`nodes/models_config.py`](./nodes/models_
 - Up to 10 reference images (14 on 5.0 Lite, 4.5 and 4.0). `max_images` for related image sets (Lite, 4.5, 4.0). Prompt optimization and "thinking" where supported.
 - Advanced: parallel generations, PNG output, transparent background on Pro and Flash (connect Load Image's `MASK` to `reference_mask`; the `mask` output holds the result's transparency).
 
-**Seedream 5.5 (early access):** select `seedream 5.5` to use `dola-seedream-5-5-261028`. It supports text-to-image and up to 10 reference images, with `1K`, `1.5K`, `2K` and custom sizes (921,600 to 4,624,220 total pixels, aspect ratio 1:16 to 16:1). Defaults are `2K (adaptive)`, PNG and `background=auto`. Auto mode follows the prompt and preserves the resulting transparency in the `mask` output; JPEG is always opaque. Explicit `transparent` requires PNG but does not require a reference image or input alpha channel.
+**Seedream 5.5:** select `seedream 5.5` to use `dola-seedream-5-5-261028`. It supports text-to-image and up to 10 reference images, with `1K`, `1.5K`, `2K` and custom sizes (921,600 to 4,624,220 total pixels, aspect ratio 1:16 to 16:1). Defaults are `2K (adaptive)`, PNG and `background=auto`. Auto mode follows the prompt and preserves the resulting transparency in the `mask` output; JPEG is always opaque. Explicit `transparent` requires PNG but does not require a reference image or input alpha channel.
 
-5.5 supports only `standard` prompt optimization, not `fast`, streaming or related-image group generation. `generation_count` runs separate requests in parallel. Its `seed` widget remains a local rerun control, not a generation parameter. The optional `safety_identifier` accepts a stable hashed end-user ID of up to 64 ASCII characters; avoid personal data. Availability depends on your account's early-access entitlement. Existing model defaults are unchanged.
+5.5 supports only `standard` prompt optimization, not `fast`, streaming or related-image group generation. `generation_count` runs separate requests in parallel. Its `seed` widget remains a local rerun control, not a generation parameter. The optional `safety_identifier` accepts a stable hashed end-user ID of up to 64 ASCII characters; avoid personal data. Activate the model in the ModelArk console for the region you use. Existing image-model defaults are unchanged.
 
 **Save transparency:** connect the Seedream `IMAGE` and `mask` outputs to **Join Image with Alpha**, then connect its output to **Save Image**. Saving the RGB output alone discards transparency. For ten-reference workflows, if the frontend loses an image socket after reopening, combine references with **Batch Images** (`ImageBatch`) and connect the batch to one image slot; the ten-image limit still applies.
 
@@ -199,11 +199,11 @@ Layer separation is generative, not lossless reconstruction, and the image count
 | Node | Models | Highlights |
 |---|---|---|
 | **Seedance Text to Video**, **Image to Video**, **First-Last-Frame to Video** | `seedance-1-0-pro`, `seedance-1-0-pro-fast` (First-Last-Frame: Pro only) | 480p–1080p, 2–12 s, `camera_fixed`, `watermark` |
-| **Seedance 2.5 Text to Video**, **First-Last-Frame to Video**, **Reference to Video** | 2.5 (480p, 720p, 1080p, 4K; 30 s), 2.5 Flash (480p, 720p; 30 s), 2.0 (4K), 2.0 Fast, 2.0 Mini | 480p Draft and mp4 / mov on standard 2.5 only; Flash uses the API's default format |
+| **Seedance 2.5 Text to Video**, **First-Last-Frame to Video**, **Reference to Video** | 2.5 (480p, 720p, 1080p, 4K; 30 s), 2.5 Flash (480p, 720p; 30 s), 2.0 (4K), 2.0 Fast, 2.0 Mini | MP4 / MOV on standard 2.5 and Flash; 480p Draft on standard 2.5 only |
 | **Seedance 2.5 Draft to Final Video** | Reads the model from the draft | See [Draft Mode](#draft-mode) |
 | **Video Query Tasks** | All Seedance models, including retired ones | Lists your recent video tasks (by status, model or task ID) as JSON, to find a task ID again |
 
-- **Reference to Video** takes up to 50 references on 2.5 and Flash (30 images, 10 videos, 10 audio clips) and 15 on 2.0 (9 + 3 + 3), connected or as `asset_N` [links or assets](#reference-links-and-assets). `task_type`: auto / reference / edit / extend on 2.5 and Flash. Reference videos can be down- or upscaled.
+- **Reference to Video** takes up to 50 references on standard 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 + 5 + 5) and 15 on 2.0 (9 + 3 + 3), connected or as `asset_N` [links or assets](#reference-links-and-assets). `task_type`: auto / reference / edit / extend on 2.5 and Flash. `auto` ignores the ratio and duration widgets and sends adaptive ratio and automatic duration. Select `reference` for a new video with the ratio and duration you set, or `extend` to continue a source video for the duration you set. Reference videos can be down- or upscaled.
 - **Batches:** with `generation_count` above 1, every video reaches the `VIDEO` output (each with its own seed; the next node runs once per video), and `last_frame` holds their last frames as one batch.
 - **Advanced:** offline inference, parallel generations, non-blocking runs.
 
