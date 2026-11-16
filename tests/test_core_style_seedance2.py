@@ -363,8 +363,6 @@ class SchemaTests(unittest.TestCase):
             is_25 = "2.5" in label
             with self.subTest(label=label):
                 text_fields = list(SEEDANCE25_TEXT if is_25 else SEEDANCE20_TEXT)
-                if label == "Seedance 2.5 Flash":
-                    text_fields.remove("output_format")
                 t2v = option_inputs(nodes_seedance2.BytePlusSeedance2TextToVideo, label)
                 self.assertEqual(list(t2v["required"]), text_fields)
                 flf = option_inputs(nodes_seedance2.BytePlusSeedance2FirstLastFrame, label)
@@ -376,8 +374,6 @@ class SchemaTests(unittest.TestCase):
                     if is_25
                     else SEEDANCE20_TEXT
                 )
-                if label == "Seedance 2.5 Flash":
-                    text.remove("output_format")
                 self.assertEqual(list(ref["required"]), text + REFERENCE_TAIL)
                 self.assertEqual(list(ref["optional"]), ["auto_downscale", "auto_upscale"])
                 self.assertTrue(ref["optional"]["auto_upscale"][1]["advanced"])
@@ -404,13 +400,19 @@ class SchemaTests(unittest.TestCase):
                 self.assertEqual(flf["resolution"][1]["options"], resolutions)
                 reference = option_inputs(nodes_seedance2.BytePlusSeedance2Reference, label)["required"]
                 self.assertEqual(reference["resolution"][1]["options"], resolutions)
+                self.assertEqual(reference["ratio"][1]["default"], "adaptive")
                 if "ratio" in flf:
                     self.assertEqual(flf["ratio"][1]["default"], "adaptive")
 
     def test_reference_autogrow_caps_per_model(self):
         for label in MODEL_LABELS:
-            # asset_N covers every reference type: 50 in total on 2.5, 15 on 2.0.
-            caps = (30, 10, 10, 50) if "2.5" in label else (9, 3, 3, 15)
+            caps = (
+                (10, 5, 5, 20)
+                if label == "Seedance 2.5 Flash"
+                else (30, 10, 10, 50)
+                if "2.5" in label
+                else (9, 3, 3, 15)
+            )
             with self.subTest(label=label):
                 req = option_inputs(nodes_seedance2.BytePlusSeedance2Reference, label)["required"]
                 names = []
@@ -538,9 +540,15 @@ class SchemaTests(unittest.TestCase):
         with core_flash_schemas():
             self.test_matches_core_nodes()
 
+    def test_matches_core_nodes_accepts_flash_mov_option(self):
+        with core_flash_schemas() as schemas:
+            for inputs in schemas.values():
+                inputs["required"]["output_format"][1]["options"] = ["mp4", "mov"]
+            self.test_matches_core_nodes()
+
     def test_matches_core_nodes_rejects_other_flash_proxy_schema_changes(self):
         for name, field, value in (
-            ("output_format", "options", ["mp4", "mov"]),
+            ("output_format", "options", ["mp4", "avi"]),
             ("output_format", "default", "mov"),
             ("output_format", "tooltip", "Changed container guidance"),
             ("duration", "max", 31),
@@ -567,6 +575,19 @@ class SchemaTests(unittest.TestCase):
                 inputs["required"]["unexpected"] = ("BOOLEAN", {"default": False})
             with self.assertRaises(AssertionError):
                 self.test_matches_core_nodes()
+
+    def test_matches_core_nodes_rejects_other_reference_defaults_and_tooltips(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        for name, field, value in (
+            ("ratio", "default", "4:3"),
+            ("ratio", "tooltip", "Changed ratio guidance"),
+            ("duration", "default", 11),
+            ("duration", "tooltip", "Changed duration guidance"),
+        ):
+            with self.subTest(input=name, field=field), core_flash_schemas() as schemas:
+                schemas[core.ByteDance2ReferenceNodeV2]["required"][name][1][field] = value
+                with self.assertRaises(AssertionError):
+                    self.test_matches_core_nodes()
 
     def test_matches_core_nodes_rejects_other_generation_schema_changes(self):
         core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
@@ -626,7 +647,7 @@ class SchemaTests(unittest.TestCase):
             ("draft_task_id", "tooltip"),
         }
 
-        def compare(where, name, ours, theirs):
+        def compare(where, name, ours, theirs, *, reference_node=False):
             self.assertEqual(ours[0], theirs[0], where)
             a, b = (ours[1] if len(ours) > 1 else {}), (theirs[1] if len(theirs) > 1 else {})
             if where == "Seedance 2.5.resolution":
@@ -635,24 +656,23 @@ class SchemaTests(unittest.TestCase):
                     b["options"] = ["480p", "720p", "1080p", "4k"]
                 if b.get("tooltip") == ("Resolution of the output video. 4k is available to enterprise accounts only."):
                     b["tooltip"] = "Resolution of the output video."
+            if reference_node and where.startswith(("Seedance 2.5.", "Seedance 2.5 Draft.", "Seedance 2.5 Flash.")):
+                b = dict(b)
+                if name == "ratio" and b.get("default") == "16:9":
+                    b["default"] = "adaptive"
+                if name == "duration" and b.get("tooltip") == "Duration of the output video in seconds (4-30).":
+                    b["tooltip"] += " Ignored for auto and edit reference tasks."
             if name == "output_format":
                 # Ours adds mov after core's mp4.
                 self.assertEqual(a["options"][: len(b["options"])], b["options"], where)
-            flash_reference_limits = {
-                "reference_images": ("image", 10, 30),
-                "reference_videos": ("video", 5, 10),
-                "reference_audios": ("audio", 5, 10),
-                "reference_assets": ("asset", 10, 50),
-            }
-            if where.startswith("Seedance 2.5 Flash.") and name in flash_reference_limits:
-                prefix, core_count, byteplus_count = flash_reference_limits[name]
+            if where == "Seedance 2.5 Flash.reference_assets":
                 b = copy.deepcopy(b)
                 self.assertEqual(
                     b["template"]["names"],
-                    [f"{prefix}_{index}" for index in range(1, core_count + 1)],
+                    [f"asset_{index}" for index in range(1, 11)],
                     where,
                 )
-                b["template"]["names"] = [f"{prefix}_{index}" for index in range(1, byteplus_count + 1)]
+                b["template"]["names"] = [f"asset_{index}" for index in range(1, 21)]
                 self.assertEqual(a["template"], b["template"], where)
             elif name == "reference_assets":
                 # Ours extends core's slots (image cap) to the BytePlus total (15 / 50).
@@ -660,6 +680,8 @@ class SchemaTests(unittest.TestCase):
                 self.assertEqual(a["template"]["names"][: len(core_names)], core_names, where)
                 self.assertGreater(len(a["template"]["names"]), len(core_names), where)
             for key in set(a) | set(b):
+                if reference_node and name == "task_type" and key == "tooltip":
+                    continue
                 if (name, key) in allowed or key == "options" and name == "model":
                     continue
                 self.assertEqual(a.get(key), b.get(key), f"{where}.{key}")
@@ -703,25 +725,17 @@ class SchemaTests(unittest.TestCase):
                         key = option["key"]
                         mine = ours_options[key]
                         for section in ("required", "optional"):
-                            core_children = dict(option["inputs"].get(section) or {})
+                            core_children = option["inputs"].get(section) or {}
                             my_children = mine.get(section) or {}
-                            if key == "Seedance 2.5 Flash" and section == "required":
-                                self.assertEqual(
-                                    core_children.pop("output_format"),
-                                    (
-                                        "COMBO",
-                                        {
-                                            "options": ["mp4"],
-                                            "default": "mp4",
-                                            "multiselect": False,
-                                            "tooltip": "Container format of the output video.",
-                                        },
-                                    ),
-                                    f"{key}.output_format",
-                                )
                             self.assertEqual(list(my_children), list(core_children), f"{key} {section}")
                             for child, child_spec in core_children.items():
-                                compare(f"{key}.{child}", child, my_children[child], child_spec)
+                                compare(
+                                    f"{key}.{child}",
+                                    child,
+                                    my_children[child],
+                                    child_spec,
+                                    reference_node=ours_cls is nodes_seedance2.BytePlusSeedance2Reference,
+                                )
                     continue
                 compare(f"{ours_cls.NODE_ID}.{name}", name, ours[name], spec)
             our_outputs = ours_cls.GET_NODE_INFO_V1()
@@ -984,11 +998,7 @@ class TextToVideoTests(_ExecutorHarness):
         for resolution, duration in (("480p", 4), ("720p", 30)):
             with self.subTest(resolution=resolution, duration=duration):
                 result = await self.run_node(
-                    self.T2V,
-                    model=self.model(
-                        "Seedance 2.5 Flash", resolution=resolution, duration=duration, output_format="mov"
-                    ),
-                    seed=0,
+                    self.T2V, model=self.model("Seedance 2.5 Flash", resolution=resolution, duration=duration), seed=0
                 )
                 request = self.submitted[-1]
                 self.assertEqual(request["model"], "dreamina-seedance-2-5-flash-261115")
@@ -997,6 +1007,27 @@ class TextToVideoTests(_ExecutorHarness):
                 for absent in ("output_format", "draft", "service_tier", "execution_expires_after"):
                     self.assertNotIn(absent, request)
                 self.assertTrue(json.loads(result.args[3])["task_ids"])
+
+    async def test_flash_forwards_explicit_output_formats(self):
+        for output_format in ("mp4", "mov"):
+            with self.subTest(output_format=output_format):
+                await self.run_node(
+                    self.T2V,
+                    model=self.model("Seedance 2.5 Flash", output_format=output_format),
+                    seed=1,
+                )
+                self.assertEqual(self.submitted[-1]["output_format"], output_format)
+
+    async def test_flash_rejects_invalid_output_formats_before_submission(self):
+        for output_format in ("avi", "", False, ["mov"]):
+            with self.subTest(output_format=output_format):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    await self.run_node(
+                        self.T2V,
+                        model=self.model("Seedance 2.5 Flash", output_format=output_format),
+                        seed=1,
+                    )
+        self.assertEqual(self.submitted, [])
 
     async def test_flash_rejects_invalid_resolutions_and_durations_before_submission(self):
         for inputs in (
@@ -1186,6 +1217,20 @@ class FirstLastFrameTests(_ExecutorHarness):
         self.assertEqual([item["role"] for item in request["content"][1:]], ["first_frame", "last_frame"])
         self.assertNotIn("output_format", request)
 
+    async def test_flash_first_last_frames_forward_output_formats(self):
+        for output_format in ("mp4", "mov"):
+            with self.subTest(output_format=output_format):
+                await self.run_node(
+                    self.FLF,
+                    model=self.model("Seedance 2.5 Flash", resolution="720p", output_format=output_format),
+                    seed=1,
+                    first_frame_asset_id="https://cdn.example/first.jpg",
+                )
+                request = self.submitted[-1]
+                self.assertEqual(
+                    (request["output_format"], request["ratio"], request["duration"]), (output_format, "adaptive", 5)
+                )
+
     async def test_asset_ids_and_links(self):
         await self.run_node(
             self.FLF,
@@ -1328,6 +1373,8 @@ class ReferenceTests(_ExecutorHarness):
             model=self.model(
                 "Seedance 2.5 Flash",
                 prompt="Use Video 1 for framing and Audio 1 for music, with Image 1 and Image 2 as references.",
+                task_type="reference",
+                output_format="mov",
                 duration=11,
                 reference_assets={f"asset_{index + 1}": url for index, url in enumerate(urls)},
             ),
@@ -1347,8 +1394,91 @@ class ReferenceTests(_ExecutorHarness):
                 {"type": "audio_url", "audio_url": {"url": urls[3]}, "role": "reference_audio"},
             ],
         )
-        for absent in ("output_format", "draft", "omni_reference_task_type"):
-            self.assertNotIn(absent, request)
+        self.assertEqual(request["output_format"], "mov")
+        self.assertEqual(request["omni_reference_task_type"], "reference")
+        self.assertNotIn("draft", request)
+
+    async def test_automatic_seedance25_reference_requests_use_adaptive_parameters(self):
+        for label in ("Seedance 2.5", "Seedance 2.5 Flash", "Seedance 2.5 Draft"):
+            for task_type in ("auto", None, "omitted"):
+                for reference in ("picture.png", "clip.mp4", "sound.mp3"):
+                    with self.subTest(model=label, task_type=task_type, reference=reference):
+                        nodes_video.NON_BLOCKING_TASK_CACHE.clear()
+                        model = self.model(
+                            label,
+                            resolution="480p",
+                            task_type=task_type,
+                            duration=11,
+                            reference_assets={"asset_1": f"https://cdn.example/{reference}"},
+                        )
+                        if task_type == "omitted":
+                            model.pop("task_type")
+                        await self.run_node(self.REF, model=model, seed=1)
+                        request = self.submitted[-1]
+                        self.assertEqual((request["ratio"], request["duration"]), ("adaptive", -1))
+                        self.assertNotIn("omni_reference_task_type", request)
+
+    async def test_automatic_reference_rerun_collects_existing_task_when_ignored_widgets_change(self):
+        model = self.model(
+            "Seedance 2.5 Flash",
+            reference_assets={"asset_1": "https://cdn.example/clip.mp4"},
+        )
+        first = await self.run_node(self.REF, model=model, seed=1)
+        task_id = json.loads(first.args[3])["task_ids"][0]
+        self.task_lookups[task_id] = SimpleNamespace(id=task_id, status="queued")
+        model.update(ratio="9:16", duration=30)
+        second = await self.run_node(self.REF, model=model, seed=1)
+        self.assertEqual(len(self.submitted), 1)
+        self.assertEqual(json.loads(second.args[3])["task_ids"], [task_id])
+
+    async def test_flash_accepts_reference_count_boundaries(self):
+        for kind, extension, maximum in (("image", "png", 10), ("video", "mp4", 5), ("audio", "mp3", 5)):
+            for count in (1, maximum):
+                with self.subTest(kind=kind, count=count):
+                    await self.run_node(
+                        self.REF,
+                        model=self.model(
+                            "Seedance 2.5 Flash",
+                            task_type="reference",
+                            reference_assets={
+                                f"asset_{index + 1}": f"https://cdn.example/{kind}-{index}.{extension}"
+                                for index in range(count)
+                            },
+                        ),
+                        seed=1,
+                    )
+                    self.assertEqual(len(self.submitted[-1]["content"]) - 1, count)
+
+    async def test_flash_rejects_reference_counts_above_released_limits_before_submission(self):
+        for kind, extension, count in (("image", "png", 11), ("video", "mp4", 6), ("audio", "mp3", 6)):
+            with self.subTest(kind=kind):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    await self.run_node(
+                        self.REF,
+                        model=self.model(
+                            "Seedance 2.5 Flash",
+                            reference_assets={
+                                f"asset_{index + 1}": f"https://cdn.example/{kind}-{index}.{extension}"
+                                for index in range(count)
+                            },
+                        ),
+                        seed=1,
+                    )
+        self.assertEqual(self.submitted, [])
+
+    async def test_flash_counts_connected_and_asset_images_together(self):
+        model = self.model(
+            "Seedance 2.5 Flash",
+            task_type="reference",
+            reference_images={"image_1": image(640, 640)},
+            reference_assets={f"asset_{index + 1}": f"https://cdn.example/picture-{index}.png" for index in range(9)},
+        )
+        await self.run_node(self.REF, model=model, seed=1)
+        self.assertEqual(len(self.submitted[-1]["content"]) - 1, 10)
+        model["reference_assets"]["asset_10"] = "https://cdn.example/picture-9.png"
+        with self.assertRaises(nodes_shared.BytePlusException):
+            await self.run_node(self.REF, model=model, seed=1)
+        self.assertEqual(len(self.submitted), 1)
 
     async def test_flash_supports_edit_and_extend_requests(self):
         for task_type, duration, ratio in (("edit", -1, "adaptive"), ("extend", 11, "adaptive")):
@@ -1540,7 +1670,7 @@ class ReferenceTests(_ExecutorHarness):
 
         for label, caps in (
             ("Seedance 2.5", (30, 10, 10)),
-            ("Seedance 2.5 Flash", (30, 10, 10)),
+            ("Seedance 2.5 Flash", (10, 5, 5)),
             ("Seedance 2.0", (9, 3, 3)),
         ):
             with self.subTest(label=label):

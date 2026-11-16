@@ -1,6 +1,6 @@
 ---
 title: "Seedream Layer Separation"
-description: "Split images into transparent layers with Seedream 5.5 or 5.0, with optional rich-text OCR on early-access 5.5."
+description: "Split images into transparent layers with Seedream 5.5 or 5.0, with optional rich-text OCR on 5.5."
 node_id: BytePlusSeedreamLayerSeparation
 ---
 
@@ -14,7 +14,7 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Takes one image and separates it into a base image plus transparent layers: up to 99 on early-access 5.5, or 16 on 5.0 Pro/Flash. Each layer comes with its stacking order, bounding box, name and description, with optional rich-text OCR on 5.5.
+Takes one image and separates it into a base image plus transparent layers: up to 99 on 5.5, or 16 on 5.0 Pro/Flash. Each layer comes with its stacking order, bounding box, name and description, with optional rich-text OCR on 5.5.
 
 Separation is generative, so recombining layers does not guarantee a pixel-perfect reconstruction.
 
@@ -55,7 +55,7 @@ The node bills for every run and does not save anything itself unless you turn o
 - Images above about 4 MP are scaled down before upload; on 5.5, inputs exceeding 36,000,000 pixels are rejected. Large layer counts can use substantial RAM: choose `minimal size` for `crop_layers`.
 - `size` is `auto`, `1K`, `1.5K` or `2K`. `auto` follows the size of the input and stays between 1K and 2K.
 - If you need a specific object on its own layer, name it in the prompt or mark its box. Seedream 5.5 reserves image-rate quota using `max_images` and returns unused quota; incomplete layer responses fail rather than silently dropping layers.
-- Activate your model in the ModelArk console; 5.5 needs early-access entitlement. Background mode is not accepted for layer separation. For its optional `safety_identifier`, use a stable hashed ID of at most 64 ASCII characters, not personal data.
+- Activate your model in the ModelArk console for the region you use. Background mode is not accepted for layer separation. For its optional `safety_identifier`, use a stable hashed ID of at most 64 ASCII characters, not personal data.
 - If you interrupt the run, the node stops waiting. A request that was already sent may still be billed.
 - A failed request that may have billed is never sent again automatically. See [Billing and cost](../../concepts/billing-and-cost/).
 - For ordinary image generation use [Seedream](../seedream/).

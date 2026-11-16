@@ -94,7 +94,7 @@ VIDEO_2_MODEL_REFERENCE_LIMITS = {
     "dreamina-seedance-2-0-fast": {"images": 9, "videos": 3, "audios": 3},
     "dreamina-seedance-2-0-mini": {"images": 9, "videos": 3, "audios": 3},
     "dreamina-seedance-2-5": {"images": 30, "videos": 10, "audios": 10},
-    "dreamina-seedance-2-5-flash": {"images": 30, "videos": 10, "audios": 10},
+    "dreamina-seedance-2-5-flash": {"images": 10, "videos": 5, "audios": 5},
 }
 
 SEEDANCE_DRAFT_RESOLUTION = "480p"
@@ -105,7 +105,7 @@ SEEDANCE_DRAFT_FINAL_RESOLUTIONS = {
 # Seedance 2.5 omni reference task types (omni_reference_task_type)
 SEEDANCE_2_5_TASK_TYPES = ["auto", "reference", "edit", "extend"]
 SEEDANCE_2_5_OUTPUT_FORMATS = ["mp4", "mov"]
-SEEDANCE_2_5_OUTPUT_FORMAT_MODELS = (SEEDANCE_2_5_UI_MODEL,)
+SEEDANCE_2_5_OUTPUT_FORMAT_MODELS = SEEDANCE_2_5_FAMILY
 
 # Model list for the task query node
 # Retired models stay last so their task history can still be queried.

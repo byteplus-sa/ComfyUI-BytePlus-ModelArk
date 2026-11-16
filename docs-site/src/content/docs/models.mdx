@@ -36,13 +36,13 @@ ModelArk API keys belong to a region, `ap-southeast-1` (the default) or `eu-west
 
 A draft is always 480p. The final rendered from a draft is 1080p for Seedance 2.5. For direct 4k generation, select Seedance 2.5 and set `resolution` to `4k`. See [Draft mode](../concepts/draft-mode/).
 
-Seedance 2.5 Flash uses the API's default output format and has no Draft option. It shares standard 2.5's reference limits: 30 images, 10 videos and 10 audio clips per request.
+Seedance 2.5 Flash supports MP4 and MOV output and has no Draft option. Its reference limits are 10 images, 5 videos and 5 audio clips per request, 20 in total. Standard 2.5 supports 30 images, 10 videos and 10 audio clips.
 
 ## Models with extra requirements
 
 - **Seed Speech ASR:** the table above repeats the option name in the ID column, but the node sends these BytePlus resource IDs: `seed-asr-fast` uses `volc.seedasr.auc_turbo` (one request, audio up to 2 hours), `seed-asr-2.0` uses `volc.seedasr.auc` and `seed-asr-1.0` uses `volc.bigasr.auc` (both submit a task, audio up to 5 hours).
 - **Seedance 1.0 First-Last-Frame to Video** offers Seedance 1.0 Pro only. Pro Fast has no last-frame support.
-- **Seedance 2.5 Flash** is shown as private in ModelArk. Your account needs access and model activation before it can generate.
+- **Seedance 2.5 Flash and Seedream 5.5** are officially released. Activate the models in ModelArk for the region you use; availability still depends on your account and region.
 - **BytePlus LLM audio input** works only on Seed 2.0 Lite and Mini. Seed 2.0 Pro and Seed 2.1 Turbo reject audio. DeepSeek V4.1 Flash and GLM 5.3 Flash accept it but cannot hear it, so the node offers the audio input only for Lite and Mini.
 - **Asset library nodes** need Advanced Creation Rights on your account. See [Reference media](../concepts/reference-media/).
 

@@ -1,6 +1,6 @@
 ---
 title: "Seedream"
-description: "Generate and edit images with Seedream, including early-access Seedream 5.5 multi-reference editing and transparent PNG output."
+description: "Generate and edit images with Seedream, including Seedream 5.5 multi-reference editing and transparent PNG output."
 node_id: BytePlusSeedream
 ---
 
@@ -16,7 +16,7 @@ import Shot from '../../../components/Shot.astro';
 
 Creates images with BytePlus Seedream from a text prompt, with reference-image editing on supported models. Pick the model first to see its inputs.
 
-Seedream 5.5 adds early-access text-to-image and editing with up to 10 references, with automatic or explicit transparent PNG output.
+Seedream 5.5 supports text-to-image and editing with up to 10 references, with automatic or explicit transparent PNG output.
 
 The node bills for every image it generates and does not save anything itself: connect **Save Image** to keep the result.
 
@@ -50,10 +50,10 @@ The node bills for every image it generates and does not save anything itself: c
 
 ## Limits and tips
 
-- Activate each Seedream model in the ModelArk console for the region you use. Seedream 5.0 Lite is not available in `eu-west-1`: the node stops before it sends anything. Seedream 5.5 needs early-access entitlement.
+- Activate each Seedream model in the ModelArk console for the region you use. Seedream 5.0 Lite is not available in `eu-west-1`: the node stops before it sends anything.
 - The ratio must be between 1:16 and 16:1, and total pixels must fit the model: 921,600 to 4,624,220 on 5.5, 5.0 Pro and Flash; 3,686,400 to 16,777,216 on 5.0 Lite and 4.5; 921,600 to 16,777,216 on 4.0. Seedream 5.5 defaults to 2K adaptive and also offers 1K, 1.5K and custom sizes.
 - Seedream 5.5 supports only `standard` prompt optimization and one image per request. Each reference side must exceed 14 pixels, with at most 36,000,000 total pixels. Use [Layer Separation](../seedream-layer-separation/) for layers and rich-text OCR. Its optional `safety_identifier` should be a stable hashed ID of at most 64 ASCII characters, not personal data.
-- `thinking` is on by default where exposed (5.0 Flash and early-access 5.5 have no such setting). It can substantially increase generation time, most on 5.0 Pro, and it can only be switched off when no reference image is connected.
+- `thinking` is on by default where exposed (5.0 Flash and 5.5 have no such setting). It can substantially increase generation time, most on 5.0 Pro, and it can only be switched off when no reference image is connected.
 - For reference images of a character, a place or an object, the Production assets templates ([Character Sheet](../../templates/character-sheet/), [Location Sheet](../../templates/location-sheet/), [Prop Sheet](../../templates/prop-sheet/)) fill a fixed prompt from a few text boxes and send it to this node.
 - Review generated lettering before publication, especially dense text and stylized headlines. If a result is rejected, review the prompt for policy compliance before submitting another billed request.
 - If you interrupt the run, the node stops waiting. A request that was already sent may still be billed.

@@ -877,7 +877,7 @@
         "type": "integer",
         "required": true,
         "advanced": false,
-        "tooltip": "Change this value to run again. A generation seed is not set for the early-access model.",
+        "tooltip": "Change this value to run again. A generation seed is not set for Seedream 5.5.",
         "default": 42,
         "min": 0,
         "max": 2147483647,
@@ -1224,7 +1224,7 @@
         "type": "integer",
         "required": true,
         "advanced": false,
-        "tooltip": "Change this value to run again. A generation seed is not set for the early-access model.",
+        "tooltip": "Change this value to run again. A generation seed is not set for Seedream 5.5.",
         "default": 42,
         "min": 0,
         "max": 2147483647,
@@ -1381,7 +1381,7 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds with the API's default output format; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
@@ -1599,6 +1599,18 @@
         "advanced": false,
         "tooltip": "Enable audio generation for the output video.",
         "default": true
+       },
+       {
+        "name": "output_format",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Container format of the output video.",
+        "default": "mp4",
+        "options": [
+         "mp4",
+         "mov"
+        ]
        }
       ]
      },
@@ -1874,7 +1886,7 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds with the API's default output format; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
@@ -2041,6 +2053,18 @@
         "advanced": false,
         "tooltip": "Enable audio generation for the output video.",
         "default": true
+       },
+       {
+        "name": "output_format",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Container format of the output video.",
+        "default": "mp4",
+        "options": [
+         "mp4",
+         "mov"
+        ]
        }
       ]
      },
@@ -2346,7 +2370,7 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds with the API's default output format; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
@@ -2388,7 +2412,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
+        "default": "adaptive",
         "options": [
          "16:9",
          "4:3",
@@ -2404,7 +2428,7 @@
         "type": "integer",
         "required": true,
         "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
+        "tooltip": "Duration of the output video in seconds (4-30). Ignored for auto and edit reference tasks.",
         "default": 5,
         "min": 4,
         "max": 30,
@@ -2423,7 +2447,7 @@
         "type": "choice",
         "required": true,
         "advanced": false,
-        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs, and settings that conflict with its reading fail only after generation has started. reference: generate a new video guided by the reference images, videos, and audio. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
+        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs; the ratio and duration widgets are ignored and the API receives adaptive ratio and automatic duration. reference: generate a new video guided by the reference images, videos, and audio with the ratio and duration you set. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
         "default": "auto",
         "options": [
          "auto",
@@ -2532,7 +2556,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -2635,7 +2659,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
+        "default": "adaptive",
         "options": [
          "16:9",
          "4:3",
@@ -2651,7 +2675,7 @@
         "type": "integer",
         "required": true,
         "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
+        "tooltip": "Duration of the output video in seconds (4-30). Ignored for auto and edit reference tasks.",
         "default": 5,
         "min": 4,
         "max": 30,
@@ -2670,7 +2694,7 @@
         "type": "choice",
         "required": true,
         "advanced": false,
-        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs, and settings that conflict with its reading fail only after generation has started. reference: generate a new video guided by the reference images, videos, and audio. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
+        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs; the ratio and duration widgets are ignored and the API receives adaptive ratio and automatic duration. reference: generate a new video guided by the reference images, videos, and audio with the ratio and duration you set. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
         "default": "auto",
         "options": [
          "auto",
@@ -2779,7 +2803,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -2883,7 +2907,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
+        "default": "adaptive",
         "options": [
          "16:9",
          "4:3",
@@ -2899,7 +2923,7 @@
         "type": "integer",
         "required": true,
         "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
+        "tooltip": "Duration of the output video in seconds (4-30). Ignored for auto and edit reference tasks.",
         "default": 5,
         "min": 4,
         "max": 30,
@@ -2918,13 +2942,25 @@
         "type": "choice",
         "required": true,
         "advanced": false,
-        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs, and settings that conflict with its reading fail only after generation has started. reference: generate a new video guided by the reference images, videos, and audio. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
+        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs; the ratio and duration widgets are ignored and the API receives adaptive ratio and automatic duration. reference: generate a new video guided by the reference images, videos, and audio with the ratio and duration you set. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
         "default": "auto",
         "options": [
          "auto",
          "reference",
          "edit",
          "extend"
+        ]
+       },
+       {
+        "name": "output_format",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Container format of the output video.",
+        "default": "mp4",
+        "options": [
+         "mp4",
+         "mov"
         ]
        },
        {
@@ -2944,27 +2980,7 @@
          "image_7",
          "image_8",
          "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20",
-         "image_21",
-         "image_22",
-         "image_23",
-         "image_24",
-         "image_25",
-         "image_26",
-         "image_27",
-         "image_28",
-         "image_29",
-         "image_30"
+         "image_10"
         ],
         "min": 0
        },
@@ -2980,12 +2996,7 @@
          "video_2",
          "video_3",
          "video_4",
-         "video_5",
-         "video_6",
-         "video_7",
-         "video_8",
-         "video_9",
-         "video_10"
+         "video_5"
         ],
         "min": 0
        },
@@ -3001,12 +3012,7 @@
          "audio_2",
          "audio_3",
          "audio_4",
-         "audio_5",
-         "audio_6",
-         "audio_7",
-         "audio_8",
-         "audio_9",
-         "audio_10"
+         "audio_5"
         ],
         "min": 0
        },
@@ -3015,7 +3021,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -3037,37 +3043,7 @@
          "asset_17",
          "asset_18",
          "asset_19",
-         "asset_20",
-         "asset_21",
-         "asset_22",
-         "asset_23",
-         "asset_24",
-         "asset_25",
-         "asset_26",
-         "asset_27",
-         "asset_28",
-         "asset_29",
-         "asset_30",
-         "asset_31",
-         "asset_32",
-         "asset_33",
-         "asset_34",
-         "asset_35",
-         "asset_36",
-         "asset_37",
-         "asset_38",
-         "asset_39",
-         "asset_40",
-         "asset_41",
-         "asset_42",
-         "asset_43",
-         "asset_44",
-         "asset_45",
-         "asset_46",
-         "asset_47",
-         "asset_48",
-         "asset_49",
-         "asset_50"
+         "asset_20"
         ],
         "min": 0
        },
@@ -3203,7 +3179,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -3354,7 +3330,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -3505,7 +3481,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",

@@ -198,9 +198,8 @@ class ModelConfigurationTests(unittest.TestCase):
         self.assertEqual(models_config.SEEDANCE2_CORE_MODEL_OPTIONS["Seedance 2.5 Flash"], model)
         self.assertEqual(models_config.VIDEO_2_MODEL_RESOLUTIONS[model], ["480p", "720p"])
         self.assertEqual(models_config.VIDEO_2_MODEL_MAX_DURATIONS[model], 30)
-        self.assertEqual(
-            models_config.VIDEO_2_MODEL_REFERENCE_LIMITS[model], {"images": 30, "videos": 10, "audios": 10}
-        )
+        self.assertEqual(models_config.VIDEO_2_MODEL_REFERENCE_LIMITS[model], {"images": 10, "videos": 5, "audios": 5})
+        self.assertIn(model, models_config.SEEDANCE_2_5_OUTPUT_FORMAT_MODELS)
         self.assertNotIn(model, models_config.SEEDANCE_DRAFT_FINAL_RESOLUTIONS)
         self.assertNotIn("Seedance 2.5 Flash Draft", models_config.SEEDANCE2_CORE_MODEL_OPTIONS)
         self.assertNotIn("Seedance 2.5 Flash", models_config.SEEDANCE2_CORE_DRAFT_OPTIONS)

@@ -477,6 +477,29 @@ class SeedreamSchemaTests(unittest.TestCase):
                     with self.assertRaises(AssertionError):
                         SeedreamSchemaTests().test_matches_core_schema()
 
+    def test_matches_core_schema_checks_55_seed_tooltip(self):
+        core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
+        for core_node, our_node in (
+            (core.ByteDanceSeedreamNodeV3, nodes_seedream.BytePlusSeedream),
+            (core.ByteDanceSeedreamLayerSeparationNodeV2, nodes_seedream.BytePlusSeedreamLayerSeparation),
+        ):
+            our_schema = copy.deepcopy(our_node.define_schema())
+            combo = next(item for item in our_schema.inputs if item.id == "model")
+            combo.options = [option for option in combo.options if option.key == V55]
+            combo.options[0].inputs = [item for item in combo.options[0].inputs if item.id == "seed"]
+            for tooltip in ("Seed to use for generation.", "Unexpected seed guidance"):
+                with self.subTest(node=our_node.__name__, tooltip=tooltip):
+                    core_schema = copy.deepcopy(our_schema)
+                    inputs, _ = option_inputs(core_schema, V55)
+                    inputs["seed"].tooltip = tooltip
+                    with mock.patch.object(core_node, "define_schema", return_value=core_schema):
+                        with mock.patch.object(our_node, "define_schema", return_value=our_schema):
+                            if tooltip == "Seed to use for generation.":
+                                SeedreamSchemaTests().test_matches_core_schema()
+                            else:
+                                with self.assertRaises(AssertionError):
+                                    SeedreamSchemaTests().test_matches_core_schema()
+
     def test_matches_core_schema(self):
         """Every core input (id, type, default, limits, tooltip, advanced) is copied as is."""
         try:
@@ -507,7 +530,7 @@ class SeedreamSchemaTests(unittest.TestCase):
             if core_item.id == "seed":
                 differences["tooltip"] = (
                     "Seed to use for generation.",
-                    "Change this value to run again. A generation seed is not set for the early-access model.",
+                    "Change this value to run again. A generation seed is not set for Seedream 5.5.",
                 )
             if node_id == "BytePlusSeedream":
                 if core_item.id == "size_preset":

@@ -192,7 +192,7 @@ def _seedream_model_inputs(model):
             default=42,
             tooltip=(
                 SEEDREAM_SEED_TOOLTIP if caps.get("send_seed", True)
-                else "Change this value to run again. A generation seed is not set for the early-access model."
+                else "Change this value to run again. A generation seed is not set for Seedream 5.5."
             ),
         )
     )
@@ -475,7 +475,7 @@ def build_seedream_request(plan, idx=0):
 
 class BytePlusSeedream(EndpointDefaultsRerun, comfy_io.ComfyNode):
     """
-    Seedream with core's ByteDanceSeedreamNodeV3 inputs and an early-access 5.5 option.
+    Seedream with core's ByteDanceSeedreamNodeV3 inputs and a Seedream 5.5 option.
     Pro, Flash and 5.5 return images by URL; Lite, 4.5 and 4.0 stream b64 images
     and can generate up to max_images related images.
     """
@@ -634,7 +634,7 @@ def _layer_separation_inputs(model):
         seed_input(
             default=42,
             tooltip=SEEDREAM_SEED_TOOLTIP if caps.get("send_seed", True) else
-            "Change this value to run again. A generation seed is not set for the early-access model.",
+            "Change this value to run again. A generation seed is not set for Seedream 5.5.",
         ),
     ]
     if caps["fast"] or caps.get("prompt_modes"):
