@@ -1,0 +1,59 @@
+---
+title: "OmniHuman Task Result"
+description: "Collect an existing OmniHuman 2.0 avatar video without submitting another generation request."
+node_id: BytePlusOmniHumanTaskResult
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusOmniHumanTaskResult" />
+
+## What it does
+
+Collects an existing [OmniHuman 2.0](../omnihuman/) task using the original account's Vision AI key. This node submits no new generation. Connect **Save Video** to keep the collected video.
+
+## On the canvas
+
+<Shot src="nodes/omnihuman-task-result.png" alt="OmniHuman Task Result node with task ID and wait-for-completion switch" caption="Recover an existing task without paying for replacement generation." />
+
+## Inputs
+
+<NodeInputs id="BytePlusOmniHumanTaskResult" />
+
+### Notes on inputs
+
+- Use an OmniHuman 2.0 task ID, not a Seedance or LAS task ID.
+- Enable `wait_for_completion` to wait until the video is ready. Disable it to inspect the task once; a pending task blocks the video output.
+- Requeueing always queries the task again. It never creates new generation.
+
+## Outputs
+
+<NodeOutputs id="BytePlusOmniHumanTaskResult" />
+
+### Notes on outputs
+
+- `video` is temporary until saved. The response redacts credentials and media URLs.
+- Keep the task ID after a download failure and retry collection before the result expires.
+
+## Limits and tips
+
+- OmniHuman task lookup lasts about 12 hours and video URLs are valid for one hour. See the [official API](https://docs.byteplus.com/en/docs/byteplus-vision/omnihuman-2-0-video-generation).
+- Interrupted local collection does not cancel remote processing or billing.
+- To resume the original generation node, retain its original inputs and fixed seed, or set its `existing_task_id`.
+- Only collect media you are authorized to access. Use the original account's separate Vision AI key.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No Vision AI API key is set` | Set the original account's Vision AI key in **Settings > BytePlus**. |
+| `Invalid OmniHuman input` | Supply the accepted OmniHuman task ID. |
+| `Could not collect OmniHuman task` | Check whether the task was canceled, expired or failed. Do not resubmit generation to poll it. |
+
+## Used in templates
+
+<UsedIn id="BytePlusOmniHumanTaskResult" />

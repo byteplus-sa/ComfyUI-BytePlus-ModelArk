@@ -19,6 +19,7 @@ import threading
 from .constants import (
     DEFAULT_REGION,
     MEDIAKIT_API_KEY_ENV,
+    OMNIHUMAN_API_KEY_ENV,
     REGION_BASE_URLS,
     SPEECH_API_KEY_ENV,
 )
@@ -52,6 +53,7 @@ CREDENTIAL_VARS = {
     "modelark": MODELARK_KEY_ENV,
     "speech": SPEECH_API_KEY_ENV,
     "mediakit": MEDIAKIT_API_KEY_ENV,
+    "omnihuman": OMNIHUMAN_API_KEY_ENV,
     "access_key": ACCESS_KEY_ENVS[0],
     "secret_key": SECRET_KEY_ENVS[0],
 }

@@ -47,6 +47,9 @@ NODES = [
     ("BytePlusVideoEnhance", "vcube-video-enhance", "MediaKit"),
     ("BytePlusVideoSmoothness", "video-smoothness-enhance", "MediaKit"),
     ("BytePlusImageEnhance", "image-quality-enhance", "MediaKit"),
+    ("BytePlusOmniHuman", "omnihuman", "OmniHuman"),
+    ("BytePlusOmniHumanTaskResult", "omnihuman-task-result", "OmniHuman"),
+    ("BytePlusOmniHumanCancelTask", "omnihuman-cancel-task", "OmniHuman"),
     ("BytePlusHyper3D", "hyper3d", "3D"),
     ("BytePlusHitem3D", "hitem3d", "3D"),
     ("BytePlusCreateImageAsset", "create-image-asset", "Assets"),
@@ -111,6 +114,7 @@ KEYS_BY_CATEGORY = {
     "BytePlus ModelArk/3D": ["ModelArk API key"],
     "BytePlus ModelArk/Speech": ["Seed Speech API key"],
     "BytePlus ModelArk/MediaKit": ["AI MediaKit API key"],
+    "BytePlus ModelArk/OmniHuman": ["Vision AI API key"],
 }
 KEYS_BY_CLASS = {
     "BytePlusCreateImageAsset": ["ModelArk API key", "IAM access key and secret key"],

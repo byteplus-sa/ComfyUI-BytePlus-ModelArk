@@ -1,0 +1,58 @@
+---
+title: "OmniHuman Cancel Task"
+description: "Request cancellation of a queued OmniHuman 2.0 task and report whether the service accepted it."
+node_id: BytePlusOmniHumanCancelTask
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusOmniHumanCancelTask" />
+
+## What it does
+
+Explicitly requests cancellation of an [OmniHuman 2.0](../omnihuman/) task. You need the original account's Vision AI key. The service only cancels queued tasks; a task already running may continue and be billed.
+
+## On the canvas
+
+<Shot src="nodes/omnihuman-cancel-task.png" alt="OmniHuman Cancel Task node with task ID and canceled boolean output" caption="Request cancellation explicitly and check whether it succeeded." />
+
+## Inputs
+
+<NodeInputs id="BytePlusOmniHumanCancelTask" />
+
+### Notes on inputs
+
+- Supply an OmniHuman 2.0 task ID, not a ModelArk or LAS task ID.
+- Connect an output to a consuming node to execute the request. An unused node does not run.
+
+## Outputs
+
+<NodeOutputs id="BytePlusOmniHumanCancelTask" />
+
+### Notes on outputs
+
+- `canceled` is true when the service accepts cancellation.
+- A false result means the task already started or finished. Inspect it with [OmniHuman Task Result](../omnihuman-task-result/).
+- The response contains no keys or signed URLs.
+
+## Limits and tips
+
+- Only tasks in `in_queue` can be canceled. The [official API](https://docs.byteplus.com/en/docs/byteplus-vision/omnihuman-2-0-video-generation) returns code `50217` when a task already started.
+- Interrupting a generation node stops local waiting and does not automatically call this node.
+- Cancellation is not a promise of a billing refund.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No Vision AI API key is set` | Save the original task account's Vision AI key in **Settings > BytePlus**. |
+| `Invalid OmniHuman input` | Check the accepted OmniHuman 2.0 task ID. |
+| `OmniHuman request failed` | Check account permissions and inspect the task's current state. |
+
+## Used in templates
+
+<UsedIn id="BytePlusOmniHumanCancelTask" />

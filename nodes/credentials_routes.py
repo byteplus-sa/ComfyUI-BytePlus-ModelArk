@@ -68,7 +68,7 @@ async def handle_status(request):
 
 async def handle_save(request):
     """
-    Body: {"credential": "modelark" | "speech" | "mediakit" | "iam",
+    Body: {"credential": "modelark" | "speech" | "mediakit" | "omnihuman" | "iam",
            "value": "<key>", "access_key": "...", "secret_key": "...",
            "region": "ap-southeast-1", "clear": true}
     ("iam" is the AK/SK pair for the asset library; "region" belongs to modelark.)
@@ -116,7 +116,7 @@ async def handle_save(request):
             return _error("cred_endpoint_duplicate")
         updates[variable] = value
         message_key = "cred_endpoint_saved" if value else "cred_endpoint_cleared"
-    elif credential in ("modelark", "speech", "mediakit"):
+    elif credential in ("modelark", "speech", "mediakit", "omnihuman"):
         variable = credentials.CREDENTIAL_VARS[credential]
         if clear:
             updates[variable] = ""
