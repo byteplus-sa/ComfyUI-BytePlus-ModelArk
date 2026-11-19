@@ -53,6 +53,7 @@ if COMFY_ROOT:
     nodes_seedance2 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seedance2")
     nodes_seed = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seed")
     nodes_video = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_video")
+    nodes_omnihuman = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_omnihuman")
     BytePlusException = nodes_shared.BytePlusException
 
 
@@ -73,6 +74,7 @@ CREDENTIAL_ENV_VARS = (
     "BYTEPLUS_REGION",
     "BYTEPLUS_SEED_SPEECH_API_KEY",
     "BYTEPLUS_VOD_MEDIAKIT_API_KEY",
+    "BYTEPLUS_CV_API_KEY",
     "BYTEPLUS_ACCESS_KEY",
     "BYTEPLUS_ACCESSKEY",
     "BYTEPLUS_SECRET_KEY",
@@ -134,6 +136,23 @@ class TestIsolationTests(unittest.TestCase):
 
 @requires_comfyui
 class EnvFileTests(IsolatedCredentials):
+    def test_vision_key_is_private_independent_and_obeys_environment_precedence(self):
+        self.assertEqual(credentials.CREDENTIAL_VARS["omnihuman"], "BYTEPLUS_CV_API_KEY")
+        self.write_env("BYTEPLUS_API_KEY=keep\nBYTEPLUS_REGION=eu-west-1\n")
+        credentials.update_env_file({"BYTEPLUS_CV_API_KEY": "vision-file-1234"})
+        self.assertEqual(credentials.get_setting("BYTEPLUS_CV_API_KEY"), "vision-file-1234")
+        if os.name == "posix":
+            self.assertEqual(stat.S_IMODE(os.stat(self.env_path).st_mode), 0o600)
+        with mock.patch.dict(os.environ, {"BYTEPLUS_CV_API_KEY": "vision-env-5678"}):
+            self.assertEqual(credentials.get_setting("BYTEPLUS_CV_API_KEY"), "vision-env-5678")
+            status = credentials.credential_status()
+            self.assertEqual(status["credentials"]["omnihuman"]["hint"], "ends in 5678")
+            self.assertNotIn("vision-env-5678", json.dumps(status))
+        credentials.update_env_file({"BYTEPLUS_CV_API_KEY": ""})
+        self.assertEqual(credentials.get_setting("BYTEPLUS_CV_API_KEY"), "")
+        self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "keep")
+        self.assertEqual(credentials.get_setting("BYTEPLUS_REGION"), "eu-west-1")
+
     def test_parse(self):
         text = (
             "# comment\n\nBYTEPLUS_API_KEY=abc123  \nexport BYTEPLUS_REGION=eu-west-1\n"
@@ -581,6 +600,7 @@ ALL_NODES = (
         *nodes_assets.NODES,
         *nodes_speech.NODES,
         *nodes_mediakit.NODES,
+        *nodes_omnihuman.NODES,
         *nodes_3d.NODES,
         nodes_video.BytePlusVideoQueryTasks,
     ]
@@ -596,15 +616,37 @@ class NoClientInputTests(unittest.TestCase):
             with self.subTest(node=node_cls.__name__):
                 info = node_cls.GET_NODE_INFO_V1()
                 inputs = {**info["input"]["required"], **info["input"].get("optional", {})}
-                self.assertFalse({"client", "speech_client", "mediakit_client"} & set(inputs))
+                self.assertFalse({"client", "speech_client", "mediakit_client", "omnihuman_client"} & set(inputs))
                 self.assertFalse(any("CLIENT" in str(spec[0]) for spec in inputs.values()))
                 self.assertTrue(hasattr(node_cls.execute.__func__, "__wrapped__"))
                 params = list(inspect.signature(node_cls.execute.__func__.__wrapped__).parameters)
-                self.assertIn(params[1], ("client", "speech_client", "mediakit_client"))
+                self.assertIn(params[1], ("client", "speech_client", "mediakit_client", "omnihuman_client"))
 
 
 @requires_comfyui
 class RouteTests(IsolatedCredentials, unittest.IsolatedAsyncioTestCase):
+    async def test_vision_key_save_and_clear_never_validate_as_modelark_or_change_region(self):
+        self.write_env("BYTEPLUS_API_KEY=keep\nBYTEPLUS_REGION=eu-west-1\n")
+        with mock.patch.object(credentials_routes, "check_api_key") as validate:
+            status, response = await self.save({"credential": "omnihuman", "value": "vision-test-1234"})
+            self.assertEqual(status, 200)
+            self.assertEqual(response["credentials"]["omnihuman"]["hint"], "ends in 1234")
+            self.assertNotIn("vision-test-1234", json.dumps(response))
+            self.assertEqual(credentials.get_setting("BYTEPLUS_CV_API_KEY"), "vision-test-1234")
+            status, response = await self.save({"credential": "omnihuman", "clear": True})
+            self.assertEqual(status, 200)
+            self.assertFalse(response["credentials"]["omnihuman"]["configured"])
+        validate.assert_not_called()
+        self.assertEqual(credentials.get_setting("BYTEPLUS_API_KEY"), "keep")
+        self.assertEqual(credentials.get_setting("BYTEPLUS_REGION"), "eu-west-1")
+
+    async def test_invalid_vision_keys_are_not_written(self):
+        for value in (None, [], {}, 123, True, "", "line1\nOTHER=value", "key\0value"):
+            with self.subTest(value=value):
+                status, _ = await self.save({"credential": "omnihuman", "value": value})
+                self.assertEqual(status, 400)
+                self.assertEqual(credentials.get_setting("BYTEPLUS_CV_API_KEY"), "")
+
     def request(self, body=None, headers=None, raw=None):
         async def read(limit=-1):
             if isinstance(body, Exception):

@@ -6702,6 +6702,194 @@
   ]
  },
  {
+  "id": "BytePlusOmniHuman",
+  "slug": "omnihuman",
+  "group": "OmniHuman",
+  "display_name": "BytePlus OmniHuman 2.0",
+  "category": "BytePlus ModelArk/OmniHuman",
+  "description": "Generate an avatar video from one image and speech audio using OmniHuman 2.0. Requires a separate Vision AI key. Paid work; use only authorized media. Connected media needs Comfy.org storage. Interruption stops local waiting, not remote processing.",
+  "search_aliases": [],
+  "keys": [
+   "Vision AI API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "prompt",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Optional scene, movement and camera guidance.",
+    "default": "",
+    "multiline": true
+   },
+   {
+    "name": "enable_watermark",
+    "type": "on/off",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   },
+   {
+    "name": "seed",
+    "type": "integer",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Local rerun control only, not sent to OmniHuman. Keep fixed to resume an unresolved task.",
+    "default": 0,
+    "min": 0,
+    "max": 18446744073709551615
+   },
+   {
+    "name": "image",
+    "type": "IMAGE",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Exactly one image, or use image_url."
+   },
+   {
+    "name": "audio",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 4-300 second speech clip (up to 5 minutes), or use audio_url. Oversized WAVs are converted to mono at up to 24 kHz without truncation."
+   },
+   {
+    "name": "image_url",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Persistent public image URL, instead of a connected image.",
+    "default": ""
+   },
+   {
+    "name": "audio_url",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Persistent public WAV/MP3 URL, instead of connected audio.",
+    "default": ""
+   },
+   {
+    "name": "existing_task_id",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Recover this task without generation or uploads. Other generation inputs are ignored. Must match any unresolved task and its key.",
+    "default": ""
+   }
+  ],
+  "outputs": [
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "task_id",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Keep this ID for OmniHuman Task Result recovery."
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Provider response with keys and URLs redacted."
+   }
+  ]
+ },
+ {
+  "id": "BytePlusOmniHumanTaskResult",
+  "slug": "omnihuman-task-result",
+  "group": "OmniHuman",
+  "display_name": "BytePlus OmniHuman Task Result",
+  "category": "BytePlus ModelArk/OmniHuman",
+  "description": "Collect an existing OmniHuman 2.0 task with its original account's Vision AI key. Never submits new generation. Task lookup lasts about 12 hours; video links expire after one hour.",
+  "search_aliases": [],
+  "keys": [
+   "Vision AI API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "task_id",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": ""
+   },
+   {
+    "name": "wait_for_completion",
+    "type": "on/off",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   }
+  ],
+  "outputs": [
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "task_id",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Keep this ID for OmniHuman Task Result recovery."
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Provider response with keys and URLs redacted."
+   }
+  ]
+ },
+ {
+  "id": "BytePlusOmniHumanCancelTask",
+  "slug": "omnihuman-cancel-task",
+  "group": "OmniHuman",
+  "display_name": "BytePlus OmniHuman Cancel Task",
+  "category": "BytePlus ModelArk/OmniHuman",
+  "description": "Explicitly request cancellation of an OmniHuman 2.0 task. Only queued tasks can be canceled; running tasks may continue and be billed. Connect an output to execute.",
+  "search_aliases": [],
+  "keys": [
+   "Vision AI API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "task_id",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": ""
+   }
+  ],
+  "outputs": [
+   {
+    "name": "canceled",
+    "type": "on/off",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
   "id": "BytePlusHyper3D",
   "slug": "hyper3d",
   "group": "3D",

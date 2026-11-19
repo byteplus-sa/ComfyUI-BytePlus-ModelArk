@@ -1,11 +1,11 @@
 ---
 title: "Nodes"
-description: "All 24 BytePlus nodes by group, with what each one does and which API key it needs."
+description: "All 27 BytePlus nodes by group, with what each one does and which API key it needs."
 ---
 
 A node is one block on the ComfyUI canvas. Each node here calls a BytePlus service directly, billed to your own BytePlus account, with a key you save once in **Settings → BytePlus** (see [API keys](../get-started/api-keys/)). Generation nodes only run when something uses their output, such as **Save Image** or **Save Video**, and one with nothing connected is not run and not billed. The exceptions are the two lookup nodes, Video Query Tasks and Asset Library, which run on their own.
 
-All 24 nodes are listed below. Open a node's page for its inputs, outputs, limits and common errors.
+All 27 nodes are listed below. Open a node's page for its inputs, outputs, limits and common errors.
 
 ## Images
 
@@ -63,6 +63,16 @@ These nodes stay in the pack, but no template uses them.
 | [vCube Video Enhance](./vcube-video-enhance/) | Upscales and restores a video, up to 8K, with an optional before and after comparison. | AI MediaKit |
 | [Video Smoothness Enhance](./video-smoothness-enhance/) | Repairs stutter and repeated frames without changing the resolution. | AI MediaKit |
 | [Image Quality Enhance](./image-quality-enhance/) | Upscales and restores images: sharpening, denoising and portrait, text and colour enhancement. | AI MediaKit |
+
+## OmniHuman
+
+OmniHuman uses a separate Vision AI key. Connected media needs Comfy.org storage; public URLs bypass uploads.
+
+| Node | What it does | Key |
+|---|---|---|
+| [OmniHuman 2.0](./omnihuman/) | Generates an avatar video from one image and 4-300 seconds of audio, up to five minutes. | Vision AI |
+| [OmniHuman Task Result](./omnihuman-task-result/) | Collects an existing avatar task without submitting new generation. | Vision AI |
+| [OmniHuman Cancel Task](./omnihuman-cancel-task/) | Explicitly requests cancellation of a queued task; running tasks cannot be canceled. | Vision AI |
 
 ## 3D
 

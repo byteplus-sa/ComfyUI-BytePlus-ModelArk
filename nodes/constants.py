@@ -50,6 +50,10 @@ MEDIAKIT_DOWNLOAD_STALL_SECONDS = 120
 MEDIAKIT_MAX_POLL_ERRORS = 5
 # Submit retries after network errors, timeouts, 429 and 5xx (safe: same client_token).
 MEDIAKIT_SUBMIT_RETRIES = 2
+OMNIHUMAN_API_KEY_ENV = "BYTEPLUS_CV_API_KEY"
+OMNIHUMAN_BASE_URL = "https://openapi.cv.bytepluses.com"
+OMNIHUMAN_API_KEYS_GUIDE_URL = "https://docs.byteplus.com/en/docs/byteplus-vision/api-key-usage-instructions"
+OMNIHUMAN_REQ_KEY = "realman_avatar_picture_omni20_cv"
 SEED_AUDIO_PATH = "/api/v3/tts/create"
 SEED_TTS_PATH = "/api/v3/tts/unidirectional"
 SEED_ASR_FAST_PATH = "/api/v3/auc/bigmodel/recognize/flash"
@@ -443,6 +447,20 @@ MESSAGES = {
     "msg3d_cancelled": "[BytePlus] Cancelled the 3D task {task_id}.",
     "msg3d_cancel_failed": "[BytePlus] Could not cancel the 3D task {task_id}: {reason}",
     "err_no_mediakit_key": "No AI MediaKit API key is set. Add it in Settings > BytePlus, or put BYTEPLUS_VOD_MEDIAKIT_API_KEY=... in {path} (or set the environment variable).",
+    "err_no_omnihuman_key": "No Vision AI API key is set. Add the OmniHuman Vision AI key in Settings > BytePlus, or set BYTEPLUS_CV_API_KEY in {path} or the environment. Other BytePlus product keys do not work here.",
+    "err_omnihuman_input": "Invalid OmniHuman input: {detail}",
+    "err_omnihuman_api": "OmniHuman request failed (HTTP {status}, code {code}): {message}",
+    "err_omnihuman_protocol": "Unexpected OmniHuman response: {detail}",
+    "err_omnihuman_network": "OmniHuman request did not complete ({reason}).",
+    "err_omnihuman_submit_unknown": "OmniHuman task acceptance is unknown. Do not submit again: remote work may continue and be billed. Check Vision AI for the task ID, then use existing_task_id or OmniHuman Task Result.",
+    "err_omnihuman_task": "Could not collect OmniHuman task {task_id}: {detail}. Recover the same ID with OmniHuman Task Result; do not submit generation again.",
+    "err_omnihuman_unresolved": "This node has unresolved OmniHuman work ({task_id}). Restore its original inputs and fixed seed to resume, or use existing_task_id / OmniHuman Task Result. Use a new node only for intentional new paid work.",
+    "err_omnihuman_handle": "Could not read or save OmniHuman recovery information. No new work is submitted until local recovery storage is available.",
+    "err_omnihuman_download": "Could not download OmniHuman task {task_id} ({reason}). Recover the same ID with OmniHuman Task Result. Video links expire after one hour.",
+    "omnihuman_waiting": "OmniHuman task {task_id}: {status}. Interrupting stops local waiting; remote work may continue and be billed.",
+    "omnihuman_submitted": "OmniHuman accepted task {task_id}. Recovery is saved locally. Only queued tasks can be canceled.",
+    "omnihuman_cancel_unavailable": "OmniHuman task {task_id} could not be canceled because it already started or finished. Remote processing may continue and be billed.",
+    "err_omnihuman_upload": "Could not upload connected {kind} through Comfy.org. Sign in to Comfy.org or use a persistent public URL.",
     "cred_unknown": "Unknown credential.",
     "cred_bad_request": "The request is not valid.",
     "cred_forbidden_origin": "Requests from another origin are not accepted.",

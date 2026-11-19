@@ -1,10 +1,12 @@
 # ComfyUI BytePlus ModelArk & AI MediaKit
 
-Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, and AI MediaKit video and image enhancement.
+Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, OmniHuman avatar videos, and AI MediaKit video and image enhancement.
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
 > **Status: v0.9.2.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+
+**Added in source, not yet released:** OmniHuman 2.0 image-plus-audio avatar generation, task collection and explicit queued-task cancellation. It uses a separate Vision AI key and supports 4-300 seconds of audio, including five minutes. No Registry version bump is included.
 
 **New in v0.9.2:** released Seedance 2.5 Flash API corrections: MP4/MOV output in all three generation nodes and reference limits of 10 images, 5 videos and 5 audio clips, counting connected media and assets together. Automatic 2.5-family reference tasks use adaptive ratio and automatic duration so inferred editing does not conflict with fixed widgets; explicit reference and extension retain the selected duration. Seedream 5.5 guidance now reflects its official release. Existing model IDs, security safeguards and non-blocking task reuse are preserved.
 
@@ -73,6 +75,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 | **ModelArk** – asset library | Create Image / Video / Audio Asset, Asset Library | ModelArk API key + IAM AK/SK |
 | **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
 | **AI MediaKit** | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance | AI MediaKit API key |
+| **Vision AI** | OmniHuman 2.0, OmniHuman Task Result, OmniHuman Cancel Task | Vision AI API key |
 
 The image, video, LLM and asset nodes match ComfyUI's built-in ByteDance nodes input for input, but use BytePlus model IDs. This pack's extras (parallel generations, non-blocking runs and so on) sit under each node's advanced inputs.
 
@@ -80,7 +83,7 @@ The image, video, LLM and asset nodes match ComfyUI's built-in ByteDance nodes i
 
 - **Nodes only run when their output is used.** They save nothing themselves: connect `Save Image` / `Save Video`. A node with nothing connected doesn't run and isn't billed.
 - **Regions:** `ap-southeast-1` (default) or `eu-west-1` for ModelArk. Seedream 5.0 Lite isn't available in `eu-west-1`. Seed Speech and AI MediaKit run in `ap-southeast-1` only.
-- **Comfy.org login** is needed for a few features that upload local media to Comfy.org storage (BytePlus only accepts links there): Seedance reference videos, standard ASR, MediaKit sources and new private assets.
+- **Comfy.org login** is needed for a few features that upload local media to Comfy.org storage (BytePlus only accepts links there): Seedance reference videos, standard ASR, MediaKit sources, OmniHuman connected media and new private assets.
 
 ## API Keys
 
@@ -91,6 +94,7 @@ Each BytePlus product has its own key; they are not interchangeable.
 | ModelArk API key | [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) | Image, video, LLM and asset nodes | `BYTEPLUS_API_KEY` (+ `BYTEPLUS_REGION`) |
 | Seed Speech API key | [Seed Speech console](https://console.byteplus.com/voice/new/overview?projectName=default) → Settings → API Keys (activate the services first) | Speech nodes | `BYTEPLUS_SEED_SPEECH_API_KEY` |
 | AI MediaKit API key | [AI MediaKit console](https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey) → Settings → API key | Enhancement nodes | `BYTEPLUS_VOD_MEDIAKIT_API_KEY` |
+| Vision AI API key | [Vision AI key setup guide](https://docs.byteplus.com/en/docs/byteplus-vision/api-key-usage-instructions) | OmniHuman nodes | `BYTEPLUS_CV_API_KEY` |
 | IAM AK/SK | IAM console (a sub-user allowed only the asset library) | Asset library nodes | `BYTEPLUS_ACCESS_KEY`, `BYTEPLUS_SECRET_KEY` (+ `BYTEPLUS_SESSION_TOKEN` for STS) |
 
 ### Option A: Settings → BytePlus (recommended)
@@ -100,6 +104,7 @@ Open **Settings** (gear icon, or Ctrl+, / Cmd+,), search for **BytePlus**, paste
 - ModelArk keys are checked against BytePlus first; a wrong key is refused and nothing is saved.
 - Keys are written to `user/.env` in your ComfyUI folder and take effect immediately.
 - Settings only ever shows whether a key is set and its last four characters. The row also shows where the file is (*Saved in ~/…/user/.env*).
+- Save OmniHuman's key in **OmniHuman Vision AI API key**. Saving does not check Vision AI access, start generation or change the ModelArk region.
 
 ![Settings → BytePlus with no key yet](https://raw.githubusercontent.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/main/docs/images/settings-byteplus-not-set.jpg)
 
@@ -122,6 +127,7 @@ BYTEPLUS_API_KEY=your-modelark-key
 BYTEPLUS_REGION=ap-southeast-1
 BYTEPLUS_SEED_SPEECH_API_KEY=your-seed-speech-key
 BYTEPLUS_VOD_MEDIAKIT_API_KEY=your-mediakit-key
+BYTEPLUS_CV_API_KEY=your-vision-ai-key
 BYTEPLUS_ACCESS_KEY=your-iam-ak
 BYTEPLUS_SECRET_KEY=your-iam-sk
 ```
@@ -288,6 +294,19 @@ Connected videos and images are uploaded to Comfy.org storage first (**Comfy.org
 - `output_size`: a `multiple` (default 2x) or a `target size`. Size limits are checked before upload. Each image in a batch is enhanced separately.
 - Also outputs `original` (the input resized to the result's size) for the `Compare Images` slider.
 
+### Avatar Video (Vision AI)
+
+**OmniHuman 2.0** uses one portrait and speech audio with the separate `BYTEPLUS_CV_API_KEY`. Connect image/audio sockets, or provide persistent public URLs instead. Connect **Save Video** to keep the result.
+
+- Audio lasts **4-300 seconds, up to five minutes**. Oversized connected WAVs are downmixed to mono and resampled to at most 24 kHz without truncation; audio that fits keeps its channels and sample rate. WAV/MP3 URL inputs are validated by the service and must be smaller than 15 MB.
+- Images are 300-6000 pixels on each side, width/height 0.4-2.5, and smaller than 30 MB. Connected media needs Comfy.org storage; URL inputs bypass uploads.
+- Paid submissions never auto-retry, even after a timeout or throttling. Keep the local seed fixed to resume unresolved work. Private recovery files store only task IDs and hashes in `user/byteplus/omnihuman_tasks/`, not keys, prompts or media URLs.
+- **OmniHuman Task Result** collects an existing task without submitting generation. `existing_task_id` on the original node must match its unresolved task and key. Collection through a separate node does not clear the original recovery record.
+- Interruption stops local waiting, not remote generation or billing. **OmniHuman Cancel Task** explicitly requests queued-task cancellation; connect an output to execute. Running tasks cannot be canceled.
+- Task lookup lasts about 12 hours; video URLs last one hour. Collect promptly. Only use authorized images and voices.
+
+See the [official OmniHuman 2.0 API](https://docs.byteplus.com/en/docs/byteplus-vision/omnihuman-2-0-video-generation). A real four-second URL-input backend generation was downloaded and decoded successfully. Five-minute preparation and its duration boundary are tested locally; no paid five-minute generation is claimed.
+
 ## Guides
 
 ### Reference Videos
@@ -343,7 +362,7 @@ The final reuses the draft's prompt, references, duration, aspect ratio, seed an
 
 ## Example Workflows
 
-Templates are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser: a starter for every node except the Seedance 1.0 ones (templates show current models only), `2.5 Model Updates` (Seedream, Seedance 2.5 and the LLM together), plus pipelines that chain services:
+Templates are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser: starters for the released nodes except the Seedance 1.0 ones (templates show current models only), `2.5 Model Updates` (Seedream, Seedance 2.5 and the LLM together), plus pipelines that chain services. OmniHuman has node documentation but no shipped template yet:
 
 | Template | What it does |
 |---|---|
