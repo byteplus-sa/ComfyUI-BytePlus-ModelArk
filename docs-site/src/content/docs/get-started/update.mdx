@@ -11,6 +11,15 @@ Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-sepa
 
 Registry publication and security review are separate steps. A pending or flagged version may not be offered by Manager yet; check its version status rather than enabling unsafe installation overrides.
 
+## OmniHuman avatar generation
+
+Version **0.10.0** adds [OmniHuman 2.0](../../nodes/omnihuman/) image-plus-audio avatar generation, [Task Result](../../nodes/omnihuman-task-result/) collection and explicit [Cancel Task](../../nodes/omnihuman-cancel-task/) for queued work.
+
+- Save a separate Vision AI key in **Settings > BytePlus > OmniHuman Vision AI API key**. ModelArk, Speech and MediaKit keys are not substitutes.
+- Connect one portrait and speech audio, or use public media URLs. Audio can last **4-300 seconds**, including five minutes. Oversized connected WAVs are downmixed to mono and resampled to at most 24 kHz without truncation.
+- Connect **Save Video** to keep the result. Accepted tasks can resume from private recovery records without another paid submission.
+- Interrupting local execution does not cancel remote processing or billing. Cancellation is explicit and works only while the task is queued.
+
 ## Credential and reference-link hardening
 
 Version **0.9.1** hardens key validation and reference links without changing node IDs or model choices. Your saved keys stay in `user/.env`.
@@ -36,7 +45,7 @@ After updating to v0.9.0:
 <Steps>
 
 1. Open **ComfyUI-Manager** and choose **Custom Nodes Manager**.
-2. Find *ComfyUI BytePlus ModelArk & AI MediaKit*. When a newer version exists, the entry shows an **Update** button.
+2. Find *ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit*. When a newer version exists, the entry shows an **Update** button.
 3. Press **Update**, then restart ComfyUI and reload the browser page.
 
 </Steps>

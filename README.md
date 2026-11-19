@@ -1,14 +1,14 @@
-# ComfyUI BytePlus ModelArk & AI MediaKit
+# ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit
 
 Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, OmniHuman avatar videos, and AI MediaKit video and image enhancement.
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.9.2.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.10.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**Added in source, not yet released:** OmniHuman 2.0 image-plus-audio avatar generation, task collection and explicit queued-task cancellation. It uses a separate Vision AI key and supports 4-300 seconds of audio, including five minutes. No Registry version bump is included.
+**New in v0.10.0:** OmniHuman 2.0 image-plus-audio avatar generation, task collection and explicit queued-task cancellation with a separate Vision AI key. Supports 4-300 seconds of audio, including five minutes. Oversized connected WAVs are downmixed to mono and resampled to at most 24 kHz without truncation. Private task recovery avoids duplicate paid submissions; transient polling and public-only downloads preserve accepted work on collection failures.
 
-**New in v0.9.2:** released Seedance 2.5 Flash API corrections: MP4/MOV output in all three generation nodes and reference limits of 10 images, 5 videos and 5 audio clips, counting connected media and assets together. Automatic 2.5-family reference tasks use adaptive ratio and automatic duration so inferred editing does not conflict with fixed widgets; explicit reference and extension retain the selected duration. Seedream 5.5 guidance now reflects its official release. Existing model IDs, security safeguards and non-blocking task reuse are preserved.
+**Previously in v0.9.2:** released Seedance 2.5 Flash API corrections: MP4/MOV output in all three generation nodes and reference limits of 10 images, 5 videos and 5 audio clips, counting connected media and assets together. Automatic 2.5-family reference tasks use adaptive ratio and automatic duration so inferred editing does not conflict with fixed widgets; explicit reference and extension retain the selected duration. Seedream 5.5 guidance now reflects its official release. Existing model IDs, security safeguards and non-blocking task reuse are preserved.
 
 **Previously in v0.9.1:** security hardening for credential validation and reference links. ModelArk key validation uses public-only networking, does not follow redirects and never logs credential-bearing exception text. Malformed keys are rejected before validation. Shared HTTP requests with API credentials are restricted to the corresponding BytePlus HTTPS services; reference probes reject embedded credentials and unsafe or malformed destinations.
 
@@ -36,7 +36,7 @@ Full documentation, with a page for every node and template: **https://byteplus-
 
 ## Quick Start
 
-**1. Install.** The pack is on the Comfy Registry: **[registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. In ComfyUI-Manager, search for *BytePlus ModelArk* (listed as *ComfyUI BytePlus ModelArk & AI MediaKit*), or use the [Comfy CLI](https://github.com/Comfy-Org/comfy-cli):
+**1. Install.** The pack is on the Comfy Registry: **[registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. In ComfyUI-Manager, search for *BytePlus ModelArk* (listed as *ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit*), or use the [Comfy CLI](https://github.com/Comfy-Org/comfy-cli):
 
 ```bash
 comfy node install ComfyUI-BytePlus-ModelArk

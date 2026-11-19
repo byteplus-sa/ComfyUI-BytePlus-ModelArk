@@ -81,7 +81,7 @@
       "properties": {
         "Node name for S&R": "BytePlusVideoQueryTasks",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.9.2"
+        "ver": "0.10.0"
       },
       "widgets_values": [
         1,
