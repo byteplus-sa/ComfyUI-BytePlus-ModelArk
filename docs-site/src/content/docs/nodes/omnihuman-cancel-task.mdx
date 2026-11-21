@@ -37,6 +37,7 @@ Explicitly requests cancellation of an [OmniHuman 2.0](../omnihuman/) task. You 
 
 - `canceled` is true when the service accepts cancellation.
 - A false result means the task already started or finished. Inspect it with [OmniHuman Task Result](../omnihuman-task-result/).
+- In v0.11.0 and later, HTTP `400` with integer code `50217` also returns `canceled = false`. This is a cancellation refusal, not a stopped task. Other HTTP errors remain errors.
 - The response contains no keys or signed URLs.
 
 ## Limits and tips
