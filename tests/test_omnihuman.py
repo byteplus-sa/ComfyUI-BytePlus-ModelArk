@@ -235,17 +235,40 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
         sleep.assert_not_called()
 
     async def test_cancel_reports_already_started_without_claiming_success(self):
-        with mock.patch.object(api, "_send", return_value=(200, {"code": 50217, "message": "already executed"})):
-            canceled, _ = await api.cancel_task(self.client, "test-task")
-        self.assertFalse(canceled)
+        for status in (200, 400):
+            with (
+                self.subTest(status=status),
+                mock.patch.object(
+                    api, "_send", return_value=(status, {"code": 50217, "message": "already executed fake-vision-key"})
+                ) as send,
+            ):
+                canceled, response = await api.cancel_task(self.client, "test-task")
+                self.assertFalse(canceled)
+                self.assertEqual(response["code"], 50217)
+                self.assertNotIn("fake-vision-key", json.dumps(response))
+                self.assertEqual(send.await_count, 1)
         with mock.patch.object(api, "_send", return_value=(200, {"code": 10000})):
             canceled, _ = await api.cancel_task(self.client, "test-task")
         self.assertTrue(canceled)
 
     async def test_cancel_does_not_accept_error_http_status_as_already_started(self):
-        with mock.patch.object(api, "_send", return_value=(503, {"code": 50217})):
-            with self.assertRaises(api.BytePlusException):
+        for status, code in ((401, 50217), (403, 50217), (429, 50217), (503, 50217), (400, 50510), (400, 10000)):
+            with (
+                self.subTest(status=status, code=code),
+                mock.patch.object(api, "_send", return_value=(status, {"code": code})) as send,
+                self.assertRaises(api.BytePlusException),
+            ):
                 await api.cancel_task(self.client, "test-task")
+            self.assertEqual(send.await_count, 1)
+
+    async def test_cancel_refusal_requires_integer_code_and_cancellation_mode(self):
+        for status, code, cancel in ((400, "50217", True), (200, "50217", True), (400, 50217, False)):
+            with (
+                self.subTest(status=status, code=code, cancel=cancel),
+                mock.patch.object(api, "_send", return_value=(status, {"code": code})),
+                self.assertRaises(api.BytePlusException),
+            ):
+                await api.request(self.client, api.CANCEL_PATH, {}, cancel=cancel)
 
     async def test_malformed_poll_payloads_fail_with_safe_recovery_id(self):
         for response in (

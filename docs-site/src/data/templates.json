@@ -616,6 +616,49 @@
   "has_thumbnail": true
  },
  {
+  "file": "Avatar Generation.json",
+  "title": "Avatar Generation",
+  "slug": "avatar-generation",
+  "group": "OmniHuman",
+  "nodes": [
+   {
+    "id": "BytePlusSeedream",
+    "count": 1
+   },
+   {
+    "id": "BytePlusSeedAudio",
+    "count": 1
+   },
+   {
+    "id": "BytePlusOmniHuman",
+    "count": 1
+   }
+  ],
+  "other_nodes": [
+   "Load Audio",
+   "Load Image",
+   "MarkdownNote",
+   "Preview as Text",
+   "Save Audio (Advanced)",
+   "Save Image",
+   "Save Video"
+  ],
+  "keys": [
+   "ModelArk API key",
+   "Seed Speech API key",
+   "Vision AI API key"
+  ],
+  "groups": [
+   "Character",
+   "Narration",
+   "Avatar video",
+   "Optional uploads - connect only when needed",
+   "How to use"
+  ],
+  "note": "## One connected avatar workflow\n\nSet ModelArk, Seed Speech and Vision AI keys in **Settings > BytePlus**. Sign in to Comfy.org for connected-media uploads.\n\nEdit the character prompt and spoken words, then Run once. Seedream and Seed Audio feed OmniHuman directly: **no review pause** and no separate app.\n\nThe optional upload nodes are muted and disconnected. Unmute the loader you want to use and upload a file. For a character reference, connect Load Image to Seedream's image_1. To replace a generated input, connect Load Image or Load Audio directly to OmniHuman, then mute the unused generator AND its save node to avoid extra generation.\n\nKeep generation_count at 1. Narration must be 4-300 seconds for OmniHuman; start with a short spoken script. Outputs save under BytePlus/Avatar.\n\nSeed controls stay fixed to allow cached inputs to be reused. Change a seed for a fresh take; changed inputs, a cleared cache or a restart can generate and bill again.\n\nFor an unresolved video, keep its inputs and seed unchanged. Use existing_task_id on OmniHuman to recover the original task; do not generate a replacement blindly. To avoid upstream generation during recovery, disconnect image/audio from OmniHuman and mute their generators and savers first. Task Result is also available as a separate node.",
+  "has_thumbnail": true
+ },
+ {
   "file": "Hyper3D Text to 3D.json",
   "title": "Hyper3D Text to 3D",
   "slug": "hyper3d-text-to-3d",

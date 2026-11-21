@@ -4,9 +4,13 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.10.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.11.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.10.0:** OmniHuman 2.0 image-plus-audio avatar generation, task collection and explicit queued-task cancellation with a separate Vision AI key. Supports 4-300 seconds of audio, including five minutes. Oversized connected WAVs are downmixed to mono and resampled to at most 24 kHz without truncation. Private task recovery avoids duplicate paid submissions; transient polling and public-only downloads preserve accepted work on collection failures.
+**New in v0.11.0:** the native **Avatar Generation** template connects Seedream 5.5, Seed Audio and OmniHuman in one run, with portrait/audio/video savers, a task-ID preview and optional upload inputs. No separate app or approval pause is required. OmniHuman video duration follows the input audio; trim or regenerate the narration to change the length.
+
+OmniHuman cancellation now recognizes the service's HTTP 400 "already started" response as a refusal, without claiming the remote task was canceled.
+
+**Previously in v0.10.0:** OmniHuman 2.0 image-plus-audio avatar generation, task collection and explicit queued-task cancellation with a separate Vision AI key. Supports 4-300 seconds of audio, including five minutes. Oversized connected WAVs are downmixed to mono and resampled to at most 24 kHz without truncation. Private task recovery avoids duplicate paid submissions; transient polling and public-only downloads preserve accepted work on collection failures.
 
 **Previously in v0.9.2:** released Seedance 2.5 Flash API corrections: MP4/MOV output in all three generation nodes and reference limits of 10 images, 5 videos and 5 audio clips, counting connected media and assets together. Automatic 2.5-family reference tasks use adaptive ratio and automatic duration so inferred editing does not conflict with fixed widgets; explicit reference and extension retain the selected duration. Seedream 5.5 guidance now reflects its official release. Existing model IDs, security safeguards and non-blocking task reuse are preserved.
 
@@ -362,11 +366,12 @@ The final reuses the draft's prompt, references, duration, aspect ratio, seed an
 
 ## Example Workflows
 
-Templates are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser: starters for the released nodes except the Seedance 1.0 ones (templates show current models only), `2.5 Model Updates` (Seedream, Seedance 2.5 and the LLM together), plus pipelines that chain services. OmniHuman has node documentation but no shipped template yet:
+Templates are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser: starters for the released nodes except the Seedance 1.0 ones (templates show current models only), `2.5 Model Updates` (Seedream, Seedance 2.5 and the LLM together), plus pipelines that chain services:
 
 | Template | What it does |
 |---|---|
 | Text to Image to Video | Seedream makes the first frame, Seedance animates it. |
+| [Avatar Generation](./example_workflows/Avatar%20Generation.json) | Seedream 5.5 makes a portrait and Seed Audio speaks your script, then OmniHuman generates the talking avatar in the same run, with no review pause or separate app. Saves portrait, narration and video; includes optional upload nodes (ModelArk + Seed Speech + Vision AI keys and Comfy.org login). |
 | Seedance Video Extension | A Seedance 2.5 clip, then two Seedance 2.5 Reference nodes with `task_type = extend`, each continuing the previous clip's motion and sound; Concatenate Video joins the three into one 15 s video (the reference video goes through Comfy.org storage, so log in; needs ComfyUI 0.36+ for `Concatenate Video`). |
 | Seed Prompt Writer | The LLM turns a short idea into a detailed Seedream prompt. |
 | Generate and Enhance | Seedream → Image Quality Enhance; Seedance → vCube Video Enhance (ModelArk + MediaKit keys). |

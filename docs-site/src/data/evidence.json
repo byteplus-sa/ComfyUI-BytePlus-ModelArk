@@ -1,4 +1,9 @@
 {
+ "avatar-generation": {
+  "status": "not_run",
+  "media": [],
+  "extra_runs": []
+ },
  "seedream": {
   "case": "tpl-13-seedream",
   "status": "success",

@@ -6753,7 +6753,7 @@
     "type": "AUDIO",
     "required": false,
     "advanced": false,
-    "tooltip": "One 4-300 second speech clip (up to 5 minutes), or use audio_url. Oversized WAVs are converted to mono at up to 24 kHz without truncation."
+    "tooltip": "One 4-300 second speech clip (up to 5 minutes), or use audio_url. Video duration follows the audio; trim the audio first to change the length. Oversized WAVs are converted to mono at up to 24 kHz without truncation."
    },
    {
     "name": "image_url",
@@ -6768,7 +6768,7 @@
     "type": "text",
     "required": false,
     "advanced": false,
-    "tooltip": "Persistent public WAV/MP3 URL, instead of connected audio.",
+    "tooltip": "Persistent public WAV/MP3 URL, instead of connected audio. Video duration follows this audio.",
     "default": ""
    },
    {
