@@ -30,6 +30,21 @@ A talking avatar from a character description and narration prompt. Seedream 5.5
 4. Press **Run**. Preview the saved image, listen to the narration, and play the resulting video on the canvas. Files are stored under `output/BytePlus/Avatar/`.
 5. To use a character reference, unmute the optional **Load Image** node, upload a file, and connect `IMAGE` to Seedream's `image_1` socket. For an existing portrait or narration, unmute and connect the corresponding loader directly to OmniHuman instead; **mute both the unused generator and its save node** to avoid generating an unused input.
 
+**Review inputs before making the video**
+
+In frontends with **Queue Selected Output Nodes**, select the save nodes you want to run and use that command, or the play action in the node-selection toolbar. Selecting nodes and pressing the normal **Run** button does not restrict the workflow.
+
+| Select these outputs | What runs |
+|---|---|
+| The portrait's **Save Image** | Seedream and its image saver. |
+| The narration's **Save Audio (Advanced)** | Seed Audio and its audio saver. |
+| Both image and audio savers | Both preparation branches, without OmniHuman. |
+| **Save Video** | OmniHuman and any required upstream nodes whose results are not cached. |
+
+Selected-output execution still includes required upstream dependencies. It does not mean "run only this one node", and it does not guarantee that selecting **Save Video** avoids another image or audio request.
+
+To reuse reviewed media without any image or audio generation, load the saved portrait and narration into the optional loaders, unmute them, and connect them directly to OmniHuman. Mute both original generators and their save nodes, then run **Save Video**. This also works with the normal **Run** button when selected-output execution is unavailable.
+
 ## Settings worth changing
 
 - **Character prompt and size:** describe one clearly visible person facing the camera. Change the Seedream size preset to choose a square or vertical portrait.

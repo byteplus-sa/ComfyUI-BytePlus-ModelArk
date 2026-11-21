@@ -1,15 +1,15 @@
 ---
 title: "Interrupts and cancelling"
-description: "What happens to Seedance tasks when you press Interrupt, and how to find a task that kept running."
+description: "Understand interruption, queued-task cancellation and recovery for Seedance video and OmniHuman avatar tasks."
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-Video tasks take a while, so you may want to stop one. This page explains what Interrupt can and cannot do for Seedance video nodes. Other nodes are covered at the end.
+Video tasks take a while, so you may want to stop one. This page explains what Interrupt can and cannot do for Seedance video and OmniHuman avatar nodes. Other nodes are covered at the end.
 
 ## What Interrupt does
 
-When you press **Interrupt** while a BytePlus video node is waiting, the node asks BytePlus to cancel its tasks. The result depends on the task state:
+When you press **Interrupt** while a Seedance video node is waiting, the node asks BytePlus to cancel its tasks. The result depends on the task state:
 
 | Task state | What happens |
 |---|---|
@@ -37,6 +37,14 @@ The node shows queued and running status text while it waits. If polling fails r
 <Aside type="tip">
 Do not want ComfyUI to wait? Use the `non_blocking` option: it submits the tasks and returns at once, and you run the node again to collect the videos. The tasks keep running and are billed.
 </Aside>
+
+## OmniHuman avatars
+
+**Interrupt only stops local waiting for OmniHuman. It does not cancel the remote task.** Keep the task ID and use [OmniHuman Task Result](../../nodes/omnihuman-task-result/) to collect accepted work without starting another generation request.
+
+To request remote cancellation, use [OmniHuman Cancel Task](../../nodes/omnihuman-cancel-task/) explicitly. The service only cancels queued work. A `canceled = false` result means the task has already started or finished and may still be billed; HTTP `400` with code `50217` is also reported as this refusal in v0.11.0 and later.
+
+Do not start replacement work just because you interrupted a wait or cancellation was refused. For the connected avatar template, follow its [recovery guidance](../../templates/avatar-generation/#time-and-cost) to avoid running upstream image or audio generation again.
 
 ## Other nodes
 
