@@ -46,6 +46,7 @@ Generates an avatar video from one image and a speech clip using OmniHuman 2.0. 
 
 - Connected images must be a single RGB/RGBA image, 300-6000 pixels on each side, with width/height from 0.4 to 2.5. The encoded PNG must be smaller than 30 MB.
 - Connected audio must be one mono or stereo clip lasting 4-300 seconds, including a full five-minute clip. If its WAV would exceed the 15 MB limit, the node downmixes it to mono and resamples to at most 24 kHz without truncating the duration. Audio that already fits keeps its channels and sample rate.
+- Video duration follows the input audio; there is no separate duration setting. Trim or regenerate the narration before submitting if you need a shorter or longer video.
 - For URL inputs, the service validates media. The [official API](https://docs.byteplus.com/en/docs/byteplus-vision/omnihuman-2-0-video-generation) lists JPEG, PNG, WebP, BMP, TIFF, GIF, HEIC and HEIF images, and WAV/MP3 audio.
 - Task lookup is available for about 12 hours. Returned video URLs are valid for one hour; collect and save promptly.
 - Interrupting stops local waiting, not remote generation. Use [OmniHuman Cancel Task](../omnihuman-cancel-task/) for an explicit cancellation request. Only queued tasks can be canceled.

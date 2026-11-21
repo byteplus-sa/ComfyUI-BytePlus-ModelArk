@@ -8,6 +8,7 @@ import unittest
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKFLOW_DIR = os.path.join(PLUGIN_ROOT, "example_workflows")
 EXPECTED_WORKFLOWS = {
+    "Avatar Generation.json",
     "2.5 Model Updates.json",
     "Seedance 2.json",
     "Image and Video References.json",
@@ -52,6 +53,7 @@ EXPECTED_WORKFLOWS = {
 }
 FRONTEND_SAVED_IMAGE_TEMPLATES = {"Image Edit.json", "Image Variations.json"}
 NEW_TEMPLATE_FILES = {
+    "Avatar Generation.json",
     "Seedance Video Extension.json",  # rebuilt on Seedance 2.5 task_type = extend (saved by frontend 1.53.6)
     "Image to UGC Video.json",
     "Product Ad in One Click.json",
@@ -75,6 +77,28 @@ NEW_TEMPLATE_FILES = {
 
 # Node counts and links (origin type, origin slot, target type, target input) of the showcase and coverage templates.
 NEW_TEMPLATES = {
+    "Avatar Generation.json": {
+        "nodes": {
+            "BytePlusOmniHuman": 1,
+            "BytePlusSeedAudio": 1,
+            "BytePlusSeedream": 1,
+            "LoadAudio": 1,
+            "LoadImage": 1,
+            "MarkdownNote": 1,
+            "PreviewAny": 1,
+            "SaveAudioAdvanced": 1,
+            "SaveImage": 1,
+            "SaveVideo": 1,
+        },
+        "edges": [
+            ("BytePlusSeedream", 0, "SaveImage", "images"),
+            ("BytePlusSeedream", 0, "BytePlusOmniHuman", "image"),
+            ("BytePlusSeedAudio", 0, "SaveAudioAdvanced", "audio"),
+            ("BytePlusSeedAudio", 0, "BytePlusOmniHuman", "audio"),
+            ("BytePlusOmniHuman", 0, "SaveVideo", "video"),
+            ("BytePlusOmniHuman", 1, "PreviewAny", "source"),
+        ],
+    },
     "Hyper3D Text to 3D.json": {
         "nodes": {"BytePlusHyper3D": 1, "MarkdownNote": 1, "Save3DAdvanced": 1},
         "edges": [("BytePlusHyper3D", 0, "Save3DAdvanced", "model_3d")],
@@ -457,6 +481,17 @@ class WorkflowTemplateTests(unittest.TestCase):
         "model.generation_count",
     ]
     SEEDREAM_INPUT_ORDERS = {
+        "seedream 5.5": SEEDREAM_INPUTS_HEAD
+        + [
+            "model.images.image_1",
+            "model.prompt_optimization",
+            "model.seed",
+            "model.watermark",
+            "model.generation_count",
+            "model.output_format",
+            "model.background",
+            "model.safety_identifier",
+        ],
         "seedream 5.0 pro": SEEDREAM_INPUTS_HEAD
         + [
             "model.images.image_1",
@@ -551,6 +586,16 @@ class WorkflowTemplateTests(unittest.TestCase):
         return ["model", *text, "seed", "watermark"] + cls.CORE_STYLE_EXTRAS
 
     CURRENT_INPUT_ORDERS = {
+        "BytePlusOmniHuman": [
+            "image",
+            "audio",
+            "prompt",
+            "enable_watermark",
+            "seed",
+            "image_url",
+            "audio_url",
+            "existing_task_id",
+        ],
         "BytePlusHyper3D": [
             "images",
             "mesh_mode",
@@ -762,7 +807,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 for node in workflow["nodes"]:
                     if node["type"].startswith("BytePlus"):
                         self.assertEqual(node["properties"]["cnr_id"], "ComfyUI-BytePlus-ModelArk")
-                        self.assertEqual(node["properties"]["ver"], "0.10.0")
+                        self.assertEqual(node["properties"]["ver"], "0.11.0")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
         combo_inputs = {
@@ -1237,7 +1282,8 @@ class WorkflowTemplateTests(unittest.TestCase):
                         runs.add(node_id)
                         grew = True
             with self.subTest(workflow=name):
-                self.assertEqual(sorted(types[node_id] for node_id in set(types) - runs), [])
+                optional_uploads = ["LoadAudio", "LoadImage"] if name == "Avatar Generation.json" else []
+                self.assertEqual(sorted(types[node_id] for node_id in set(types) - runs), optional_uploads)
 
     def test_templates_do_not_embed_keys(self):
         # Workflows travel (and are embedded in output metadata): no key-like values in them.
@@ -1481,6 +1527,27 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertIn(("RegexExtract", 0, "BytePlusSeedance2Reference", "model.prompt"), edges)
         self.assertIn(("BytePlusSeedTTS", 0, "CreateVideo", "audio"), edges)
         self.assertIn(("CreateVideo", 0, "SaveVideo", "video"), edges)
+
+    def test_avatar_template_runs_directly_and_keeps_optional_uploads_disconnected(self):
+        workflow = load_workflow("Avatar Generation.json")
+        for node in workflow["nodes"]:
+            self.assertEqual(node["mode"], 2 if node["type"] in {"LoadImage", "LoadAudio"} else 0)
+        portrait = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeedream")
+        self.assertIn("seedream 5.5", portrait["widgets_values"])
+        self.assertIn("(1K) 864x1152 (3:4)", portrait["widgets_values"])
+        self.assertIn("fixed", portrait["widgets_values"])
+        narration = next(node for node in workflow["nodes"] if node["type"] == "BytePlusSeedAudio")
+        self.assertIn("text only", narration["widgets_values"])
+        self.assertIn("fixed", narration["widgets_values"])
+        self.assertIn("wav", narration["widgets_values"])
+        avatar = next(node for node in workflow["nodes"] if node["type"] == "BytePlusOmniHuman")
+        self.assertIn("fixed", avatar["widgets_values"])
+        for node in workflow["nodes"]:
+            if node["type"] in {"LoadImage", "LoadAudio"}:
+                self.assertTrue(all(not output.get("links") for output in node["outputs"]))
+        note = next(node for node in workflow["nodes"] if node["type"] == "MarkdownNote")["widgets_values"][0]
+        for phrase in ("no review pause", "Comfy.org", "Vision AI", "existing_task_id", "optional"):
+            self.assertIn(phrase, note)
 
     def test_product_ad_template_chains_the_services(self):
         workflow = load_workflow("Product Ad in One Click.json")

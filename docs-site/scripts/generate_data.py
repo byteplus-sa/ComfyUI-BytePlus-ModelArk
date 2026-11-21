@@ -89,6 +89,7 @@ TEMPLATE_GROUPS = [
             "Video Smoothness Enhance",
         ],
     ),
+    ("OmniHuman", ["Avatar Generation"]),
     ("3D", ["Hyper3D Text to 3D", "Hyper3D and Hitem3D Image to 3D"]),
     ("Language", ["Seed Prompt Writer"]),
     ("Speech", ["Seed Audio", "Seed Speech TTS and ASR", "Seed Voice Clone"]),

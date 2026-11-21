@@ -142,10 +142,10 @@ async def _send(client, path, body):
 async def request(client, path, body, *, cancel=False):
     try:
         status, response = await wait_interruptible(_send(client, path, body))
-    except (asyncio.TimeoutError, aiohttp.ClientError, OSError) as error:
+    except (asyncio.TimeoutError, aiohttp.ClientError, OSError) as network_error:
         raise RetryableRequestError(
-            get_text("err_omnihuman_network", reason=type(error).__name__),
-            retryable=not isinstance(error, aiohttp.InvalidURL),
+            get_text("err_omnihuman_network", reason=type(network_error).__name__),
+            retryable=not isinstance(network_error, aiohttp.InvalidURL),
         ) from None
     if not isinstance(status, int) or isinstance(status, bool) or not 100 <= status <= 599:
         raise BytePlusException(get_text("err_omnihuman_protocol", detail="Invalid HTTP status."))
@@ -158,7 +158,7 @@ async def request(client, path, body, *, cancel=False):
             )
         raise BytePlusException(get_text("err_omnihuman_protocol", detail="Missing integer response code."))
     code = response["code"]
-    if cancel and 200 <= status < 300 and code == 50217:
+    if cancel and (200 <= status < 300 or status == 400) and code == 50217:
         return response
     if not 200 <= status < 300 or code != 10000:
         safe = redact_response(response, client.api_key)

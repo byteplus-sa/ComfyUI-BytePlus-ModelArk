@@ -138,7 +138,7 @@ class BytePlusOmniHuman(comfy_io.ComfyNode):
                 comfy_io.Audio.Input(
                     "audio",
                     optional=True,
-                    tooltip="One 4-300 second speech clip (up to 5 minutes), or use audio_url. Oversized WAVs are converted to mono at up to 24 kHz without truncation.",
+                    tooltip="One 4-300 second speech clip (up to 5 minutes), or use audio_url. Video duration follows the audio; trim the audio first to change the length. Oversized WAVs are converted to mono at up to 24 kHz without truncation.",
                 ),
                 comfy_io.String.Input(
                     "image_url",
@@ -150,7 +150,7 @@ class BytePlusOmniHuman(comfy_io.ComfyNode):
                     "audio_url",
                     default="",
                     optional=True,
-                    tooltip="Persistent public WAV/MP3 URL, instead of connected audio.",
+                    tooltip="Persistent public WAV/MP3 URL, instead of connected audio. Video duration follows this audio.",
                 ),
                 comfy_io.String.Input(
                     "existing_task_id",

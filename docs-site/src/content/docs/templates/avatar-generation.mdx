@@ -1,0 +1,57 @@
+---
+title: "Avatar Generation"
+description: "Create a portrait with Seedream 5.5, speak your script with Seed Audio, and generate an OmniHuman talking avatar in one connected workflow."
+template_file: Avatar Generation.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="Avatar Generation.json" />
+
+## What it makes
+
+A talking avatar from a character description and narration prompt. Seedream 5.5 creates the portrait, Seed Audio creates the voice, and OmniHuman combines them into video. **One Run starts the connected pipeline without an approval pause or a separate app.**
+
+## The workflow
+
+<Shot src="templates/avatar-generation-workflow.webp" alt="Seedream portrait and Seed Audio narration connected directly to OmniHuman, with media savers, task ID preview and disconnected optional upload nodes" caption="Generate the portrait and narration, then animate the presenter in the same workflow." />
+
+1. **[Seedream](../../nodes/seedream/)** creates one opaque 864x1152 portrait with `seedream 5.5`. The image feeds both **Save Image** and OmniHuman.
+2. **[Seed Audio](../../nodes/seed-audio/)** speaks the narration prompt in text-only mode at 24 kHz. Its single audio result feeds both **Save Audio (Advanced)** and OmniHuman.
+3. **[OmniHuman](../../nodes/omnihuman/)** uploads the connected image and audio through Comfy.org and generates the talking avatar after both inputs are ready.
+4. **Save Video** saves an MP4, and **Preview as Text** displays the completed OmniHuman task ID. The optional image and audio loaders are muted and disconnected until you choose to use them.
+
+## Run it
+
+1. Set your **ModelArk**, **Seed Speech** and **Vision AI** keys in **Settings > BytePlus**. These are separate credentials; see [API keys](../../get-started/api-keys/).
+2. Sign in to Comfy.org for connected-media uploads. Open **Avatar Generation** in the template browser under BytePlus, or import the workflow file above.
+3. Edit the portrait prompt and the quoted spoken words in Seed Audio. Keep `generation_count` at `1` on both generation nodes.
+4. Press **Run**. Preview the saved image, listen to the narration, and play the resulting video on the canvas. Files are stored under `output/BytePlus/Avatar/`.
+5. To use a character reference, unmute the optional **Load Image** node, upload a file, and connect `IMAGE` to Seedream's `image_1` socket. For an existing portrait or narration, unmute and connect the corresponding loader directly to OmniHuman instead; **mute both the unused generator and its save node** to avoid generating an unused input.
+
+## Settings worth changing
+
+- **Character prompt and size:** describe one clearly visible person facing the camera. Change the Seedream size preset to choose a square or vertical portrait.
+- **Narration prompt:** describe the voice and state the exact words to speak. The avatar video follows the audio duration; trim or regenerate the audio to change its length. OmniHuman requires 4-300 seconds of audio, while Seed Audio generates clips up to 120 seconds.
+- **OmniHuman prompt:** describe subtle expression, movement and camera guidance, not the spoken script.
+- **Seeds:** the controls are fixed so unchanged inputs can reuse a cached result. Change the relevant seed for a fresh portrait, narration or completed avatar take. Keep inputs and seeds unchanged while a video task is unresolved.
+- **Watermark:** image and video watermarks are enabled. Change their respective settings when appropriate.
+
+## Example result
+
+The default prompts describe a fictional presenter welcoming the viewer to a BytePlus demonstration. Your run produces a PNG portrait, lossless FLAC narration, and an MP4 avatar video. All three are available from the save nodes, so you can inspect or reuse individual assets.
+
+## Time and cost
+
+The full pipeline makes one image request, one narration request and one avatar-video request when no cached results are available. Runtime depends on the selected image size, narration length and provider queue. The disconnected upload nodes have no generation cost.
+
+Fixed seed controls allow cached inputs to be reused within a ComfyUI session; they do not guarantee free reruns after a restart, cache clear or input change. Muting only an unused generator is not enough if its save node still requests its output.
+
+For an unresolved avatar, retain the original task ID and use **[OmniHuman Task Result](../../nodes/omnihuman-task-result/)**, or set `existing_task_id` on OmniHuman. To recover without running upstream generation, disconnect its image/audio inputs and mute the original generators and their save nodes first. Interruption stops local waiting, not remote processing; do not start replacement work merely because a request was interrupted.
+
+## Related
+
+- Nodes: [Seedream](../../nodes/seedream/), [Seed Audio](../../nodes/seed-audio/), [OmniHuman](../../nodes/omnihuman/).
+- Existing-task recovery: [OmniHuman Task Result](../../nodes/omnihuman-task-result/).
+- Another connected pipeline: [Text to Image to Video](../text-to-image-to-video/).
