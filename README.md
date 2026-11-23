@@ -8,6 +8,8 @@ Calls go straight to BytePlus and are billed to your BytePlus account (contract 
 
 **New in v0.12.0:** render a reviewed 480p Seedance 2.5 draft at **1080p or 4K** with the Draft to Final node's `resolution` selector. The default remains 1080p. Endpoint-backed drafts now use the configured endpoint for final rendering, avoiding the canonical-model endpoint mismatch. Keep the same endpoint configuration between draft and final; no automatic paid retries were added.
 
+Also included: the separate **Seed Speech TTS 3** node with 520 preset voices, direct voice-ID input, delivery instructions, optional subtitles and conversation sessions, using your existing Seed Speech key. Seedream 5.5 shared controls and fixed presets now match current ComfyUI core while preserving BytePlus limits and the Pro-first model selection. New 5.5 layer-separation nodes default to minimal-size layers; Pro and Flash remain full-canvas. Reload and review saved 5.5 workflows before running.
+
 **Previously in v0.11.0:** the native **Avatar Generation** template connects Seedream 5.5, Seed Audio and OmniHuman in one run, with portrait/audio/video savers, a task-ID preview and optional upload inputs. No separate app or approval pause is required. OmniHuman video duration follows the input audio; trim or regenerate the narration to change the length.
 
 OmniHuman cancellation now recognizes the service's HTTP 400 "already started" response as a refusal, without claiming the remote task was canceled.
@@ -79,7 +81,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 | **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
 | **ModelArk** – asset library | Create Image / Video / Audio Asset, Asset Library | ModelArk API key + IAM AK/SK |
-| **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
+| **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech TTS 3, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
 | **AI MediaKit** | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance | AI MediaKit API key |
 | **Vision AI** | OmniHuman 2.0, OmniHuman Task Result, OmniHuman Cancel Task | Vision AI API key |
 
@@ -243,6 +245,7 @@ Needs Dreamina Seedance Advanced Creation Rights and IAM AK/SK. See [Private Ass
 |---|---|
 | **Seed Audio 1.0** | Speech, voiceovers, music and sound effects up to 120 s from a prompt, in 20 languages. |
 | **Seed Speech TTS** | Text to speech with TTS 2.0 voices, TTS 1.0 speakers or cloned voices. |
+| **Seed Speech TTS 3** | Separate TTS 3 voices, native delivery instructions, optional word timings and conversation sessions. |
 | **Seed Speech ASR** | Speech to text in 50+ languages, with timings and SRT subtitles. |
 | **Seed Voice Clone** | Trains a cloned voice from a 10–15 s clip and outputs its `speaker_id`. |
 
@@ -255,6 +258,12 @@ Needs Dreamina Seedance Advanced Creation Rights and IAM AK/SK. See [Private Ass
 - Models: `seed-tts-2.0` (voice list), `seed-tts-1.0` (speaker IDs), `seed-icl-2.0` / `seed-icl-1.0` (cloned voices).
 - Style instructions (`context_text`), emotion and intensity, speed, volume, pitch, sample rate, language, trailing silence, subtitles and timestamps.
 - Advanced: language detection, Markdown / emoji / LaTeX / parentheses handling, 1-hour cache, tone fidelity for cloned voices.
+
+**Seed Speech TTS 3** (`BytePlusSeedTTS3`)
+- Uses `dola-seed-tts-3.0`, its own [preset voices](https://docs.byteplus.com/en/docs/byteplusvoice/voicelist-3-0), and the same Seed Speech key. Paste a preset or compatible cloned voice ID into `custom_speaker_id` to bypass the dropdown. **Seed Voice Clone** remains on ICL 2; older voices may need upgrading.
+- Enter up to 10,000 characters in `text`, or use advanced `ssml`, never both. Native `instructions` take one instruction per line. Speed and volume range from 0.5 to 2.0; pitch ranges from -12 to 12.
+- Returns decoded audio, subtitle JSON, segment-based SRT and a session ID for sequential conversation requests. The full JSONL response is collected before returning audio; playback is not live. Connect **Save Audio** to keep it.
+- Word timings depend on the [language](https://docs.byteplus.com/en/docs/byteplusvoice/seed-tts-3-0-language-support). No automatic submission retry or remote cancellation is performed. See the [node guide](https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/nodes/seed-tts-3/) and [HTTP streaming contract](https://docs.byteplus.com/en/docs/byteplusvoice/seed-tts-3-0-http-streaming).
 
 **Seed Speech ASR**
 - `seed-asr-fast` sends a connected clip inline. The standard models (`seed-asr-2.0` / `1.0`, up to 5 h) only take URLs, so a connected clip is uploaded to Comfy.org storage first (**Comfy.org login required**); or pass a public audio URL.

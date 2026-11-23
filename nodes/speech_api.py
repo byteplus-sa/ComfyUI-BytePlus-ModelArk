@@ -146,7 +146,17 @@ async def _send(method, url, headers, body, timeout):
     return SpeechResponse(status, response_headers, response_body)
 
 
-async def speech_post(client, path, body, *, operation, headers=None, timeout=SPEECH_REQUEST_TIMEOUT_SECONDS):
+async def speech_post(
+    client,
+    path,
+    body,
+    *,
+    operation,
+    headers=None,
+    timeout=SPEECH_REQUEST_TIMEOUT_SECONDS,
+    request_id_header="X-Api-Request-Id",
+    error_handler=None,
+):
     """
     POST JSON to Seed Speech with the X-Api-Key header and a fresh
     X-Api-Request-Id (callers may override it). Raises RetryableRequestError
@@ -154,7 +164,7 @@ async def speech_post(client, path, body, *, operation, headers=None, timeout=SP
     """
     request_headers = {
         "X-Api-Key": client.api_key,
-        "X-Api-Request-Id": str(uuid.uuid4()),
+        request_id_header: str(uuid.uuid4()),
         "Content-Type": "application/json",
     }
     request_headers.update(headers or {})
@@ -165,7 +175,9 @@ async def speech_post(client, path, body, *, operation, headers=None, timeout=SP
     )
     if response.status >= 400:
         raise RetryableRequestError(
-            str(speech_error(operation, response)), retryable=is_retryable_status(response.status)
+            str(error_handler(response) if error_handler else speech_error(operation, response)),
+            retryable=is_retryable_status(response.status),
+            status=response.status,
         )
     return response
 

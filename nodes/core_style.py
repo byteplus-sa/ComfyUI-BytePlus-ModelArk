@@ -145,7 +145,10 @@ CORE_DISPLAY_NAMES = {
 
 CORE_PREVIOUS_DISPLAY_NAMES = {
     "BytePlusSeedream": ("ByteDance Seedream 4.5 & 5.0",),
-    "BytePlusSeedreamLayerSeparation": ("ByteDance Seedream 5.0 Layer Separation",),
+    "BytePlusSeedreamLayerSeparation": (
+        "ByteDance Seedream 5.0 Layer Separation",
+        "ByteDance Seedream 5.0 Pro Layer Separation",
+    ),
 }
 
 

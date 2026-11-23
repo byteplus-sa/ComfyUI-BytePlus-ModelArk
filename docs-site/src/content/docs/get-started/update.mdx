@@ -11,6 +11,15 @@ Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-sepa
 
 Registry publication and security review are separate steps. A pending or flagged version may not be offered by Manager yet; check its version status rather than enabling unsafe installation overrides.
 
+## Seed TTS 3 and Seedream controls
+
+Version **0.12.0** adds the separate [Seed Speech TTS 3](../../nodes/seed-tts-3/) node with 520 preset voices, delivery instructions, optional word timings and conversation sessions. Use your existing Seed Speech API key. Older TTS nodes and workflows are unchanged.
+
+- Pick a voice from the dropdown, or paste an authorized preset or compatible cloned voice ID into `custom_speaker_id` to override it.
+- Select the output language separately. Subtitles depend on language support; cloned voices must be compatible with TTS 3.
+- Seedream 5.5 fixed-size presets and shared controls now follow current ComfyUI core. The initial model stays 5.0 Pro; 5.5 keeps its 2K-adaptive, PNG and automatic-background defaults.
+- New 5.5 layer-separation nodes default to `minimal size`; Pro and Flash retain `full canvas`. Check older saved 5.5 workflows after reloading, especially fixed-size preset selections and widget values, before submitting billed work.
+
 ## Seedance draft to 4K
 
 Version **0.12.0** adds `1080p` and `4k` choices to [Seedance 2.5 Draft to Final Video](../../nodes/seedance-2-5-draft-to-final/). Existing workflows keep the 1080p default.

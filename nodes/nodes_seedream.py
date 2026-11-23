@@ -36,6 +36,7 @@ from .model_endpoints import EndpointDefaultsRerun, request_model_id
 from .models_config import (
     SEEDREAM_PRO as SEEDREAM_PRO,
     SEEDREAM_FLASH as SEEDREAM_FLASH,
+    SEEDREAM_5_5,
     SEEDREAM_MODELS,
     SEEDREAM_MODEL_CAPS,
     SEEDREAM_MAX_ASPECT,
@@ -84,7 +85,7 @@ IMAGE_WATERMARK_TOOLTIP = 'Whether to add an "AI generated" watermark to the ima
 LAYERS_WATERMARK_TOOLTIP = 'Whether to add an "AI generated" watermark to the images.'
 LAYER_SEPARATION_DESCRIPTION = (
     "Decompose an image into a background plate plus repositionable transparent layers "
-    "(up to 99 on Seedream 5.5, 16 on 5.0), "
+    "(up to 99 with Seedream 5.5, up to 16 with 5.0), "
     "each with stacking order, bounding box, name and description."
 )
 
@@ -118,7 +119,7 @@ def _seedream_model_inputs(model):
         comfy_io.Combo.Input(
             "size_preset",
             options=seedream_size_options(model),
-            default=caps.get("default_size_preset"),
+            default=caps.get("default_size_preset", seedream_size_options(model)[0]),
             tooltip="Pick a recommended size. Select Custom to use the width and height below.",
         ),
         comfy_io.Int.Input(
@@ -138,6 +139,19 @@ def _seedream_model_inputs(model):
             tooltip="Custom height for image. Value is working only if `size_preset` is set to `Custom`",
         ),
     ]
+    if model == SEEDREAM_5_5:
+        inputs.append(
+            comfy_io.Combo.Input(
+                "background",
+                options=["auto", "opaque", "transparent"],
+                default="auto",
+                tooltip=(
+                    "auto: choose from the prompt (JPEG is always opaque). transparent: generate "
+                    "a PNG with transparency from text-to-image or up to 10 references, also "
+                    "returned as the mask output. opaque: generate without transparency."
+                ),
+            )
+        )
     if caps["batch"]:
         inputs.append(
             comfy_io.Int.Input(
@@ -175,15 +189,14 @@ def _seedream_model_inputs(model):
                 advanced=True,
             )
         )
-    if caps["fast"] or caps.get("prompt_modes"):
+    if caps["fast"]:
         inputs.append(
             comfy_io.Combo.Input(
                 "prompt_optimization",
-                options=caps.get("prompt_modes", ["standard", "fast"]),
+                options=["standard", "fast"],
                 default="standard",
                 tooltip="Prompt-optimization mode when reference images are provided: "
-                "'standard' gives higher quality, 'fast' shorter generation time."
-                if caps["fast"] else "Seedream 5.5 supports only standard prompt optimization.",
+                "'standard' gives higher quality, 'fast' shorter generation time.",
                 advanced=True,
             )
         )
@@ -212,20 +225,24 @@ def _seedream_model_inputs(model):
         )
 
     # This pack's extras.
+    if caps.get("prompt_modes"):
+        inputs.append(_standard_prompt_optimization_input())
     inputs.append(generation_count_input(seeded=caps.get("send_seed", True)))
     if model in URL_MODELS:
         output_formats = caps.get("output_formats", ["jpeg", "png"])
         backgrounds = caps.get("backgrounds", ["opaque", "transparent"])
         requires_reference = caps.get("transparent_requires_reference", True)
-        inputs.extend(
-            [
-                comfy_io.Combo.Input(
-                    "output_format",
-                    options=output_formats,
-                    default=output_formats[0],
-                    tooltip="File format of the generated image. A transparent background needs png.",
-                    advanced=True,
-                ),
+        inputs.append(
+            comfy_io.Combo.Input(
+                "output_format",
+                options=output_formats,
+                default=output_formats[0],
+                tooltip="File format of the generated image. A transparent background needs png.",
+                advanced=True,
+            )
+        )
+        if model != SEEDREAM_5_5:
+            inputs.append(
                 comfy_io.Combo.Input(
                     "background",
                     options=backgrounds,
@@ -234,15 +251,10 @@ def _seedream_model_inputs(model):
                         "transparent: edit one reference image that has an alpha channel "
                         "(connect its mask to reference_mask) and return a PNG with "
                         "transparency, also as the mask output. Needs output_format png."
-                        if requires_reference else
-                        "auto: choose from the prompt (JPEG is always opaque). transparent: generate "
-                        "a PNG with transparency from text-to-image or up to 10 references, also "
-                        "returned as the mask output. opaque: generate without transparency."
                     ),
                     advanced=True,
-                ),
-            ]
-        )
+                )
+            )
         if requires_reference:
             inputs.append(
                 comfy_io.Mask.Input(
@@ -257,6 +269,17 @@ def _seedream_model_inputs(model):
     if caps.get("safety_identifier"):
         inputs.append(_safety_identifier_input())
     return inputs
+
+
+def _standard_prompt_optimization_input():
+    return comfy_io.Combo.Input(
+        "prompt_optimization",
+        options=["standard"],
+        default="standard",
+        optional=True,
+        advanced=True,
+        tooltip="Seedream 5.5 supports only standard prompt optimization.",
+    )
 
 
 def _safety_identifier_input():
@@ -280,6 +303,8 @@ def _seedream_extra_body(model_config, caps):
 
 def _prompt_optimization_mode(model_config, caps):
     mode = model_config.get("prompt_optimization", "standard")
+    if mode is None and caps.get("prompt_modes"):
+        mode = "standard"
     modes = caps.get("prompt_modes", ["standard", "fast"] if caps["fast"] else ["standard"])
     if mode not in modes:
         raise BytePlusException(get_text("seedream_err_prompt_optimization", modes=", ".join(modes)))
@@ -631,21 +656,35 @@ def _layer_separation_inputs(model):
             default="auto",
             tooltip="Output resolution level. 'auto' follows the input image size (clamped to the 1K-2K range).",
         ),
+    ]
+    if caps.get("layer_max_images"):
+        inputs.append(
+            comfy_io.Int.Input(
+                "max_images",
+                default=caps["layer_default_max_images"],
+                min=2,
+                max=caps["layer_max_images"],
+                step=1,
+                display_mode=comfy_io.NumberDisplay.number,
+                tooltip="Maximum number of images returned, base image included. "
+                "The model decides how many it needs; each returned image is billed.",
+            )
+        )
+    inputs.append(
         seed_input(
             default=42,
             tooltip=SEEDREAM_SEED_TOOLTIP if caps.get("send_seed", True) else
             "Change this value to run again. A generation seed is not set for Seedream 5.5.",
         ),
-    ]
-    if caps["fast"] or caps.get("prompt_modes"):
+    )
+    if caps["fast"]:
         inputs.append(
             comfy_io.Combo.Input(
                 "prompt_optimization",
-                options=caps.get("prompt_modes", ["standard", "fast"]),
+                options=["standard", "fast"],
                 default="standard",
                 advanced=True,
-                tooltip="Prompt-optimization mode: 'standard' gives higher quality, 'fast' shorter generation time."
-                if caps["fast"] else "Seedream 5.5 supports only standard prompt optimization.",
+                tooltip="Prompt-optimization mode: 'standard' gives higher quality, 'fast' shorter generation time.",
             )
         )
     inputs.extend(
@@ -653,7 +692,7 @@ def _layer_separation_inputs(model):
             watermark_input(tooltip=LAYERS_WATERMARK_TOOLTIP),
             comfy_io.Boolean.Input(
                 "crop_layers",
-                default=False,
+                default=model == SEEDREAM_5_5,
                 label_on="minimal size",
                 label_off="full canvas",
                 tooltip=(
@@ -664,6 +703,12 @@ def _layer_separation_inputs(model):
                     "rebuild placement with Layers From Bounding Boxes using the bboxes output."
                 ),
             ),
+        ]
+    )
+    if caps.get("prompt_modes"):
+        inputs.append(_standard_prompt_optimization_input())
+    inputs.extend(
+        [
             # This pack's extras.
             comfy_io.Combo.Input(
                 "output_format",
@@ -688,15 +733,6 @@ def _layer_separation_inputs(model):
     )
     if caps.get("layer_max_images"):
         inputs.extend([
-            comfy_io.Int.Input(
-                "max_images",
-                default=caps["layer_default_max_images"],
-                min=2,
-                max=caps["layer_max_images"],
-                optional=True,
-                advanced=True,
-                tooltip="Maximum total images, including the base image. Larger values allow finer decomposition.",
-            ),
             comfy_io.Boolean.Input(
                 "text_recognition",
                 default=False,
@@ -1078,7 +1114,7 @@ class BytePlusSeedreamLayerSeparation(EndpointDefaultsRerun, comfy_io.ComfyNode)
         raise_if_model_unavailable_in_region(client, model_id)
         request_model = request_model_id(model_id)
         image = model.get("image")
-        crop_layers = bool(model.get("crop_layers", False))
+        crop_layers = bool(model.get("crop_layers", label == SEEDREAM_5_5))
         count = (int(image.shape[0]) if image.ndim >= 4 else 1) if isinstance(image, torch.Tensor) else 0
         if count != 1:
             raise BytePlusException(get_text("seedream_layers_err_single_image"))

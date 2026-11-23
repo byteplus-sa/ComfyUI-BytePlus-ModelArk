@@ -45,6 +45,7 @@ if COMFY_ROOT:
     model_endpoints = importlib.import_module(f"{PACKAGE_NAME}.nodes.model_endpoints")
     core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
     nodes_speech = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_speech")
+    nodes_seed_tts3 = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_seed_tts3")
     nodes_mediakit = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_mediakit")
     nodes_3d = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_3d")
     nodes_assets = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_assets")
@@ -599,6 +600,7 @@ ALL_NODES = (
         *nodes_seed.NODES,
         *nodes_assets.NODES,
         *nodes_speech.NODES,
+        *nodes_seed_tts3.NODES,
         *nodes_mediakit.NODES,
         *nodes_omnihuman.NODES,
         *nodes_3d.NODES,

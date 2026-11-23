@@ -586,6 +586,7 @@ class SchemaTests(unittest.TestCase):
             ("ratio", "tooltip", "Changed ratio guidance"),
             ("duration", "default", 11),
             ("duration", "tooltip", "Changed duration guidance"),
+            ("task_type", "options", ["auto", "reference"]),
         ):
             with self.subTest(input=name, field=field), core_flash_schemas() as schemas:
                 schemas[core.ByteDance2ReferenceNodeV2]["required"][name][1][field] = value

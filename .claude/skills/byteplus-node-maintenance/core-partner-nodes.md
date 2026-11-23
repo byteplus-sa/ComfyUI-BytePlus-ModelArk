@@ -2,6 +2,14 @@
 
 Core ComfyUI ships its own ByteDance nodes in `comfy_api_nodes/nodes_bytedance.py` (+ `apis/bytedance.py` pydantic models). They call BytePlus **through the Comfy.org proxy** and bill Comfy credits; this pack calls ModelArk **directly** with the user's key. Core usually adds new Seedream/Seedance models quickly, so its code is a useful early signal for payload fields, limits and error codes. Read on 2026-10-18 from ComfyUI v0.41.0 (98cc0bf; last ByteDance change still 9f932548f, 2026-09-25; all parity tests pass). Deliberate gap: core's `seed-audio-1.0-multilingual` model option is not offered (the API ignores the model name, checked live 2026-10-18). Core has no BytePlus 3D nodes; the closest are its Rodin nodes (`nodes_rodin.py`, Deemos API via the Comfy.org proxy), whose File3D output convention the 3D nodes follow. Core's retired models are deleted outright; core's partner-proxy Idempotency-Key (a8686f2b3) has no ModelArk equivalent, which is why paid calls here never auto-retry (`nodes_shared.call_billed`).
 
+## Seedream 5.5 parity refresh
+
+Read on 2026-11-23 from ComfyUI v0.45.4 at `2aa4d535a76e4b6acf6a94f263bc482430c396dd`, including upstream Seedream 5.5 change `b40cca229d23cc1d0b16f4d5946cb14a35ba88f6`.
+
+The v0.12.0 candidate follows core's shared 5.5 input order, fixed presets, background selector and layer-count control. New 5.5 layer nodes default to cropped outputs; Pro/Flash remain full canvas. The primary model stays Pro and 5.5 keeps its BytePlus adaptive 2K, PNG/auto defaults, local-only seed, pixel limits and additional controls. Search aliases retain current and previous names.
+
+Parity tests now compare every shared field and complete option list, with explicit field-level BytePlus deviations. Mutation checks cover both upstream schema drift and incorrect local defaults, limits, options, references and input order. This is schema alignment, not new paid-API evidence.
+
 ## Seedance 2.5 unified 4K and Flash
 
 On 2026-11-12 the maintainer supplied a console screenshot of standard

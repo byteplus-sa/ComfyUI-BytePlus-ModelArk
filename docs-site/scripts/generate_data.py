@@ -42,6 +42,7 @@ NODES = [
     ("BytePlusSeed", "byteplus-llm", "Language"),
     ("BytePlusSeedAudio", "seed-audio", "Speech"),
     ("BytePlusSeedTTS", "seed-tts", "Speech"),
+    ("BytePlusSeedTTS3", "seed-tts-3", "Speech"),
     ("BytePlusSeedASR", "seed-asr", "Speech"),
     ("BytePlusSeedVoiceClone", "seed-voice-clone", "Speech"),
     ("BytePlusVideoEnhance", "vcube-video-enhance", "MediaKit"),
