@@ -29,9 +29,16 @@ Native Save Video, Save Image and Preview Any outputs and local Chrome
 playback passed. Provider JPEG last-frame previews matched the saved images,
 but were not pixel-identical to the last decoded MP4 frame.
 
-Draft previews remain 480p and Draft to Final remains 1080p. Direct-API 4K
-draft conversion, Flash explicit formats/Draft, maximum reference counts,
-live reference/audio generation, Europe and Nodes 2.0 were not verified.
+Draft previews remain 480p. On 2026-11-23, direct-API draft-to-4K conversion
+was verified in Singapore: an 854x480 draft rendered as 3840x2160 HEVC,
+97 frames at 24 fps. Draft to Final now offers optional `resolution`
+values `1080p` (default) and `4k`, matching core. Endpoint-backed drafts
+report the canonical model ID, so finals must use the same configured
+endpoint or the API rejects them with `draft_task endpoint mismatch`.
+Preserve older dated models and explicit endpoint IDs. Both renderers
+preserved the final resolution and draft link across workflow reloads.
+Maximum reference counts, live reference/audio generation, Europe and
+Flash Draft remain unverified.
 Upstream [fd7105477](https://github.com/Comfy-Org/ComfyUI/commit/fd7105477a348a5357f98d3a6b783027fa1ba3fe)
 adds enterprise-only 4K and an optional final-resolution selector to the
 Comfy.org proxy. Parity tests accept only the known older resolution list,

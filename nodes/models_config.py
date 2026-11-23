@@ -99,7 +99,7 @@ VIDEO_2_MODEL_REFERENCE_LIMITS = {
 
 SEEDANCE_DRAFT_RESOLUTION = "480p"
 SEEDANCE_DRAFT_FINAL_RESOLUTIONS = {
-    "dreamina-seedance-2-5": ["1080p"],
+    "dreamina-seedance-2-5": ["1080p", "4k"],
 }
 
 # Seedance 2.5 omni reference task types (omni_reference_task_type)

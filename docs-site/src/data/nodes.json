@@ -1381,7 +1381,7 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p or 4k final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
@@ -1850,7 +1850,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the 1080p final. Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render a 1080p or 4k final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -1886,7 +1886,7 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p or 4k final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
@@ -2334,7 +2334,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the 1080p final. Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render a 1080p or 4k final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -2370,7 +2370,7 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p or 4k final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
@@ -3571,7 +3571,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the 1080p final. Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render a 1080p or 4k final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -3593,7 +3593,7 @@
   "group": "Video: Seedance 2.5",
   "display_name": "BytePlus Seedance 2.5 Draft to Final Video",
   "category": "BytePlus ModelArk",
-  "description": "Render the 1080p final video of a Seedance 2.5 Draft. The final keeps the draft's scene and motion, and reuses its prompt, references, duration, aspect ratio, and audio setting. The model is read from the draft task.",
+  "description": "Render the 1080p or 4k final video of a Seedance 2.5 Draft. The final keeps the draft's scene and motion, and reuses its prompt, references, duration, aspect ratio, and audio setting. The model is read from the draft task.",
   "search_aliases": [
    "ByteDance Seedance 2.5 Draft to Final Video"
   ],
@@ -3635,6 +3635,18 @@
     "advanced": true,
     "tooltip": "Submit the task and return at once; run the node again to collect the finished video.",
     "default": false
+   },
+   {
+    "name": "resolution",
+    "type": "choice",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Resolution of the final video.",
+    "default": "1080p",
+    "options": [
+     "1080p",
+     "4k"
+    ]
    }
   ],
   "outputs": [

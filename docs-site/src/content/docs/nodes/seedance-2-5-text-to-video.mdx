@@ -31,7 +31,7 @@ The node bills for every video it generates and waits until the task finishes. I
 - **Seedance 2.5:** 480p, 720p, 1080p or 4k, 4 to 30 seconds, output as `mp4` or `mov`. Choose `4k` in `resolution`; it uses the same model as the lower resolutions.
 - **Seedance 2.5 Flash:** 480p or 720p, 4 to 30 seconds, with MP4 or MOV output. MP4 is the default. Flash has no Draft option.
 - **Seedance 2.0, 2.0 Fast and 2.0 Mini:** 4 to 15 seconds and no `output_format`. 2.0 offers 480p to 4k, Fast and Mini offer 480p and 720p. Fast is tuned for speed, Mini for the fastest and lowest-cost generation.
-- **Draft option:** Seedance 2.5 Draft only offers 480p. Use it for a quick preview, then render the 1080p final with [Seedance 2.5 Draft to Final Video](../seedance-2-5-draft-to-final/).
+- **Draft option:** Seedance 2.5 Draft only offers 480p. Use it for a quick preview, then render a 1080p or 4K final with [Seedance 2.5 Draft to Final Video](../seedance-2-5-draft-to-final/).
 - **Prompt:** on Seedance 2.5, put spoken lines in double quotes to steer the dialogue. Do not write `--ratio`, `--seed` or similar flags in the prompt: use the widgets.
 - **Several videos:** raise `generation_count`. The tasks run in parallel and generation N uses `seed` + N. The seed control does not make results repeatable, it only decides whether the node runs again.
 
@@ -48,7 +48,7 @@ The node bills for every video it generates and waits until the task finishes. I
 ## Limits and tips
 
 - For a draft, pick a Draft model, set `control after generate` under `seed` to `fixed` and run. Send `draft_task_id` to **Draft to Final Video**. A fixed seed keeps the node from generating a new draft instead of reusing the one you reviewed. See [Draft mode](../../concepts/draft-mode/).
-- A draft can be rendered for 7 days after it was created. The final is 1080p. To generate directly at 4k, select Seedance 2.5 instead of the Draft option.
+- A draft can be rendered for 7 days after it was created. Select `1080p` or `4k` on the Draft to Final node; keep the draft inputs unchanged.
 - Interrupting cancels tasks that are still queued. A task that is already running cannot be cancelled: it finishes and is billed. The node shows the task IDs, and [Video Query Tasks](../video-query-tasks/) finds them again. See [Interrupts and cancelling](../../concepts/interrupts/).
 - The node keeps waiting until the task ends and shows its queued or running status under the node. It has no time limit of its own.
 - With `generation_count` above 1, every video is billed. See [Billing and cost](../../concepts/billing-and-cost/).

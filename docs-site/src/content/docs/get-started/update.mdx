@@ -11,6 +11,15 @@ Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-sepa
 
 Registry publication and security review are separate steps. A pending or flagged version may not be offered by Manager yet; check its version status rather than enabling unsafe installation overrides.
 
+## Seedance draft to 4K
+
+Version **0.12.0** adds `1080p` and `4k` choices to [Seedance 2.5 Draft to Final Video](../../nodes/seedance-2-5-draft-to-final/). Existing workflows keep the 1080p default.
+
+- Restart ComfyUI and reload the browser after updating. Keep the draft node on **Seedance 2.5 Draft** at 480p, with a fixed seed.
+- Select `4k` on the final node to render the reviewed draft at 4K. Draft and final are separate billed tasks.
+- Keep the Seedance 2.5 endpoint override in Settings unchanged between draft and final. For pasted IDs, restore the endpoint that created the draft, or leave it empty if the draft used the model directly.
+- No new key, model ID or automatic paid retry is introduced. Draft IDs remain valid for seven days.
+
 ## OmniHuman avatar generation
 
 Version **0.10.0** adds [OmniHuman 2.0](../../nodes/omnihuman/) image-plus-audio avatar generation, [Task Result](../../nodes/omnihuman-task-result/) collection and explicit [Cancel Task](../../nodes/omnihuman-cancel-task/) for queued work.

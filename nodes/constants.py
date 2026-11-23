@@ -731,6 +731,7 @@ MESSAGES = {
         "InvalidParameter": "Invalid Parameter (400).",
         "InvalidParameter.TaskTypeConstraint": "The task type is incompatible with the current parameters. Video editing requires the adaptive aspect ratio and auto duration; video extension requires the adaptive aspect ratio. Automatic reference tasks use both. Set task_type to reference, edit or extend for explicit intent: reference makes a new video with a fixed duration, edit modifies the source, and extend continues it.",
         "InvalidParameter.TaskTypeMismatch": "The model detected a different task type than the one selected in task_type. Adjust the prompt or set task_type to auto.",
+        "InvalidParameter.DraftEndpointMismatch": "The final must use the same Seedance 2.5 endpoint that created the draft. Restore that endpoint in Settings > BytePlus; if the draft used the model directly, clear the endpoint override. Reuse the existing draft task ID.",
         "RequestBodyTooLarge": "Request body exceeds the service limit. Reduce reference media and try again.",
         "ModelParameterNotSupported": "One or more request parameters are not supported by the selected model.",
         "MediaInvalid": "Reference media violates a format, codec, size, duration, or frame-rate limit.",
@@ -742,6 +743,7 @@ MESSAGES = {
 }
 
 ERROR_TEXT_MATCH_RULES = {
+    "draft_task endpoint mismatch": "InvalidParameter.DraftEndpointMismatch",
     "output image may contain sensitive information": "OutputImageSensitiveContentDetected",
     "input text may contain sensitive information": "InputTextSensitiveContentDetected",
     "input image may contain sensitive information": "InputImageSensitiveContentDetected",

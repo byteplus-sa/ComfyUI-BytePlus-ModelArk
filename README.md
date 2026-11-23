@@ -4,9 +4,11 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.11.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.12.0 release candidate.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.11.0:** the native **Avatar Generation** template connects Seedream 5.5, Seed Audio and OmniHuman in one run, with portrait/audio/video savers, a task-ID preview and optional upload inputs. No separate app or approval pause is required. OmniHuman video duration follows the input audio; trim or regenerate the narration to change the length.
+**New in v0.12.0:** render a reviewed 480p Seedance 2.5 draft at **1080p or 4K** with the Draft to Final node's `resolution` selector. The default remains 1080p. Endpoint-backed drafts now use the configured endpoint for final rendering, avoiding the canonical-model endpoint mismatch. Keep the same endpoint configuration between draft and final; no automatic paid retries were added.
+
+**Previously in v0.11.0:** the native **Avatar Generation** template connects Seedream 5.5, Seed Audio and OmniHuman in one run, with portrait/audio/video savers, a task-ID preview and optional upload inputs. No separate app or approval pause is required. OmniHuman video duration follows the input audio; trim or regenerate the narration to change the length.
 
 OmniHuman cancellation now recognizes the service's HTTP 400 "already started" response as a refusal, without claiming the remote task was canceled.
 
@@ -360,9 +362,9 @@ With **Dreamina Seedance Advanced Creation Rights** you can keep authorized medi
 Seedance 2.5 can render a quick 480p draft before the full-quality video:
 
 1. On a Seedance 2.5 node pick `Seedance 2.5 Draft`, set the seed control to **fixed**, and run. The node outputs `draft_task_id`.
-2. Connect `draft_task_id` to `Seedance 2.5 Draft to Final Video` (or paste IDs, one per line) and run again. The draft node isn't re-run while its inputs are unchanged, so the final uses the draft you reviewed.
+2. Connect `draft_task_id` to `Seedance 2.5 Draft to Final Video` (or paste IDs, one per line), choose `1080p` or `4k` in the final node's `resolution`, and run again. The draft node isn't re-run while its inputs are unchanged, so the final uses the draft you reviewed.
 
-The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting, and renders at 1080p. Draft task IDs are valid for 7 days. For direct 4K generation, select `Seedance 2.5` with `resolution` set to `4k` instead of the Draft option.
+The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting. It defaults to 1080p; select `4k` to render the same 480p draft at 4K. Draft task IDs are valid for 7 days. Keep the Seedance 2.5 endpoint override in **Settings > BytePlus** the same as when you created the draft, including leaving it empty for drafts made directly with the model ID. Draft and final are separate billed tasks.
 
 ## Example Workflows
 
