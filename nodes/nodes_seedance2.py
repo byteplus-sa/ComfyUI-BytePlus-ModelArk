@@ -19,7 +19,7 @@ from io import BytesIO
 import comfy.model_management
 from comfy_api.latest import io as comfy_io
 
-from .model_endpoints import canonical_model_id
+from .model_endpoints import canonical_model_id, request_model_id
 from .constants import (
     IMAGE_MAX_EDGE,
     IMAGE_MAX_RATIO,
@@ -56,6 +56,7 @@ from .models_config import (
     SEEDANCE_2_5_FAMILY,
     SEEDANCE_2_5_TASK_TYPES,
     SEEDANCE_2_5_OUTPUT_FORMATS,
+    SEEDANCE_2_5_OUTPUT_FORMAT_MODELS,
     SEEDANCE_DRAFT_FINAL_RESOLUTIONS,
     SEEDANCE_DRAFT_RESOLUTION,
     VIDEO_2_MODEL_MAX_DURATIONS,
@@ -88,17 +89,16 @@ from .nodes_video import (
 )
 
 SEEDANCE_MODEL_TOOLTIP = (
-    "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; "
-    "Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final "
+    "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; "
+    "Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p or 4k final "
     "in the BytePlus Seedance 2.5 Draft to Final Video node; "
-    "Seedance 2.5 Premium for 4k output, and Seedance 2.5 Premium Draft for its 480p preview "
-    "(rendered in 4k); "
+    "Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; "
     "Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; "
     "Mini for the fastest, lowest-cost generation."
 )
 DRAFT_TASK_ID_OUTPUT_TOOLTIP = (
-    "Task ID of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. Connect it to the "
-    "BytePlus Seedance 2.5 Draft to Final Video node to render the final (1080p, or 4k for Premium). "
+    "Task ID of a Seedance 2.5 Draft run. Connect it to the "
+    "BytePlus Seedance 2.5 Draft to Final Video node to render a 1080p or 4k final. "
     "Several drafts (generation_count above 1) give one ID per line."
 )
 RATIO_OPTIONS = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"]
@@ -107,9 +107,10 @@ TASK_TYPE_TOOLTIP = (
     "What to do with the reference media. Every value except auto is "
     "validated when the task is submitted, so mismatched settings fail before "
     "generation starts. auto: the model infers the task from the prompt and "
-    "inputs, and settings that conflict with its reading fail only after "
-    "generation has started. reference: generate a new video guided by the "
-    "reference images, videos, and audio. edit: change a connected reference "
+    "inputs; the ratio and duration widgets are ignored and the API receives "
+    "adaptive ratio and automatic duration. reference: generate a new video "
+    "guided by the reference images, videos, and audio with the ratio and duration "
+    "you set. edit: change a connected reference "
     "video (add, remove, replace); the output keeps the source clip's own length "
     "and aspect ratio, and the duration and ratio widgets are ignored. extend: "
     "continue a connected reference video forward or backward; the prompt should "
@@ -129,8 +130,9 @@ AUTO_UPSCALE_TOOLTIP = (
 )
 REFERENCE_ASSETS_TOOLTIP = (
     "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to "
-    "image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, "
-    "10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in "
+    "image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, "
+    "10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 "
+    "(9 + 3 + 3), counting connected inputs. Refer to a slot in "
     "the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label."
 )
 
@@ -155,7 +157,10 @@ _ASSET_REF_RE = re.compile(r"\basset ?(\d{1,2})\b", re.IGNORECASE)
 
 
 def _model_key(label):
-    return SEEDANCE2_CORE_MODEL_OPTIONS[label]
+    model_key = SEEDANCE2_CORE_MODEL_OPTIONS.get(label)
+    if model_key is None:
+        raise BytePlusException(get_text("err_model_not_supported").format(model=label))
+    return model_key
 
 
 def _is_2_5_family(label):
@@ -237,7 +242,7 @@ def _seedance25_text_inputs(label, with_ratio=True, with_task_type=False):
             comfy_io.Combo.Input(
                 "ratio",
                 options=list(RATIO_OPTIONS),
-                default="16:9",
+                default="adaptive" if with_task_type else "16:9",
                 tooltip="Aspect ratio of the output video.",
             )
         )
@@ -248,7 +253,12 @@ def _seedance25_text_inputs(label, with_ratio=True, with_task_type=False):
             min=4,
             max=max_duration,
             step=1,
-            tooltip=f"Duration of the output video in seconds (4-{max_duration}).",
+            tooltip=(
+                f"Duration of the output video in seconds (4-{max_duration}). "
+                "Ignored for auto and edit reference tasks."
+                if with_task_type
+                else f"Duration of the output video in seconds (4-{max_duration})."
+            ),
             display_mode=comfy_io.NumberDisplay.slider,
         ),
         comfy_io.Boolean.Input(
@@ -266,14 +276,15 @@ def _seedance25_text_inputs(label, with_ratio=True, with_task_type=False):
                 tooltip=TASK_TYPE_TOOLTIP,
             )
         )
-    inputs.append(
-        comfy_io.Combo.Input(
-            "output_format",
-            options=list(SEEDANCE_2_5_OUTPUT_FORMATS),
-            default="mp4",
-            tooltip="Container format of the output video.",
+    if _model_key(label) in SEEDANCE_2_5_OUTPUT_FORMAT_MODELS:
+        inputs.append(
+            comfy_io.Combo.Input(
+                "output_format",
+                options=list(SEEDANCE_2_5_OUTPUT_FORMATS),
+                default="mp4",
+                tooltip="Container format of the output video.",
+            )
         )
-    )
     return inputs
 
 
@@ -395,15 +406,15 @@ def task_ids_from_response(response_text):
     return "\n".join(str(task_id) for task_id in ids if task_id)
 
 
-def build_seedance2_request_params(model, label, ratio, watermark):
+def build_seedance2_request_params(model, label, ratio, watermark, *, reference_mode=False):
     """
     Core's _seedance2_build_request as (duration, auto_duration, ratio,
-    extra_api_params) for the shared executor. edit -> adaptive ratio and
-    duration -1; extend -> adaptive ratio.
+    extra_api_params) for the shared executor. Automatic reference tasks and
+    edit use adaptive ratio and duration -1; extend uses adaptive ratio.
     """
     task_type = model.get("task_type", "auto") or "auto"
     auto_duration = False
-    if task_type == "edit":
+    if task_type == "edit" or (_is_2_5_family(label) and reference_mode and task_type == "auto"):
         ratio, auto_duration = "adaptive", True
     elif task_type == "extend":
         ratio = "adaptive"
@@ -411,8 +422,11 @@ def build_seedance2_request_params(model, label, ratio, watermark):
         "generate_audio": bool(model.get("generate_audio", True)),
         "watermark": bool(watermark),
     }
-    if model.get("output_format"):
-        extra["output_format"] = model["output_format"]
+    output_format = model.get("output_format")
+    if output_format is not None and _model_key(label) in SEEDANCE_2_5_OUTPUT_FORMAT_MODELS:
+        if output_format not in SEEDANCE_2_5_OUTPUT_FORMATS:
+            raise BytePlusException(get_text("err_seedance2_output_format_unsupported", format=output_format))
+        extra["output_format"] = output_format
     if task_type != "auto":
         extra["omni_reference_task_type"] = task_type
     if _is_draft(label):
@@ -423,7 +437,12 @@ def build_seedance2_request_params(model, label, ratio, watermark):
 async def _generate(cls, client, model, label, content, prompt, ratio, seed, watermark, extras):
     """Submit, poll and collect through BytePlusVideoBase; returns core's outputs plus ours."""
     model_key = _model_key(label)
-    duration, auto_duration, ratio, extra_api_params = build_seedance2_request_params(model, label, ratio, watermark)
+    reference_mode = any(
+        item.get("role") in ("reference_image", "reference_video", "reference_audio") for item in content
+    )
+    duration, auto_duration, ratio, extra_api_params = build_seedance2_request_params(
+        model, label, ratio, watermark, reference_mode=reference_mode
+    )
     resolution = validate_seedance2_resolution(model_key, model.get("resolution"), draft_mode=_is_draft(label))
     duration = validate_seedance2_duration(model_key, duration, auto_duration)
     helper = BytePlusVideoBase()
@@ -1206,15 +1225,26 @@ def video_model_key_for_id(model_id):
     for key, value in VIDEO_MODEL_MAP.items():
         if text in (key, value):
             return key
-    matches = [key for key in VIDEO_MODEL_MAP if text.startswith(key + "-")]
+    matches = [key for key in VIDEO_MODEL_MAP if re.fullmatch(re.escape(key) + r"-[0-9]{6}", text)]
     return max(matches, key=len) if matches else None
 
 
-def draft_final_resolution(model_key):
-    """The resolution the final of a draft of this model renders at, or None for models without drafts."""
-    if model_key in SEEDANCE_DRAFT_FINAL_RESOLUTIONS:
-        return SEEDANCE_DRAFT_FINAL_RESOLUTIONS[model_key][0]
-    return None
+def draft_final_resolution(model_key, resolution=None):
+    supported = SEEDANCE_DRAFT_FINAL_RESOLUTIONS.get(model_key)
+    if not supported:
+        return None
+    if resolution is None:
+        return supported[0]
+    if resolution not in supported:
+        raise BytePlusException(
+            get_text(
+                "err_seedance2_resolution_unsupported",
+                model=model_key,
+                resolution=resolution,
+                supported=", ".join(supported),
+            )
+        )
+    return resolution
 
 
 async def _get_draft_task(client, task_id):
@@ -1274,7 +1304,7 @@ async def describe_drafts(client, draft_ids):
 
 
 class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
-    """Core's ByteDance2DraftToFinalVideoNode on BytePlus ModelArk (also Seedance 2.5 Premium drafts)."""
+    """Core's ByteDance2DraftToFinalVideoNode on BytePlus ModelArk."""
 
     NODE_ID = "BytePlusSeedanceDraftToFinal"
 
@@ -1285,21 +1315,28 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
             display_name="BytePlus Seedance 2.5 Draft to Final Video",
             search_aliases=core_search_aliases(cls.NODE_ID),
             category=GLOBAL_CATEGORY,
-            description="Render the final video of a Seedance 2.5 Draft (1080p) or Seedance 2.5 Premium "
-            "Draft (4k). The final keeps the draft's scene and motion, and reuses its prompt, references, "
+            description="Render the 1080p or 4k final video of a Seedance 2.5 Draft. "
+            "The final keeps the draft's scene and motion, and reuses its prompt, references, "
             "duration, aspect ratio, and audio setting. The model is read from the draft task.",
             inputs=[
                 comfy_io.String.Input(
                     "draft_task_id",
                     default="",
-                    tooltip="The draft_task_id output of a BytePlus Seedance 2.5 node run with a Draft model "
-                    "(Seedance 2.5 Draft or Seedance 2.5 Premium Draft), or pasted "
+                    tooltip="The draft_task_id output of a BytePlus Seedance 2.5 node run with "
+                    "Seedance 2.5 Draft, or pasted "
                     "draft task IDs (one per line, or separated by commas). Set that node's seed control to "
                     "fixed, otherwise the next run generates a new draft instead of reusing the one you "
                     "reviewed. A draft can be rendered for 7 days after it was created.",
                 ),
                 watermark_input(),
                 *video_extra_inputs(seeded=False),
+                comfy_io.Combo.Input(
+                    "resolution",
+                    options=SEEDANCE_DRAFT_FINAL_RESOLUTIONS["dreamina-seedance-2-5"],
+                    default="1080p",
+                    tooltip="Resolution of the final video.",
+                    optional=True,
+                ),
             ],
             outputs=[
                 video_list_output(),
@@ -1318,12 +1355,14 @@ class BytePlusSeedanceDraftToFinal(NonBlockingRerun, comfy_io.ComfyNode):
         watermark=False,
         generation_count=1,
         non_blocking=False,
+        resolution="1080p",
     ) -> comfy_io.NodeOutput:
         draft_ids = _parse_draft_task_ids(draft_task_id)
         if not draft_ids:
             raise BytePlusException(get_text("err_draft_task_id_empty"))
         model_key, model_id, first_task = await describe_drafts(client, draft_ids)
-        resolution = draft_final_resolution(model_key)
+        resolution = draft_final_resolution(model_key, resolution)
+        model_id = request_model_id(model_id)
         content, count = build_draft_final_content(draft_ids, int(generation_count or 1))
         extra_api_params = {"resolution": resolution, "watermark": bool(watermark)}
         output_format = str(getattr(first_task, "output_format", "") or "")

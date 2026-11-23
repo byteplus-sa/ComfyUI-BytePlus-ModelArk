@@ -389,6 +389,7 @@ class DownloadTests(unittest.IsolatedAsyncioTestCase):
 
         class Response:
             def __init__(self):
+                self.status = 200
                 self.content = SimpleNamespace(read=self.read)
                 self.chunks = [b"abc", b""]
 
@@ -405,7 +406,7 @@ class DownloadTests(unittest.IsolatedAsyncioTestCase):
                 return False
 
         class Session:
-            def get(self, url, timeout=None):
+            def get(self, url, timeout=None, allow_redirects=False):
                 used.append(timeout)
                 return Response()
 
@@ -413,9 +414,15 @@ class DownloadTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "out.bin")
             self.assertTrue(
-                await utils_download._download_to_file_stream_async(Session(), "u", path, timeout=stall_only)
+                await utils_download._download_to_file_stream_async(
+                    Session(), "https://cdn.example/video.mp4", path, timeout=stall_only
+                )
             )
-            self.assertTrue(await utils_download._download_to_file_stream_async(Session(), "u", path, timeout=30))
+            self.assertTrue(
+                await utils_download._download_to_file_stream_async(
+                    Session(), "https://cdn.example/video.mp4", path, timeout=30
+                )
+            )
             with open(path, "rb") as f:
                 self.assertEqual(f.read(), b"abc")
         self.assertIs(used[0], stall_only)

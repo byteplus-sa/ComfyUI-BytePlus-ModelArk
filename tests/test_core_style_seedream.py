@@ -7,6 +7,7 @@ import sys
 import tempfile
 import types
 import unittest
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest import mock
 
@@ -57,6 +58,7 @@ FLASH = "seedream 5.0 flash"
 LITE = "seedream 5.0 lite"
 V45 = "seedream-4-5-251128"
 V40 = "seedream-4-0-250828"
+V55 = "seedream 5.5"
 
 # Input ids per model option, as core orders them, then this pack's extras.
 EXPECTED_OPTION_INPUTS = {
@@ -74,6 +76,10 @@ EXPECTED_OPTION_INPUTS = {
         "seed", "watermark", "thinking",
         "generation_count",
     ],
+    V55: [
+        "size_preset", "width", "height", "background", "images", "seed", "watermark",
+        "prompt_optimization", "generation_count", "output_format", "safety_identifier",
+    ],
 }
 EXPECTED_OPTION_INPUTS[V45] = EXPECTED_OPTION_INPUTS[LITE]
 EXPECTED_OPTION_INPUTS[V40] = EXPECTED_OPTION_INPUTS[LITE]
@@ -87,6 +93,11 @@ LAYER_OPTION_INPUTS = {
     FLASH: [
         "image", "prompt", "size", "seed", "watermark", "crop_layers",
         "output_format", "save_layers", "filename_prefix",
+    ],
+    V55: [
+        "image", "prompt", "size", "max_images", "seed", "watermark", "crop_layers",
+        "prompt_optimization", "output_format", "save_layers", "filename_prefix", "text_recognition",
+        "safety_identifier",
     ],
 }
 
@@ -191,22 +202,67 @@ def default_stream_events(kwargs):
     return [image_event(i) for i in range(count)] + [completed_event(kwargs["model"], count)]
 
 
-# Inputs whose limits follow the BytePlus docs instead of core: 14 reference
-# images on 4.5 / 4.0, max_images up to 15, custom width/height bounds from the
-# pixel range and aspect limit (core: min 1024), and the layer-separation input
-# (262,144 total pixels) and <bbox> range (0-999).
-BYTEPLUS_LIMIT_DEVIATIONS = {
-    ("BytePlusSeedream", LITE, "max_images"),
-    ("BytePlusSeedream", V45, "max_images"),
-    ("BytePlusSeedream", V45, "images"),
-    ("BytePlusSeedream", V40, "max_images"),
-    ("BytePlusSeedream", V40, "images"),
-    *(("BytePlusSeedream", option, side) for option in (PRO, FLASH, LITE, V45, V40) for side in ("width", "height")),
-    ("BytePlusSeedreamLayerSeparation", PRO, "image"),
-    ("BytePlusSeedreamLayerSeparation", PRO, "prompt"),
-    ("BytePlusSeedreamLayerSeparation", FLASH, "image"),
-    ("BytePlusSeedreamLayerSeparation", FLASH, "prompt"),
+BYTEPLUS_FIELD_DEVIATIONS = {
+    **{
+        ("BytePlusSeedream", model, side): {"min": minimum, "max": maximum}
+        for model, minimum, maximum in (
+            (PRO, 240, 8600), (FLASH, 240, 8600), (LITE, 480, 16384),
+            (V45, 480, 16384), (V40, 240, 16384),
+        )
+        for side in ("width", "height")
+    },
+    **{
+        ("BytePlusSeedream", V55, side): {"max": 8600}
+        for side in ("width", "height")
+    },
+    **{
+        ("BytePlusSeedream", model, "max_images"): {"max": 15}
+        for model in (LITE, V45, V40)
+    },
+    **{
+        ("BytePlusSeedream", model, "images"): {
+            "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 14 images.",
+        }
+        for model in (V45, V40)
+    },
+    ("BytePlusSeedream", V55, "size_preset"): {"default": "2K (adaptive)"},
+    ("BytePlusSeedream", V55, "background"): {
+        "tooltip": "auto: choose from the prompt (JPEG is always opaque). transparent: generate "
+        "a PNG with transparency from text-to-image or up to 10 references, also "
+        "returned as the mask output. opaque: generate without transparency.",
+    },
+    **{
+        (node, V55, "seed"): {
+            "tooltip": "Change this value to run again. A generation seed is not set for Seedream 5.5.",
+        }
+        for node in ("BytePlusSeedream", "BytePlusSeedreamLayerSeparation")
+    },
+    **{
+        ("BytePlusSeedreamLayerSeparation", model, name): {"tooltip": tooltip}
+        for model in (PRO, FLASH, V55)
+        for name, tooltip in (
+            ("image", "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio "
+             "between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload."),
+            ("prompt", "How to separate the image. Leave empty to auto-detect and separate all major elements. "
+             "Describe elements in natural language to control the separation, or target exact regions "
+             "with <bbox>left top right bottom</bbox> tags (coordinates 0-999, relative to the image)."),
+        )
+    },
 }
+ADAPTIVE_PRESETS = {
+    PRO: ["1K (adaptive)", "1.5K (adaptive)", "2K (adaptive)"],
+    FLASH: ["1K (adaptive)", "1.5K (adaptive)", "2K (adaptive)"],
+    LITE: ["2K (adaptive)", "3K (adaptive)", "4K (adaptive)"],
+    V45: ["2K (adaptive)", "4K (adaptive)"],
+    V40: ["1K (adaptive)", "2K (adaptive)", "4K (adaptive)"],
+    V55: ["1K (adaptive)", "1.5K (adaptive)", "2K (adaptive)"],
+}
+PRO_EXTRA_PRESETS = [
+    "(1.5K) 1536x1536 (1:1)", "(1.5K) 1344x1792 (3:4)",
+    "(1.5K) 1792x1344 (4:3)", "(1.5K) 2048x1152 (16:9)",
+    "(1.5K) 1152x2048 (9:16)", "(1.5K) 1248x1872 (2:3)",
+    "(1.5K) 1872x1248 (3:2)", "(1.5K) 2352x1008 (21:9)",
+]
 
 
 @requires_comfyui
@@ -214,11 +270,11 @@ class SeedreamSchemaTests(unittest.TestCase):
     def test_top_level_order_and_outputs(self):
         schema = nodes_seedream.BytePlusSeedream.define_schema()
         self.assertEqual(schema.node_id, "BytePlusSeedream")
-        self.assertEqual(schema.display_name, "BytePlus Seedream 4.5 & 5.0")
+        self.assertEqual(schema.display_name, "BytePlus Seedream")
         self.assertEqual([item.id for item in schema.inputs], ["prompt", "model"])
         self.assertEqual(schema.inputs[1].io_type, "COMFY_DYNAMICCOMBO_V3")
         self.assertEqual(
-            [option.key for option in schema.inputs[1].options], [PRO, FLASH, LITE, V45, V40]
+            [option.key for option in schema.inputs[1].options], [PRO, FLASH, LITE, V45, V40, V55]
         )
         self.assertEqual(
             [(output.io_type, output.display_name) for output in schema.outputs],
@@ -232,18 +288,22 @@ class SeedreamSchemaTests(unittest.TestCase):
             with self.subTest(model=model):
                 inputs, ids = option_inputs(schema, model)
                 self.assertEqual(ids, expected)
-                for name in ("generation_count", "output_format", "background"):
+                for name in ("generation_count", "output_format"):
                     if name in inputs:
                         self.assertTrue(inputs[name].advanced, name)
+                if "background" in inputs:
+                    self.assertEqual(bool(inputs["background"].advanced), model != V55)
                 for name in ("fail_on_partial", "prompt_optimization", "watermark", "thinking"):
                     if name in inputs:
                         self.assertTrue(inputs[name].advanced, name)
                 for name in ("size_preset", "width", "height", "seed"):
-                    self.assertFalse(inputs[name].advanced, name)
+                    if name in inputs:
+                        self.assertFalse(inputs[name].advanced, name)
                 seed = inputs["seed"]
                 self.assertEqual((seed.default, seed.min, seed.max), (42, 0, 2147483647))
                 self.assertTrue(seed.control_after_generate)
-                self.assertEqual(seed.tooltip, "Seed to use for generation.")
+                if model != V55:
+                    self.assertEqual(seed.tooltip, "Seed to use for generation.")
                 self.assertFalse(inputs["watermark"].default)
                 self.assertEqual(
                     inputs["watermark"].tooltip,
@@ -295,6 +355,7 @@ class SeedreamSchemaTests(unittest.TestCase):
                     self.assertEqual(inputs["max_images"].default, 1)
                 options = inputs["size_preset"].options
                 self.assertEqual(options[0], first_presets[model])
+                self.assertEqual(inputs["size_preset"].default, first_presets[model])
                 self.assertEqual(options[-1], "Custom")
                 self.assertEqual(options[-1 - len(adaptive[model]):-1], adaptive[model])
         _inputs, _ = option_inputs(schema, FLASH)
@@ -320,17 +381,54 @@ class SeedreamSchemaTests(unittest.TestCase):
                 LITE: "seedream-5-0-260128",
                 V45: "seedream-4-5-251128",
                 V40: "seedream-4-0-250828",
+                V55: "dola-seedream-5-5-261028",
             },
         )
         self.assertEqual(
             models_config.SEEDREAM_LAYER_SEPARATION_MODELS,
-            {PRO: "dola-seedream-5-0-pro-260628", FLASH: "dola-seedream-5-0-flash-260915"},
+            {PRO: "dola-seedream-5-0-pro-260628", FLASH: "dola-seedream-5-0-flash-260915",
+             V55: "dola-seedream-5-5-261028"},
         )
+
+    def test_55_schema_matches_documented_capabilities(self):
+        schema = nodes_seedream.BytePlusSeedream.define_schema()
+        inputs, _ = option_inputs(schema, V55)
+        self.assertEqual(inputs["size_preset"].default, "2K (adaptive)")
+        for size in ("1K (adaptive)", "1.5K (adaptive)", "2K (adaptive)", "Custom",
+                     "(1K) 1360x768 (16:9)", "(2K) 2368x1776 (4:3)"):
+            self.assertIn(size, inputs["size_preset"].options)
+        self.assertEqual((inputs["width"].min, inputs["width"].max), (240, 8600))
+        self.assertEqual(len(inputs["images"].template.names), 10)
+        self.assertEqual(inputs["output_format"].options, ["png", "jpeg"])
+        self.assertEqual(inputs["output_format"].default, "png")
+        self.assertEqual(inputs["background"].options, ["auto", "opaque", "transparent"])
+        self.assertEqual(inputs["background"].default, "auto")
+        self.assertEqual(inputs["prompt_optimization"].options, ["standard"])
+        self.assertIn("text-to-image", inputs["background"].tooltip)
+        self.assertIn("not set", inputs["seed"].tooltip)
+        self.assertNotIn("seed", inputs["generation_count"].tooltip)
+        for name in ("reference_mask", "thinking", "max_images"):
+            self.assertNotIn(name, inputs)
+        self.assertTrue(inputs["safety_identifier"].optional)
+        self.assertTrue(inputs["safety_identifier"].advanced)
+        layers, _ = option_inputs(nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema(), V55)
+        self.assertEqual((layers["max_images"].min, layers["max_images"].max, layers["max_images"].default),
+                         (2, 100, 30))
+        self.assertFalse(layers["text_recognition"].default)
+        self.assertEqual(layers["prompt_optimization"].options, ["standard"])
+        self.assertNotIn("background", layers)
+        for model_inputs in (inputs, layers):
+            self.assertTrue(model_inputs["prompt_optimization"].optional)
+            self.assertTrue(model_inputs["prompt_optimization"].advanced)
+        self.assertFalse(layers["max_images"].optional)
+        self.assertFalse(layers["max_images"].advanced)
+        self.assertEqual(layers["max_images"].step, 1)
+        self.assertEqual(layers["max_images"].display_mode.value, "number")
 
     def test_layer_separation_schema(self):
         schema = nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema()
         self.assertEqual(schema.node_id, "BytePlusSeedreamLayerSeparation")
-        self.assertEqual(schema.display_name, "BytePlus Seedream 5.0 Layer Separation")
+        self.assertEqual(schema.display_name, "BytePlus Seedream Layer Separation")
         self.assertEqual([item.id for item in schema.inputs], ["model"])
         for model, expected in LAYER_OPTION_INPUTS.items():
             with self.subTest(model=model):
@@ -340,6 +438,7 @@ class SeedreamSchemaTests(unittest.TestCase):
                 self.assertEqual(inputs["seed"].default, 42)
                 self.assertTrue(inputs["seed"].control_after_generate)
                 self.assertFalse(inputs["crop_layers"].advanced)
+                self.assertEqual(inputs["crop_layers"].default, model == V55)
                 self.assertEqual(
                     (inputs["crop_layers"].label_on, inputs["crop_layers"].label_off),
                     ("minimal size", "full canvas"),
@@ -373,64 +472,226 @@ class SeedreamSchemaTests(unittest.TestCase):
             self.assertIn("262,144 pixels", inputs["image"].tooltip)
             self.assertIn("0-999", inputs["prompt"].tooltip)
 
-    def test_matches_core_schema(self):
-        """Every core input (id, type, default, limits, tooltip, advanced) is copied as is."""
+    def core_node_pairs(self):
         try:
             core = importlib.import_module("comfy_api_nodes.nodes_bytedance")
-            pairs = [
-                (core.ByteDanceSeedreamNodeV3, nodes_seedream.BytePlusSeedream, EXTRAS),
+            return [
+                (core.ByteDanceSeedreamNodeV3, nodes_seedream.BytePlusSeedream),
                 (
                     core.ByteDanceSeedreamLayerSeparationNodeV2,
                     nodes_seedream.BytePlusSeedreamLayerSeparation,
-                    {"output_format", "save_layers", "filename_prefix"},
                 ),
             ]
         except Exception as exc:  # core API nodes unavailable in this checkout
             self.skipTest(f"comfy_api_nodes.nodes_bytedance not importable: {exc}")
 
-        def describe(item):
-            data = item.as_dict()
-            data.pop("options", None)
-            data.pop("template", None)
-            return item.id, item.io_type, data
+    def assert_shared_input_matches_core(self, core_item, our_item, node_id, model=None):
+        expected = deepcopy(core_item.as_dict())
+        actual = our_item.as_dict()
+        if model == V55 and core_item.id == "seed":
+            self.assertEqual(core_item.tooltip, "Seed to use for generation.")
+        expected.update(BYTEPLUS_FIELD_DEVIATIONS.get((node_id, model, core_item.id), {}))
+        if core_item.io_type == "COMFY_DYNAMICCOMBO_V3":
+            expected.pop("options")
+            actual.pop("options")
+        if node_id == "BytePlusSeedream":
+            if core_item.id == "size_preset":
+                options = list(expected["options"])
+                self.assertEqual(options[-1], "Custom")
+                if model == PRO:
+                    options[8:8] = PRO_EXTRA_PRESETS
+                expected["options"] = options[:-1] + ADAPTIVE_PRESETS[model] + options[-1:]
+            if core_item.id == "images" and model in (V45, V40):
+                expected["template"]["names"] = [f"image_{index}" for index in range(1, 15)]
+        self.assertEqual(
+            (core_item.id, core_item.io_type, expected),
+            (our_item.id, our_item.io_type, actual),
+            f"{node_id}: {model}: {core_item.id}",
+        )
 
-        for core_node, our_node, extras in pairs:
-            core_schema = core_node.define_schema()
-            our_schema = our_node.define_schema()
-            self.assertEqual(core_schema.description, our_schema.description)
-            our_top = our_schema.inputs
-            self.assertEqual([i.id for i in core_schema.inputs], [i.id for i in our_top])
-            for core_input, our_input in zip(core_schema.inputs, our_top, strict=True):
-                if core_input.io_type != "COMFY_DYNAMICCOMBO_V3":
-                    self.assertEqual(describe(core_input), describe(our_input))
-                    continue
+    def assert_schema_matches_core(self, core_schema, our_schema):
+        self.assertEqual(core_schema.description, our_schema.description)
+        self.assertEqual(core_schema.is_output_node, our_schema.is_output_node)
+        self.assertEqual([item.id for item in core_schema.inputs], [item.id for item in our_schema.inputs])
+        for core_input, our_input in zip(core_schema.inputs, our_schema.inputs, strict=True):
+            self.assert_shared_input_matches_core(core_input, our_input, our_schema.node_id)
+            if core_input.io_type != "COMFY_DYNAMICCOMBO_V3":
+                continue
+            core_keys = [option.key for option in core_input.options]
+            self.assertIn(V55, core_keys)
+            self.assertEqual(
+                [option.key for option in our_input.options],
+                [key for key in core_keys if key != V55] + [V55],
+            )
+            our_options = {option.key: option for option in our_input.options}
+            for core_option in core_input.options:
+                our_option = our_options[core_option.key]
+                if our_schema.node_id == "BytePlusSeedream":
+                    extras = EXTRAS if core_option.key != V55 else {
+                        "prompt_optimization", "generation_count", "output_format", "safety_identifier",
+                    }
+                    if core_option.key not in (PRO, FLASH, V55):
+                        extras = {"generation_count"}
+                else:
+                    extras = {"output_format", "save_layers", "filename_prefix"}
+                    if core_option.key == V55:
+                        extras |= {"prompt_optimization", "text_recognition", "safety_identifier"}
+                core_ids = [item.id for item in core_option.inputs]
+                self.assertFalse(set(core_ids) & extras)
                 self.assertEqual(
-                    [o.key for o in core_input.options], [o.key for o in our_input.options]
+                    [item.id for item in our_option.inputs[:len(core_ids)]], core_ids, core_option.key
                 )
-                for core_option, our_option in zip(core_input.options, our_input.options, strict=True):
-                    ours = [i for i in our_option.inputs if i.id not in extras]
-                    self.assertEqual(
-                        [i.id for i in core_option.inputs], [i.id for i in ours], core_option.key
+                extra_ids = [item.id for item in our_option.inputs[len(core_ids):]]
+                self.assertEqual(set(extra_ids), extras)
+                self.assertEqual(len(extra_ids), len(extras))
+                for core_item, our_item in zip(core_option.inputs, our_option.inputs, strict=False):
+                    self.assert_shared_input_matches_core(
+                        core_item, our_item, our_schema.node_id, core_option.key
                     )
-                    for core_item, our_item in zip(core_option.inputs, ours, strict=True):
-                        if (our_schema.node_id, core_option.key, core_item.id) in BYTEPLUS_LIMIT_DEVIATIONS:
-                            continue  # checked in test_documented_byteplus_limits
-                        with self.subTest(node=our_schema.node_id, option=core_option.key, input=core_item.id):
-                            self.assertEqual(describe(core_item), describe(our_item))
-                            if core_item.io_type == "COMBO":
-                                core_options = list(core_item.options)
-                                self.assertEqual(
-                                    [o for o in our_item.options if o in core_options], core_options
-                                )
-                            if core_item.io_type == "COMFY_AUTOGROW_V3":
-                                self.assertEqual(
-                                    core_item.template.as_dict(), our_item.template.as_dict()
-                                )
-            for core_output, our_output in zip(core_schema.outputs, our_schema.outputs, strict=False):
+        self.assertGreaterEqual(len(our_schema.outputs), len(core_schema.outputs))
+        for core_output, our_output in zip(core_schema.outputs, our_schema.outputs, strict=False):
+            self.assertEqual(
+                (core_output.io_type, core_output.as_dict()),
+                (our_output.io_type, our_output.as_dict()),
+            )
+
+    def test_matches_core_schema(self):
+        for core_node, our_node in self.core_node_pairs():
+            with self.subTest(node=our_node.__name__):
+                self.assert_schema_matches_core(core_node.define_schema(), our_node.define_schema())
+
+    def test_matches_core_schema_rejects_unrelated_input_changes(self):
+        for core_node, our_node in self.core_node_pairs():
+            schema = core_node.define_schema()
+            combo = next(item for item in schema.inputs if item.id == "model")
+            for option in combo.options:
+                for name, field, value in (
+                    ("seed", "default", 99), ("watermark", "advanced", False),
+                    ("images", "tooltip", "Changed reference requirements"), ("size", "default", "2K"),
+                    ("max_images", "max", 101), ("background", "default", "opaque"),
+                ):
+                    if name not in {item.id for item in option.inputs}:
+                        continue
+                    deviations = BYTEPLUS_FIELD_DEVIATIONS.get((our_node.__name__, option.key, name), {})
+                    if field in deviations:
+                        continue
+                    with self.subTest(node=our_node.__name__, model=option.key, input=name, field=field):
+                        changed = deepcopy(schema)
+                        setattr(option_inputs(changed, option.key)[0][name], field, value)
+                        with self.assertRaises(AssertionError):
+                            self.assert_schema_matches_core(changed, our_node.define_schema())
+
+    def test_matches_core_schema_rejects_unknown_models_and_inputs(self):
+        for core_node, our_node in self.core_node_pairs():
+            for change in ("model", "input"):
+                with self.subTest(node=our_node.__name__, change=change):
+                    schema = deepcopy(core_node.define_schema())
+                    combo = next(item for item in schema.inputs if item.id == "model")
+                    if change == "model":
+                        combo.options.append(nodes_seedream.comfy_io.DynamicCombo.Option("unknown model", []))
+                    else:
+                        combo.options[0].inputs.append(nodes_seedream.comfy_io.Boolean.Input("unexpected"))
+                    with self.assertRaises(AssertionError):
+                        self.assert_schema_matches_core(schema, our_node.define_schema())
+
+    def test_matches_core_schema_rejects_changed_presets(self):
+        core_node, our_node = self.core_node_pairs()[0]
+        schema = core_node.define_schema()
+        combo = next(item for item in schema.inputs if item.id == "model")
+        for option in combo.options:
+            with self.subTest(model=option.key):
+                changed = deepcopy(schema)
+                option_inputs(changed, option.key)[0]["size_preset"].options.append("(8K) 8192x8192 (1:1)")
+                with self.assertRaises(AssertionError):
+                    self.assert_schema_matches_core(changed, our_node.define_schema())
+
+    def test_matches_core_schema_checks_55_seed_tooltip(self):
+        for core_node, our_node in self.core_node_pairs():
+            changed = deepcopy(core_node.define_schema())
+            option_inputs(changed, V55)[0]["seed"].tooltip = "Unexpected seed guidance"
+            with self.subTest(node=our_node.__name__), self.assertRaises(AssertionError):
+                self.assert_schema_matches_core(changed, our_node.define_schema())
+
+    def test_55_fixed_presets_match_core_and_resolve_to_exact_pixels(self):
+        core_api = importlib.import_module("comfy_api_nodes.apis.bytedance")
+        presets = core_api.RECOMMENDED_PRESETS_SEEDREAM_5_5
+        self.assertEqual(seedream_utils.SEEDREAM_PRESETS[V55], presets[:-1])
+        for label, width, height in presets[:-1]:
+            with self.subTest(preset=label):
                 self.assertEqual(
-                    (core_output.io_type, core_output.display_name, core_output.tooltip),
-                    (our_output.io_type, our_output.display_name, our_output.tooltip),
+                    nodes_seedream.resolve_seedream_size(V55, label, 0, 0), f"{width}x{height}"
                 )
+
+    def test_55_parity_rejects_mutated_shared_fields(self):
+        mutations = {
+            "BytePlusSeedream": [
+                ("width", "min", 242), ("width", "max", 9000), ("width", "default", 1024),
+                ("height", "max", 9000), ("height", "step", 1),
+                ("size_preset", "default", "(2K) 2048x2048 (1:1)"),
+                ("size_preset", "options", ["Custom"]),
+                ("background", "options", ["auto", "transparent", "opaque"]),
+                ("background", "options", ["auto", "opaque", "transparent", "invalid"]),
+                ("background", "default", "opaque"), ("background", "advanced", True),
+                ("seed", "max", 100), ("seed", "default", 43),
+                ("images", "optional", True), ("watermark", "default", True),
+            ],
+            "BytePlusSeedreamLayerSeparation": [
+                ("max_images", "min", 1), ("max_images", "max", 99),
+                ("max_images", "default", 31), ("max_images", "step", 2),
+                ("max_images", "optional", True), ("max_images", "advanced", True),
+                ("max_images", "tooltip", "Different billing wording"),
+                ("max_images", "display_mode", nodes_seedream.comfy_io.NumberDisplay.slider),
+                ("crop_layers", "default", False), ("size", "default", "1K"),
+                ("size", "options", ["auto", "1K", "2K"]),
+                ("size", "options", ["auto", "1K", "1.5K", "2K", "4K"]),
+                ("image", "optional", True), ("prompt", "default", "split"),
+                ("seed", "max", 100), ("seed", "control_after_generate", False),
+            ],
+        }
+        for core_node, our_node in self.core_node_pairs():
+            core_schema = core_node.define_schema()
+            self.assert_schema_matches_core(core_schema, our_node.define_schema())
+            for name, field, value in mutations[our_node.__name__]:
+                with self.subTest(node=our_node.__name__, input=name, field=field, value=value):
+                    mutated = our_node.define_schema()
+                    setattr(option_inputs(mutated, V55)[0][name], field, value)
+                    with self.assertRaises(AssertionError):
+                        self.assert_schema_matches_core(core_schema, mutated)
+
+    def test_55_parity_rejects_changed_shared_inputs_and_model_order(self):
+        for core_node, our_node in self.core_node_pairs():
+            core_schema = core_node.define_schema()
+            self.assert_schema_matches_core(core_schema, our_node.define_schema())
+            for mutation in ("missing", "extra", "reordered", "missing_model", "model_order"):
+                with self.subTest(node=our_node.__name__, mutation=mutation):
+                    mutated = our_node.define_schema()
+                    combo = next(item for item in mutated.inputs if item.id == "model")
+                    option = next(option for option in combo.options if option.key == V55)
+                    if mutation == "missing":
+                        option.inputs.pop(0)
+                    elif mutation == "extra":
+                        option.inputs.append(nodes_seedream.comfy_io.Boolean.Input("unexpected"))
+                    elif mutation == "reordered":
+                        option.inputs[0], option.inputs[1] = option.inputs[1], option.inputs[0]
+                    elif mutation == "missing_model":
+                        combo.options.remove(option)
+                    else:
+                        combo.options[0], combo.options[1] = combo.options[1], combo.options[0]
+                    with self.assertRaises(AssertionError):
+                        self.assert_schema_matches_core(core_schema, mutated)
+
+    def test_55_parity_rejects_changed_reference_template(self):
+        core_node, our_node = self.core_node_pairs()[0]
+        core_schema = core_node.define_schema()
+        self.assert_schema_matches_core(core_schema, our_node.define_schema())
+        for field, value in (("names", ["image_1"]), ("min", 1)):
+            with self.subTest(field=field):
+                mutated = our_node.define_schema()
+                template = deepcopy(option_inputs(mutated, V55)[0]["images"].template)
+                setattr(template, field, value)
+                option_inputs(mutated, V55)[0]["images"].template = template
+                with self.assertRaises(AssertionError):
+                    self.assert_schema_matches_core(core_schema, mutated)
 
 
 @requires_comfyui
@@ -478,6 +739,18 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         )
         return fake, client, result
 
+    async def test_omitted_size_presets_keep_effective_defaults(self):
+        for model, size in (
+            (PRO, "1024x1024"), (FLASH, "1024x1024"), (LITE, "2048x2048"),
+            (V45, "2048x2048"), (V40, "1024x1024"), (V55, "2K"),
+        ):
+            with self.subTest(model=model):
+                default = option_inputs(nodes_seedream.BytePlusSeedream.define_schema(), model)[0]["size_preset"].default
+                omitted, _, _ = await self.run_node(model)
+                explicit, _, _ = await self.run_node(model, size_preset=default)
+                self.assertEqual(omitted.calls[0]["size"], size)
+                self.assertEqual(explicit.calls[0]["size"], size)
+
     async def test_pro_text_to_image_request(self):
         fake, client, result = await self.run_node(
             PRO, size_preset="(2K) 2848x1600 (16:9)", seed=42, watermark=True
@@ -497,6 +770,184 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tuple(image.shape), (1, 4, 4, 3))
         self.assertEqual(float(mask.sum()), 0.0)
         self.assertEqual(json.loads(response)[0]["urls"], ["https://example.invalid/image0.png"])
+
+    async def test_55_transparent_text_to_image_matches_supplied_request(self):
+        prompt = "Realistic embroidered patches on a transparent background."
+        fake, _client, result = await self.run_node(
+            V55, prompt=prompt, size_preset="2K (adaptive)",
+            output_format="png", background="transparent", watermark=True,
+        )
+        self.assertEqual(fake.calls, [{
+            "model": "dola-seedream-5-5-261028",
+            "prompt": prompt,
+            "size": "2K",
+            "response_format": "url",
+            "output_format": "png",
+            "extra_body": {"background": "transparent"},
+            "watermark": True,
+            "optimize_prompt_options": fake.calls[0]["optimize_prompt_options"],
+        }])
+        self.assertEqual(fake.calls[0]["optimize_prompt_options"].mode, "standard")
+        image, response, mask = result
+        self.assertEqual(tuple(image.shape), (1, 4, 4, 3))
+        self.assertEqual(tuple(mask.shape), (1, 4, 4))
+        self.assertAlmostEqual(float(mask[0, 0, 0]), 0.75)
+        self.assertEqual(json.loads(response)[0]["model"], "dola-seedream-5-5-261028")
+
+    async def test_55_defaults_to_auto_png_preserves_alpha_and_ignores_pro_endpoint(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-image"}):
+            fake, _client, result = await self.run_node(V55)
+        request = fake.calls[0]
+        self.assertEqual(request["model"], "dola-seedream-5-5-261028")
+        self.assertEqual(request["size"], "2K")
+        self.assertEqual(request["output_format"], "png")
+        self.assertEqual(request["extra_body"], {"background": "auto"})
+        self.assertEqual(request["optimize_prompt_options"].mode, "standard")
+        for key in ("seed", "image", "stream", "sequential_image_generation"):
+            self.assertNotIn(key, request)
+        self.assertAlmostEqual(float(result[2].mean()), 0.75)
+
+    async def test_55_rejects_invalid_options_before_submission(self):
+        import torch
+
+        cases = [
+            ({"prompt": ""}, "Prompt cannot be empty"),
+            ({"prompt": None}, "Prompt cannot be empty"),
+            ({"size_preset": "4K (adaptive)"}, "size preset"),
+            ({"size_preset": "Custom", "width": 2880, "height": 2880}, "Maximum image resolution"),
+            ({"size_preset": "Custom", "width": 512, "height": 512}, "Minimum image resolution"),
+            ({"size_preset": "Custom", "width": 0, "height": 2048}, "aspect ratio"),
+            ({"size_preset": "Custom", "width": -2048, "height": -2048}, "aspect ratio"),
+            ({"output_format": "jpeg", "background": "transparent"}, "set output_format to png"),
+            ({"output_format": "gif"}, "output format"),
+            ({"background": "invalid"}, "background"),
+            ({"prompt_optimization": "fast"}, "prompt optimization"),
+            ({"images": {"image_1": torch.ones((11, 16, 16, 3))}}, "reference images"),
+            ({"images": {"image_1": torch.ones((1, 14, 16, 3))}}, "reference image"),
+            ({"images": {"image_1": torch.empty((1, 6001, 6000, 3), device="meta")}}, "reference image"),
+            ({"safety_identifier": "a" * 65}, "safety_identifier"),
+            ({"safety_identifier": "\u00e9"}, "safety_identifier"),
+            ({"safety_identifier": "user\nname"}, "safety_identifier"),
+            ({"safety_identifier": False}, "safety_identifier"),
+        ]
+        for options, message in cases:
+            with self.subTest(options=list(options)):
+                fake = FakeImages()
+                with self.assertRaisesRegex(Exception, message):
+                    await self.run_node(V55, fake=fake, **options)
+                self.assertEqual(fake.calls, [])
+
+    async def test_55_parallel_generation_preserves_transparency(self):
+        fake, _client, result = await self.run_node(
+            V55, generation_count=2, background="transparent",
+        )
+        self.assertEqual(len(fake.calls), 2)
+        self.assertEqual(tuple(result[0].shape), (2, 4, 4, 3))
+        self.assertEqual(tuple(result[2].shape), (2, 4, 4))
+        self.assertEqual(len(json.loads(result[1])), 2)
+        self.assertAlmostEqual(float(result[2].mean()), 0.75)
+
+    async def test_55_missing_url_is_reported(self):
+        with self.assertRaisesRegex(Exception, "download"):
+            await self.run_node(V55, fake=FakeImages(url_count=0))
+
+    async def test_55_sdk_serializes_background_as_a_top_level_field(self):
+        import httpx
+        from byteplussdkarkruntime import Ark
+
+        requests = []
+
+        def handle(request):
+            requests.append(json.loads(request.content))
+            self.assertEqual(request.url.path, "/api/v3/images/generations")
+            return httpx.Response(200, json={
+                "model": "dola-seedream-5-5-261028",
+                "created": 1,
+                "data": [{"url": "https://example.invalid/image.png"}],
+            })
+
+        with Ark(
+            api_key="test-only",
+            base_url="https://example.invalid/api/v3",
+            max_retries=0,
+            http_client=httpx.Client(transport=httpx.MockTransport(handle)),
+        ) as ark:
+            await self.run_node(V55, fake=ark.images, background="transparent", watermark=True)
+        self.assertEqual(len(requests), 1)
+        self.assertEqual({key: value for key, value in requests[0].items() if value is not None}, {
+            "model": "dola-seedream-5-5-261028",
+            "prompt": "a red apple",
+            "size": "2K",
+            "response_format": "url",
+            "output_format": "png",
+            "background": "transparent",
+            "watermark": True,
+            "optimize_prompt_options": {"mode": "standard", "thinking": None},
+        })
+
+    async def test_55_api_error_is_reported_without_retrying(self):
+        class UnavailableImages(FakeImages):
+            def generate(self, **kwargs):
+                self.calls.append(kwargs)
+                raise RuntimeError("Seedream 5.5 early-access entitlement required")
+
+        fake = UnavailableImages()
+        with self.assertRaisesRegex(Exception, "early-access entitlement required"):
+            await self.run_node(V55, fake=fake)
+        self.assertEqual(len(fake.calls), 1)
+
+    async def test_55_documented_sizes_and_reference_editing(self):
+        import torch
+
+        for size in ("1K", "1.5K", "2K"):
+            with self.subTest(size=size):
+                fake, _, _ = await self.run_node(V55, size_preset=f"{size} (adaptive)")
+                self.assertEqual(fake.calls[0]["size"], size)
+        for width, height in ((1280, 720), (240, 3840), (2048, 1024), (2150, 2150)):
+            fake, _, _ = await self.run_node(V55, size_preset="Custom", width=width, height=height)
+            self.assertEqual(fake.calls[0]["size"], f"{width}x{height}")
+        for count in (1, 10):
+            fake, _, result = await self.run_node(
+                V55, images={"image_1": torch.ones((count, 16, 16, 3))}, background="transparent",
+            )
+            images = fake.calls[0]["image"]
+            images = [images] if isinstance(images, str) else images
+            self.assertEqual(len(images), count)
+            self.assertTrue(all(decode_data_uri(image)[1].mode == "RGB" for image in images))
+            self.assertAlmostEqual(float(result[2].mean()), 0.75)
+
+    async def test_55_jpeg_auto_and_opaque_png_return_opaque_masks(self):
+        for options in ({"output_format": "jpeg"}, {"background": "opaque"}):
+            with self.subTest(options=options):
+                _, _, result = await self.run_node(V55, **options)
+                self.assertEqual(float(result[2].sum()), 0)
+
+    async def test_55_safety_identifier_is_merged_with_background(self):
+        fake, _, _ = await self.run_node(V55, safety_identifier="a" * 64)
+        self.assertEqual(fake.calls[0]["extra_body"], {"background": "auto", "safety_identifier": "a" * 64})
+        fake, _, _ = await self.run_node(V55, safety_identifier="")
+        self.assertNotIn("safety_identifier", fake.calls[0]["extra_body"])
+
+    async def test_55_omitted_optional_identifier_accepts_comfyui_none(self):
+        fake, _, result = await self.run_node(V55, safety_identifier=None)
+        self.assertNotIn("safety_identifier", fake.calls[0]["extra_body"])
+        self.assertEqual(result[0].shape[0], 1)
+
+    async def test_55_optional_prompt_optimization_none_uses_standard(self):
+        fake, _, _ = await self.run_node(V55, prompt_optimization=None)
+        self.assertEqual(fake.calls[0]["optimize_prompt_options"].mode, "standard")
+
+    async def test_55_response_preserves_actual_background_metadata(self):
+        class BackgroundImages(FakeImages):
+            def generate(self, **kwargs):
+                response = super().generate(**kwargs)
+                response.data[0].background = "transparent"
+                response.data[0].size = "2048x2048"
+                response.data[0].output_format = "png"
+                return response
+
+        _, _, result = await self.run_node(V55, fake=BackgroundImages())
+        self.assertEqual(json.loads(result[1])[0]["images"][0]["background"], "transparent")
 
     async def test_pro_endpoint_keeps_capabilities_and_leaves_flash_unchanged(self):
         with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDREAM_5_0_PRO_ENDPOINT": "ep-image"}):
@@ -757,9 +1208,22 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
             image = torch.ones((1, 600, 600, 3))
         result = await nodes_seedream.BytePlusSeedreamLayerSeparation.execute(
             client, {"model": model, "image": image, "prompt": "  split  ", "size": "auto",
-                     "seed": 42, "watermark": False, "crop_layers": False, **options}
+                     "seed": 42, "watermark": False, **options}
         )
         return calls, client, result
+
+    async def test_crop_layers_omitted_default_and_explicit_overrides(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 128), 1, [2, 2, 6, 6])
+        for model in (PRO, FLASH, V55):
+            for supplied in (None, False, True):
+                with self.subTest(model=model, crop_layers=supplied):
+                    options = {} if supplied is None else {"crop_layers": supplied}
+                    _, _, result = await self.run_node([self.base_item(), leaf], model=model, **options)
+                    cropped = model == V55 if supplied is None else supplied
+                    side = 4 if cropped else 8
+                    self.assertEqual(tuple(result[2].shape), (1, side, side, 3))
+                    self.assertEqual(tuple(result[3].shape), (1, side, side))
+                    self.assertEqual(result[5]["canvas"], (8, 8))
 
     async def test_request_and_full_canvas_outputs(self):
         leaf = self.layer_item((4, 4), (0, 255, 0, 128), 1, [2, 2, 6, 6])
@@ -814,6 +1278,147 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([item["z_index"] for item in info["layers"]], [0, 1])
         self.assertEqual(info["layers"][1]["bounding_box"]["absolute"], [2, 2, 6, 6])
         self.assertIsNone(info["layers"][1]["file"])
+
+    async def test_55_layer_options_and_rich_text_are_preserved(self):
+        from byteplussdkarkruntime.types.images.images import Image
+
+        leaf = self.layer_item((4, 4), (0, 255, 0, 128), 1, [2, 2, 6, 6])
+        ocr = {
+            "text": "SALE",
+            "lines": [{
+                "bounding_box": {"absolute": [2, 2, 6, 6], "normalized": [250, 250, 750, 750]},
+                "runs": [{"text": "SALE", "style": {
+                    "similar_font_family": "Impact", "foreground_color": "#E53935",
+                    "bold": True, "italic": False, "underline": True, "strikethrough": False,
+                    "shadow": False, "translucent": False,
+                }}],
+            }],
+        }
+        leaf = Image(
+            **{**vars(leaf), "url": "https://example.invalid/layer.png", "bounding_box": vars(leaf.bounding_box)},
+            text_recognition=ocr, background="transparent",
+        )
+        base = self.base_item()
+        base.background = "opaque"
+        calls, _, result = await self.run_node(
+            [base, leaf], model=V55, max_images=100, text_recognition=True,
+            safety_identifier="hashed-user",
+        )
+        request = calls[0]
+        self.assertEqual(request["model"], "dola-seedream-5-5-261028")
+        self.assertEqual(request["optimize_prompt_options"].mode, "standard")
+        self.assertEqual(request["extra_body"], {
+            "layer_decomposition_options": {"max_images": 100, "text_recognition": True},
+            "safety_identifier": "hashed-user",
+        })
+        self.assertNotIn("seed", request)
+        self.assertNotIn("background", request)
+        info = json.loads(result[-1])
+        self.assertEqual(info["layers"][0]["background"], "opaque")
+        self.assertEqual(info["layers"][1]["background"], "transparent")
+        self.assertEqual(info["layers"][1]["text_recognition"], ocr)
+
+    async def test_55_layer_defaults_boundaries_and_absent_ocr(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        for count in (None, 2, 100):
+            with self.subTest(count=count):
+                calls, _, result = await self.run_node(
+                    [self.base_item(), leaf], model=V55, **({} if count is None else {"max_images": count}),
+                )
+                self.assertEqual(calls[0]["extra_body"]["layer_decomposition_options"],
+                                 {"max_images": 30 if count is None else count, "text_recognition": False})
+                self.assertNotIn("text_recognition", json.loads(result[-1])["layers"][1])
+
+    async def test_55_omitted_layer_options_accept_comfyui_none(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        for options in (
+            {"safety_identifier": None},
+            {"max_images": None},
+            {"text_recognition": None},
+            {"prompt_optimization": None},
+            {"safety_identifier": None, "max_images": None, "text_recognition": None},
+        ):
+            with self.subTest(options=options):
+                calls, _, result = await self.run_node(
+                    [self.base_item(), leaf], model=V55, **options,
+                )
+                self.assertEqual(calls[0]["extra_body"], {
+                    "layer_decomposition_options": {"max_images": 30, "text_recognition": False},
+                })
+                self.assertEqual(calls[0]["optimize_prompt_options"].mode, "standard")
+                self.assertEqual(result[2].shape[0], 1)
+
+    async def test_55_layer_invalid_parameters_fail_before_submission(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        cases = [
+            ({"max_images": 1}, "max_images"),
+            ({"max_images": 101}, "max_images"),
+            ({"max_images": 2.5}, "max_images"),
+            ({"max_images": True}, "max_images"),
+            ({"background": "auto"}, "background"),
+            ({"prompt_optimization": "fast"}, "prompt optimization"),
+            ({"size": "2048x2048"}, "size"),
+            ({"output_format": "webp"}, "output format"),
+            ({"safety_identifier": "a" * 65}, "safety_identifier"),
+            ({"text_recognition": "false"}, "text_recognition"),
+        ]
+        for options, message in cases:
+            with self.subTest(options=options):
+                with mock.patch.object(nodes_seedream, "call_billed") as paid_call:
+                    with self.assertRaisesRegex(Exception, message):
+                        await self.run_node([self.base_item(), leaf], model=V55, **options)
+                    paid_call.assert_not_called()
+
+    async def test_55_layer_partial_failure_is_not_silently_dropped(self):
+        leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])
+        for failed in (None, SimpleNamespace(b64_json=None, error=SimpleNamespace(code="LayerFailed"))):
+            with self.subTest(failed=failed):
+                with self.assertRaisesRegex(Exception, "incomplete layer"):
+                    await self.run_node([self.base_item(), leaf, failed], model=V55)
+
+    async def test_55_layer_count_can_return_99_layers(self):
+        layers = [
+            self.layer_item((2, 2), (0, 255, 0, 128), index, [0, 0, 2, 2])
+            for index in range(1, 100)
+        ]
+        _, _, result = await self.run_node([self.base_item(), *layers], model=V55, max_images=100)
+        self.assertEqual(result[2].shape[0], 99)
+        self.assertEqual(len(json.loads(result[-1])["layers"]), 100)
+
+    async def test_55_sdk_serializes_layer_options_without_background(self):
+        import httpx
+        import torch
+        from byteplussdkarkruntime import Ark
+
+        requests = []
+
+        def handle(request):
+            requests.append(json.loads(request.content))
+            return httpx.Response(200, json={
+                "model": "dola-seedream-5-5-261028",
+                "created": 1,
+                "data": [
+                    {"b64_json": png_b64((8, 8), (255, 255, 255, 255)), "z_index": 0},
+                    {"b64_json": png_b64((8, 8), (255, 0, 0, 128)), "z_index": 1},
+                ],
+            })
+
+        with Ark(
+            api_key="test-only",
+            base_url="https://example.invalid/api/v3",
+            max_retries=0,
+            http_client=httpx.Client(transport=httpx.MockTransport(handle)),
+        ) as ark:
+            await nodes_seedream.BytePlusSeedreamLayerSeparation.execute(
+                FakeClient(ark.images),
+                {"model": V55, "image": torch.ones((1, 512, 512, 3)), "max_images": 10,
+                 "text_recognition": True, "safety_identifier": "hashed-user"},
+            )
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0]["layer_decomposition_options"], {"max_images": 10, "text_recognition": True})
+        self.assertEqual(requests[0]["safety_identifier"], "hashed-user")
+        self.assertNotIn("background", requests[0])
+        self.assertEqual(requests[0]["response_format"], "b64_json")
 
     async def test_pro_endpoint_also_applies_to_layers(self):
         leaf = self.layer_item((4, 4), (0, 255, 0, 255), 1, [0, 0, 4, 4])

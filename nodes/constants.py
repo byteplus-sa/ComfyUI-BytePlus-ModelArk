@@ -61,6 +61,10 @@ LAS_POLL_SECONDS = 10
 LAS_MAX_POLL_ERRORS = 5
 LAS_DOWNLOAD_STALL_SECONDS = 120
 LAS_TASK_RETENTION_SECONDS = 259200
+OMNIHUMAN_API_KEY_ENV = "BYTEPLUS_CV_API_KEY"
+OMNIHUMAN_BASE_URL = "https://openapi.cv.bytepluses.com"
+OMNIHUMAN_API_KEYS_GUIDE_URL = "https://docs.byteplus.com/en/docs/byteplus-vision/api-key-usage-instructions"
+OMNIHUMAN_REQ_KEY = "realman_avatar_picture_omni20_cv"
 SEED_AUDIO_PATH = "/api/v3/tts/create"
 SEED_TTS_PATH = "/api/v3/tts/unidirectional"
 SEED_ASR_FAST_PATH = "/api/v3/auc/bigmodel/recognize/flash"
@@ -400,6 +404,7 @@ MESSAGES = {
     "err_model_not_supported": "This node does not support model {model}.",
     "err_seedance2_resolution_unsupported": "Model {model} does not support {resolution}. Supported resolutions: {supported}.",
     "err_seedance2_duration_unsupported": "Model {model} requires a duration between {min} and {max} seconds. Current: {duration}",
+    "err_seedance2_output_format_unsupported": "Seedance 2.5 output_format must be mp4 or mov. Current: {format}",
     "err_asset_credentials_missing": "The asset library needs IAM AK/SK with asset-library permission (plus Dreamina Seedance Advanced Creation Rights on the account). Add them in Settings > BytePlus (Asset library IAM AK/SK), or set BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY (and BYTEPLUS_SESSION_TOKEN for STS keys) in user/.env or the environment.",
     "err_asset_api": "Asset library {action} failed: {code}: {message}{hint}",
     "hint_asset_auth": " Check the IAM AK/SK in Settings > BytePlus.",
@@ -474,6 +479,20 @@ MESSAGES = {
     "las_video_upload_unavailable": "Connected video needs Comfy.org storage, which is unavailable ({e}). Use video_url instead.",
     "las_video_upload_failed": "Could not upload connected video through Comfy.org ({e}). Sign in to Comfy.org or use video_url instead.",
     "las_collection_pending": "LAS task {task_id} is {status}. Requeue LAS Task Result to collect it. Interrupting does not cancel remote work.",
+    "err_no_omnihuman_key": "No Vision AI API key is set. Add the OmniHuman Vision AI key in Settings > BytePlus, or set BYTEPLUS_CV_API_KEY in {path} or the environment. Other BytePlus product keys do not work here.",
+    "err_omnihuman_input": "Invalid OmniHuman input: {detail}",
+    "err_omnihuman_api": "OmniHuman request failed (HTTP {status}, code {code}): {message}",
+    "err_omnihuman_protocol": "Unexpected OmniHuman response: {detail}",
+    "err_omnihuman_network": "OmniHuman request did not complete ({reason}).",
+    "err_omnihuman_submit_unknown": "OmniHuman task acceptance is unknown. Do not submit again: remote work may continue and be billed. Check Vision AI for the task ID, then use existing_task_id or OmniHuman Task Result.",
+    "err_omnihuman_task": "Could not collect OmniHuman task {task_id}: {detail}. Recover the same ID with OmniHuman Task Result; do not submit generation again.",
+    "err_omnihuman_unresolved": "This node has unresolved OmniHuman work ({task_id}). Restore its original inputs and fixed seed to resume, or use existing_task_id / OmniHuman Task Result. Use a new node only for intentional new paid work.",
+    "err_omnihuman_handle": "Could not read or save OmniHuman recovery information. No new work is submitted until local recovery storage is available.",
+    "err_omnihuman_download": "Could not download OmniHuman task {task_id} ({reason}). Recover the same ID with OmniHuman Task Result. Video links expire after one hour.",
+    "omnihuman_waiting": "OmniHuman task {task_id}: {status}. Interrupting stops local waiting; remote work may continue and be billed.",
+    "omnihuman_submitted": "OmniHuman accepted task {task_id}. Recovery is saved locally. Only queued tasks can be canceled.",
+    "omnihuman_cancel_unavailable": "OmniHuman task {task_id} could not be canceled because it already started or finished. Remote processing may continue and be billed.",
+    "err_omnihuman_upload": "Could not upload connected {kind} through Comfy.org. Sign in to Comfy.org or use a persistent public URL.",
     "cred_unknown": "Unknown credential.",
     "cred_bad_request": "The request is not valid.",
     "cred_forbidden_origin": "Requests from another origin are not accepted.",
@@ -522,6 +541,18 @@ MESSAGES = {
     "tts_text_empty": "text is empty.",
     "tts_voice_required": "{model} needs custom_speaker_id: the voice list only holds TTS 2.0 voices.",
     "tts_tone_fidelity_icl2_only": "tone_fidelity only works with seed-icl-2.0 cloned voices.",
+    "tts3_invalid_input": "[BytePlus] Seed TTS 3: invalid {field}. {hint}",
+    "tts3_input_text": "Provide exactly one of text or ssml; text accepts up to 10000 characters.",
+    "tts3_input_voice": "Choose a TTS 3 preset or enter an authorized custom_speaker_id.",
+    "tts3_input_string": "Use a text value.",
+    "tts3_input_range": "Use a finite number between {minimum} and {maximum}.",
+    "tts3_input_integer": "Use a whole number.",
+    "tts3_input_boolean": "Use true or false.",
+    "tts3_input_option": "Choose one of the listed options.",
+    "tts3_input_subtitles": "This language does not support subtitle timestamps. Turn off enable_subtitle or choose a supported language.",
+    "tts3_stream_invalid": "[BytePlus] Seed TTS 3 returned an invalid or incomplete stream; no partial audio was returned.",
+    "tts3_request_failed": "[BytePlus] Seed TTS 3 failed (HTTP {status}, code {code}, type {error_type}): {message} (parameter: {param}; request ID: {request_id}; log ID: {logid}).",
+    "tts3_error_unknown": "The service did not return a readable error. Check the Seed Speech key, model and voice access.",
     "asr_lid_standard_only": "enable_lid needs seed-asr-2.0 or seed-asr-1.0 (not seed-asr-fast).",
     "asr_end_window_out_of_range": "end_window_size must be 0 (off) or between 300 and 5000 ms.",
     "asr_channel_split_needs_stereo": "enable_channel_split needs stereo audio (2 channels).",
@@ -558,6 +589,7 @@ MESSAGES = {
     # Shared helpers in core_style.py
     "err_output_linked": "{reason} (currently linked: {consumers}).",
     "err_reference_value_invalid": "Not a valid reference: '{value}'. Use an asset ID, asset://<asset_id> or an https:// link.",
+    "err_reference_url_invalid": "Reference links must be public HTTPS URLs without embedded credentials.",
     "err_reference_value_multiple": "Each reference input takes one asset ID, asset://<asset_id> or https:// link, but got several (or spaces): '{value}'. Connect each reference to its own asset_N slot.",
     "err_reference_url_type_unknown": "Could not tell whether {url} is an image, video or audio file. Use a link ending in the file extension (for example .png, .mp4 or .mp3).",
     "err_reference_asset_needs_credentials": "Asset {asset_id}: looking up whether an asset is an image, video or audio needs IAM AK/SK. Add them in Settings > BytePlus (Asset library IAM AK/SK).",
@@ -566,7 +598,7 @@ MESSAGES = {
     "err_reference_type_mismatch": "'{value}' is {kind}, but this input needs {expected}.",
     # Seedance 2 / 2.5 and asset creation (nodes_seedance2.py, nodes_assets.py)
     "err_seedance2_prompt_empty": "Enter a prompt.",
-    "err_seedance2_draft_output_linked": "Only the Seedance 2.5 Draft and Seedance 2.5 Premium Draft models produce a draft_task_id. Select one of them as the model, or disconnect the draft_task_id output",
+    "err_seedance2_draft_output_linked": "Only the Seedance 2.5 Draft model produces a draft_task_id. Select it as the model, or disconnect the draft_task_id output",
     "err_seedance2_first_frame_both": "Provide only one of first_frame or first_frame_asset_id, not both.",
     "err_seedance2_first_frame_missing": "Either first_frame or first_frame_asset_id is required.",
     "err_seedance2_last_frame_both": "Provide only one of last_frame or last_frame_asset_id, not both.",
@@ -586,12 +618,12 @@ MESSAGES = {
     "err_query_tasks_not_found": "No task found for {ids}. Check the task ID: it is the Task ID line in the console or the draft_task_id output of a Seedance 2.5 Draft run, and ModelArk keeps tasks for 7 days.",
     "query_tasks_some_not_found": "Not found: {ids}.",
     "query_tasks_partial_error": "Could not list some tasks: {e}",
-    "err_draft_not_a_draft": "Task {task_id} is not a draft. Use the draft_task_id of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run.",
+    "err_draft_not_a_draft": "Task {task_id} is not a draft. Use the draft_task_id of a Seedance 2.5 Draft run.",
     "err_draft_is_final": "Task {task_id} is a final video rendered from draft {draft_task_id}, not a draft. Use the draft task ID.",
     "err_draft_expired": "Draft task {task_id} is more than 7 days old; drafts can only be rendered for 7 days. Generate a new draft.",
     "err_draft_not_ready": "Draft task {task_id} is {status}. Render the final video after the draft has succeeded.",
     "err_draft_failed": "Draft task {task_id} is {status} and cannot be rendered. Generate a new draft.",
-    "err_draft_model_unsupported": "Draft task {task_id} was made with {model}, which cannot render a final from a draft. Supported: Seedance 2.5 and Seedance 2.5 Premium drafts.",
+    "err_draft_model_unsupported": "Draft task {task_id} was made with {model}, which cannot render a final from a draft. Supported: Seedance 2.5 drafts.",
     "err_draft_mixed_models": "The draft task IDs come from different models ({models}). Render each model's drafts in its own node.",
     "draft_final_render": "Rendering the {resolution} final video of {count} draft(s) with {model}.",
     "err_asset_media_missing": "Connect the {media} input or set {url_input} (a public HTTPS URL).",
@@ -622,9 +654,15 @@ MESSAGES = {
     # Seedream and Layer Separation (nodes_seedream.py)
     "seedream_err_prompt_empty": "Prompt cannot be empty.",
     "seedream_err_unknown_model": "Unknown Seedream model: {model}.",
+    "seedream_err_size_preset": "The size preset {preset} is not exposed for {model}. Select a listed size preset.",
+    "seedream_err_output_format": "The output format {format} is not exposed for {model}. Select a listed output format.",
+    "seedream_err_background": "Invalid background mode. Select one of: {modes}.",
+    "seedream_err_safety_identifier": "safety_identifier must be a printable ASCII string of at most 64 characters. Use a hashed identifier, not personal data.",
+    "seedream_err_prompt_optimization": "Invalid prompt optimization mode. Select one of: {modes}.",
     "seedream_err_min_pixels": "Minimum image resolution for the selected model is {min_mp:.2f}MP, but {mp:.2f}MP provided.",
     "seedream_err_max_pixels": "Maximum image resolution for the selected model is {max_mp:.2f}MP, but {mp:.2f}MP provided.",
     "seedream_err_size_aspect": "Size {width}x{height} is outside the supported aspect ratio range (1:{max} to {max}:1).",
+    "seedream_err_ref_dimensions": "Invalid reference image {index}: each side must be greater than 14 pixels and the total pixel count cannot exceed 36,000,000.",
     "seedream_err_ref_count": "Maximum of {max} reference images are supported, but {count} received.",
     "seedream_err_refs_plus_outputs": "The maximum number of generated images ({max_images}) plus the number of reference images ({count}) cannot exceed {limit}.",
     "seedream_err_thinking_with_refs": "'thinking' can only be disabled for text-to-image; enable it when using reference images.",
@@ -632,6 +670,10 @@ MESSAGES = {
     "seedream_err_partial": "Only {received} of {requested} images were generated before error.",
     "seedream_err_partial_generations": "Only {received} of {requested} generations succeeded (fail_on_partial is on).",
     "seedream_layers_err_single_image": "Only a single input image is supported.",
+    "seedream_layers_err_background": "background is not supported for layer decomposition.",
+    "seedream_layers_err_max_images": "max_images must be an integer between 2 and {max}, including the base image.",
+    "seedream_layers_err_text_recognition": "text_recognition must be a boolean.",
+    "seedream_layers_err_incomplete": "The API returned an incomplete layer decomposition. Partial layer results are not supported.",
     "seedream_layers_err_min_size": "Image must have at least {min} pixels in total, got {width}x{height}.",
     "seedream_layers_err_aspect": "Image aspect ratio {ratio:.3f} must be between 1:16 and 16:1.",
     "seedream_layers_err_no_base": "Unexpected response: no base image returned.",
@@ -731,8 +773,9 @@ MESSAGES = {
         "InvalidImageDetail": "Invalid Image Detail parameter (400).",
         "MissingParameter": "Missing Parameter (400).",
         "InvalidParameter": "Invalid Parameter (400).",
-        "InvalidParameter.TaskTypeConstraint": "The task type is incompatible with the current parameters. Video editing requires the adaptive aspect ratio and auto duration; video extension requires the adaptive aspect ratio. With a reference video connected, set task_type to reference, edit or extend instead of auto.",
+        "InvalidParameter.TaskTypeConstraint": "The task type is incompatible with the current parameters. Video editing requires the adaptive aspect ratio and auto duration; video extension requires the adaptive aspect ratio. Automatic reference tasks use both. Set task_type to reference, edit or extend for explicit intent: reference makes a new video with a fixed duration, edit modifies the source, and extend continues it.",
         "InvalidParameter.TaskTypeMismatch": "The model detected a different task type than the one selected in task_type. Adjust the prompt or set task_type to auto.",
+        "InvalidParameter.DraftEndpointMismatch": "The final must use the same Seedance 2.5 endpoint that created the draft. Restore that endpoint in Settings > BytePlus; if the draft used the model directly, clear the endpoint override. Reuse the existing draft task ID.",
         "RequestBodyTooLarge": "Request body exceeds the service limit. Reduce reference media and try again.",
         "ModelParameterNotSupported": "One or more request parameters are not supported by the selected model.",
         "MediaInvalid": "Reference media violates a format, codec, size, duration, or frame-rate limit.",
@@ -744,6 +787,7 @@ MESSAGES = {
 }
 
 ERROR_TEXT_MATCH_RULES = {
+    "draft_task endpoint mismatch": "InvalidParameter.DraftEndpointMismatch",
     "output image may contain sensitive information": "OutputImageSensitiveContentDetected",
     "input text may contain sensitive information": "InputTextSensitiveContentDetected",
     "input image may contain sensitive information": "InputImageSensitiveContentDetected",

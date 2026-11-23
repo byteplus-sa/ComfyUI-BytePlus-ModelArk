@@ -52,6 +52,19 @@ class DocsDataTests(unittest.TestCase):
         documented = {t["file"] for t in load("templates.json")}
         self.assertEqual(files, documented, "run docs-site/scripts/generate_data.py")
 
+    def test_every_template_group_is_visible_in_the_template_index(self):
+        with open(os.path.join(PAGES, "templates", "index.mdx"), encoding="utf-8") as file:
+            visible = set(re.findall(r'<TemplateGrid\s+group="([^"]+)"', file.read()))
+        self.assertEqual(visible, {template["group"] for template in load("templates.json")})
+
+    def test_downloadable_workflows_match_the_shipped_templates(self):
+        for template in load("templates.json"):
+            with self.subTest(template=template["file"]):
+                source = os.path.join(ROOT, "example_workflows", template["file"])
+                download = os.path.join(ROOT, "docs-site", "public", "workflows", template["slug"] + ".json")
+                with open(source, "rb") as source_file, open(download, "rb") as download_file:
+                    self.assertEqual(source_file.read(), download_file.read())
+
     def test_the_model_table_matches_models_config(self):
         self.assertEqual(
             generate_data_module().build_models(), load("models.json"), "run docs-site/scripts/generate_data.py"
@@ -87,9 +100,19 @@ class DocsDataTests(unittest.TestCase):
         self.assertEqual(downloads, slugs)
         self.assertEqual(images, slugs)
         self.assertEqual(orphan_images, [])
+        course_media = set()
+        course = os.path.join(PAGES, "tutorials")
+        if os.path.isdir(course):
+            for filename in os.listdir(course):
+                if filename.endswith(".mdx"):
+                    with open(os.path.join(course, filename), encoding="utf-8") as file:
+                        course_media.update(re.findall(r'<Media\b[^>]*\bfile="([^"]+)"', file.read()))
         for name in os.listdir(os.path.join(site, "public", "media")):
             stem = name.rsplit(".", 1)[0]
-            self.assertTrue(stem in slugs or stem.rsplit("-", 1)[0] in slugs, f"orphan sample media: {name}")
+            self.assertTrue(
+                stem in slugs or stem.rsplit("-", 1)[0] in slugs or name in course_media,
+                f"orphan sample media: {name}",
+            )
         self.assertEqual(set(load("evidence.json")), slugs)
 
     def test_the_site_is_left_out_of_the_registry_package(self):

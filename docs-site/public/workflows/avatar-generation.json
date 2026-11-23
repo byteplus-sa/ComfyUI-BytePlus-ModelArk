@@ -1,0 +1,639 @@
+{
+  "id": "9b193bb2-2f75-49c3-b054-63478829e5c8",
+  "revision": 0,
+  "last_node_id": 10,
+  "last_link_id": 6,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "BytePlusSeedream",
+      "pos": [
+        20,
+        100
+      ],
+      "size": [
+        430,
+        510
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1,
+            2
+          ]
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "1. Character - Seedream 5.5",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedream",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.12.0"
+      },
+      "widgets_values": [
+        "A fictional adult presenter with a warm, natural expression, facing the camera. Chest-up portrait, one person, clear unobstructed face, relaxed shoulders, neutral contemporary clothing. Soft studio lighting, simple light gray background, photorealistic detail. No text, logos, props or other people.",
+        "seedream 5.5",
+        "(1K) 864x1152 (3:4)",
+        864,
+        1152,
+        "standard",
+        42,
+        "fixed",
+        true,
+        1,
+        "png",
+        "opaque",
+        "",
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "prompt": "A fictional adult presenter with a warm, natural expression, facing the camera. Chest-up portrait, one person, clear unobstructed face, relaxed shoulders, neutral contemporary clothing. Soft studio lighting, simple light gray background, photorealistic detail. No text, logos, props or other people.",
+        "model": "seedream 5.5",
+        "model.size_preset": "(1K) 864x1152 (3:4)",
+        "model.width": 864,
+        "model.height": 1152,
+        "model.prompt_optimization": "standard",
+        "model.seed": 42,
+        "control_after_generate#1": "fixed",
+        "model.watermark": true,
+        "model.generation_count": 1,
+        "model.output_format": "png",
+        "model.background": "opaque",
+        "model.safety_identifier": "",
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 2,
+      "type": "SaveImage",
+      "pos": [
+        500,
+        100
+      ],
+      "size": [
+        310,
+        360
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Portrait preview and PNG",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Avatar/portrait"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/Avatar/portrait"
+      }
+    },
+    {
+      "id": 3,
+      "type": "BytePlusSeedAudio",
+      "pos": [
+        20,
+        800
+      ],
+      "size": [
+        430,
+        576
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "shape": 6,
+          "type": "AUDIO",
+          "links": [
+            3,
+            4
+          ]
+        },
+        {
+          "name": "subtitles_json",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "srt",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "duration",
+          "shape": 6,
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "url",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "2. Narration - Seed Audio",
+      "properties": {
+        "Node name for S&R": "BytePlusSeedAudio",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.12.0"
+      },
+      "widgets_values": [
+        "Speak in English with a warm, natural presenter voice. Read exactly these words: \"Hello, and welcome. Today we are bringing an idea to life with BytePlus. One portrait, one voice, and a new way to tell your story.\" Voice only, no music or sound effects.",
+        "text only",
+        "24000",
+        0,
+        0,
+        0,
+        42,
+        "fixed",
+        "seed-audio-1.0",
+        "wav",
+        false,
+        false,
+        false,
+        "",
+        "",
+        "",
+        "",
+        1
+      ],
+      "widgets_values_named": {
+        "text_prompt": "Speak in English with a warm, natural presenter voice. Read exactly these words: \"Hello, and welcome. Today we are bringing an idea to life with BytePlus. One portrait, one voice, and a new way to tell your story.\" Voice only, no music or sound effects.",
+        "reference_mode": "text only",
+        "sample_rate": "24000",
+        "speech_rate": 0,
+        "loudness_rate": 0,
+        "pitch_rate": 0,
+        "seed": 42,
+        "control_after_generate": "fixed",
+        "model": "seed-audio-1.0",
+        "audio_format": "wav",
+        "enable_subtitle": false,
+        "aigc_watermark": false,
+        "aigc_metadata": false,
+        "content_producer": "",
+        "produce_id": "",
+        "content_propagator": "",
+        "propagate_id": "",
+        "generation_count": 1
+      }
+    },
+    {
+      "id": 4,
+      "type": "SaveAudioAdvanced",
+      "pos": [
+        500,
+        800
+      ],
+      "size": [
+        310,
+        210
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "title": "Narration preview and lossless audio",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Avatar/narration",
+        "flac"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/Avatar/narration",
+        "format": "flac"
+      }
+    },
+    {
+      "id": 5,
+      "type": "BytePlusOmniHuman",
+      "pos": [
+        920,
+        100
+      ],
+      "size": [
+        450,
+        460
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "task_id",
+          "type": "STRING",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "response",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "3. Talking avatar - OmniHuman 2.0",
+      "properties": {
+        "Node name for S&R": "BytePlusOmniHuman",
+        "cnr_id": "ComfyUI-BytePlus-ModelArk",
+        "ver": "0.12.0"
+      },
+      "widgets_values": [
+        "The presenter speaks naturally to the camera with subtle expressions and small head movements. Keep the camera fixed.",
+        true,
+        0,
+        "fixed",
+        "",
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "prompt": "The presenter speaks naturally to the camera with subtle expressions and small head movements. Keep the camera fixed.",
+        "enable_watermark": true,
+        "seed": 0,
+        "control_after_generate": "fixed",
+        "image_url": "",
+        "audio_url": "",
+        "existing_task_id": ""
+      }
+    },
+    {
+      "id": 6,
+      "type": "SaveVideo",
+      "pos": [
+        1440,
+        100
+      ],
+      "size": [
+        450,
+        390
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "Avatar video preview and MP4",
+      "properties": {},
+      "widgets_values": [
+        "BytePlus/Avatar/video",
+        "mp4",
+        "auto",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "BytePlus/Avatar/video",
+        "format": "mp4",
+        "format.codec": "auto",
+        "codec": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "PreviewAny",
+      "pos": [
+        1440,
+        640
+      ],
+      "size": [
+        450,
+        130
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Completed OmniHuman task ID",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 8,
+      "type": "LoadImage",
+      "pos": [
+        920,
+        1000
+      ],
+      "size": [
+        450,
+        320
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Optional image: reference or replacement",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 9,
+      "type": "LoadAudio",
+      "pos": [
+        1440,
+        1000
+      ],
+      "size": [
+        450,
+        230
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "title": "Optional narration: replace generated audio",
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "audio": "",
+        "upload": ""
+      }
+    },
+    {
+      "id": 10,
+      "type": "MarkdownNote",
+      "pos": [
+        20,
+        1570
+      ],
+      "size": [
+        1870,
+        300
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Avatar Generation - Read me",
+      "properties": {},
+      "widgets_values": [
+        "## One connected avatar workflow\n\nSet ModelArk, Seed Speech and Vision AI keys in **Settings > BytePlus**. Sign in to Comfy.org for connected-media uploads.\n\nEdit the character prompt and spoken words, then Run once. Seedream and Seed Audio feed OmniHuman directly: **no review pause** and no separate app.\n\nThe optional upload nodes are muted and disconnected. Unmute the loader you want to use and upload a file. For a character reference, connect Load Image to Seedream's image_1. To replace a generated input, connect Load Image or Load Audio directly to OmniHuman, then mute the unused generator AND its save node to avoid extra generation.\n\nKeep generation_count at 1. Narration must be 4-300 seconds for OmniHuman; start with a short spoken script. Outputs save under BytePlus/Avatar.\n\nSeed controls stay fixed to allow cached inputs to be reused. Change a seed for a fresh take; changed inputs, a cleared cache or a restart can generate and bill again.\n\nFor an unresolved video, keep its inputs and seed unchanged. Use existing_task_id on OmniHuman to recover the original task; do not generate a replacement blindly. To avoid upstream generation during recovery, disconnect image/audio from OmniHuman and mute their generators and savers first. Task Result is also available as a separate node."
+      ],
+      "widgets_values_named": {
+        "text": "## One connected avatar workflow\n\nSet ModelArk, Seed Speech and Vision AI keys in **Settings > BytePlus**. Sign in to Comfy.org for connected-media uploads.\n\nEdit the character prompt and spoken words, then Run once. Seedream and Seed Audio feed OmniHuman directly: **no review pause** and no separate app.\n\nThe optional upload nodes are muted and disconnected. Unmute the loader you want to use and upload a file. For a character reference, connect Load Image to Seedream's image_1. To replace a generated input, connect Load Image or Load Audio directly to OmniHuman, then mute the unused generator AND its save node to avoid extra generation.\n\nKeep generation_count at 1. Narration must be 4-300 seconds for OmniHuman; start with a short spoken script. Outputs save under BytePlus/Avatar.\n\nSeed controls stay fixed to allow cached inputs to be reused. Change a seed for a fresh take; changed inputs, a cleared cache or a restart can generate and bill again.\n\nFor an unresolved video, keep its inputs and seed unchanged. Use existing_task_id on OmniHuman to recover the original task; do not generate a replacement blindly. To avoid upstream generation during recovery, disconnect image/audio from OmniHuman and mute their generators and savers first. Task Result is also available as a separate node."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      1,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "AUDIO"
+    ],
+    [
+      4,
+      3,
+      0,
+      5,
+      1,
+      "AUDIO"
+    ],
+    [
+      5,
+      5,
+      0,
+      6,
+      0,
+      "VIDEO"
+    ],
+    [
+      6,
+      5,
+      1,
+      7,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Character",
+      "bounding": [
+        0,
+        25,
+        830,
+        610
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "Narration",
+      "bounding": [
+        0,
+        725,
+        830,
+        676
+      ],
+      "color": "#588b75",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "Avatar video",
+      "bounding": [
+        900,
+        25,
+        1010,
+        770
+      ],
+      "color": "#8670a4",
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "Optional uploads - connect only when needed",
+      "bounding": [
+        900,
+        925,
+        1010,
+        420
+      ],
+      "color": "#826e48",
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "How to use",
+      "bounding": [
+        0,
+        1495,
+        1910,
+        400
+      ],
+      "color": "#555555",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6,
+      "offset": [
+        40,
+        80
+      ]
+    }
+  },
+  "version": 0.4
+}

@@ -1,6 +1,6 @@
 ---
 title: "Set up your API key"
-description: "Create a ModelArk API key, save it with the matching region in ComfyUI, and run a Seedream image to confirm your setup."
+description: "Create a ModelArk API key, save it with the matching region in ComfyUI, and run a Seedream 5.5 image to confirm your setup."
 ---
 
 import { Steps } from '@astrojs/starlight/components';
@@ -18,7 +18,7 @@ import { base } from '../../../components/lib';
 
 This course uses only the **ModelArk API key**. You do not need Seed Speech, MediaKit, LAS or IAM keys.
 
-<a href={`${base}/course/comfyui_logo.png`} download>Download the practice logo (PNG)</a>. Save it in your course folder, even if the same filename already appears in a template. It comes from [Comfy Org's workflow templates](https://github.com/Comfy-Org/workflow_templates), with its <a href={`${base}/course/LOGO-LICENSE.txt`}>MIT license notice</a>.
+<a href={`${base}/course/byteplus_logo.png`} download>Download the official BytePlus practice logo (PNG)</a>. Save it in your course folder, even if another filename already appears in a template. Read the <a href={`${base}/course/LOGO-LICENSE.txt`}>official BytePlus logo usage notice</a>. The BytePlus name and logo remain BytePlus trademarks; this practice reference does not grant general brand-use rights. Do not imply endorsement or use a generated badge as an official replacement logo.
 
 ## Create your ModelArk key
 
@@ -27,7 +27,7 @@ This course uses only the **ModelArk API key**. You do not need Seed Speech, Med
 1. Sign in to BytePlus and open **ModelArk**. Use the region your account administrator has enabled for this project. If you are setting up your own account, start with Singapore and check model access there.
 2. Open **API keys** in the ModelArk console. The [Singapore API-key page](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) is a direct starting point if you use that region.
 3. Create an API key and copy it privately. Do not put it in your course notes or workflow.
-4. In ModelArk's model catalog, search for **Seedream 5.0 Pro** and **Seedance 2.5**. Open their details and follow any activation or access instructions shown for your account. Seeing a model in ComfyUI's dropdown does not confirm account access.
+4. In ModelArk's model catalog, search for **Seedream 5.5** and **Dreamina Seedance 2.5**. Open their details and follow any activation or access instructions shown for your account. Seeing a model in ComfyUI's dropdown does not confirm account access.
 
 </Steps>
 
@@ -52,33 +52,49 @@ Leave optional model endpoints empty unless your account administrator has suppl
 
 ## Generate your first image
 
-The **Seedream** template is included with the node pack and provides the connected graph.
+The **Seedream** template is included with the node pack and provides the connected graph. It still defaults to **Pro**, not the course model. Override its model, reference and prompt using the steps below. If `seedream 5.5` is missing, update the BytePlus pack in Nodes Manager and restart ComfyUI before continuing.
 
 <TemplateFacts file="Seedream.json" showDownload={false} />
 
 <Steps>
 
 1. Open **Templates** in the left sidebar, look under **ComfyUI-BytePlus-ModelArk**, and open **Seedream**.
-2. In **Load Image**, press **choose file to upload** and select the practice logo or your reference image. Confirm a preview appears.
-3. Keep `seedream 5.0 pro` selected. For the logo, use the template's prompt. For your own image, describe the result you want. Set Save Image's `filename_prefix` to `Course/first-image`.
-4. Press **Run** and wait for the result to appear in **Save Image**.
-5. In ComfyUI's file location, open `output`, then `Course`. Find the file beginning `first-image`. Copy that image into your course folder.
+2. In **Load Image**, press **choose file to upload** and select `byteplus_logo.png` or your own reference image. Replace the template's reference and confirm a preview appears.
+3. In **BytePlus Seedream**, select `seedream 5.5`. Set `size_preset` to `(2K) 2048x2048 (1:1)`, `output_format` to `png`, `background` to `opaque`, `generation_count` to `1` (one image), and `prompt_optimization` to `standard`. Expand advanced controls if needed; do not leave the adaptive size or automatic background selected.
+4. Replace the template's prompt with the full BytePlus badge prompt below. For your own reference, describe the result you want instead. Set Save Image's `filename_prefix` to `Course/first-image`.
+5. Press **Run** once and wait for the result to appear in **Save Image**.
+6. In ComfyUI's file location, open `output`, then `Course`. Find the PNG beginning `first-image`. Copy that image into your course folder as `byteplus-badge-base.png` for the badge exercise.
 
 </Steps>
 
-<Shot src="tutorials/reference-upload.webp" alt="Load Image showing the practice logo preview with a callout pointing to choose file to upload" caption="A filename alone is not enough; check that your reference preview appears." />
+After selecting `seedream 5.5`, check these course settings:
 
-<Shot src="templates/seedream-result.webp" alt="A glossy purple ComfyUI badge on white, generated from the practice logo reference" caption="Example output from the template's logo prompt." />
+| Control | Course value |
+|---|---|
+| `model` | `seedream 5.5` |
+| `size_preset` | `(2K) 2048x2048 (1:1)` |
+| `output_format` | `png` |
+| `background` | `opaque` |
+| `generation_count` | `1` (one image) |
+| `prompt_optimization` | `standard` |
+
+```text
+Turn the supplied BytePlus logo into a glossy 3D badge on a clean white studio background with soft shadows. Preserve the exact BytePlus symbol, the word BytePlus, and their proportions. Use BytePlus blue (#0066FC) for the symbol and dark charcoal lettering. Mount the full logo on one rounded white badge, centered with generous empty space. Front-facing product photography, soft diffused lighting, crisp edges. No other text, no extra logos, no decorative props.
+```
+
+In Load Image, check that the preview shows the original BytePlus symbol and wordmark. A filename alone is not enough; upload the original PNG if its preview is missing or shows the template's old reference.
+
+<Shot src="tutorials/byteplus-badge.webp" alt="Full BytePlus logo mounted on a glossy rounded white badge with a blue symbol and charcoal lettering in a white studio" caption="Glossy base example from the course prompt; inspect the logo and lettering in your own result." />
 
 For Desktop, use the ComfyUI file location you chose during installation. For a manual installation, `output` is in the ComfyUI directory. If ComfyUI runs on another computer, the output folder is on that computer.
 
-The key is stored separately from your workflow. Keep it out of screenshots, recordings and shared files. Generation sends your reference and prompt to the cloud and uses your BytePlus account balance.
+The key is stored separately from your workflow. Keep it out of screenshots, recordings and shared files. Generation sends your reference and prompt to the cloud and uses your BytePlus account balance. One image limits this exercise to one generation per run; further changed-input runs can incur more charges.
 
 ## Practice
 
-Write one sentence naming the product, audience and desired look. For example: "Create a clean studio image of my reusable bottle for an online shop, with soft shadows and space for advertising copy." Keep it with a photo you own or have permission to use. Use this same brief and original reference throughout Modules 3-5.
+Write one sentence naming the product, audience and desired look. For example: "Create a clean studio image of my reusable bottle for an online shop, with soft shadows and space for advertising copy." Keep it with a photo you own or have permission to use. Use the same brief throughout Modules 3-5: the original reference is for image generations, then the selected generated image becomes the video reference.
 
-Without a product photo, keep using the practice logo and this brief: "Create a glossy ComfyUI logo badge for a creator profile, on white with soft shadows and space for a headline." In later product prompts, replace "product" with "logo badge".
+Without a product photo, keep using the original BytePlus logo and this brief: "Create a glossy blue-and-white BytePlus badge for a course demo, on white with soft shadows and generous empty space." Use the full prompt above for its base image. In Module 4, use the same original logo to compare two finishes; the glossy base will be the reference for the video.
 
 ## Completion check
 

@@ -14,11 +14,13 @@ SEEDREAM_5_MODEL_MAP = {
     "dola-seedream-5-0-pro": "dola-seedream-5-0-pro-260628",
     "dola-seedream-5-0-flash": "dola-seedream-5-0-flash-260915",
     "seedream-5-0-lite": "seedream-5-0-260128",
+    "dola-seedream-5-5": "dola-seedream-5-5-261028",
 }
 
 SEEDREAM_5_PRO_UI_MODEL = "dola-seedream-5-0-pro"
 SEEDREAM_5_FLASH_UI_MODEL = "dola-seedream-5-0-flash"
 SEEDREAM_5_LITE_UI_MODEL = "seedream-5-0-lite"
+SEEDREAM_5_5_UI_MODEL = "dola-seedream-5-5"
 
 # Model ID -> regions where it must not be used. Seedream 5.0 Lite was
 # deactivated in eu-west-1 on 2026-09-10 (model deprecation notice).
@@ -36,7 +38,7 @@ VIDEO_MODEL_MAP = {
     "dreamina-seedance-2-0-fast": "dreamina-seedance-2-0-fast-260128",
     "dreamina-seedance-2-0-mini": "dreamina-seedance-2-0-mini-260615",
     "dreamina-seedance-2-5": "dreamina-seedance-2-5-260628",
-    "dreamina-seedance-2-5-premium": "dreamina-seedance-2-5-premium-260915",
+    "dreamina-seedance-2-5-flash": "dreamina-seedance-2-5-flash-261115",
 }
 
 # Seedance 1.0 node options
@@ -62,21 +64,19 @@ VIDEO_2_UI_OPTIONS = [
     "dreamina-seedance-2-0-fast",
     "dreamina-seedance-2-0-mini",
     "dreamina-seedance-2-5",
-    "dreamina-seedance-2-5-premium",
+    "dreamina-seedance-2-5-flash",
 ]
 
 SEEDANCE_2_5_UI_MODEL = "dreamina-seedance-2-5"
-SEEDANCE_2_5_PREMIUM_UI_MODEL = "dreamina-seedance-2-5-premium"
-# Models with Seedance 2.5 features: 30 s output, audio-only references,
-# task_type, output_format and draft mode.
-SEEDANCE_2_5_FAMILY = (SEEDANCE_2_5_UI_MODEL, SEEDANCE_2_5_PREMIUM_UI_MODEL)
+SEEDANCE_2_5_FLASH_UI_MODEL = "dreamina-seedance-2-5-flash"
+SEEDANCE_2_5_FAMILY = (SEEDANCE_2_5_UI_MODEL, SEEDANCE_2_5_FLASH_UI_MODEL)
 
 VIDEO_2_MODEL_RESOLUTIONS = {
     "dreamina-seedance-2-0": ["480p", "720p", "1080p", "4k"],
     "dreamina-seedance-2-0-fast": ["480p", "720p"],
     "dreamina-seedance-2-0-mini": ["480p", "720p"],
-    "dreamina-seedance-2-5": ["480p", "720p", "1080p"],
-    "dreamina-seedance-2-5-premium": ["4k"],
+    "dreamina-seedance-2-5": ["480p", "720p", "1080p", "4k"],
+    "dreamina-seedance-2-5-flash": ["480p", "720p"],
 }
 
 VIDEO_2_MODEL_MAX_DURATIONS = {
@@ -84,7 +84,7 @@ VIDEO_2_MODEL_MAX_DURATIONS = {
     "dreamina-seedance-2-0-fast": 15,
     "dreamina-seedance-2-0-mini": 15,
     "dreamina-seedance-2-5": 30,
-    "dreamina-seedance-2-5-premium": 30,
+    "dreamina-seedance-2-5-flash": 30,
 }
 
 # Per request: images, videos and audio clips (BytePlus: 50 references in total on
@@ -94,21 +94,18 @@ VIDEO_2_MODEL_REFERENCE_LIMITS = {
     "dreamina-seedance-2-0-fast": {"images": 9, "videos": 3, "audios": 3},
     "dreamina-seedance-2-0-mini": {"images": 9, "videos": 3, "audios": 3},
     "dreamina-seedance-2-5": {"images": 30, "videos": 10, "audios": 10},
-    "dreamina-seedance-2-5-premium": {"images": 30, "videos": 10, "audios": 10},
+    "dreamina-seedance-2-5-flash": {"images": 10, "videos": 5, "audios": 5},
 }
 
-# Draft mode: the draft is always 480p; the final video generated from a draft
-# task supports only these resolutions (verified against the live API: a
-# Premium final at 1080p is rejected with InvalidResolutionParameter).
 SEEDANCE_DRAFT_RESOLUTION = "480p"
 SEEDANCE_DRAFT_FINAL_RESOLUTIONS = {
-    "dreamina-seedance-2-5": ["1080p"],
-    "dreamina-seedance-2-5-premium": ["4k"],
+    "dreamina-seedance-2-5": ["1080p", "4k"],
 }
 
 # Seedance 2.5 omni reference task types (omni_reference_task_type)
 SEEDANCE_2_5_TASK_TYPES = ["auto", "reference", "edit", "extend"]
 SEEDANCE_2_5_OUTPUT_FORMATS = ["mp4", "mov"]
+SEEDANCE_2_5_OUTPUT_FORMAT_MODELS = SEEDANCE_2_5_FAMILY
 
 # Model list for the task query node
 # Retired models stay last so their task history can still be queried.
@@ -134,6 +131,8 @@ SEED_AUDIO_MODELS = ["seed-audio-1.0"]
 # resources are for cloned voices (speaker IDs starting with S_).
 SEED_TTS_MODELS = ["seed-tts-2.0", "seed-tts-1.0", "seed-icl-2.0", "seed-icl-1.0"]
 SEED_TTS_2_UI_MODEL = "seed-tts-2.0"
+SEED_TTS_3_MODEL_MAP = {"dola-seed-tts-3.0": "dola-seed-tts-3.0"}
+SEED_TTS_3_MODEL = SEED_TTS_3_MODEL_MAP["dola-seed-tts-3.0"]
 
 # ASR: UI name -> (mode, X-Api-Resource-Id). "fast" answers in one request
 # (audio up to 2 h / 100 MB); "standard" submits a task and polls for the
@@ -154,6 +153,7 @@ SEEDREAM_FLASH = "seedream 5.0 flash"
 SEEDREAM_LITE = "seedream 5.0 lite"
 SEEDREAM_4_5 = "seedream-4-5-251128"
 SEEDREAM_4_0 = "seedream-4-0-250828"
+SEEDREAM_5_5 = "seedream 5.5"
 
 # BytePlus Seedream: core's option label -> BytePlus model ID.
 SEEDREAM_MODELS = {
@@ -162,6 +162,7 @@ SEEDREAM_MODELS = {
     SEEDREAM_LITE: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_LITE_UI_MODEL],
     SEEDREAM_4_5: SEEDREAM_4_MODEL_MAP["seedream-4-5"],
     SEEDREAM_4_0: SEEDREAM_4_MODEL_MAP["seedream-4-0"],
+    SEEDREAM_5_5: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_5_UI_MODEL],
 }
 
 # Per model: reference-image cap (BytePlus docs: 14 on 5.0 Lite, 4.5 and 4.0;
@@ -225,6 +226,28 @@ SEEDREAM_MODEL_CAPS = {
         "max_pixels": 16_777_216,
         "adaptive_sizes": ["1K", "2K", "4K"],
     },
+    SEEDREAM_5_5: {
+        "max_refs": 10,
+        "min_ref_side": 15,
+        "max_ref_pixels": 36_000_000,
+        "min_side": 240,
+        "max_side": 8600,
+        "min_pixels": 921_600,
+        "max_pixels": 4_624_220,
+        "batch": False,
+        "fast": False,
+        "thinking": False,
+        "send_seed": False,
+        "prompt_modes": ["standard"],
+        "adaptive_sizes": ["1K", "1.5K", "2K"],
+        "default_size_preset": "2K (adaptive)",
+        "output_formats": ["png", "jpeg"],
+        "backgrounds": ["auto", "transparent", "opaque"],
+        "transparent_requires_reference": False,
+        "safety_identifier": True,
+        "layer_max_images": 100,
+        "layer_default_max_images": 30,
+    },
 }
 # Custom width / height follow the BytePlus size rule (total pixels in the
 # model's range, aspect ratio 1:16 to 16:1), not core's 1024 minimum:
@@ -238,6 +261,7 @@ SEEDREAM_MAX_TOTAL_IMAGES = 15
 SEEDREAM_LAYER_SEPARATION_MODELS = {
     SEEDREAM_PRO: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_PRO_UI_MODEL],
     SEEDREAM_FLASH: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_FLASH_UI_MODEL],
+    SEEDREAM_5_5: SEEDREAM_5_MODEL_MAP[SEEDREAM_5_5_UI_MODEL],
 }
 
 # Seedance 1.x (nodes_seedance1.py)
@@ -262,18 +286,15 @@ SEEDANCE_1_MAX_DURATION = 12
 SEEDANCE_1_DEFAULT_DURATION = 5
 
 # Seedance 2 / 2.5 (nodes_seedance2.py)
-# Model option label -> VIDEO_MODEL_MAP key. Core's labels plus the Premium
-# pair; the Draft options render a 480p draft (SEEDANCE_DRAFT_RESOLUTION).
 SEEDANCE2_CORE_MODEL_OPTIONS = {
     "Seedance 2.5": SEEDANCE_2_5_UI_MODEL,
     "Seedance 2.5 Draft": SEEDANCE_2_5_UI_MODEL,
-    "Seedance 2.5 Premium": SEEDANCE_2_5_PREMIUM_UI_MODEL,
-    "Seedance 2.5 Premium Draft": SEEDANCE_2_5_PREMIUM_UI_MODEL,
+    "Seedance 2.5 Flash": SEEDANCE_2_5_FLASH_UI_MODEL,
     "Seedance 2.0": "dreamina-seedance-2-0",
     "Seedance 2.0 Fast": "dreamina-seedance-2-0-fast",
     "Seedance 2.0 Mini": "dreamina-seedance-2-0-mini",
 }
-SEEDANCE2_CORE_DRAFT_OPTIONS = ("Seedance 2.5 Draft", "Seedance 2.5 Premium Draft")
+SEEDANCE2_CORE_DRAFT_OPTIONS = ("Seedance 2.5 Draft",)
 
 # auto_downscale targets for reference videos (total pixels), per model and
 # output resolution, from ComfyUI core's SEEDANCE2_REF_VIDEO_PIXEL_LIMITS. They

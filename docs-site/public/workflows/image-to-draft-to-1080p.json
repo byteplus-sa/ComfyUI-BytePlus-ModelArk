@@ -262,7 +262,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.7.0",
+        "ver": "0.12.0",
         "Node name for S&R": "BytePlusSeedance2Reference"
       },
       "widgets_values": [
@@ -388,6 +388,14 @@
             "name": "non_blocking"
           },
           "link": null
+        },
+        {
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
         }
       ],
       "outputs": [
@@ -412,14 +420,15 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.7.0",
+        "ver": "0.12.0",
         "Node name for S&R": "BytePlusSeedanceDraftToFinal"
       },
       "widgets_values": [
         "",
         false,
         1,
-        false
+        false,
+        "1080p"
       ],
       "title": "4. Render reviewed draft at 1080p"
     },

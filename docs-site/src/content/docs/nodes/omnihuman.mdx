@@ -1,0 +1,69 @@
+---
+title: "OmniHuman 2.0"
+description: "Generate an avatar video from a portrait and speech audio with BytePlus OmniHuman 2.0 and your Vision AI key."
+node_id: BytePlusOmniHuman
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusOmniHuman" />
+
+## What it does
+
+Generates an avatar video from one image and a speech clip using OmniHuman 2.0. You need a separate **Vision AI API key** in **Settings > BytePlus**. Work can be billed to your BytePlus account. Connect **Save Video** to keep the result.
+
+## On the canvas
+
+<Shot src="nodes/omnihuman.png" alt="OmniHuman 2.0 node with image and audio sockets, URL alternatives and task recovery input" caption="Connect one image and speech audio, or provide persistent public URLs." />
+
+## Inputs
+
+<NodeInputs id="BytePlusOmniHuman" />
+
+### Notes on inputs
+
+- Choose one source for each kind of media: a connected socket or its URL, never both. Connected media is uploaded to Comfy.org storage and needs a Comfy.org login.
+- Use an optional prompt for scene, movement and camera guidance. The service documents English, Chinese, Japanese, Korean, Mexican Spanish and Indonesian prompts.
+- The watermark defaults to enabled. The seed is a local rerun control, not a provider seed or a promise of deterministic results. Its control defaults to fixed.
+- Keep the seed fixed while recovering an unresolved task. The node saves the accepted ID and input hashes locally, so requeueing can resume after an interruption or restart.
+- `existing_task_id` collects an existing task without uploads or new generation. Other generation inputs are ignored in this mode. If this node already has unresolved work, use the same task ID and key; use a separate Task Result node for another task.
+
+## Outputs
+
+<NodeOutputs id="BytePlusOmniHuman" />
+
+### Notes on outputs
+
+- `video` is temporary until you connect **Save Video**.
+- Keep `task_id` for [OmniHuman Task Result](../omnihuman-task-result/). The response removes keys and URLs.
+- A download failure blocks the video output while preserving the task ID and recovery record.
+
+## Limits and tips
+
+- Connected images must be a single RGB/RGBA image, 300-6000 pixels on each side, with width/height from 0.4 to 2.5. The encoded PNG must be smaller than 30 MB.
+- Connected audio must be one mono or stereo clip lasting 4-300 seconds, including a full five-minute clip. If its WAV would exceed the 15 MB limit, the node downmixes it to mono and resamples to at most 24 kHz without truncating the duration. Audio that already fits keeps its channels and sample rate.
+- Video duration follows the input audio; there is no separate duration setting. Trim or regenerate the narration before submitting if you need a shorter or longer video.
+- For URL inputs, the service validates media. The [official API](https://docs.byteplus.com/en/docs/byteplus-vision/omnihuman-2-0-video-generation) lists JPEG, PNG, WebP, BMP, TIFF, GIF, HEIC and HEIF images, and WAV/MP3 audio.
+- Task lookup is available for about 12 hours. Returned video URLs are valid for one hour; collect and save promptly.
+- Interrupting stops local waiting, not remote generation. Use [OmniHuman Cancel Task](../omnihuman-cancel-task/) for an explicit cancellation request. Only queued tasks can be canceled.
+- If submission acceptance is unknown, check Vision AI before starting replacement work. Recover the accepted ID instead of resubmitting.
+- Use only images and voices you have permission to process. ModelArk, Seed Speech and MediaKit keys are not Vision AI keys.
+
+The original node retains its recovery record until it collects the video successfully. Collection through a separate Task Result node does not clear that record. For a canceled, expired or intentionally abandoned task, stop local execution and verify the remote task's state before removing its matching JSON file from `user/byteplus/omnihuman_tasks/`. Removing a record does not cancel remote work and permits another paid submission.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No Vision AI API key is set` | Follow the [Vision AI key guide](https://docs.byteplus.com/en/docs/byteplus-vision/api-key-usage-instructions) and save the key in **Settings > BytePlus**. |
+| `Invalid OmniHuman input` | Check media limits and supply one source per media kind. |
+| `This node has unresolved OmniHuman work` | Restore the original inputs and fixed seed, or set `existing_task_id` to recover known work. |
+| `Could not download OmniHuman task` | Collect the same task with **OmniHuman Task Result** before its link expires. |
+
+## Used in templates
+
+<UsedIn id="BytePlusOmniHuman" />

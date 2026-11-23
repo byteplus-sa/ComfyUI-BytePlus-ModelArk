@@ -83,6 +83,11 @@ class ModelConfigurationTests(unittest.TestCase):
             "seedream-5-0-260128",
         )
         self.assertEqual(
+            models_config.SEEDREAM_5_MODEL_MAP["dola-seedream-5-5"],
+            "dola-seedream-5-5-261028",
+        )
+        self.assertEqual(next(iter(models_config.SEEDREAM_MODELS)), models_config.SEEDREAM_PRO)
+        self.assertEqual(
             models_config.VIDEO_MODEL_MAP["dreamina-seedance-2-0-mini"],
             "dreamina-seedance-2-0-mini-260615",
         )
@@ -135,14 +140,38 @@ class ModelConfigurationTests(unittest.TestCase):
                 nodes_video.validate_seedance2_resolution(model, "4k")
         self.assertEqual(
             models_config.VIDEO_2_MODEL_RESOLUTIONS["dreamina-seedance-2-5"],
-            ["480p", "720p", "1080p"],
+            ["480p", "720p", "1080p", "4k"],
         )
-        self.assertEqual(
-            nodes_video.validate_seedance2_resolution("dreamina-seedance-2-5", "1080p"),
-            "1080p",
-        )
-        with self.assertRaises(Exception):
-            nodes_video.validate_seedance2_resolution("dreamina-seedance-2-5", "4k")
+        for resolution in ("480p", "720p", "1080p", "4k"):
+            with self.subTest(resolution=resolution):
+                self.assertEqual(
+                    nodes_video.validate_seedance2_resolution("dreamina-seedance-2-5", resolution),
+                    resolution,
+                )
+        for resolution in ("", None, "8k", "4K", "2160p"):
+            with self.subTest(resolution=resolution):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    nodes_video.validate_seedance2_resolution("dreamina-seedance-2-5", resolution)
+
+    def test_seedance_premium_is_removed_from_all_catalogs(self):
+        for table in (
+            models_config.VIDEO_MODEL_MAP,
+            models_config.VIDEO_2_UI_OPTIONS,
+            models_config.VIDEO_2_MODEL_RESOLUTIONS,
+            models_config.VIDEO_2_MODEL_MAX_DURATIONS,
+            models_config.VIDEO_2_MODEL_REFERENCE_LIMITS,
+            models_config.SEEDANCE_2_5_FAMILY,
+            models_config.SEEDANCE_DRAFT_FINAL_RESOLUTIONS,
+            models_config.SEEDANCE2_CORE_MODEL_OPTIONS,
+            models_config.SEEDANCE2_CORE_DRAFT_OPTIONS,
+            models_config.QUERY_TASKS_MODEL_LIST,
+            models_config.RETIRED_MODELS,
+        ):
+            with self.subTest(table=table):
+                self.assertFalse(any("premium" in str(name).lower() for name in table))
+        self.assertFalse(hasattr(models_config, "SEEDANCE_2_5_PREMIUM_UI_MODEL"))
+        with self.assertRaises(nodes_shared.BytePlusException):
+            nodes_video.validate_seedance2_resolution("dreamina-seedance-2-5-premium", "4k")
 
     def test_seedance25_duration_and_reference_limits(self):
         self.assertEqual(
@@ -159,6 +188,33 @@ class ModelConfigurationTests(unittest.TestCase):
             nodes_video.validate_seedance2_duration("dreamina-seedance-2-0", 16)
         with self.assertRaises(Exception):
             nodes_video.validate_seedance2_duration("dreamina-seedance-2-5", 4.5)
+
+    def test_seedance25_flash_catalog_and_limits(self):
+        model = "dreamina-seedance-2-5-flash"
+        self.assertEqual(models_config.VIDEO_MODEL_MAP[model], "dreamina-seedance-2-5-flash-261115")
+        self.assertIn(model, models_config.VIDEO_2_UI_OPTIONS)
+        self.assertIn(model, models_config.QUERY_TASKS_MODEL_LIST)
+        self.assertIn(model, models_config.SEEDANCE_2_5_FAMILY)
+        self.assertEqual(models_config.SEEDANCE2_CORE_MODEL_OPTIONS["Seedance 2.5 Flash"], model)
+        self.assertEqual(models_config.VIDEO_2_MODEL_RESOLUTIONS[model], ["480p", "720p"])
+        self.assertEqual(models_config.VIDEO_2_MODEL_MAX_DURATIONS[model], 30)
+        self.assertEqual(models_config.VIDEO_2_MODEL_REFERENCE_LIMITS[model], {"images": 10, "videos": 5, "audios": 5})
+        self.assertIn(model, models_config.SEEDANCE_2_5_OUTPUT_FORMAT_MODELS)
+        self.assertNotIn(model, models_config.SEEDANCE_DRAFT_FINAL_RESOLUTIONS)
+        self.assertNotIn("Seedance 2.5 Flash Draft", models_config.SEEDANCE2_CORE_MODEL_OPTIONS)
+        self.assertNotIn("Seedance 2.5 Flash", models_config.SEEDANCE2_CORE_DRAFT_OPTIONS)
+        for resolution in ("480p", "720p"):
+            self.assertEqual(nodes_video.validate_seedance2_resolution(model, resolution), resolution)
+        for duration in (4, 11, 30):
+            self.assertEqual(nodes_video.validate_seedance2_duration(model, duration), duration)
+        for resolution in ("1080p", "4k", "", None):
+            with self.subTest(resolution=resolution):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    nodes_video.validate_seedance2_resolution(model, resolution)
+        for duration in (3, 31, 4.5, None):
+            with self.subTest(duration=duration):
+                with self.assertRaises(nodes_shared.BytePlusException):
+                    nodes_video.validate_seedance2_duration(model, duration)
 
     def test_seed_visual_models(self):
         self.assertEqual(
@@ -503,6 +559,13 @@ class ApiErrorFormatTests(unittest.TestCase):
     def test_text_rule_refines_the_same_code(self):
         error = {"code": "InvalidParameter", "message": "the task is determined as video editing, but ..."}
         self.assertEqual(self.code_of(error), "InvalidParameter.TaskTypeConstraint")
+
+    def test_draft_endpoint_mismatch_explains_how_to_reuse_the_draft(self):
+        error = {"code": "InvalidParameter", "message": "draft_task endpoint mismatch"}
+        self.assertEqual(self.code_of(error), "InvalidParameter.DraftEndpointMismatch")
+        text = nodes_shared.format_api_error(error)
+        self.assertIn("same Seedance 2.5 endpoint", text)
+        self.assertIn("Settings", text)
 
     def test_text_rule_fills_in_without_a_code(self):
         message = "Requests per minute (RPM) limit of the associated endpoint has been reached."

@@ -2,6 +2,80 @@
 
 Core ComfyUI ships its own ByteDance nodes in `comfy_api_nodes/nodes_bytedance.py` (+ `apis/bytedance.py` pydantic models). They call BytePlus **through the Comfy.org proxy** and bill Comfy credits; this pack calls ModelArk **directly** with the user's key. Core usually adds new Seedream/Seedance models quickly, so its code is a useful early signal for payload fields, limits and error codes. Read on 2026-10-18 from ComfyUI v0.41.0 (98cc0bf; last ByteDance change still 9f932548f, 2026-09-25; all parity tests pass). Deliberate gap: core's `seed-audio-1.0-multilingual` model option is not offered (the API ignores the model name, checked live 2026-10-18). Core has no BytePlus 3D nodes; the closest are its Rodin nodes (`nodes_rodin.py`, Deemos API via the Comfy.org proxy), whose File3D output convention the 3D nodes follow. Core's retired models are deleted outright; core's partner-proxy Idempotency-Key (a8686f2b3) has no ModelArk equivalent, which is why paid calls here never auto-retry (`nodes_shared.call_billed`).
 
+## Seedream 5.5 parity refresh
+
+Read on 2026-11-23 from ComfyUI v0.45.4 at `2aa4d535a76e4b6acf6a94f263bc482430c396dd`, including upstream Seedream 5.5 change `b40cca229d23cc1d0b16f4d5946cb14a35ba88f6`.
+
+The v0.12.0 candidate follows core's shared 5.5 input order, fixed presets, background selector and layer-count control. New 5.5 layer nodes default to cropped outputs; Pro/Flash remain full canvas. The primary model stays Pro and 5.5 keeps its BytePlus adaptive 2K, PNG/auto defaults, local-only seed, pixel limits and additional controls. Search aliases retain current and previous names.
+
+Parity tests now compare every shared field and complete option list, with explicit field-level BytePlus deviations. Mutation checks cover both upstream schema drift and incorrect local defaults, limits, options, references and input order. This is schema alignment, not new paid-API evidence.
+
+## Seedance 2.5 unified 4K and Flash
+
+On 2026-11-12 the maintainer supplied a console screenshot of standard
+`dreamina-seedance-2-5-260628` with 480p/720p/1080p/4K choices. The pack now
+uses that one model at every resolution, keeps its 720p default and removes
+Premium and Premium Draft without aliases or historical query entries.
+
+The maintainer also supplied a private-model screenshot and multimodal request
+for `dreamina-seedance-2-5-flash-261115`: 480p/720p, 4-30 seconds,
+image/video/audio references, edit, extension and first/last-frame generation.
+Reference counts of 30 images, 10 videos and 10 audio clips were separately
+confirmed. Flash uses the API's default output format, has no Draft option and
+is not overridden by the standard 2.5 endpoint. Keep family membership,
+explicit-format support and draft-final support in separate capability tables.
+The supplied multimodal request is covered by mocked node tests, not a live
+reference generation. The cached Ark MCP catalog omitted Flash and retained
+Premium during implementation; use the supplied contract and live evidence.
+
+Two approved text-only ComfyUI generations succeeded in Singapore, with
+16:9, four seconds, watermark off and audio off. Standard 2.5 returned
+3840x2160 HEVC in MP4 through the existing endpoint override, identifying its
+canonical dated model; Flash returned 1280x720 H.264 in MP4 with its exact
+dated ID. Both decoded completely: 97 frames at 24 fps (4.041667 seconds).
+Native Save Video, Save Image and Preview Any outputs and local Chrome
+playback passed. Provider JPEG last-frame previews matched the saved images,
+but were not pixel-identical to the last decoded MP4 frame.
+
+Draft previews remain 480p. On 2026-11-23, direct-API draft-to-4K conversion
+was verified in Singapore: an 854x480 draft rendered as 3840x2160 HEVC,
+97 frames at 24 fps. Draft to Final now offers optional `resolution`
+values `1080p` (default) and `4k`, matching core. Endpoint-backed drafts
+report the canonical model ID, so finals must use the same configured
+endpoint or the API rejects them with `draft_task endpoint mismatch`.
+Preserve older dated models and explicit endpoint IDs. Both renderers
+preserved the final resolution and draft link across workflow reloads.
+Maximum reference counts, live reference/audio generation, Europe and
+Flash Draft remain unverified.
+Upstream [fd7105477](https://github.com/Comfy-Org/ComfyUI/commit/fd7105477a348a5357f98d3a6b783027fa1ba3fe)
+adds enterprise-only 4K and an optional final-resolution selector to the
+Comfy.org proxy. Parity tests accept only the known older resolution list,
+proxy entitlement tooltip and exact optional final-resolution schema;
+the final selector also accepts the exact tooltip without enterprise wording
+from upstream [b2f670744](https://github.com/Comfy-Org/ComfyUI/commit/b2f670744386d36d39c41cc37cd1e30151046222).
+Other defaults, tooltips, options and inputs remain checked. Proxy pricing
+and access handling are not copied into this direct-API pack.
+
+### Flash upstream parity, 2026-11-16
+
+Upstream [63351607b](https://github.com/Comfy-Org/ComfyUI/commit/63351607b4212284e8f2d1e319ffc4d6120217f0)
+adds Flash to the same three generation nodes. Its proxy exposes a required
+MP4-only output-format selector and 10 image / 5 video / 5 audio slots. This
+pack retains the maintainer-approved API-default-only format and 30/10/10
+reference limits. The parity comparison pins the exact proxy selector metadata
+and reference templates before normalizing these differences; negative tests
+reject changed formats, defaults, durations, resolutions, template shapes and
+unexpected inputs. No new direct-API capability is inferred from the proxy.
+Verified against current master `e9afbccc` without paid calls.
+
+## Seedream 5.5 release parity check
+
+Read on 2026-11-12 against release `v0.45.0` (`989d93d0`) and master `c5751c81`. Upstream [b40cca229](https://github.com/Comfy-Org/ComfyUI/commit/b40cca229d23cc1d0b16f4d5946cb14a35ba88f6) adds Seedream 5.5 to both existing nodes, renames their display names, and gives older size presets explicit defaults. The pack preserves both historical and current search aliases and compares every shared model, including 5.5, by its stable label without changing existing model selections.
+
+Seedream 5.5 retains the supplied BytePlus API revision 579: adaptive sizes and its fixed presets, a 240-8600 side widget range subject to the stricter pixel/aspect validation, standard-only prompt optimization, output formats and safety identifiers. Core uses slightly different fixed presets, a fixed-square default and 8594 maximum side widgets. Background stays advanced and after the shared inputs; its supported values are identical. The seed remains a local rerun control because the direct contract does not document an API seed. Layer separation keeps full-canvas outputs by default, an optional advanced count ceiling and OCR. Shared metadata is checked field by field; only these exact known differences are normalized, with negative tests for changed defaults, limits, presets and unexpected inputs/models.
+
+Upstream [b2f670744](https://github.com/Comfy-Org/ComfyUI/commit/b2f670744386d36d39c41cc37cd1e30151046222) removes enterprise-only 4k wording and proxy access handling. The parity check accepts the exact old and new final-resolution tooltips but still pins the optional selector's type, options and default. This does not enable new direct-API Seedance capabilities.
+
 Read it with:
 
 ```bash
@@ -22,7 +96,7 @@ Core: `/proxy/byteplus/api/v3/images/generations`, `/proxy/byteplus/api/v3/conte
 | `seedream-5-0-260128` (5.0 lite) | same |
 | `seedream-4-5-251128`, `seedream-4-0-250828` | same |
 | `dreamina-seedance-2-5-260628` (+ "Draft" variant = same ID with `draft`) | same |
-| — | `dreamina-seedance-2-5-premium-260915` |
+| — | `dreamina-seedance-2-5-flash-261115` |
 | `dreamina-seedance-2-0-260128`, `-fast-260128` | same |
 | `dreamina-seedance-2-0-mini` (undated) | `dreamina-seedance-2-0-mini-260615` |
 | `seedance-1-5-pro-251215`, `seedance-1-0-pro-250528`, `seedance-1-0-pro-fast-251015` | same |

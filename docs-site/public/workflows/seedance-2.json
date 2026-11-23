@@ -127,7 +127,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.7.0",
+        "ver": "0.12.0",
         "Node name for S&R": "BytePlusSeedance2TextToVideo"
       },
       "widgets_values": [
@@ -196,7 +196,7 @@
       "id": 4,
       "type": "BytePlusSeedanceDraftToFinal",
       "pos": [880, 260],
-      "size": [340, 178],
+      "size": [340, 208],
       "flags": {},
       "order": 7,
       "mode": 4,
@@ -232,6 +232,14 @@
             "name": "non_blocking"
           },
           "link": null
+        },
+        {
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
         }
       ],
       "outputs": [
@@ -254,10 +262,10 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.7.0",
+        "ver": "0.12.0",
         "Node name for S&R": "BytePlusSeedanceDraftToFinal"
       },
-      "widgets_values": ["", false, 1, false]
+      "widgets_values": ["", false, 1, false, "1080p"]
     },
     {
       "id": 5,
@@ -498,7 +506,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.7.0",
+        "ver": "0.12.0",
         "Node name for S&R": "BytePlusSeedance2FirstLastFrame"
       },
       "widgets_values": [
@@ -888,7 +896,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.7.0",
+        "ver": "0.12.0",
         "Node name for S&R": "BytePlusSeedance2Reference"
       },
       "widgets_values": [

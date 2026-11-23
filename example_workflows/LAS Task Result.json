@@ -161,7 +161,7 @@
       "properties": {
         "Node name for S&R": "BytePlusLASTaskResult",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.7.0"
+        "ver": "0.12.0"
       },
       "widgets_values": [
         "Video Translation",

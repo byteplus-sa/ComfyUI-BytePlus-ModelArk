@@ -127,8 +127,8 @@ def video_extra_inputs(include_offline=False, seeded=True):
 # ComfyUI core's display name for each node this pack mirrors, added to the
 # node's search_aliases so people who know core's nodes find these.
 CORE_DISPLAY_NAMES = {
-    "BytePlusSeedream": "ByteDance Seedream 4.5 & 5.0",
-    "BytePlusSeedreamLayerSeparation": "ByteDance Seedream 5.0 Layer Separation",
+    "BytePlusSeedream": "ByteDance Seedream 4.5, 5.0 & 5.5",
+    "BytePlusSeedreamLayerSeparation": "ByteDance Seedream 5.0 & 5.5 Layer Separation",
     "BytePlusSeedanceTextToVideo": "ByteDance Text to Video",
     "BytePlusSeedanceImageToVideo": "ByteDance Image to Video",
     "BytePlusSeedanceFirstLastFrame": "ByteDance First-Last-Frame to Video",
@@ -143,11 +143,19 @@ CORE_DISPLAY_NAMES = {
     "BytePlusVideoEnhance": "ByteDance vCube Video Enhance",
 }
 
+CORE_PREVIOUS_DISPLAY_NAMES = {
+    "BytePlusSeedream": ("ByteDance Seedream 4.5 & 5.0",),
+    "BytePlusSeedreamLayerSeparation": (
+        "ByteDance Seedream 5.0 Layer Separation",
+        "ByteDance Seedream 5.0 Pro Layer Separation",
+    ),
+}
+
 
 def core_search_aliases(node_id, *extra):
     """search_aliases for a core-style node: core's display name, then any extras."""
     core_name = CORE_DISPLAY_NAMES.get(node_id)
-    return [*([core_name] if core_name else []), *extra]
+    return [*([core_name] if core_name else []), *CORE_PREVIOUS_DISPLAY_NAMES.get(node_id, ()), *extra]
 
 
 class NonBlockingRerun(EndpointDefaultsRerun):
@@ -216,6 +224,18 @@ def raise_if_output_linked(cls, output_index, reason):
         raise BytePlusException(get_text("err_output_linked", reason=reason, consumers=", ".join(consumers)))
 
 
+def _validate_reference_url(url):
+    from .utils_download import validate_public_url
+
+    try:
+        validate_public_url(url)
+        if urlparse(url).scheme != "https":
+            raise aiohttp.InvalidURL("HTTPS required")
+    except aiohttp.InvalidURL:
+        raise BytePlusException(get_text("err_reference_url_invalid")) from None
+    return url
+
+
 def split_reference_value(value):
     """
     One reference string -> ("url", https-url) or ("asset", asset_id).
@@ -229,7 +249,7 @@ def split_reference_value(value):
         raise BytePlusException(get_text("err_reference_value_multiple", value=text))
     lowered = text.lower()
     if lowered.startswith("https://"):
-        return ("url", text)
+        return ("url", _validate_reference_url(text))
     if lowered.startswith(ASSET_URI_PREFIX):
         asset_id = text[len(ASSET_URI_PREFIX) :]
     elif "://" in text:
@@ -302,6 +322,14 @@ async def _probe_request(session, method, url, headers=None):
     return None, None
 
 
+async def _reference_target_is_public(url):
+    try:
+        _validate_reference_url(url)
+    except BytePlusException:
+        return False
+    return await _host_is_public(urlparse(url).hostname)
+
+
 async def _probe_url_kind(url):
     """
     image / video / audio from the link's Content-Type: a HEAD request, then a
@@ -317,12 +345,11 @@ async def _probe_url_kind(url):
             for method, headers in (("HEAD", None), ("GET", {"Range": "bytes=0-0"})):
                 target = url
                 for _hop in range(_MAX_PROBE_REDIRECTS + 1):
-                    parsed = urlparse(target)
-                    if parsed.scheme != "https" or not parsed.hostname or not await _host_is_public(parsed.hostname):
+                    if not await _reference_target_is_public(target):
                         return None
                     try:
                         kind, redirect = await _probe_request(session, method, target, headers)
-                    except (aiohttp.ClientError, asyncio.TimeoutError):
+                    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
                         break
                     if redirect is None:
                         if kind:
@@ -362,8 +389,7 @@ async def sniff_audio_format(url):
         async with _public_probe_session(timeout) as session:
             target = url
             for _hop in range(_MAX_PROBE_REDIRECTS + 1):
-                parsed = urlparse(target)
-                if parsed.scheme != "https" or not parsed.hostname or not await _host_is_public(parsed.hostname):
+                if not await _reference_target_is_public(target):
                     return None
                 try:
                     async with session.get(target, headers={"Range": "bytes=0-15"}, allow_redirects=False) as response:
@@ -373,7 +399,7 @@ async def sniff_audio_format(url):
                         if response.status >= 400:
                             return None
                         return audio_format_from_bytes(await response.content.read(16))
-                except (aiohttp.ClientError, asyncio.TimeoutError):
+                except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
                     return None
         return None
 

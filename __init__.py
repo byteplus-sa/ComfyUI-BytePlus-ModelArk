@@ -159,8 +159,10 @@ if _dependencies_ready:
     from .nodes.nodes_seed import NODES as SEED_LLM_NODES
     from .nodes.nodes_assets import NODES as ASSET_NODES
     from .nodes.nodes_speech import NODES as SPEECH_NODES
+    from .nodes.nodes_seed_tts3 import NODES as TTS3_NODES
     from .nodes.nodes_mediakit import NODES as MEDIAKIT_NODES
     from .nodes.nodes_las import NODES as LAS_NODES
+    from .nodes.nodes_omnihuman import NODES as OMNIHUMAN_NODES
     from .nodes.nodes_3d import NODES as THREE_D_NODES
     from .nodes.nodes_video import BytePlusVideoQueryTasks, BytePlusProgressTest
     from .nodes import credentials_routes
@@ -176,8 +178,10 @@ if _dependencies_ready:
         *ASSET_NODES,
         *SEED_LLM_NODES,
         *SPEECH_NODES,
+        *TTS3_NODES,
         *MEDIAKIT_NODES,
         *LAS_NODES,
+        *OMNIHUMAN_NODES,
         *THREE_D_NODES,
         BytePlusVideoQueryTasks,
         BytePlusProgressTest,

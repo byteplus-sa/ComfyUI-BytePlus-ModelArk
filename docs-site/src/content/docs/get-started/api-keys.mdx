@@ -18,6 +18,7 @@ Each BytePlus product has its own key. They are not interchangeable: a ModelArk 
 | Seed Speech API key | [Seed Speech console](https://console.byteplus.com/voice/new/overview?projectName=default), then Settings → API Keys. Activate the services first. | Seed Audio, Seed Speech TTS, ASR and Voice Clone |
 | AI MediaKit API key | [AI MediaKit console](https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey), then Settings → API key | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance |
 | LAS API key | Follow the [official LAS API-key guide](https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key): LAS console, Operator service, API key management | LAS Genjutsu, LAS Video Translation and LAS Task Result |
+| Vision AI API key | [Vision AI key setup guide](https://docs.byteplus.com/en/docs/byteplus-vision/api-key-usage-instructions) | OmniHuman 2.0, OmniHuman Task Result and OmniHuman Cancel Task |
 | IAM access key and secret key | IAM console. Use a sub-user whose policy allows only the asset library. | Create Image, Video and Audio Asset, Asset Library, and looking up an asset ID in an `asset_N` input |
 
 You only need the keys for the nodes you use. Each node page lists them in its **Keys needed** row.
@@ -35,9 +36,11 @@ You only need the keys for the nodes you use. Each node page lists them in its *
 
 <Shot src="guides/settings-byteplus-not-set.jpg" alt="Settings, BytePlus page: three default endpoint rows using built-in models and four empty credential rows, including ModelArk with a region drop-down" caption="Before saving: keys are not set and optional endpoints use the built-in models." />
 
-ModelArk API keys are checked with BytePlus before they are saved. A wrong key is refused and nothing is written. If BytePlus cannot be reached, the key is saved and Settings says it could not be checked. The key takes effect at once, with no restart. Seed Speech, AI MediaKit and LAS API keys are saved without a check.
+ModelArk API keys are checked with BytePlus before they are saved. A wrong key is refused and nothing is written. If BytePlus cannot be reached, the key is saved and Settings says it could not be checked. The key takes effect at once, with no restart. Seed Speech, AI MediaKit, LAS and Vision AI API keys are saved without an access check.
 
 Use the separate **LAS API key** row for LAS. Saving it does not submit work or change the ModelArk region. The LAS row links to the official API-key guide.
+
+For [OmniHuman](../../nodes/omnihuman/), use **OmniHuman Vision AI API key**, not the ModelArk row. Saving it starts no generation and does not change the ModelArk region.
 
 <Shot src="guides/settings-byteplus-key-set.jpg" alt="Settings, BytePlus page: ModelArk key set with the sample suffix abcd; other credentials are not set and three default endpoint rows use built-in models" caption="After saving: the row shows only the last four characters (here the sample value abcd) and where the key is stored." />
 
@@ -51,9 +54,9 @@ In **Settings → Other → BytePlus → Default credentials**, you can also set
 
 Each endpoint must serve exactly the named model in your key's region. Saving checks the ID format only, without generating media or checking model access. Leave the field blank and press **Save**, or press **Remove**, to return to the built-in model. Environment variables still take precedence.
 
-The Seedance 2.5 endpoint also applies to **Seedance 2.5 Draft**. The Seedream Pro endpoint also applies to **Layer Separation** with Pro selected. Fast, Mini, Premium, Flash and other model variants keep their own built-in IDs.
+The Seedance 2.5 endpoint applies at every resolution, including `4k`, and also applies to **Seedance 2.5 Draft**. It does not override **Seedance 2.5 Flash**, which keeps its own built-in model ID. The Seedream Pro endpoint also applies to **Layer Separation** with Pro selected. Fast, Mini and other model variants keep their own built-in IDs.
 
-Changes take effect without restarting and invalidate cached outputs for the selected model on the next run. A pending non-blocking task keeps running when you change endpoints; find it with **Video Query Tasks** and `model` set to `all`. **Draft to Final** keeps the model or endpoint recorded on its draft. If the draft reports an endpoint ID, keep it configured until you render the final.
+Changes take effect without restarting and invalidate cached outputs for the selected model on the next run. A pending non-blocking task keeps running when you change endpoints; find it with **Video Query Tasks** and `model` set to `all`. **Draft to Final** reads the model from the draft, then applies its configured endpoint when it matches the current Seedance 2.5 model. Keep the same endpoint override used to create the draft, even if the draft response reports a model ID. Leave the override empty for drafts made directly with the model.
 
 ## Or edit `user/.env` by hand
 
@@ -65,6 +68,7 @@ BYTEPLUS_REGION=ap-southeast-1
 BYTEPLUS_SEED_SPEECH_API_KEY=your-seed-speech-key
 BYTEPLUS_VOD_MEDIAKIT_API_KEY=your-mediakit-key
 BYTEPLUS_LAS_API_KEY=your-las-key
+BYTEPLUS_CV_API_KEY=your-vision-ai-key
 BYTEPLUS_ACCESS_KEY=your-iam-access-key
 BYTEPLUS_SECRET_KEY=your-iam-secret-key
 ```

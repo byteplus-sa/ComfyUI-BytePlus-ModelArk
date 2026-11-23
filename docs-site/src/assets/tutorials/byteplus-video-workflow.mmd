@@ -1,0 +1,12 @@
+flowchart TD
+    Load["Load Image<br/>Your selected BytePlus badge"]
+    Draft["BytePlus Seedance 2.5 Reference to Video<br/>Seedance 2.5 Draft<br/>480p / 16:9 / 5 seconds / fixed seed"]
+    SaveDraft["Save Video<br/>Reviewed 480p draft"]
+    Final["BytePlus Seedance Draft to Final<br/>Bypassed until the draft is reviewed"]
+    SaveFinal["Save Video<br/>1080p final<br/>Bypassed until the draft is reviewed"]
+    Load -->|"IMAGE to reference_images.image_1"| Draft
+    Draft -->|"VIDEO to video"| SaveDraft
+    Draft -->|"draft_task_id to draft_task_id"| Final
+    Final -->|"VIDEO to video"| SaveFinal
+    classDef byteplus fill:#F6F7FB,stroke:#0066FC,color:#1D2129;
+    class Load,Draft,SaveDraft,Final,SaveFinal byteplus;

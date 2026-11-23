@@ -92,7 +92,7 @@ class FakeSession:
         self.statuses = list(statuses)
         self.calls = 0
 
-    def get(self, url, timeout=None):
+    def get(self, url, timeout=None, allow_redirects=False):
         self.calls += 1
         return FakeResponse(url, self.statuses.pop(0))
 
@@ -156,7 +156,7 @@ class DownloadLogTests(unittest.IsolatedAsyncioTestCase):
         session = InvalidLinkSession()
         with self.assertRaises(aiohttp.InvalidURL):
             await utils_download._fetch_data_from_url_async(session, "not a link")
-        self.assertEqual(session.calls, 1)
+        self.assertEqual(session.calls, 0)
 
     async def test_timeouts_and_rate_limits_are_retried(self):
         for status in (408, 429, 502):
@@ -473,19 +473,21 @@ class LayerFileTests(unittest.TestCase):
 @requires_comfyui
 class CheckApiKeyTests(unittest.TestCase):
     def check(self, status=None, error=None):
-        def fake_get(*_args, **_kwargs):
+        http_requests = importlib.import_module(f"{PACKAGE_NAME}.nodes.http_requests")
+
+        async def fake_get(*_args, **_kwargs):
             if error is not None:
                 raise error
-            return SimpleNamespace(status_code=status)
+            return status, {}, b""
 
         with (
-            mock.patch.object(nodes_shared.requests, "get", fake_get),
+            mock.patch.object(http_requests, "send_http_request", fake_get),
             self.assertLogs("BytePlus", level="INFO") if error is not None else contextlib.nullcontext(),
         ):
-            return nodes_shared.check_api_key("key", "https://ark.example/api/v3")
+            return nodes_shared.check_api_key("key", nodes_shared.REGION_BASE_URLS["ap-southeast-1"])
 
     def test_any_answer_that_does_not_refuse_the_key_is_accepted(self):
-        for status in (200, 204, 301, 404):
+        for status in (200, 204, 404):
             with self.subTest(status=status):
                 self.assertIs(self.check(status), True)
 
@@ -495,7 +497,7 @@ class CheckApiKeyTests(unittest.TestCase):
                 self.assertIs(self.check(status), False)
 
     def test_timeouts_rate_limits_and_server_errors_leave_the_key_unchecked(self):
-        for status in (408, 429, 500, 502, 503):
+        for status in (301, 302, 307, 308, 408, 429, 500, 502, 503):
             with self.subTest(status=status):
                 self.assertIsNone(self.check(status))
 

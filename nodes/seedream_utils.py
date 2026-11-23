@@ -35,6 +35,7 @@ from .models_config import (
     SEEDREAM_LITE,
     SEEDREAM_4_5,
     SEEDREAM_4_0,
+    SEEDREAM_5_5,
     SEEDREAM_MODEL_CAPS,
 )
 
@@ -113,6 +114,32 @@ _PRESETS_SEEDREAM_5_FLASH = [
     ("(2K) 2496x1664 (3:2)", 2496, 1664),
     ("(2K) 3136x1344 (21:9)", 3136, 1344),
 ]
+_PRESETS_SEEDREAM_5_5 = [
+    ("(1K) 1024x1024 (1:1)", 1024, 1024),
+    ("(1K) 880x1184 (3:4)", 880, 1184),
+    ("(1K) 1184x880 (4:3)", 1184, 880),
+    ("(1K) 1360x768 (16:9)", 1360, 768),
+    ("(1K) 768x1360 (9:16)", 768, 1360),
+    ("(1K) 832x1248 (2:3)", 832, 1248),
+    ("(1K) 1248x832 (3:2)", 1248, 832),
+    ("(1K) 1568x672 (21:9)", 1568, 672),
+    ("(1.5K) 1536x1536 (1:1)", 1536, 1536),
+    ("(1.5K) 1328x1776 (3:4)", 1328, 1776),
+    ("(1.5K) 1776x1328 (4:3)", 1776, 1328),
+    ("(1.5K) 2048x1152 (16:9)", 2048, 1152),
+    ("(1.5K) 1152x2048 (9:16)", 1152, 2048),
+    ("(1.5K) 1248x1888 (2:3)", 1248, 1888),
+    ("(1.5K) 1888x1248 (3:2)", 1888, 1248),
+    ("(1.5K) 2352x1008 (21:9)", 2352, 1008),
+    ("(2K) 2048x2048 (1:1)", 2048, 2048),
+    ("(2K) 1776x2368 (3:4)", 1776, 2368),
+    ("(2K) 2368x1776 (4:3)", 2368, 1776),
+    ("(2K) 2736x1536 (16:9)", 2736, 1536),
+    ("(2K) 1536x2736 (9:16)", 1536, 2736),
+    ("(2K) 1680x2512 (2:3)", 1680, 2512),
+    ("(2K) 2512x1680 (3:2)", 2512, 1680),
+    ("(2K) 3136x1344 (21:9)", 3136, 1344),
+]
 SEEDREAM_CUSTOM_SIZE = "Custom"
 SEEDREAM_PRESETS = {
     SEEDREAM_PRO: _PRESETS_SEEDREAM_1K + _PRESETS_SEEDREAM_1_5K + _PRESETS_SEEDREAM_2K,
@@ -120,6 +147,7 @@ SEEDREAM_PRESETS = {
     SEEDREAM_LITE: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_3K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_5: _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,
     SEEDREAM_4_0: _PRESETS_SEEDREAM_1K + _PRESETS_SEEDREAM_2K + _PRESETS_SEEDREAM_4K,
+    SEEDREAM_5_5: _PRESETS_SEEDREAM_5_5,
 }
 
 
@@ -183,7 +211,7 @@ def _split_rgba(tensor):
 
 async def request_url_images(session, ark_client, request_kwargs, idx, model_id, transparent=False):
     """
-    One Seedream request with response_format="url" (5.0 Pro / Flash): download
+    One Seedream request with response_format="url": download
     every returned image. transparent keeps the alpha channel (RGBA tensor).
     Returns (tensor, metadata) for BytePlusGenerationExecutor.run_parallel_requests.
     """
@@ -211,6 +239,18 @@ async def request_url_images(session, ark_client, request_kwargs, idx, model_id,
             "created": getattr(response, "created", None),
             "urls": urls,
         }
+        details = [
+            {
+                "url": item.url,
+                "background": getattr(item, "background", None),
+                "size": getattr(item, "size", None),
+                "output_format": getattr(item, "output_format", None),
+            }
+            for item in (getattr(response, "data", None) or [])
+            if getattr(item, "url", None)
+        ]
+        if any(item["background"] is not None for item in details):
+            metadata["images"] = details
         return safe_cat_tensors(downloaded), metadata
     except comfy.model_management.InterruptProcessingException:
         raise

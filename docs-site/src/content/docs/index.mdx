@@ -1,9 +1,9 @@
 ---
 title: "BytePlus ModelArk for ComfyUI"
-description: "Use Seedream, Seedance, Seed, DeepSeek and GLM language models, Seed Speech and AI MediaKit in ComfyUI with your own BytePlus API keys."
+description: "Use Seedream images, Seedance video, language models, Seed Speech, OmniHuman avatars and AI MediaKit in ComfyUI with your own BytePlus keys."
 template: splash
 hero:
-  tagline: Seedream images, Seedance video, Seed, DeepSeek and GLM language models, Seed Speech audio and AI MediaKit enhancement as ComfyUI nodes, billed to your own BytePlus account.
+  tagline: Seedream images, Seedance video, Seed, DeepSeek and GLM language models, Seed Speech audio, OmniHuman avatars and AI MediaKit enhancement as ComfyUI nodes, billed to your own BytePlus account.
   actions:
     - text: Get started
       link: get-started/install/
@@ -21,18 +21,24 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 import TemplateGrid from '../../components/TemplateGrid.astro';
+import nodes from '../../data/nodes.json';
+import templates from '../../data/templates.json';
 
 <CardGrid>
-	<Card title="22 nodes" icon="puzzle">
-		Images, video, language, speech, AI MediaKit and the private asset library. Each node has its own page with inputs, outputs and tips.
+	<Card title={`${nodes.length} nodes`} icon="puzzle">
+		Seedream 5.5 images and layers, video, 3D, language, speech, OmniHuman avatars, AI MediaKit and the private asset library. Each node has its own page with inputs, outputs and tips.
 	</Card>
-	<Card title="37 templates" icon="rocket">
+	<Card title={`${templates.length} templates`} icon="rocket">
 		Ready-made workflows in the ComfyUI template browser, from a single image to a dubbed product ad.
 	</Card>
 	<Card title="Your own keys" icon="seti:lock">
 		Keys are saved once in Settings → BytePlus. Workflows contain no keys and no client nodes.
 	</Card>
 </CardGrid>
+
+## Create a talking avatar
+
+[Avatar Generation](./templates/avatar-generation/) connects Seedream 5.5, Seed Audio and OmniHuman in one native workflow. Generate a portrait and narration or supply your own, then save the talking avatar video. The guide also explains how to run selected outputs to review the portrait and voice before starting video generation.
 
 ## What you can build
 

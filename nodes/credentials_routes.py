@@ -68,7 +68,7 @@ async def handle_status(request):
 
 async def handle_save(request):
     """
-    Body: {"credential": "modelark" | "speech" | "mediakit" | "las" | "iam",
+    Body: {"credential": "modelark" | "speech" | "mediakit" | "las" | "omnihuman" | "iam",
            "value": "<key>", "access_key": "...", "secret_key": "...",
            "region": "ap-southeast-1", "clear": true}
     ("iam" is the AK/SK pair for the asset library; "region" belongs to modelark.)
@@ -116,17 +116,18 @@ async def handle_save(request):
             return _error("cred_endpoint_duplicate")
         updates[variable] = value
         message_key = "cred_endpoint_saved" if value else "cred_endpoint_cleared"
-    elif credential in ("modelark", "speech", "mediakit", "las"):
+    elif credential in ("modelark", "speech", "mediakit", "las", "omnihuman"):
         variable = credentials.CREDENTIAL_VARS[credential]
         if clear:
             updates[variable] = ""
         else:
-            if credential == "las" and not isinstance(body.get("value"), str):
+            value = body.get("value")
+            if not isinstance(value, str):
                 return _error("cred_bad_request")
-            value = str(body.get("value") or "").strip()
+            value = value.strip()
             if not value:
                 return _error("cred_empty")
-            if credential == "las" and any(ord(character) < 32 or ord(character) == 127 for character in value):
+            if not credentials.valid_api_key(value):
                 return _error("cred_bad_request")
             if credential == "modelark":
                 region = body.get("region") or credentials.get_default_region()

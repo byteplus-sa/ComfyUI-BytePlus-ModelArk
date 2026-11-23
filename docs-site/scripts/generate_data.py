@@ -42,6 +42,7 @@ NODES = [
     ("BytePlusSeed", "byteplus-llm", "Language"),
     ("BytePlusSeedAudio", "seed-audio", "Speech"),
     ("BytePlusSeedTTS", "seed-tts", "Speech"),
+    ("BytePlusSeedTTS3", "seed-tts-3", "Speech"),
     ("BytePlusSeedASR", "seed-asr", "Speech"),
     ("BytePlusSeedVoiceClone", "seed-voice-clone", "Speech"),
     ("BytePlusVideoEnhance", "vcube-video-enhance", "MediaKit"),
@@ -50,6 +51,9 @@ NODES = [
     ("BytePlusLASGenjutsu", "las-genjutsu", "LAS"),
     ("BytePlusLASVideoTranslation", "las-video-translation", "LAS"),
     ("BytePlusLASTaskResult", "las-task-result", "LAS"),
+    ("BytePlusOmniHuman", "omnihuman", "OmniHuman"),
+    ("BytePlusOmniHumanTaskResult", "omnihuman-task-result", "OmniHuman"),
+    ("BytePlusOmniHumanCancelTask", "omnihuman-cancel-task", "OmniHuman"),
     ("BytePlusHyper3D", "hyper3d", "3D"),
     ("BytePlusHitem3D", "hitem3d", "3D"),
     ("BytePlusCreateImageAsset", "create-image-asset", "Assets"),
@@ -89,6 +93,7 @@ TEMPLATE_GROUPS = [
             "Video Smoothness Enhance",
         ],
     ),
+    ("OmniHuman", ["Avatar Generation"]),
     ("3D", ["Hyper3D Text to 3D", "Hyper3D and Hitem3D Image to 3D"]),
     ("Language", ["Seed Prompt Writer"]),
     ("Speech", ["Seed Audio", "Seed Speech TTS and ASR", "Seed Voice Clone"]),
@@ -126,6 +131,7 @@ KEYS_BY_CATEGORY = {
     "BytePlus ModelArk/Speech": ["Seed Speech API key"],
     "BytePlus ModelArk/MediaKit": ["AI MediaKit API key"],
     "BytePlus ModelArk/LAS": ["LAS API key"],
+    "BytePlus ModelArk/OmniHuman": ["Vision AI API key"],
 }
 KEYS_BY_CLASS = {
     "BytePlusCreateImageAsset": ["ModelArk API key", "IAM access key and secret key"],

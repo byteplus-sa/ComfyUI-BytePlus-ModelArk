@@ -20,6 +20,7 @@ from .constants import (
     DEFAULT_REGION,
     LAS_API_KEY_ENV,
     MEDIAKIT_API_KEY_ENV,
+    OMNIHUMAN_API_KEY_ENV,
     REGION_BASE_URLS,
     SPEECH_API_KEY_ENV,
 )
@@ -44,6 +45,10 @@ def valid_endpoint_id(value):
     return isinstance(value, str) and re.fullmatch(r"ep-[A-Za-z0-9][A-Za-z0-9-]{0,124}", value) is not None
 
 
+def valid_api_key(value):
+    return isinstance(value, str) and bool(value) and all(32 < ord(character) < 127 for character in value)
+
+
 # Credential id (as used by the Settings dialog and the routes) -> variable.
 LAS_API_KEY_ENVS = (LAS_API_KEY_ENV, "LAS_API_KEY")
 CREDENTIAL_VARS = {
@@ -51,6 +56,7 @@ CREDENTIAL_VARS = {
     "speech": SPEECH_API_KEY_ENV,
     "mediakit": MEDIAKIT_API_KEY_ENV,
     "las": LAS_API_KEY_ENV,
+    "omnihuman": OMNIHUMAN_API_KEY_ENV,
     "access_key": ACCESS_KEY_ENVS[0],
     "secret_key": SECRET_KEY_ENVS[0],
 }

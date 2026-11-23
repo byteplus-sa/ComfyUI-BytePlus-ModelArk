@@ -1,12 +1,34 @@
-# ComfyUI BytePlus ModelArk, AI MediaKit & LAS
+# ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit
 
-Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, AI MediaKit enhancement, and LAS video editing and translation.
+Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, OmniHuman avatar videos, and AI MediaKit video and image enhancement. This source branch also includes LAS video editing and translation.
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.7.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.12.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.7.0:** optional default ModelArk endpoint IDs for Seedance 2.0, Seedance 2.5 and Seedream 5.0 Pro in **Settings → Other → BytePlus → Default credentials**. Endpoint overrides use your existing key and region, keep the selected model's capabilities and invalidate cached outputs when changed. Leave a field blank to use the built-in model. No workflow changes are needed. All three endpoint paths were checked with real generation requests.
+**New in v0.12.0:** render a reviewed 480p Seedance 2.5 draft at **1080p or 4K** with the Draft to Final node's `resolution` selector. The default remains 1080p. Endpoint-backed drafts now use the configured endpoint for final rendering, avoiding the canonical-model endpoint mismatch. Keep the same endpoint configuration between draft and final; no automatic paid retries were added.
+
+Also included: the separate **Seed Speech TTS 3** node with 520 preset voices, direct voice-ID input, delivery instructions, optional subtitles and conversation sessions, using your existing Seed Speech key. Seedream 5.5 shared controls and fixed presets now match current ComfyUI core while preserving BytePlus limits and the Pro-first model selection. New 5.5 layer-separation nodes default to minimal-size layers; Pro and Flash remain full-canvas. Reload and review saved 5.5 workflows before running.
+
+**Previously in v0.11.0:** the native **Avatar Generation** template connects Seedream 5.5, Seed Audio and OmniHuman in one run, with portrait/audio/video savers, a task-ID preview and optional upload inputs. No separate app or approval pause is required. OmniHuman video duration follows the input audio; trim or regenerate the narration to change the length.
+
+OmniHuman cancellation now recognizes the service's HTTP 400 "already started" response as a refusal, without claiming the remote task was canceled.
+
+**Previously in v0.10.0:** OmniHuman 2.0 image-plus-audio avatar generation, task collection and explicit queued-task cancellation with a separate Vision AI key. Supports 4-300 seconds of audio, including five minutes. Oversized connected WAVs are downmixed to mono and resampled to at most 24 kHz without truncation. Private task recovery avoids duplicate paid submissions; transient polling and public-only downloads preserve accepted work on collection failures.
+
+**Previously in v0.9.2:** released Seedance 2.5 Flash API corrections: MP4/MOV output in all three generation nodes and reference limits of 10 images, 5 videos and 5 audio clips, counting connected media and assets together. Automatic 2.5-family reference tasks use adaptive ratio and automatic duration so inferred editing does not conflict with fixed widgets; explicit reference and extension retain the selected duration. Seedream 5.5 guidance now reflects its official release. Existing model IDs, security safeguards and non-blocking task reuse are preserved.
+
+**Previously in v0.9.1:** security hardening for credential validation and reference links. ModelArk key validation uses public-only networking, does not follow redirects and never logs credential-bearing exception text. Malformed keys are rejected before validation. Shared HTTP requests with API credentials are restricted to the corresponding BytePlus HTTPS services; reference probes reject embedded credentials and unsafe or malformed destinations.
+
+**Previously in v0.9.0:** standard Seedance 2.5 supports 480p, 720p, 1080p and 4K through one resolution input. Seedance 2.5 Flash is available in the existing generation and task-query nodes. Premium and Premium Draft choices are removed without compatibility aliases or automatic migration.
+
+Registry publication and security review are separate. Check the version status before updating through Manager; a pending or flagged version may not be offered yet.
+
+**Seedance 2.5 4K:** select `Seedance 2.5` and set `resolution` to `4k`. The separate Premium and Premium Draft choices are removed without compatibility aliases. Update those selections manually before running an older workflow.
+
+**Seedance 2.5 Flash:** select `Seedance 2.5 Flash` in any of the three Seedance 2.5 generation nodes. It uses `dreamina-seedance-2-5-flash-261115`, supports 480p/720p videos from 4 to 30 seconds, MP4/MOV output and up to 20 references (10 images, 5 videos, 5 audio clips). Flash has no Draft option. Activate the model for the region you use.
+
+**Previously in v0.8.0:** Seedream 5.5 image generation and layer separation, with ten references, automatic transparency, 1K/1.5K/2K output, custom sizes and optional rich-text OCR. Omitted advanced inputs use their defaults correctly. Media downloads reject private addresses and unsafe redirects. Existing node IDs and model defaults are unchanged. Seedream 5.5 is officially released; activate it for the region you use.
 
 **LAS nodes are available in this source branch.** Updating to the current Registry release alone does not install them; the release version and Registry metadata are unchanged.
 
@@ -24,7 +46,7 @@ Full documentation, with a page for every node and template: **https://byteplus-
 
 ## Quick Start
 
-**1. Install.** The pack is on the Comfy Registry: **[registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. In ComfyUI-Manager, search for *BytePlus ModelArk* (listed as *ComfyUI BytePlus ModelArk & AI MediaKit*), or use the [Comfy CLI](https://github.com/Comfy-Org/comfy-cli):
+**1. Install.** The pack is on the Comfy Registry: **[registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. In ComfyUI-Manager, search for *BytePlus ModelArk* (listed as *ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit*), or use the [Comfy CLI](https://github.com/Comfy-Org/comfy-cli):
 
 ```bash
 comfy node install ComfyUI-BytePlus-ModelArk
@@ -56,14 +78,15 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 
 | Service | Nodes | Key |
 |---|---|---|
-| **ModelArk** – images | Seedream 4.5 & 5.0, Seedream 5.0 Layer Separation | ModelArk API key |
-| **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 (3 nodes), Draft to Final | ModelArk API key |
+| **ModelArk** – images | Seedream, Seedream Layer Separation | ModelArk API key |
+| **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 and Flash (3 shared nodes), Draft to Final | ModelArk API key |
 | **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
 | **ModelArk** – asset library | Create Image / Video / Audio Asset, Asset Library | ModelArk API key + IAM AK/SK |
-| **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
+| **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech TTS 3, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
 | **AI MediaKit** | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance | AI MediaKit API key |
 | **LAS** (source integration) | LAS Genjutsu, LAS Video Translation, LAS Task Result | LAS API key |
+| **Vision AI** | OmniHuman 2.0, OmniHuman Task Result, OmniHuman Cancel Task | Vision AI API key |
 
 The image, video, LLM and asset nodes match ComfyUI's built-in ByteDance nodes input for input, but use BytePlus model IDs. This pack's extras (parallel generations, non-blocking runs and so on) sit under each node's advanced inputs.
 
@@ -72,7 +95,7 @@ The image, video, LLM and asset nodes match ComfyUI's built-in ByteDance nodes i
 - **Nodes only run when their output is used.** They save nothing themselves: connect `Save Image` / `Save Video`. A node with nothing connected doesn't run and isn't billed.
 - **Regions:** `ap-southeast-1` (default) or `eu-west-1` for ModelArk. Seedream 5.0 Lite isn't available in `eu-west-1`. Seed Speech and AI MediaKit run in `ap-southeast-1` only.
 - **LAS region:** Johor (`ap-southeast-1`), independent of the ModelArk region selector.
-- **Comfy.org login** is needed for features that upload local media to Comfy.org storage: Seedance reference videos, standard ASR, MediaKit sources, LAS connected media and new private assets.
+- **Comfy.org login** is needed for features that upload local media to Comfy.org storage: Seedance reference videos, standard ASR, MediaKit sources, LAS and OmniHuman connected media, and new private assets.
 
 ## API Keys
 
@@ -84,6 +107,7 @@ Each BytePlus product has its own key; they are not interchangeable.
 | Seed Speech API key | [Seed Speech console](https://console.byteplus.com/voice/new/overview?projectName=default) → Settings → API Keys (activate the services first) | Speech nodes | `BYTEPLUS_SEED_SPEECH_API_KEY` |
 | AI MediaKit API key | [AI MediaKit console](https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey) → Settings → API key | Enhancement nodes | `BYTEPLUS_VOD_MEDIAKIT_API_KEY` |
 | LAS API key | [Official LAS key guide](https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key): LAS console → Operator service → API key management | LAS Genjutsu, Video Translation and Task Result | `BYTEPLUS_LAS_API_KEY` |
+| Vision AI API key | [Vision AI key setup guide](https://docs.byteplus.com/en/docs/byteplus-vision/api-key-usage-instructions) | OmniHuman nodes | `BYTEPLUS_CV_API_KEY` |
 | IAM AK/SK | IAM console (a sub-user allowed only the asset library) | Asset library nodes | `BYTEPLUS_ACCESS_KEY`, `BYTEPLUS_SECRET_KEY` (+ `BYTEPLUS_SESSION_TOKEN` for STS) |
 
 ### Option A: Settings → BytePlus (recommended)
@@ -94,6 +118,7 @@ Open **Settings** (gear icon, or Ctrl+, / Cmd+,), search for **BytePlus**, paste
 - The separate LAS row stores its key without validation or a generation request and does not change `BYTEPLUS_REGION`.
 - Keys are written to `user/.env` in your ComfyUI folder and take effect immediately.
 - Settings only ever shows whether a key is set and its last four characters. The row also shows where the file is (*Saved in ~/…/user/.env*).
+- Save OmniHuman's key in **OmniHuman Vision AI API key**. Saving does not check Vision AI access, start generation or change the ModelArk region.
 
 ![Settings → BytePlus with no key yet](https://raw.githubusercontent.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/main/docs/images/settings-byteplus-not-set.jpg)
 
@@ -105,7 +130,7 @@ Under **Settings → Other → BytePlus → Default credentials**, the **Seedanc
 
 Use an endpoint deployed for exactly that model in the key's region. Saving checks the ID format, not its model, region or access, and makes no generation request. Blank **Save** or **Remove** restores the built-in model unless an environment variable overrides it. Changes take effect without restarting and invalidate the selected model's cached output on the next run.
 
-Seedance 2.5 Draft shares the 2.5 endpoint; Seedream Pro layer separation shares the Pro endpoint. Fast, Mini, Premium, Flash and other models are unchanged. Draft to Final keeps the model or endpoint recorded on the draft. If a draft reports an endpoint ID, keep that endpoint configured until its final is rendered. Pending non-blocking tasks keep running if you change endpoints; collect their results with **Video Query Tasks**, using `all`.
+Seedance 2.5 uses the same endpoint at every resolution, including `4k`; Seedance 2.5 Draft shares it. Seedance 2.5 Flash keeps its own built-in model ID and is not overridden by the standard 2.5 endpoint. Seedream Pro layer separation shares the Pro endpoint. Fast, Mini and other models are unchanged. Draft to Final keeps the model or endpoint recorded on the draft. If a draft reports an endpoint ID, keep that endpoint configured until its final is rendered. Pending non-blocking tasks keep running if you change endpoints; collect their results with **Video Query Tasks**, using `all`.
 
 ### Option B: Edit `user/.env`
 
@@ -117,6 +142,7 @@ BYTEPLUS_REGION=ap-southeast-1
 BYTEPLUS_SEED_SPEECH_API_KEY=your-seed-speech-key
 BYTEPLUS_VOD_MEDIAKIT_API_KEY=your-mediakit-key
 BYTEPLUS_LAS_API_KEY=your-las-key
+BYTEPLUS_CV_API_KEY=your-vision-ai-key
 BYTEPLUS_ACCESS_KEY=your-iam-ak
 BYTEPLUS_SECRET_KEY=your-iam-sk
 ```
@@ -187,26 +213,34 @@ LAS uses its own **LAS API key** and Johor operator endpoint. ModelArk, Seed Spe
 
 | Node | What it does |
 |---|---|
-| **Seedream 4.5 & 5.0** | Text-to-image and image editing with Seedream 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0. |
-| **Seedream 5.0 Layer Separation** | Splits one image into a base image and up to 16 transparent layers (5.0 Pro or Flash). |
+| **Seedream** | Text-to-image and image editing with Seedream 5.5, 5.0 Pro, 5.0 Flash, 5.0 Lite, 4.5 and 4.0. |
+| **Seedream Layer Separation** | Splits one image into a base image and up to 99 transparent layers on 5.5, or 16 on 5.0 Pro/Flash. |
 
-**Seedream 4.5 & 5.0**
+**Seedream**
 - Sizes: presets for 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2 and 21:9 at each supported resolution (5.0 Pro and Flash add 1.5K, priced like 1K on Pro); "adaptive" levels where the model picks the ratio; or a custom width × height from 1:16 to 16:1.
 - Up to 10 reference images (14 on 5.0 Lite, 4.5 and 4.0). `max_images` for related image sets (Lite, 4.5, 4.0). Prompt optimization and "thinking" where supported.
 - Advanced: parallel generations, PNG output, transparent background on Pro and Flash (connect Load Image's `MASK` to `reference_mask`; the `mask` output holds the result's transparency).
 
-**Seedream 5.0 Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and a JSON list of layer names and descriptions. Its opt-in `save_layers` is the only setting in the pack that writes files itself.
+**Seedream 5.5:** select `seedream 5.5` to use `dola-seedream-5-5-261028`. It supports text-to-image and up to 10 reference images, with `1K`, `1.5K`, `2K` and custom sizes (921,600 to 4,624,220 total pixels, aspect ratio 1:16 to 16:1). Defaults are `2K (adaptive)`, PNG and `background=auto`. Auto mode follows the prompt and preserves the resulting transparency in the `mask` output; JPEG is always opaque. Explicit `transparent` requires PNG but does not require a reference image or input alpha channel.
+
+5.5 supports only `standard` prompt optimization, not `fast`, streaming or related-image group generation. `generation_count` runs separate requests in parallel. Its `seed` widget remains a local rerun control, not a generation parameter. The optional `safety_identifier` accepts a stable hashed end-user ID of up to 64 ASCII characters; avoid personal data. Activate the model in the ModelArk console for the region you use. Existing image-model defaults are unchanged.
+
+**Save transparency:** connect the Seedream `IMAGE` and `mask` outputs to **Join Image with Alpha**, then connect its output to **Save Image**. Saving the RGB output alone discards transparency. For ten-reference workflows, if the frontend loses an image socket after reopening, combine references with **Batch Images** (`ImageBatch`) and connect the batch to one image slot; the ten-image limit still applies.
+
+**Seedream Layer Separation** outputs the base image and mask, each layer and its mask, bounding boxes, a `layer_stack` for Create Layered Image, and `layers_json`. On 5.5, `max_images` controls the total including the base (2-100, default 30), and `text_recognition` optionally returns rich-text OCR with line coordinates and style runs in `layers_json`. Not every text layer returns OCR. Background mode is not accepted for layer separation; the base is opaque and layers are transparent PNGs. For large layer counts, prefer `crop_layers` to reduce memory use. Its opt-in `save_layers` is the only setting in the pack that writes files itself.
+
+Layer separation is generative, not lossless reconstruction, and the image count is a ceiling rather than a guaranteed total. ComfyUI's current **Create Layered Image** compositor accepts at most 50 layers including the base; keep `max_images` at 50 or below for that path, or save and process larger sets separately.
 
 ### Video (ModelArk)
 
 | Node | Models | Highlights |
 |---|---|---|
 | **Seedance Text to Video**, **Image to Video**, **First-Last-Frame to Video** | `seedance-1-0-pro`, `seedance-1-0-pro-fast` (First-Last-Frame: Pro only) | 480p–1080p, 2–12 s, `camera_fixed`, `watermark` |
-| **Seedance 2.5 Text to Video**, **First-Last-Frame to Video**, **Reference to Video** | 2.5 (1080p, 30 s), 2.5 Premium (4K, whitelist only), 2.0 (4K), 2.0 Fast, 2.0 Mini | Draft options for 2.5 and 2.5 Premium; `output_format` mp4 / mov on 2.5 |
+| **Seedance 2.5 Text to Video**, **First-Last-Frame to Video**, **Reference to Video** | 2.5 (480p, 720p, 1080p, 4K; 30 s), 2.5 Flash (480p, 720p; 30 s), 2.0 (4K), 2.0 Fast, 2.0 Mini | MP4 / MOV on standard 2.5 and Flash; 480p Draft on standard 2.5 only |
 | **Seedance 2.5 Draft to Final Video** | Reads the model from the draft | See [Draft Mode](#draft-mode) |
 | **Video Query Tasks** | All Seedance models, including retired ones | Lists your recent video tasks (by status, model or task ID) as JSON, to find a task ID again |
 
-- **Reference to Video** takes up to 50 references on 2.5 (30 images, 10 videos, 10 audio clips) and 15 on 2.0 (9 + 3 + 3), connected or as `asset_N` [links or assets](#reference-links-and-assets). `task_type`: auto / reference / edit / extend. Reference videos can be down- or upscaled.
+- **Reference to Video** takes up to 50 references on standard 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 + 5 + 5) and 15 on 2.0 (9 + 3 + 3), connected or as `asset_N` [links or assets](#reference-links-and-assets). `task_type`: auto / reference / edit / extend on 2.5 and Flash. `auto` ignores the ratio and duration widgets and sends adaptive ratio and automatic duration. Select `reference` for a new video with the ratio and duration you set, or `extend` to continue a source video for the duration you set. Reference videos can be down- or upscaled.
 - **Batches:** with `generation_count` above 1, every video reaches the `VIDEO` output (each with its own seed; the next node runs once per video), and `last_frame` holds their last frames as one batch.
 - **Advanced:** offline inference, parallel generations, non-blocking runs.
 
@@ -232,6 +266,7 @@ Needs Dreamina Seedance Advanced Creation Rights and IAM AK/SK. See [Private Ass
 |---|---|
 | **Seed Audio 1.0** | Speech, voiceovers, music and sound effects up to 120 s from a prompt, in 20 languages. |
 | **Seed Speech TTS** | Text to speech with TTS 2.0 voices, TTS 1.0 speakers or cloned voices. |
+| **Seed Speech TTS 3** | Separate TTS 3 voices, native delivery instructions, optional word timings and conversation sessions. |
 | **Seed Speech ASR** | Speech to text in 50+ languages, with timings and SRT subtitles. |
 | **Seed Voice Clone** | Trains a cloned voice from a 10–15 s clip and outputs its `speaker_id`. |
 
@@ -244,6 +279,12 @@ Needs Dreamina Seedance Advanced Creation Rights and IAM AK/SK. See [Private Ass
 - Models: `seed-tts-2.0` (voice list), `seed-tts-1.0` (speaker IDs), `seed-icl-2.0` / `seed-icl-1.0` (cloned voices).
 - Style instructions (`context_text`), emotion and intensity, speed, volume, pitch, sample rate, language, trailing silence, subtitles and timestamps.
 - Advanced: language detection, Markdown / emoji / LaTeX / parentheses handling, 1-hour cache, tone fidelity for cloned voices.
+
+**Seed Speech TTS 3** (`BytePlusSeedTTS3`)
+- Uses `dola-seed-tts-3.0`, its own [preset voices](https://docs.byteplus.com/en/docs/byteplusvoice/voicelist-3-0), and the same Seed Speech key. Paste a preset or compatible cloned voice ID into `custom_speaker_id` to bypass the dropdown. **Seed Voice Clone** remains on ICL 2; older voices may need upgrading.
+- Enter up to 10,000 characters in `text`, or use advanced `ssml`, never both. Native `instructions` take one instruction per line. Speed and volume range from 0.5 to 2.0; pitch ranges from -12 to 12.
+- Returns decoded audio, subtitle JSON, segment-based SRT and a session ID for sequential conversation requests. The full JSONL response is collected before returning audio; playback is not live. Connect **Save Audio** to keep it.
+- Word timings depend on the [language](https://docs.byteplus.com/en/docs/byteplusvoice/seed-tts-3-0-language-support). No automatic submission retry or remote cancellation is performed. See the [node guide](https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/nodes/seed-tts-3/) and [HTTP streaming contract](https://docs.byteplus.com/en/docs/byteplusvoice/seed-tts-3-0-http-streaming).
 
 **Seed Speech ASR**
 - `seed-asr-fast` sends a connected clip inline. The standard models (`seed-asr-2.0` / `1.0`, up to 5 h) only take URLs, so a connected clip is uploaded to Comfy.org storage first (**Comfy.org login required**); or pass a public audio URL.
@@ -288,6 +329,19 @@ Connected videos and images are uploaded to Comfy.org storage first (**Comfy.org
 - `tool_version`: `standard` (up to 8x, PNG output), `professional` or `max` (generative, up to 30x, with `generative_enhance_mode` `generative_first` / `fidelity_first`; `max` adds `enable_correct_color`).
 - `output_size`: a `multiple` (default 2x) or a `target size`. Size limits are checked before upload. Each image in a batch is enhanced separately.
 - Also outputs `original` (the input resized to the result's size) for the `Compare Images` slider.
+
+### Avatar Video (Vision AI)
+
+**OmniHuman 2.0** uses one portrait and speech audio with the separate `BYTEPLUS_CV_API_KEY`. Connect image/audio sockets, or provide persistent public URLs instead. Connect **Save Video** to keep the result.
+
+- Audio lasts **4-300 seconds, up to five minutes**. Oversized connected WAVs are downmixed to mono and resampled to at most 24 kHz without truncation; audio that fits keeps its channels and sample rate. WAV/MP3 URL inputs are validated by the service and must be smaller than 15 MB.
+- Images are 300-6000 pixels on each side, width/height 0.4-2.5, and smaller than 30 MB. Connected media needs Comfy.org storage; URL inputs bypass uploads.
+- Paid submissions never auto-retry, even after a timeout or throttling. Keep the local seed fixed to resume unresolved work. Private recovery files store only task IDs and hashes in `user/byteplus/omnihuman_tasks/`, not keys, prompts or media URLs.
+- **OmniHuman Task Result** collects an existing task without submitting generation. `existing_task_id` on the original node must match its unresolved task and key. Collection through a separate node does not clear the original recovery record.
+- Interruption stops local waiting, not remote generation or billing. **OmniHuman Cancel Task** explicitly requests queued-task cancellation; connect an output to execute. Running tasks cannot be canceled.
+- Task lookup lasts about 12 hours; video URLs last one hour. Collect promptly. Only use authorized images and voices.
+
+See the [official OmniHuman 2.0 API](https://docs.byteplus.com/en/docs/byteplus-vision/omnihuman-2-0-video-generation). A real four-second URL-input backend generation was downloaded and decoded successfully. Five-minute preparation and its duration boundary are tested locally; no paid five-minute generation is claimed.
 
 ## Guides
 
@@ -337,18 +391,19 @@ With **Dreamina Seedance Advanced Creation Rights** you can keep authorized medi
 
 Seedance 2.5 can render a quick 480p draft before the full-quality video:
 
-1. On a Seedance 2.5 node pick `Seedance 2.5 Draft` or `Seedance 2.5 Premium Draft`, set the seed control to **fixed**, and run. The node outputs `draft_task_id`.
-2. Connect `draft_task_id` to `Seedance 2.5 Draft to Final Video` (or paste IDs, one per line) and run again. The draft node isn't re-run while its inputs are unchanged, so the final uses the draft you reviewed.
+1. On a Seedance 2.5 node pick `Seedance 2.5 Draft`, set the seed control to **fixed**, and run. The node outputs `draft_task_id`.
+2. Connect `draft_task_id` to `Seedance 2.5 Draft to Final Video` (or paste IDs, one per line), choose `1080p` or `4k` in the final node's `resolution`, and run again. The draft node isn't re-run while its inputs are unchanged, so the final uses the draft you reviewed.
 
-The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting, and renders at 1080p (2.5) or 4K (2.5 Premium). Draft task IDs are valid for 7 days.
+The final reuses the draft's prompt, references, duration, aspect ratio, seed and audio setting. It defaults to 1080p; select `4k` to render the same 480p draft at 4K. Draft task IDs are valid for 7 days. Keep the Seedance 2.5 endpoint override in **Settings > BytePlus** the same as when you created the draft, including leaving it empty for drafts made directly with the model ID. Draft and final are separate billed tasks.
 
 ## Example Workflows
 
-Templates are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser: a starter for every node except the Seedance 1.0 ones (templates show current models only), `2.5 Model Updates` (Seedream, Seedance 2.5 and the LLM together), plus pipelines that chain services:
+Templates are in [`example_workflows/`](./example_workflows) and appear in ComfyUI's template browser: starters for the released nodes except the Seedance 1.0 ones (templates show current models only), `2.5 Model Updates` (Seedream, Seedance 2.5 and the LLM together), plus pipelines that chain services:
 
 | Template | What it does |
 |---|---|
 | Text to Image to Video | Seedream makes the first frame, Seedance animates it. |
+| [Avatar Generation](./example_workflows/Avatar%20Generation.json) | Seedream 5.5 makes a portrait and Seed Audio speaks your script, then OmniHuman generates the talking avatar in the same run, with no review pause or separate app. Saves portrait, narration and video; includes optional upload nodes (ModelArk + Seed Speech + Vision AI keys and Comfy.org login). |
 | Seedance Video Extension | A Seedance 2.5 clip, then two Seedance 2.5 Reference nodes with `task_type = extend`, each continuing the previous clip's motion and sound; Concatenate Video joins the three into one 15 s video (the reference video goes through Comfy.org storage, so log in; needs ComfyUI 0.36+ for `Concatenate Video`). |
 | Seed Prompt Writer | The LLM turns a short idea into a detailed Seedream prompt. |
 | Generate and Enhance | Seedream → Image Quality Enhance; Seedance → vCube Video Enhance (ModelArk + MediaKit keys). |

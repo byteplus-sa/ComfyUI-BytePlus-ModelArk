@@ -3,11 +3,14 @@
   "id": "BytePlusSeedream",
   "slug": "seedream",
   "group": "Images",
-  "display_name": "BytePlus Seedream 4.5 & 5.0",
+  "display_name": "BytePlus Seedream",
   "category": "BytePlus ModelArk",
   "description": "Unified text-to-image generation and precise single-sentence editing at up to 4K resolution.",
   "search_aliases": [
-   "ByteDance Seedream 4.5 & 5.0"
+   "ByteDance Seedream 4.5, 5.0 & 5.5",
+   "ByteDance Seedream 4.5 & 5.0",
+   "Seedream 5.5",
+   "BytePlus Seedream 4.5 & 5.0"
   ],
   "keys": [
    "ModelArk API key"
@@ -34,7 +37,8 @@
      "seedream 5.0 flash",
      "seedream 5.0 lite",
      "seedream-4-5-251128",
-     "seedream-4-0-250828"
+     "seedream-4-0-250828",
+     "seedream 5.5"
     ],
     "variants": [
      {
@@ -46,6 +50,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Pick a recommended size. Select Custom to use the width and height below.",
+        "default": "(1K) 1024x1024 (1:1)",
         "options": [
          "(1K) 1024x1024 (1:1)",
          "(1K) 864x1152 (3:4)",
@@ -211,6 +216,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Pick a recommended size. Select Custom to use the width and height below.",
+        "default": "(1K) 1024x1024 (1:1)",
         "options": [
          "(1K) 1024x1024 (1:1)",
          "(1K) 864x1152 (3:4)",
@@ -356,6 +362,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Pick a recommended size. Select Custom to use the width and height below.",
+        "default": "(2K) 2048x2048 (1:1)",
         "options": [
          "(2K) 2048x2048 (1:1)",
          "(2K) 1728x2304 (3:4)",
@@ -501,6 +508,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Pick a recommended size. Select Custom to use the width and height below.",
+        "default": "(2K) 2048x2048 (1:1)",
         "options": [
          "(2K) 2048x2048 (1:1)",
          "(2K) 1728x2304 (3:4)",
@@ -637,6 +645,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Pick a recommended size. Select Custom to use the width and height below.",
+        "default": "(1K) 1024x1024 (1:1)",
         "options": [
          "(1K) 1024x1024 (1:1)",
          "(1K) 864x1152 (3:4)",
@@ -772,6 +781,165 @@
         "max": 16
        }
       ]
+     },
+     {
+      "key": "seedream 5.5",
+      "inputs": [
+       {
+        "name": "size_preset",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Pick a recommended size. Select Custom to use the width and height below.",
+        "default": "2K (adaptive)",
+        "options": [
+         "(1K) 1024x1024 (1:1)",
+         "(1K) 880x1184 (3:4)",
+         "(1K) 1184x880 (4:3)",
+         "(1K) 1360x768 (16:9)",
+         "(1K) 768x1360 (9:16)",
+         "(1K) 832x1248 (2:3)",
+         "(1K) 1248x832 (3:2)",
+         "(1K) 1568x672 (21:9)",
+         "(1.5K) 1536x1536 (1:1)",
+         "(1.5K) 1328x1776 (3:4)",
+         "(1.5K) 1776x1328 (4:3)",
+         "(1.5K) 2048x1152 (16:9)",
+         "(1.5K) 1152x2048 (9:16)",
+         "(1.5K) 1248x1888 (2:3)",
+         "(1.5K) 1888x1248 (3:2)",
+         "(1.5K) 2352x1008 (21:9)",
+         "(2K) 2048x2048 (1:1)",
+         "(2K) 1776x2368 (3:4)",
+         "(2K) 2368x1776 (4:3)",
+         "(2K) 2736x1536 (16:9)",
+         "(2K) 1536x2736 (9:16)",
+         "(2K) 1680x2512 (2:3)",
+         "(2K) 2512x1680 (3:2)",
+         "(2K) 3136x1344 (21:9)",
+         "1K (adaptive)",
+         "1.5K (adaptive)",
+         "2K (adaptive)",
+         "Custom"
+        ]
+       },
+       {
+        "name": "width",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Custom width for image. Value is working only if `size_preset` is set to `Custom`",
+        "default": 2048,
+        "min": 240,
+        "max": 8600,
+        "step": 2
+       },
+       {
+        "name": "height",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Custom height for image. Value is working only if `size_preset` is set to `Custom`",
+        "default": 2048,
+        "min": 240,
+        "max": 8600,
+        "step": 2
+       },
+       {
+        "name": "background",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "auto: choose from the prompt (JPEG is always opaque). transparent: generate a PNG with transparency from text-to-image or up to 10 references, also returned as the mask output. opaque: generate without transparency.",
+        "default": "auto",
+        "options": [
+         "auto",
+         "opaque",
+         "transparent"
+        ]
+       },
+       {
+        "name": "images",
+        "type": "group of inputs",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 10 images.",
+        "item_type": "IMAGE",
+        "slots": [
+         "image_1",
+         "image_2",
+         "image_3",
+         "image_4",
+         "image_5",
+         "image_6",
+         "image_7",
+         "image_8",
+         "image_9",
+         "image_10"
+        ],
+        "min": 0
+       },
+       {
+        "name": "seed",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Change this value to run again. A generation seed is not set for Seedream 5.5.",
+        "default": 42,
+        "min": 0,
+        "max": 2147483647,
+        "step": 1
+       },
+       {
+        "name": "watermark",
+        "type": "on/off",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Whether to add an \"AI generated\" watermark to the image.",
+        "default": false
+       },
+       {
+        "name": "generation_count",
+        "type": "integer",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Number of separate generations to run in parallel.",
+        "default": 1,
+        "min": 1,
+        "max": 16
+       },
+       {
+        "name": "output_format",
+        "type": "choice",
+        "required": true,
+        "advanced": true,
+        "tooltip": "File format of the generated image. A transparent background needs png.",
+        "default": "png",
+        "options": [
+         "png",
+         "jpeg"
+        ]
+       },
+       {
+        "name": "prompt_optimization",
+        "type": "choice",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Seedream 5.5 supports only standard prompt optimization.",
+        "default": "standard",
+        "options": [
+         "standard"
+        ]
+       },
+       {
+        "name": "safety_identifier",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Optional stable end-user identifier, up to 64 ASCII characters. Use a hashed ID, not personal data.",
+        "default": ""
+       }
+      ]
      }
     ]
    }
@@ -793,7 +961,7 @@
     "name": "mask",
     "type": "MASK",
     "is_list": false,
-    "tooltip": "Transparency of the output (1 = transparent, like Load Image). Empty unless background is transparent."
+    "tooltip": "Transparency of the output (1 = transparent, like Load Image). Empty for opaque images, including auto mode when the result is opaque."
    }
   ]
  },
@@ -801,16 +969,19 @@
   "id": "BytePlusSeedreamLayerSeparation",
   "slug": "seedream-layer-separation",
   "group": "Images",
-  "display_name": "BytePlus Seedream 5.0 Layer Separation",
+  "display_name": "BytePlus Seedream Layer Separation",
   "category": "BytePlus ModelArk",
-  "description": "Decompose an image into a background plate plus up to 16 repositionable transparent layers, each with stacking order, bounding box, name and description.",
+  "description": "Decompose an image into a background plate plus repositionable transparent layers (up to 99 with Seedream 5.5, up to 16 with 5.0), each with stacking order, bounding box, name and description.",
   "search_aliases": [
+   "ByteDance Seedream 5.0 & 5.5 Layer Separation",
    "ByteDance Seedream 5.0 Layer Separation",
+   "ByteDance Seedream 5.0 Pro Layer Separation",
    "layer separation",
    "split layers",
    "decompose",
    "cutout",
-   "RGBA layers"
+   "RGBA layers",
+   "BytePlus Seedream 5.0 Layer Separation"
   ],
   "keys": [
    "ModelArk API key"
@@ -825,7 +996,8 @@
     "tooltip": "",
     "options": [
      "seedream 5.0 pro",
-     "seedream 5.0 flash"
+     "seedream 5.0 flash",
+     "seedream 5.5"
     ],
     "variants": [
      {
@@ -1019,6 +1191,134 @@
         "default": "BytePlus/Layers/Seedream"
        }
       ]
+     },
+     {
+      "key": "seedream 5.5",
+      "inputs": [
+       {
+        "name": "image",
+        "type": "IMAGE",
+        "required": true,
+        "advanced": false,
+        "tooltip": "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload."
+       },
+       {
+        "name": "prompt",
+        "type": "text",
+        "required": true,
+        "advanced": false,
+        "tooltip": "How to separate the image. Leave empty to auto-detect and separate all major elements. Describe elements in natural language to control the separation, or target exact regions with <bbox>left top right bottom</bbox> tags (coordinates 0-999, relative to the image).",
+        "default": "",
+        "multiline": true
+       },
+       {
+        "name": "size",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Output resolution level. 'auto' follows the input image size (clamped to the 1K-2K range).",
+        "default": "auto",
+        "options": [
+         "auto",
+         "1K",
+         "1.5K",
+         "2K"
+        ]
+       },
+       {
+        "name": "max_images",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Maximum number of images returned, base image included. The model decides how many it needs; each returned image is billed.",
+        "default": 30,
+        "min": 2,
+        "max": 100,
+        "step": 1
+       },
+       {
+        "name": "seed",
+        "type": "integer",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Change this value to run again. A generation seed is not set for Seedream 5.5.",
+        "default": 42,
+        "min": 0,
+        "max": 2147483647,
+        "step": 1
+       },
+       {
+        "name": "watermark",
+        "type": "on/off",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Whether to add an \"AI generated\" watermark to the images.",
+        "default": false
+       },
+       {
+        "name": "crop_layers",
+        "type": "on/off",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Geometry of the layers/masks batch outputs (layer_stack is unaffected and always tight). Full canvas: each layer on a base-sized canvas at its bounding-box position - recompose directly with ImageCompositeMasked. Minimal size: each layer cropped to its bounding box (padded to the largest layer for batching) - much smaller tensors; rebuild placement with Layers From Bounding Boxes using the bboxes output.",
+        "default": true
+       },
+       {
+        "name": "output_format",
+        "type": "choice",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Format of the base image. Layers are always PNG.",
+        "default": "png",
+        "options": [
+         "png",
+         "jpeg"
+        ]
+       },
+       {
+        "name": "save_layers",
+        "type": "on/off",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Also save the base image and the original layer PNGs to the output folder.",
+        "default": false
+       },
+       {
+        "name": "filename_prefix",
+        "type": "text",
+        "required": true,
+        "advanced": true,
+        "tooltip": "Output folder prefix for the files written when save_layers is on.",
+        "default": "BytePlus/Layers/Seedream"
+       },
+       {
+        "name": "prompt_optimization",
+        "type": "choice",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Seedream 5.5 supports only standard prompt optimization.",
+        "default": "standard",
+        "options": [
+         "standard"
+        ]
+       },
+       {
+        "name": "text_recognition",
+        "type": "on/off",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Return rich-text OCR for recognized formatted text layers in layers_json.",
+        "default": false
+       },
+       {
+        "name": "safety_identifier",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Optional stable end-user identifier, up to 64 ASCII characters. Use a hashed ID, not personal data.",
+        "default": ""
+       }
+      ]
      }
     ]
    }
@@ -1064,7 +1364,7 @@
     "name": "layers_json",
     "type": "text",
     "is_list": false,
-    "tooltip": "z_index, name, description, bounding box and saved file of the base image and each layer."
+    "tooltip": "Layer metadata and saved files, plus background and rich-text OCR when returned."
    }
   ]
  },
@@ -1088,12 +1388,11 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Premium for 4k output, and Seedance 2.5 Premium Draft for its 480p preview (rendered in 4k); Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p or 4k final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
-     "Seedance 2.5 Premium",
-     "Seedance 2.5 Premium Draft",
+     "Seedance 2.5 Flash",
      "Seedance 2.0",
      "Seedance 2.0 Fast",
      "Seedance 2.0 Mini"
@@ -1121,7 +1420,8 @@
         "options": [
          "480p",
          "720p",
-         "1080p"
+         "1080p",
+         "4k"
         ]
        },
        {
@@ -1248,7 +1548,7 @@
       ]
      },
      {
-      "key": "Seedance 2.5 Premium",
+      "key": "Seedance 2.5 Flash",
       "inputs": [
        {
         "name": "prompt",
@@ -1265,82 +1565,10 @@
         "required": true,
         "advanced": false,
         "tooltip": "Resolution of the output video.",
-        "default": "4k",
+        "default": "720p",
         "options": [
-         "4k"
-        ]
-       },
-       {
-        "name": "ratio",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
-        "options": [
-         "16:9",
-         "4:3",
-         "1:1",
-         "3:4",
-         "9:16",
-         "21:9",
-         "adaptive"
-        ]
-       },
-       {
-        "name": "duration",
-        "type": "integer",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
-        "default": 5,
-        "min": 4,
-        "max": 30,
-        "step": 1
-       },
-       {
-        "name": "generate_audio",
-        "type": "on/off",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Enable audio generation for the output video.",
-        "default": true
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
-        ]
-       }
-      ]
-     },
-     {
-      "key": "Seedance 2.5 Premium Draft",
-      "inputs": [
-       {
-        "name": "prompt",
-        "type": "text",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Text prompt for video generation. Put spoken lines in double quotes to steer the generated dialogue.",
-        "default": "",
-        "multiline": true
-       },
-       {
-        "name": "resolution",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Resolution of the output video.",
-        "default": "480p",
-        "options": [
-         "480p"
+         "480p",
+         "720p"
         ]
        },
        {
@@ -1629,7 +1857,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the final (1080p, or 4k for Premium). Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render a 1080p or 4k final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -1665,12 +1893,11 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Premium for 4k output, and Seedance 2.5 Premium Draft for its 480p preview (rendered in 4k); Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p or 4k final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
-     "Seedance 2.5 Premium",
-     "Seedance 2.5 Premium Draft",
+     "Seedance 2.5 Flash",
      "Seedance 2.0",
      "Seedance 2.0 Fast",
      "Seedance 2.0 Mini"
@@ -1698,7 +1925,8 @@
         "options": [
          "480p",
          "720p",
-         "1080p"
+         "1080p",
+         "4k"
         ]
        },
        {
@@ -1791,7 +2019,7 @@
       ]
      },
      {
-      "key": "Seedance 2.5 Premium",
+      "key": "Seedance 2.5 Flash",
       "inputs": [
        {
         "name": "prompt",
@@ -1808,65 +2036,10 @@
         "required": true,
         "advanced": false,
         "tooltip": "Resolution of the output video.",
-        "default": "4k",
+        "default": "720p",
         "options": [
-         "4k"
-        ]
-       },
-       {
-        "name": "duration",
-        "type": "integer",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
-        "default": 5,
-        "min": 4,
-        "max": 30,
-        "step": 1
-       },
-       {
-        "name": "generate_audio",
-        "type": "on/off",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Enable audio generation for the output video.",
-        "default": true
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
-        ]
-       }
-      ]
-     },
-     {
-      "key": "Seedance 2.5 Premium Draft",
-      "inputs": [
-       {
-        "name": "prompt",
-        "type": "text",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Text prompt for video generation. Put spoken lines in double quotes to steer the generated dialogue.",
-        "default": "",
-        "multiline": true
-       },
-       {
-        "name": "resolution",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Resolution of the output video.",
-        "default": "480p",
-        "options": [
-         "480p"
+         "480p",
+         "720p"
         ]
        },
        {
@@ -2168,7 +2341,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the final (1080p, or 4k for Premium). Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render a 1080p or 4k final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -2204,12 +2377,11 @@
     "type": "choice with options",
     "required": true,
     "advanced": false,
-    "tooltip": "Seedance 2.5 for the newest model, videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Premium for 4k output, and Seedance 2.5 Premium Draft for its 480p preview (rendered in 4k); Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
+    "tooltip": "Seedance 2.5 for the newest model, 480p to 4k videos up to 30 seconds and mp4/mov output; Seedance 2.5 Draft for a quick 480p preview whose draft_task_id renders the 1080p or 4k final in the BytePlus Seedance 2.5 Draft to Final Video node; Seedance 2.5 Flash for 480p/720p videos up to 30 seconds and mp4/mov output; Seedance 2.0 for maximum quality and 4k; Fast for speed optimization; Mini for the fastest, lowest-cost generation.",
     "options": [
      "Seedance 2.5",
      "Seedance 2.5 Draft",
-     "Seedance 2.5 Premium",
-     "Seedance 2.5 Premium Draft",
+     "Seedance 2.5 Flash",
      "Seedance 2.0",
      "Seedance 2.0 Fast",
      "Seedance 2.0 Mini"
@@ -2237,7 +2409,8 @@
         "options": [
          "480p",
          "720p",
-         "1080p"
+         "1080p",
+         "4k"
         ]
        },
        {
@@ -2246,7 +2419,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
+        "default": "adaptive",
         "options": [
          "16:9",
          "4:3",
@@ -2262,7 +2435,7 @@
         "type": "integer",
         "required": true,
         "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
+        "tooltip": "Duration of the output video in seconds (4-30). Ignored for auto and edit reference tasks.",
         "default": 5,
         "min": 4,
         "max": 30,
@@ -2281,7 +2454,7 @@
         "type": "choice",
         "required": true,
         "advanced": false,
-        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs, and settings that conflict with its reading fail only after generation has started. reference: generate a new video guided by the reference images, videos, and audio. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
+        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs; the ratio and duration widgets are ignored and the API receives adaptive ratio and automatic duration. reference: generate a new video guided by the reference images, videos, and audio with the ratio and duration you set. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
         "default": "auto",
         "options": [
          "auto",
@@ -2390,7 +2563,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -2493,7 +2666,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
+        "default": "adaptive",
         "options": [
          "16:9",
          "4:3",
@@ -2509,7 +2682,7 @@
         "type": "integer",
         "required": true,
         "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
+        "tooltip": "Duration of the output video in seconds (4-30). Ignored for auto and edit reference tasks.",
         "default": 5,
         "min": 4,
         "max": 30,
@@ -2528,7 +2701,7 @@
         "type": "choice",
         "required": true,
         "advanced": false,
-        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs, and settings that conflict with its reading fail only after generation has started. reference: generate a new video guided by the reference images, videos, and audio. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
+        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs; the ratio and duration widgets are ignored and the API receives adaptive ratio and automatic duration. reference: generate a new video guided by the reference images, videos, and audio with the ratio and duration you set. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
         "default": "auto",
         "options": [
          "auto",
@@ -2637,7 +2810,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -2712,7 +2885,7 @@
       ]
      },
      {
-      "key": "Seedance 2.5 Premium",
+      "key": "Seedance 2.5 Flash",
       "inputs": [
        {
         "name": "prompt",
@@ -2729,9 +2902,10 @@
         "required": true,
         "advanced": false,
         "tooltip": "Resolution of the output video.",
-        "default": "4k",
+        "default": "720p",
         "options": [
-         "4k"
+         "480p",
+         "720p"
         ]
        },
        {
@@ -2740,7 +2914,7 @@
         "required": true,
         "advanced": false,
         "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
+        "default": "adaptive",
         "options": [
          "16:9",
          "4:3",
@@ -2756,7 +2930,7 @@
         "type": "integer",
         "required": true,
         "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
+        "tooltip": "Duration of the output video in seconds (4-30). Ignored for auto and edit reference tasks.",
         "default": 5,
         "min": 4,
         "max": 30,
@@ -2775,7 +2949,7 @@
         "type": "choice",
         "required": true,
         "advanced": false,
-        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs, and settings that conflict with its reading fail only after generation has started. reference: generate a new video guided by the reference images, videos, and audio. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
+        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs; the ratio and duration widgets are ignored and the API receives adaptive ratio and automatic duration. reference: generate a new video guided by the reference images, videos, and audio with the ratio and duration you set. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
         "default": "auto",
         "options": [
          "auto",
@@ -2813,27 +2987,7 @@
          "image_7",
          "image_8",
          "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20",
-         "image_21",
-         "image_22",
-         "image_23",
-         "image_24",
-         "image_25",
-         "image_26",
-         "image_27",
-         "image_28",
-         "image_29",
-         "image_30"
+         "image_10"
         ],
         "min": 0
        },
@@ -2849,12 +3003,7 @@
          "video_2",
          "video_3",
          "video_4",
-         "video_5",
-         "video_6",
-         "video_7",
-         "video_8",
-         "video_9",
-         "video_10"
+         "video_5"
         ],
         "min": 0
        },
@@ -2870,12 +3019,7 @@
          "audio_2",
          "audio_3",
          "audio_4",
-         "audio_5",
-         "audio_6",
-         "audio_7",
-         "audio_8",
-         "audio_9",
-         "audio_10"
+         "audio_5"
         ],
         "min": 0
        },
@@ -2884,7 +3028,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -2906,284 +3050,7 @@
          "asset_17",
          "asset_18",
          "asset_19",
-         "asset_20",
-         "asset_21",
-         "asset_22",
-         "asset_23",
-         "asset_24",
-         "asset_25",
-         "asset_26",
-         "asset_27",
-         "asset_28",
-         "asset_29",
-         "asset_30",
-         "asset_31",
-         "asset_32",
-         "asset_33",
-         "asset_34",
-         "asset_35",
-         "asset_36",
-         "asset_37",
-         "asset_38",
-         "asset_39",
-         "asset_40",
-         "asset_41",
-         "asset_42",
-         "asset_43",
-         "asset_44",
-         "asset_45",
-         "asset_46",
-         "asset_47",
-         "asset_48",
-         "asset_49",
-         "asset_50"
-        ],
-        "min": 0
-       },
-       {
-        "name": "auto_downscale",
-        "type": "on/off",
-        "required": false,
-        "advanced": false,
-        "tooltip": "Automatically downscale reference videos that exceed the model's pixel budget for the selected resolution. Aspect ratio is preserved; videos already within limits are untouched.",
-        "default": true
-       },
-       {
-        "name": "auto_upscale",
-        "type": "on/off",
-        "required": false,
-        "advanced": true,
-        "tooltip": "Automatically upscale reference videos that are below the model's minimum pixel count for the selected resolution. Aspect ratio is preserved; videos already meeting the minimum are untouched. Note: upscaling a low-resolution source does not add real detail and may produce lower-quality generations.",
-        "default": false
-       }
-      ]
-     },
-     {
-      "key": "Seedance 2.5 Premium Draft",
-      "inputs": [
-       {
-        "name": "prompt",
-        "type": "text",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Text prompt for video generation. Put spoken lines in double quotes to steer the generated dialogue.",
-        "default": "",
-        "multiline": true
-       },
-       {
-        "name": "resolution",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Resolution of the output video.",
-        "default": "480p",
-        "options": [
-         "480p"
-        ]
-       },
-       {
-        "name": "ratio",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Aspect ratio of the output video.",
-        "default": "16:9",
-        "options": [
-         "16:9",
-         "4:3",
-         "1:1",
-         "3:4",
-         "9:16",
-         "21:9",
-         "adaptive"
-        ]
-       },
-       {
-        "name": "duration",
-        "type": "integer",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Duration of the output video in seconds (4-30).",
-        "default": 5,
-        "min": 4,
-        "max": 30,
-        "step": 1
-       },
-       {
-        "name": "generate_audio",
-        "type": "on/off",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Enable audio generation for the output video.",
-        "default": true
-       },
-       {
-        "name": "task_type",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "What to do with the reference media. Every value except auto is validated when the task is submitted, so mismatched settings fail before generation starts. auto: the model infers the task from the prompt and inputs, and settings that conflict with its reading fail only after generation has started. reference: generate a new video guided by the reference images, videos, and audio. edit: change a connected reference video (add, remove, replace); the output keeps the source clip's own length and aspect ratio, and the duration and ratio widgets are ignored. extend: continue a connected reference video forward or backward; the prompt should say 'extend forward', 'extend backward', or 'continue', the aspect ratio follows the source clip, and the output contains only the newly generated segment of the duration you set, not the source clip.",
-        "default": "auto",
-        "options": [
-         "auto",
-         "reference",
-         "edit",
-         "extend"
-        ]
-       },
-       {
-        "name": "output_format",
-        "type": "choice",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Container format of the output video.",
-        "default": "mp4",
-        "options": [
-         "mp4",
-         "mov"
-        ]
-       },
-       {
-        "name": "reference_images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20",
-         "image_21",
-         "image_22",
-         "image_23",
-         "image_24",
-         "image_25",
-         "image_26",
-         "image_27",
-         "image_28",
-         "image_29",
-         "image_30"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4",
-         "video_5",
-         "video_6",
-         "video_7",
-         "video_8",
-         "video_9",
-         "video_10"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3",
-         "audio_4",
-         "audio_5",
-         "audio_6",
-         "audio_7",
-         "audio_8",
-         "audio_9",
-         "audio_10"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_assets",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
-        "item_type": "text",
-        "slots": [
-         "asset_1",
-         "asset_2",
-         "asset_3",
-         "asset_4",
-         "asset_5",
-         "asset_6",
-         "asset_7",
-         "asset_8",
-         "asset_9",
-         "asset_10",
-         "asset_11",
-         "asset_12",
-         "asset_13",
-         "asset_14",
-         "asset_15",
-         "asset_16",
-         "asset_17",
-         "asset_18",
-         "asset_19",
-         "asset_20",
-         "asset_21",
-         "asset_22",
-         "asset_23",
-         "asset_24",
-         "asset_25",
-         "asset_26",
-         "asset_27",
-         "asset_28",
-         "asset_29",
-         "asset_30",
-         "asset_31",
-         "asset_32",
-         "asset_33",
-         "asset_34",
-         "asset_35",
-         "asset_36",
-         "asset_37",
-         "asset_38",
-         "asset_39",
-         "asset_40",
-         "asset_41",
-         "asset_42",
-         "asset_43",
-         "asset_44",
-         "asset_45",
-         "asset_46",
-         "asset_47",
-         "asset_48",
-         "asset_49",
-         "asset_50"
+         "asset_20"
         ],
         "min": 0
        },
@@ -3319,7 +3186,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -3470,7 +3337,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -3621,7 +3488,7 @@
         "type": "group of inputs",
         "required": true,
         "advanced": false,
-        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references in total on Seedance 2.5 (30 images, 10 videos, 10 audio clips, counting connected inputs) and 15 on Seedance 2.0 (9 + 3 + 3). Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
+        "tooltip": "Asset IDs (or asset://<asset_id>) from your private asset library, or https:// links to image, video or audio files. Up to 50 references on standard Seedance 2.5 (30 images, 10 videos, 10 audio clips), 20 on Flash (10 images, 5 videos, 5 audio clips) and 15 on Seedance 2.0 (9 + 3 + 3), counting connected inputs. Refer to a slot in the prompt as assetN (for example asset1); it is rewritten to the matching Image / Video / Audio label.",
         "item_type": "text",
         "slots": [
          "asset_1",
@@ -3711,7 +3578,7 @@
     "name": "draft_task_id",
     "type": "text",
     "is_list": false,
-    "tooltip": "Task ID of a Seedance 2.5 Draft or Seedance 2.5 Premium Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render the final (1080p, or 4k for Premium). Several drafts (generation_count above 1) give one ID per line."
+    "tooltip": "Task ID of a Seedance 2.5 Draft run. Connect it to the BytePlus Seedance 2.5 Draft to Final Video node to render a 1080p or 4k final. Several drafts (generation_count above 1) give one ID per line."
    },
    {
     "name": "last_frame",
@@ -3733,7 +3600,7 @@
   "group": "Video: Seedance 2.5",
   "display_name": "BytePlus Seedance 2.5 Draft to Final Video",
   "category": "BytePlus ModelArk",
-  "description": "Render the final video of a Seedance 2.5 Draft (1080p) or Seedance 2.5 Premium Draft (4k). The final keeps the draft's scene and motion, and reuses its prompt, references, duration, aspect ratio, and audio setting. The model is read from the draft task.",
+  "description": "Render the 1080p or 4k final video of a Seedance 2.5 Draft. The final keeps the draft's scene and motion, and reuses its prompt, references, duration, aspect ratio, and audio setting. The model is read from the draft task.",
   "search_aliases": [
    "ByteDance Seedance 2.5 Draft to Final Video"
   ],
@@ -3747,7 +3614,7 @@
     "type": "text",
     "required": true,
     "advanced": false,
-    "tooltip": "The draft_task_id output of a BytePlus Seedance 2.5 node run with a Draft model (Seedance 2.5 Draft or Seedance 2.5 Premium Draft), or pasted draft task IDs (one per line, or separated by commas). Set that node's seed control to fixed, otherwise the next run generates a new draft instead of reusing the one you reviewed. A draft can be rendered for 7 days after it was created.",
+    "tooltip": "The draft_task_id output of a BytePlus Seedance 2.5 node run with Seedance 2.5 Draft, or pasted draft task IDs (one per line, or separated by commas). Set that node's seed control to fixed, otherwise the next run generates a new draft instead of reusing the one you reviewed. A draft can be rendered for 7 days after it was created.",
     "default": ""
    },
    {
@@ -3775,6 +3642,18 @@
     "advanced": true,
     "tooltip": "Submit the task and return at once; run the node again to collect the finished video.",
     "default": false
+   },
+   {
+    "name": "resolution",
+    "type": "choice",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Resolution of the final video.",
+    "default": "1080p",
+    "options": [
+     "1080p",
+     "4k"
+    ]
    }
   ],
   "outputs": [
@@ -4349,7 +4228,7 @@
      "dreamina-seedance-2-0-fast",
      "dreamina-seedance-2-0-mini",
      "dreamina-seedance-2-5",
-     "dreamina-seedance-2-5-premium",
+     "dreamina-seedance-2-5-flash",
      "seedance-1-5-pro"
     ]
    },
@@ -5893,6 +5772,851 @@
    },
    {
     "name": "srt",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "BytePlusSeedTTS3",
+  "slug": "seed-tts-3",
+  "group": "Speech",
+  "display_name": "BytePlus Seed Speech TTS 3",
+  "category": "BytePlus ModelArk/Speech",
+  "description": "Generate speech with dola-seed-tts-3.0, TTS 3 preset or authorized cloned voices, and optional subtitles.",
+  "search_aliases": [],
+  "keys": [
+   "Seed Speech API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "text",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Up to 10000 characters. Leave empty when using ssml.",
+    "default": "",
+    "multiline": true
+   },
+   {
+    "name": "voice",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "A Seed TTS 3 preset voice. TTS 1/2 voices belong in the older TTS node.",
+    "default": "multi_female_stokie_v3_uranus_bigtts",
+    "options": [
+     "multi_male_mpho_v3_uranus_bigtts",
+     "multi_male_livesteve_v3_uranus_bigtts",
+     "multi_female_zendaya_p1_v3_uranus_bigtts",
+     "multi_male_yangguangjieshuonan_v3_uranus_bigtts",
+     "multi_female_xinwenjieshuonv_v3_uranus_bigtts",
+     "multi_female_wenrouzhishijieshuonv_v3_uranus_bigtts",
+     "multi_male_valentino_v3_uranus_bigtts",
+     "multi_female_skye_v3_uranus_bigtts",
+     "multi_male_simba_p1_v3_uranus_bigtts",
+     "multi_female_sharron_v3_uranus_bigtts",
+     "multi_male_ryan_v3_uranus_bigtts",
+     "multi_female_nadia_v3_uranus_bigtts",
+     "multi_female_myra_cmb_v3_uranus_bigtts",
+     "multi_female_myra_v3_uranus_bigtts",
+     "multi_male_motivational-coach_v3_uranus_bigtts",
+     "multi_male_marcus_v3_uranus_bigtts",
+     "multi_male_assistantrobertclinton_v3_uranus_bigtts",
+     "multi_female_stokie_v3_uranus_bigtts",
+     "multi_female_wens_v3_uranus_bigtts",
+     "multi_male_valentino_corey_v3_uranus_bigtts",
+     "multi_male_tom_hiddleston_p1_v3_uranus_bigtts",
+     "multi_male_tim_v3_uranus_bigtts",
+     "multi_female_scarlet_p1_v3_uranus_bigtts",
+     "multi_female_sarah_v3_uranus_bigtts",
+     "multi_male_russell_v3_uranus_bigtts",
+     "multi_male_ronald_v3_uranus_bigtts",
+     "multi_female_rachel_p1_v3_uranus_bigtts",
+     "multi_female_pleasant-female_v3_uranus_bigtts",
+     "multi_male_adjeremy_v3_uranus_bigtts",
+     "multi_male_adnick_v3_uranus_bigtts",
+     "multi_female_natasha_v3_uranus_bigtts",
+     "multi_male_michael_kevin_v3_uranus_bigtts",
+     "multi_male_michael-mouse_v3_uranus_bigtts",
+     "multi_male_michael_v3_uranus_bigtts",
+     "multi_female_mel_v3_uranus_bigtts",
+     "multi_female_lana_del_rey_parky_s_p1_v3_uranus_bigtts",
+     "multi_female_lana_del_rey_kelley_d_p1_v3_uranus_bigtts",
+     "multi_male_knightley_v3_uranus_bigtts",
+     "multi_male_kevin_v3_uranus_bigtts",
+     "multi_female_kate_v3_uranus_bigtts",
+     "multi_male_josh_coery_v3_uranus_bigtts",
+     "multi_male_josh_v3_uranus_bigtts",
+     "multi_male_joker_v3_uranus_bigtts",
+     "multi_female_joanne_v3_uranus_bigtts",
+     "multi_male_jimmy_v3_uranus_bigtts",
+     "multi_male_jidongchuanjiaoshi_v3_uranus_bigtts",
+     "multi_female_jenny_v3_uranus_bigtts",
+     "multi_female_jane_v3_uranus_bigtts",
+     "multi_male_jamie_v3_uranus_bigtts",
+     "multi_male_jama_v3_uranus_bigtts",
+     "multi_male_hen_v3_uranus_bigtts",
+     "multi_female_hayley_v3_uranus_bigtts",
+     "multi_male_hades_v3_uranus_bigtts",
+     "multi_male_gollum_v3_uranus_bigtts",
+     "multi_male_godfather_v3_uranus_bigtts",
+     "multi_male_glen_v3_uranus_bigtts",
+     "multi_male_m208_v3_uranus_bigtts",
+     "multi_male_audiobook207_v3_uranus_bigtts",
+     "multi_male_fernando-martinez_v3_uranus_bigtts",
+     "multi_female_female_tutor_ms-jenny_v3_uranus_bigtts",
+     "multi_male_father-christmas_v3_uranus_bigtts",
+     "multi_male_excited-male-voice_v3_uranus_bigtts",
+     "multi_male_evil-guy-oxley_v3_uranus_bigtts",
+     "multi_female_lisa_v3_uranus_bigtts",
+     "multi_female_lisaamused_v3_uranus_bigtts",
+     "multi_male_audiobookakellostone_v3_uranus_bigtts",
+     "multi_male_audiobookchristo_v3_uranus_bigtts",
+     "multi_male_audiobookjeremy_v3_uranus_bigtts",
+     "multi_male_audiobooknick_v3_uranus_bigtts",
+     "multi_male_audiobooknickpitchup_v3_uranus_bigtts",
+     "multi_male_audiobookrobertm_v3_uranus_bigtts",
+     "multi_female_doris_v3_uranus_bigtts",
+     "multi_male_diyuwenrounan_v3_uranus_bigtts",
+     "multi_male_deep-voice_v3_uranus_bigtts",
+     "multi_male_david_v3_uranus_bigtts",
+     "multi_female_dacey_v3_uranus_bigtts",
+     "multi_male_csandycross_v3_uranus_bigtts",
+     "multi_male_csben_v3_uranus_bigtts",
+     "multi_male_cowboy_john_b_v3_uranus_bigtts",
+     "multi_male_cowboy-bob_v3_uranus_bigtts",
+     "multi_male_chandler_p1_v3_uranus_bigtts",
+     "multi_male_bruce_v3_uranus_bigtts",
+     "multi_female_brittney_pimintel_v3_uranus_bigtts",
+     "multi_female_brittney_v3_uranus_bigtts",
+     "multi_male_brad_pitt_p1_v3_uranus_bigtts",
+     "multi_male_bill_jones_corey_v3_uranus_bigtts",
+     "multi_male_bill-jones_v3_uranus_bigtts",
+     "multi_female_authoritative-informative_v3_uranus_bigtts",
+     "multi_female_authoritative-british_v3_uranus_bigtts",
+     "multi_male_edureagan_v3_uranus_bigtts",
+     "multi_male_emompho_v3_uranus_bigtts",
+     "multi_female_emosarah_v3_uranus_bigtts",
+     "multi_female_allison_v3_uranus_bigtts",
+     "multi_male_alex_v3_uranus_bigtts",
+     "multi_male_alberto_v3_uranus_bigtts",
+     "multi_male_adam-imitation_v3_uranus_bigtts",
+     "multi_female_tina_v3_uranus_bigtts",
+     "multi_female_shannon_v3_uranus_bigtts",
+     "multi_female_daniadenise_v3_uranus_bigtts",
+     "multi_female_assistantcharlottepallas_v3_uranus_bigtts",
+     "multi_male_eduwayne_v3_uranus_bigtts",
+     "multi_male_newsrobertclinton_v3_uranus_bigtts",
+     "multi_male_audiobookwayne_v3_uranus_bigtts",
+     "multi_female_livejadereese_v3_uranus_bigtts",
+     "multi_male_andyukaudiobook_v3_uranus_bigtts",
+     "multi_male_benukaudiobook_v3_uranus_bigtts",
+     "multi_female_authoritative_britishukaudiobook_v3_uranus_bigtts",
+     "multi_female_stokieukaudiobook_v3_uranus_bigtts",
+     "multi_male_jamaukaudiobook_v3_uranus_bigtts",
+     "multi_male_ryanukaudiobook_v3_uranus_bigtts",
+     "multi_male_zhubajie_v3_uranus_bigtts",
+     "multi_male_zhuangzhou_v3_uranus_bigtts",
+     "multi_female_zhixingnv_v3_uranus_bigtts",
+     "multi_female_yingyujiaoxue_v3_uranus_bigtts",
+     "multi_female_xiaoxue_v3_uranus_bigtts",
+     "multi_female_xiaohe_taiwan_v3_uranus_bigtts",
+     "multi_female_wuzetian_v3_uranus_bigtts",
+     "multi_female_wenrouxiaoya_v3_uranus_bigtts",
+     "multi_male_wenrouxiaoge_v3_uranus_bigtts",
+     "multi_female_wenroushunv_v3_uranus_bigtts",
+     "multi_female_wenroumama_v3_uranus_bigtts",
+     "multi_male_wennuanahu_v3_uranus_bigtts",
+     "multi_female_wenjingmaomao_v3_uranus_bigtts",
+     "multi_female_vv_xi_v3_uranus_bigtts",
+     "multi_female_tvbnv_v3_uranus_bigtts",
+     "multi_female_tuanzi_v3_uranus_bigtts",
+     "multi_female_tiexinnvsheng_v3_uranus_bigtts",
+     "multi_female_tianmeiyueyue_v3_uranus_bigtts",
+     "multi_female_tianmeixiaoyuan_v3_uranus_bigtts",
+     "multi_female_tianmeitaozi_v3_uranus_bigtts",
+     "multi_male_tiancaitongsheng_v3_uranus_bigtts",
+     "multi_male_taocheng_v3_uranus_bigtts",
+     "multi_male_tangseng_v3_uranus_bigtts",
+     "multi_male_sunwukong_v3_uranus_bigtts",
+     "multi_female_zh_sophie_v3_uranus_bigtts",
+     "multi_male_silang_v3_uranus_bigtts",
+     "multi_female_shuangkuaisisi_v3_uranus_bigtts",
+     "multi_male_shenyeboke_v3_uranus_bigtts",
+     "multi_male_shaonianzixin_v3_uranus_bigtts",
+     "multi_female_shaoergushi_v3_uranus_bigtts",
+     "multi_female_sajiaoxuemei_v3_uranus_bigtts",
+     "multi_male_ruyayichen_v3_uranus_bigtts",
+     "multi_male_ruyaqingnian_v3_uranus_bigtts",
+     "multi_female_roumeinvyou_v3_uranus_bigtts",
+     "multi_female_qinqienv_v3_uranus_bigtts",
+     "multi_female_qingxinnvsheng_v3_uranus_bigtts",
+     "multi_male_qingshuangnanda_v3_uranus_bigtts",
+     "multi_female_qingchezizi_v3_uranus_bigtts",
+     "multi_male_qingcang_v3_uranus_bigtts",
+     "multi_female_qiaopinv_v3_uranus_bigtts",
+     "multi_female_popo_v3_uranus_bigtts",
+     "multi_female_peiqi_v3_uranus_bigtts",
+     "multi_female_nvleishen_v3_uranus_bigtts",
+     "multi_male_naiqimengwa_v3_uranus_bigtts",
+     "multi_female_mizai_v3_uranus_bigtts",
+     "multi_female_mengyatou_v3_uranus_bigtts",
+     "multi_female_meilinvyou_v3_uranus_bigtts",
+     "multi_male_m191_v3_uranus_bigtts",
+     "multi_male_lubanqihao_v3_uranus_bigtts",
+     "multi_male_liufei2_v3_uranus_bigtts",
+     "multi_female_liuchangnv_v3_uranus_bigtts",
+     "multi_female_linxiao_v3_uranus_bigtts",
+     "multi_female_linjianvhai_v3_uranus_bigtts",
+     "multi_male_linjiananhai_v3_uranus_bigtts",
+     "multi_female_lingling_v3_uranus_bigtts",
+     "multi_male_liangsangmengzai_v3_uranus_bigtts",
+     "multi_male_lanyinmianbao_v3_uranus_bigtts",
+     "multi_male_kuailexiaodong_v3_uranus_bigtts",
+     "multi_female_kefunvsheng_v3_uranus_bigtts",
+     "multi_male_kailangxuezhang_v3_uranus_bigtts",
+     "multi_female_kailangjiejie_v3_uranus_bigtts",
+     "multi_male_kailangdidi_v3_uranus_bigtts",
+     "multi_female_jitangnv_v3_uranus_bigtts",
+     "multi_female_jitangmei_v3_uranus_bigtts",
+     "multi_male_jieshuoxiaoming_v3_uranus_bigtts",
+     "multi_female_jiaochuannv_v3_uranus_bigtts",
+     "multi_male_huolixiaoge_v3_uranus_bigtts",
+     "multi_female_gujie_v3_uranus_bigtts",
+     "multi_female_gufengshaoyu_v3_uranus_bigtts",
+     "multi_male_guanggaojieshuo_v3_uranus_bigtts",
+     "multi_female_gaolengyujie_v3_uranus_bigtts",
+     "multi_male_gaolengchenwen_v3_uranus_bigtts",
+     "multi_female_ganmaodianyin_v3_uranus_bigtts",
+     "multi_male_dayi_v3_uranus_bigtts",
+     "multi_female_cancan_v3_uranus_bigtts",
+     "multi_female_huoliyingxiao_nv_v3_uranus_bigtts",
+     "multi_female_wenroucuishou_lingling_v3_uranus_bigtts",
+     "multi_female_jietingkefu_wanjun_v3_uranus_bigtts",
+     "multi_female_yingxiaokefu_xiaonan_v3_uranus_bigtts",
+     "multi_female_yet_v3_uranus_bigtts",
+     "multi_male_vito_v3_uranus_bigtts",
+     "multi_female_sita_v3_uranus_bigtts",
+     "multi_female_rahayu_v3_uranus_bigtts",
+     "multi_male_putra_v3_uranus_bigtts",
+     "multi_female_prisma_v3_uranus_bigtts",
+     "multi_female_phulia_v3_uranus_bigtts",
+     "multi_male_m08_v3_uranus_bigtts",
+     "multi_male_assistantsigit_v3_uranus_bigtts",
+     "multi_male_ikhwan_v3_uranus_bigtts",
+     "multi_male_ikbal_v3_uranus_bigtts",
+     "multi_male_han_v3_uranus_bigtts",
+     "multi_female_f20_v3_uranus_bigtts",
+     "multi_female_audiobookaisyah_v3_uranus_bigtts",
+     "multi_male_audiobookalvinr_v3_uranus_bigtts",
+     "multi_female_audiobookanggi_v3_uranus_bigtts",
+     "multi_female_audiobookauliya_v3_uranus_bigtts",
+     "multi_male_audiobookazrulakmal_v3_uranus_bigtts",
+     "multi_male_audiobookdimas_v3_uranus_bigtts",
+     "multi_female_audiobookdivana_v3_uranus_bigtts",
+     "multi_male_audiobookferrysanjaya_v3_uranus_bigtts",
+     "multi_female_audiobooknurulhasanah_v3_uranus_bigtts",
+     "multi_female_audiobooksabila_v3_uranus_bigtts",
+     "multi_female_audiobooksherly_v3_uranus_bigtts",
+     "multi_female_audiobooksiti_v3_uranus_bigtts",
+     "multi_female_audiobookstefanis_v3_uranus_bigtts",
+     "multi_female_audiobooktias_v3_uranus_bigtts",
+     "multi_female_csagma_v3_uranus_bigtts",
+     "multi_female_csannisaartij_v3_uranus_bigtts",
+     "multi_female_csbellatrix_v3_uranus_bigtts",
+     "multi_female_cscitra_v3_uranus_bigtts",
+     "multi_female_csdewy_v3_uranus_bigtts",
+     "multi_female_csdhara_v3_uranus_bigtts",
+     "multi_male_csdimas_v3_uranus_bigtts",
+     "multi_female_cshindun_v3_uranus_bigtts",
+     "multi_female_csputrisyahfitri_v3_uranus_bigtts",
+     "multi_female_csrina_v3_uranus_bigtts",
+     "multi_female_csrini_v3_uranus_bigtts",
+     "multi_male_csrohman_v3_uranus_bigtts",
+     "multi_female_cssafina_v3_uranus_bigtts",
+     "multi_female_csshabrina_v3_uranus_bigtts",
+     "multi_female_csshindy_v3_uranus_bigtts",
+     "multi_male_cssigit_v3_uranus_bigtts",
+     "multi_female_cesnaoc_v3_uranus_bigtts",
+     "multi_female_cesnaft_v3_uranus_bigtts",
+     "multi_female_cesna_v3_uranus_bigtts",
+     "multi_male_bv164narration_v3_uranus_bigtts",
+     "multi_male_bv164dialogue_v3_uranus_bigtts",
+     "multi_female_bv164_v3_uranus_bigtts",
+     "multi_female_bv161narration_v3_uranus_bigtts",
+     "multi_female_bv161dialogue_v3_uranus_bigtts",
+     "multi_female_bv161_v3_uranus_bigtts",
+     "multi_male_bv160narration_v3_uranus_bigtts",
+     "multi_male_bv160dialogue_v3_uranus_bigtts",
+     "multi_male_bv160_v3_uranus_bigtts",
+     "multi_female_cstita_v3_uranus_bigtts",
+     "multi_female_csvina_v3_uranus_bigtts",
+     "multi_female_csvioannisa_v3_uranus_bigtts",
+     "multi_female_csyet_v3_uranus_bigtts",
+     "multi_female_cszozane_v3_uranus_bigtts",
+     "multi_male_edunasrullah_v3_uranus_bigtts",
+     "multi_male_emoendryo_v3_uranus_bigtts",
+     "multi_female_emohindunlia_v3_uranus_bigtts",
+     "multi_female_newskafidah_v3_uranus_bigtts",
+     "multi_female_newsyet_v3_uranus_bigtts",
+     "multi_female_newsyuli_v3_uranus_bigtts",
+     "multi_female_csrosida_v3_uranus_bigtts",
+     "multi_female_csfera_v3_uranus_bigtts",
+     "multi_male_cschris_v3_uranus_bigtts",
+     "multi_female_newscarin_v3_uranus_bigtts",
+     "multi_female_triwahyuni_v3_uranus_bigtts",
+     "multi_female_keziaoktaviana_v3_uranus_bigtts",
+     "multi_female_audiobooketta_v3_uranus_bigtts",
+     "multi_female_audiobookwahyu_v3_uranus_bigtts",
+     "multi_male_yusukec_v3_uranus_bigtts",
+     "multi_male_yusuke_v3_uranus_bigtts",
+     "multi_male_yusu_v3_uranus_bigtts",
+     "multi_male_oka_v3_uranus_bigtts",
+     "multi_female_aderikoh_v3_uranus_bigtts",
+     "multi_female_adkeikotagawa_v3_uranus_bigtts",
+     "multi_female_admaika_v3_uranus_bigtts",
+     "multi_female_asmrerikoh_v3_uranus_bigtts",
+     "multi_male_nanase_v3_uranus_bigtts",
+     "multi_male_maeda_v3_uranus_bigtts",
+     "multi_female_mac_v3_uranus_bigtts",
+     "multi_male_m1_v3_uranus_bigtts",
+     "multi_female_assistanteriko_v3_uranus_bigtts",
+     "multi_female_assistantmaika_v3_uranus_bigtts",
+     "multi_male_kazuki_v3_uranus_bigtts",
+     "multi_female_audiobookhayami_v3_uranus_bigtts",
+     "multi_male_cskaz_v3_uranus_bigtts",
+     "multi_female_eduerik_v3_uranus_bigtts",
+     "multi_female_edumaika_v3_uranus_bigtts",
+     "multi_female_edureni_v3_uranus_bigtts",
+     "multi_female_emoeriko_v3_uranus_bigtts",
+     "multi_male_emokaz_v3_uranus_bigtts",
+     "multi_female_emokeikotaga_v3_uranus_bigtts",
+     "multi_female_emokokusa_v3_uranus_bigtts",
+     "multi_female_emokokusapitchup_v3_uranus_bigtts",
+     "multi_female_emomaika_v3_uranus_bigtts",
+     "multi_female_emoreni_v3_uranus_bigtts",
+     "multi_male_emoryanyutarooka_v3_uranus_bigtts",
+     "multi_male_emoyus_v3_uranus_bigtts",
+     "multi_male_emoyusuk_v3_uranus_bigtts",
+     "multi_female_freetalkerikoh_v3_uranus_bigtts",
+     "multi_female_freetalkjunko_v3_uranus_bigtts",
+     "multi_female_freetalkreni_v3_uranus_bigtts",
+     "multi_female_livemaika_v3_uranus_bigtts",
+     "multi_female_livereni_v3_uranus_bigtts",
+     "multi_female_liveryanyutarooka_v3_uranus_bigtts",
+     "multi_female_newserikoh_v3_uranus_bigtts",
+     "multi_female_newsmack_v3_uranus_bigtts",
+     "multi_female_newsreni_v3_uranus_bigtts",
+     "multi_female_shirou_v3_uranus_bigtts",
+     "multi_female_minimi_v3_uranus_bigtts",
+     "multi_male_bv524_v3_uranus_bigtts",
+     "multi_female_bv523_v3_uranus_bigtts",
+     "multi_female_bv522_v3_uranus_bigtts",
+     "multi_female_bv521_v3_uranus_bigtts",
+     "multi_female_bv520_v3_uranus_bigtts",
+     "multi_female_bv024_v3_uranus_bigtts",
+     "multi_female_eduayum_v3_uranus_bigtts",
+     "multi_female_audiobooknanrii_v3_uranus_bigtts",
+     "multi_female_uje_v3_uranus_bigtts",
+     "multi_female_soojeong_v3_uranus_bigtts",
+     "multi_female_sona_v3_uranus_bigtts",
+     "multi_female_son_v3_uranus_bigtts",
+     "multi_male_shane_v3_uranus_bigtts",
+     "multi_male_sangheec_v3_uranus_bigtts",
+     "multi_male_sanghee_v3_uranus_bigtts",
+     "multi_male_m03_v3_uranus_bigtts",
+     "multi_female_lim_v3_uranus_bigtts",
+     "multi_male_kyoung_v3_uranus_bigtts",
+     "multi_female_kangyoo_v3_uranus_bigtts",
+     "multi_male_audiobook503_v3_uranus_bigtts",
+     "multi_male_cs605_v3_uranus_bigtts",
+     "multi_female_bv546_v3_uranus_bigtts",
+     "multi_male_bv545_v3_uranus_bigtts",
+     "multi_male_kiminhwan_v3_uranus_bigtts",
+     "multi_female_csfemale411_v3_uranus_bigtts",
+     "multi_female_callcenteraudition_v3_uranus_bigtts",
+     "multi_female_eduling_v3_uranus_bigtts",
+     "multi_female_audiobookmiae_v3_uranus_bigtts",
+     "multi_male_assistantnaim_v3_uranus_bigtts",
+     "multi_female_qis_v3_uranus_bigtts",
+     "multi_male_assistantashim_v3_uranus_bigtts",
+     "multi_male_naim_v3_uranus_bigtts",
+     "multi_female_hl243793_v3_uranus_bigtts",
+     "multi_female_hl243650_v3_uranus_bigtts",
+     "multi_female_hl243228_v3_uranus_bigtts",
+     "multi_female_hl242964_v3_uranus_bigtts",
+     "multi_male_hazeem_v3_uranus_bigtts",
+     "multi_male_hashim_v3_uranus_bigtts",
+     "multi_male_ham_v3_uranus_bigtts",
+     "multi_female_audiobooksharon_v3_uranus_bigtts",
+     "multi_male_csnaim_v3_uranus_bigtts",
+     "multi_female_cssuraya_v3_uranus_bigtts",
+     "multi_male_livenaim_v3_uranus_bigtts",
+     "multi_female_liveqiselias_v3_uranus_bigtts",
+     "multi_male_amry_v3_uranus_bigtts",
+     "multi_female_newsqiselias_v3_uranus_bigtts",
+     "multi_female_audiobookbasira_v3_uranus_bigtts",
+     "multi_female_audiobookshiilla_v3_uranus_bigtts",
+     "multi_male_audiobookhasrul_v3_uranus_bigtts",
+     "multi_female_feiyiban_female501_malay_cellcente_v3_uranus_bigtts",
+     "multi_male_thanakorn_v3_uranus_bigtts",
+     "multi_female_tess_v3_uranus_bigtts",
+     "multi_male_paran_v3_uranus_bigtts",
+     "multi_male_nopparat_v3_uranus_bigtts",
+     "multi_male_natcha_v3_uranus_bigtts",
+     "multi_female_misa_v3_uranus_bigtts",
+     "multi_female_assistantchannap_v3_uranus_bigtts",
+     "multi_female_audiobookchannap_v3_uranus_bigtts",
+     "multi_female_elle_v3_uranus_bigtts",
+     "multi_female_audiobookpraew_v3_uranus_bigtts",
+     "multi_female_csbusaba_v3_uranus_bigtts",
+     "multi_female_cake_v3_uranus_bigtts",
+     "multi_female_bv568_suprise_v3_uranus_bigtts",
+     "multi_female_bv568_sad_v3_uranus_bigtts",
+     "multi_female_bv568_neutral_v3_uranus_bigtts",
+     "multi_female_bv568_hate_v3_uranus_bigtts",
+     "multi_female_bv568_happy_v3_uranus_bigtts",
+     "multi_female_bv568_fear_v3_uranus_bigtts",
+     "multi_female_bv568_angry_v3_uranus_bigtts",
+     "multi_male_angpao_v3_uranus_bigtts",
+     "multi_male_jonathan_palad_v3_uranus_bigtts",
+     "multi_female_hervie_v3_uranus_bigtts",
+     "multi_male_ed_v3_uranus_bigtts",
+     "multi_female_csjeamafely_v3_uranus_bigtts",
+     "multi_female_annika_v3_uranus_bigtts",
+     "multi_male_wumg_v3_uranus_bigtts",
+     "multi_female_wu_v3_uranus_bigtts",
+     "multi_female_ruan_v3_uranus_bigtts",
+     "multi_male_phuong_v3_uranus_bigtts",
+     "multi_female_partner_v3_uranus_bigtts",
+     "multi_male_m018-10b_v3_uranus_bigtts",
+     "multi_female_linh_v3_uranus_bigtts",
+     "multi_female_ling_v3_uranus_bigtts",
+     "multi_male_khanh_v3_uranus_bigtts",
+     "multi_female_hong_v3_uranus_bigtts",
+     "multi_female_f015-07b_v3_uranus_bigtts",
+     "multi_female_annie-hue-phung_v3_uranus_bigtts",
+     "multi_male_san_v3_uranus_bigtts",
+     "multi_male_ducdung_v3_uranus_bigtts",
+     "multi_female_2002083_v3_uranus_bigtts",
+     "multi_male_yilmaz_v3_uranus_bigtts",
+     "multi_female_2001057_v3_uranus_bigtts",
+     "multi_female_1000233_v3_uranus_bigtts",
+     "multi_female_2002190_v3_uranus_bigtts",
+     "multi_female_2001522_v3_uranus_bigtts",
+     "multi_female_1000953_v3_uranus_bigtts",
+     "multi_male_sven_v3_uranus_bigtts",
+     "multi_female_audiobooksammy_v3_uranus_bigtts",
+     "multi_female_bv081_v3_uranus_bigtts",
+     "multi_female_eduannie_v3_uranus_bigtts",
+     "multi_female_emosammy_v3_uranus_bigtts",
+     "multi_female_annie_v3_uranus_bigtts",
+     "multi_female_audiobookjessica_v3_uranus_bigtts",
+     "multi_male_salvador_v3_uranus_bigtts",
+     "multi_female_romina_v3_uranus_bigtts",
+     "multi_male_osch_v3_uranus_bigtts",
+     "multi_male_adange_v3_uranus_bigtts",
+     "multi_male_adjuancar_v3_uranus_bigtts",
+     "multi_male_adsalvad_v3_uranus_bigtts",
+     "multi_female_monica_v3_uranus_bigtts",
+     "multi_male_mariano_v3_uranus_bigtts",
+     "multi_female_assistantmonica_v3_uranus_bigtts",
+     "multi_female_ht_mx_f6_v3_uranus_bigtts",
+     "multi_male_guillem_v3_uranus_bigtts",
+     "multi_male_francisc_v3_uranus_bigtts",
+     "multi_male_audiobookfranciscoalfaro_v3_uranus_bigtts",
+     "multi_male_audiobooksalvad_v3_uranus_bigtts",
+     "multi_male_dani_v3_uranus_bigtts",
+     "multi_male_cssalvad_v3_uranus_bigtts",
+     "multi_female_bv084_v3_uranus_bigtts",
+     "multi_male_freetalkfrancis_v3_uranus_bigtts",
+     "multi_male_narrationsalvad_v3_uranus_bigtts",
+     "multi_male_angel_v3_uranus_bigtts",
+     "multi_female_assistantkalacarela_v3_uranus_bigtts",
+     "multi_female_es_edunoemiprado_v3_uranus_bigtts",
+     "multi_male_audiobookangel_v3_uranus_bigtts",
+     "multi_female_audiobookkalacarela_v3_uranus_bigtts",
+     "multi_female_livenoemiprado_v3_uranus_bigtts",
+     "multi_male_usseau_v3_uranus_bigtts",
+     "multi_male_tris_v3_uranus_bigtts",
+     "multi_female_segolene_v3_uranus_bigtts",
+     "multi_male_nicolas_v3_uranus_bigtts",
+     "multi_male_audiobookadeline_v3_uranus_bigtts",
+     "multi_male_fr_m29_v3_uranus_bigtts",
+     "multi_female_fr_f47_v3_uranus_bigtts",
+     "multi_female_fr_bv078_v3_uranus_bigtts",
+     "multi_male_fr_audiobookchristo_v3_uranus_bigtts",
+     "multi_male_christophe_v3_uranus_bigtts",
+     "multi_male_newschrist_v3_uranus_bigtts",
+     "multi_male_luca_v3_uranus_bigtts",
+     "multi_male_audiobook103_v3_uranus_bigtts",
+     "multi_male_enzo_v3_uranus_bigtts",
+     "multi_male_enzoaudiobook_v3_uranus_bigtts",
+     "multi_female_sophie_v3_uranus_bigtts",
+     "multi_male_vlad_v3_uranus_bigtts",
+     "multi_male_pavel_v3_uranus_bigtts",
+     "multi_male_m11_v3_uranus_bigtts",
+     "multi_female_irinae_v3_uranus_bigtts",
+     "multi_female_audiobookolen_v3_uranus_bigtts",
+     "multi_male_audiobooktamerl_v3_uranus_bigtts",
+     "multi_female_cs902_v3_uranus_bigtts",
+     "multi_female_csirina_v3_uranus_bigtts",
+     "multi_male_ben_v3_uranus_bigtts",
+     "multi_male_cstamer_v3_uranus_bigtts",
+     "multi_female_liveolena_v3_uranus_bigtts",
+     "multi_female_af07_v3_uranus_bigtts",
+     "multi_male_newstamer_v3_uranus_bigtts",
+     "multi_male_vadim_v3_uranus_bigtts",
+     "multi_female_emoserafima_v3_uranus_bigtts",
+     "multi_male_audiobookmale602_v3_uranus_bigtts",
+     "multi_female_3012214_v3_uranus_bigtts",
+     "multi_female_2003758_v3_uranus_bigtts",
+     "multi_female_1000733_v3_uranus_bigtts",
+     "multi_female_1000137_v3_uranus_bigtts",
+     "multi_male_migu_v3_uranus_bigtts",
+     "multi_male_marcelo_v3_uranus_bigtts",
+     "multi_female_leslie_v3_uranus_bigtts",
+     "multi_male_ht_mx_m012_v3_uranus_bigtts",
+     "multi_female_gomez_v3_uranus_bigtts",
+     "multi_male_felipe_v3_uranus_bigtts",
+     "multi_female_audiobooktania_v3_uranus_bigtts",
+     "multi_female_bv166narrator_v3_uranus_bigtts",
+     "multi_female_bv166emotion_v3_uranus_bigtts",
+     "multi_female_bv166dialogue_v3_uranus_bigtts",
+     "multi_male_bv165narrator_v3_uranus_bigtts",
+     "multi_male_bv165dialogue_v3_uranus_bigtts",
+     "multi_female_bv065_v3_uranus_bigtts",
+     "multi_female_cstania_v3_uranus_bigtts",
+     "multi_male_leon_v3_uranus_bigtts",
+     "multi_female_assistantnoemiprado_v3_uranus_bigtts",
+     "multi_male_csmale301_v3_uranus_bigtts",
+     "multi_male_cs37_v3_uranus_bigtts",
+     "multi_male_cs1264_v3_uranus_bigtts",
+     "multi_female_educationalinstitution4_v3_uranus_bigtts",
+     "multi_female_edunoemiprado_v3_uranus_bigtts",
+     "multi_male_audiobooksamuel_v3_uranus_bigtts",
+     "multi_female_audiobookkaren_v3_uranus_bigtts",
+     "multi_female_audiobookkimberly_v3_uranus_bigtts",
+     "multi_female_audiobookmary_v3_uranus_bigtts",
+     "multi_female_audiobooknancy_v3_uranus_bigtts",
+     "multi_male_rael_v3_uranus_bigtts",
+     "multi_male_martins_v3_uranus_bigtts",
+     "multi_female_maria_v3_uranus_bigtts",
+     "multi_female_mari_v3_uranus_bigtts",
+     "multi_male_bv531_v3_uranus_bigtts",
+     "multi_female_bv530_v3_uranus_bigtts",
+     "multi_female_bv173narrator_v3_uranus_bigtts",
+     "multi_female_bv173emotion_v3_uranus_bigtts",
+     "multi_female_bv173dialogue_v3_uranus_bigtts",
+     "multi_female_bv173_v3_uranus_bigtts",
+     "multi_male_bv172narrator_v3_uranus_bigtts",
+     "multi_male_bv172emotion_v3_uranus_bigtts",
+     "multi_male_bv172dialogue_v3_uranus_bigtts",
+     "multi_male_bv172_v3_uranus_bigtts",
+     "multi_female_ana_v3_uranus_bigtts",
+     "multi_female_mich_v3_uranus_bigtts",
+     "multi_male_eduardo-s_v3_uranus_bigtts",
+     "multi_male_audiobookbrazilianportuguesemalevoice_v3_uranus_bigtts",
+     "multi_female_2000179_v3_uranus_bigtts",
+     "multi_male_youssef_v3_uranus_bigtts",
+     "multi_female_rmya_v3_uranus_bigtts",
+     "multi_female_fatma_v3_uranus_bigtts",
+     "multi_female_dina_v3_uranus_bigtts",
+     "multi_male_emohamoo_v3_uranus_bigtts",
+     "multi_female_cs612_v3_uranus_bigtts",
+     "multi_female_csrihab_v3_uranus_bigtts"
+    ]
+   },
+   {
+    "name": "custom_speaker_id",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Overrides voice with an authorized TTS 3-compatible voice ID. Older cloned voices may need upgrading in Seed Speech.",
+    "default": ""
+   },
+   {
+    "name": "language_code",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Output language or dialect. Explicit selection is recommended; auto detects the text language.",
+    "default": "auto",
+    "options": [
+     "auto",
+     "af",
+     "am",
+     "ar",
+     "as",
+     "ast",
+     "az",
+     "be",
+     "bg",
+     "bn",
+     "bs",
+     "ca",
+     "ceb",
+     "ckb",
+     "cs",
+     "cy",
+     "da",
+     "de",
+     "el",
+     "en",
+     "en-GB",
+     "es",
+     "es-MX",
+     "et",
+     "fa",
+     "fi",
+     "fil",
+     "fr",
+     "fuv",
+     "gl",
+     "gu",
+     "ha",
+     "he",
+     "hi",
+     "hr",
+     "hu",
+     "hy",
+     "id",
+     "ig",
+     "is",
+     "it",
+     "ja",
+     "jv",
+     "ka",
+     "kam",
+     "kea",
+     "kk",
+     "km",
+     "kn",
+     "ko",
+     "ky",
+     "lb",
+     "lg",
+     "ln",
+     "lo",
+     "lt",
+     "luo",
+     "lv",
+     "mi",
+     "mk",
+     "ml",
+     "mn",
+     "mr",
+     "ms",
+     "mt",
+     "my",
+     "ne",
+     "nl",
+     "no",
+     "nso",
+     "ny",
+     "oc",
+     "ory",
+     "pa",
+     "pl",
+     "ps",
+     "pt",
+     "pt-BR",
+     "ro",
+     "ru",
+     "sd",
+     "sk",
+     "sl",
+     "sn",
+     "sq",
+     "sr",
+     "sv",
+     "sw",
+     "ta",
+     "te",
+     "tg",
+     "th",
+     "tr",
+     "uk",
+     "umb",
+     "ur",
+     "uz",
+     "vi",
+     "wo",
+     "xh",
+     "yo",
+     "yue",
+     "zh",
+     "zh-CN-x-beijing",
+     "zh-CN-x-changsha",
+     "zh-CN-x-dongbei",
+     "zh-CN-x-henan",
+     "zh-CN-x-hubei",
+     "zh-CN-x-kejia",
+     "zh-CN-x-minnan",
+     "zh-CN-x-nanchang",
+     "zh-CN-x-nanjing",
+     "zh-CN-x-shaanxi",
+     "zh-CN-x-shandong",
+     "zh-CN-x-shanghai",
+     "zh-CN-x-sichuan",
+     "zh-CN-x-taiwan",
+     "zh-CN-x-tangshan",
+     "zh-CN-x-tianjin",
+     "zu"
+    ]
+   },
+   {
+    "name": "instructions",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Delivery instructions, one per line, for compatible voices. For example: Warm and natural.",
+    "default": "",
+    "multiline": true
+   },
+   {
+    "name": "speed",
+    "type": "number",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": 1.0,
+    "min": 0.5,
+    "max": 2.0,
+    "step": 0.05
+   },
+   {
+    "name": "volume",
+    "type": "number",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": 1.0,
+    "min": 0.5,
+    "max": 2.0,
+    "step": 0.05
+   },
+   {
+    "name": "pitch",
+    "type": "integer",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": 0,
+    "min": -12,
+    "max": 12
+   },
+   {
+    "name": "sample_rate",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "PCM sample rate in Hz. Use Save Audio to choose the saved file format.",
+    "default": "24000",
+    "options": [
+     "24000",
+     "16000",
+     "8000",
+     "22050",
+     "32000",
+     "44100",
+     "48000"
+    ]
+   },
+   {
+    "name": "enable_subtitle",
+    "type": "on/off",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Return word timings for supported languages. With auto, unsupported detected languages cause an API error.",
+    "default": false
+   },
+   {
+    "name": "seed",
+    "type": "integer",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Local rerun control only; not sent to the API.",
+    "default": 0,
+    "min": 0,
+    "max": 18446744073709551615
+   },
+   {
+    "name": "similarity_boost",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Enable similarity boost for compatible cloned voices.",
+    "default": false
+   },
+   {
+    "name": "text_normalization",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Normalize numbers, dates and similar text before synthesis.",
+    "default": true
+   },
+   {
+    "name": "enable_markdown_filter",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Parse Markdown in the input text.",
+    "default": false
+   },
+   {
+    "name": "silence_duration",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Silence appended after the final sentence, in milliseconds.",
+    "default": 0,
+    "min": 0,
+    "max": 30000
+   },
+   {
+    "name": "session_id",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Reuse one session ID for sequential requests in the same conversation. Leave empty for independent speech.",
+    "default": ""
+   },
+   {
+    "name": "ssml",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Complete SSML instead of text, never both. Supported tags depend on the service version.",
+    "default": "",
+    "multiline": true
+   }
+  ],
+  "outputs": [
+   {
+    "name": "audio",
+    "type": "AUDIO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "subtitles_json",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "srt",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "session_id",
     "type": "text",
     "is_list": false,
     "tooltip": ""
@@ -7986,6 +8710,194 @@
    {
     "name": "last_frame",
     "type": "IMAGE",
+    "is_list": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "BytePlusOmniHuman",
+  "slug": "omnihuman",
+  "group": "OmniHuman",
+  "display_name": "BytePlus OmniHuman 2.0",
+  "category": "BytePlus ModelArk/OmniHuman",
+  "description": "Generate an avatar video from one image and speech audio using OmniHuman 2.0. Requires a separate Vision AI key. Paid work; use only authorized media. Connected media needs Comfy.org storage. Interruption stops local waiting, not remote processing.",
+  "search_aliases": [],
+  "keys": [
+   "Vision AI API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "prompt",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Optional scene, movement and camera guidance.",
+    "default": "",
+    "multiline": true
+   },
+   {
+    "name": "enable_watermark",
+    "type": "on/off",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   },
+   {
+    "name": "seed",
+    "type": "integer",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Local rerun control only, not sent to OmniHuman. Keep fixed to resume an unresolved task.",
+    "default": 0,
+    "min": 0,
+    "max": 18446744073709551615
+   },
+   {
+    "name": "image",
+    "type": "IMAGE",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Exactly one image, or use image_url."
+   },
+   {
+    "name": "audio",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 4-300 second speech clip (up to 5 minutes), or use audio_url. Video duration follows the audio; trim the audio first to change the length. Oversized WAVs are converted to mono at up to 24 kHz without truncation."
+   },
+   {
+    "name": "image_url",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Persistent public image URL, instead of a connected image.",
+    "default": ""
+   },
+   {
+    "name": "audio_url",
+    "type": "text",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Persistent public WAV/MP3 URL, instead of connected audio. Video duration follows this audio.",
+    "default": ""
+   },
+   {
+    "name": "existing_task_id",
+    "type": "text",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Recover this task without generation or uploads. Other generation inputs are ignored. Must match any unresolved task and its key.",
+    "default": ""
+   }
+  ],
+  "outputs": [
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "task_id",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Keep this ID for OmniHuman Task Result recovery."
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Provider response with keys and URLs redacted."
+   }
+  ]
+ },
+ {
+  "id": "BytePlusOmniHumanTaskResult",
+  "slug": "omnihuman-task-result",
+  "group": "OmniHuman",
+  "display_name": "BytePlus OmniHuman Task Result",
+  "category": "BytePlus ModelArk/OmniHuman",
+  "description": "Collect an existing OmniHuman 2.0 task with its original account's Vision AI key. Never submits new generation. Task lookup lasts about 12 hours; video links expire after one hour.",
+  "search_aliases": [],
+  "keys": [
+   "Vision AI API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "task_id",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": ""
+   },
+   {
+    "name": "wait_for_completion",
+    "type": "on/off",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": true
+   }
+  ],
+  "outputs": [
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "task_id",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Keep this ID for OmniHuman Task Result recovery."
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": "Provider response with keys and URLs redacted."
+   }
+  ]
+ },
+ {
+  "id": "BytePlusOmniHumanCancelTask",
+  "slug": "omnihuman-cancel-task",
+  "group": "OmniHuman",
+  "display_name": "BytePlus OmniHuman Cancel Task",
+  "category": "BytePlus ModelArk/OmniHuman",
+  "description": "Explicitly request cancellation of an OmniHuman 2.0 task. Only queued tasks can be canceled; running tasks may continue and be billed. Connect an output to execute.",
+  "search_aliases": [],
+  "keys": [
+   "Vision AI API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "task_id",
+    "type": "text",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": ""
+   }
+  ],
+  "outputs": [
+   {
+    "name": "canceled",
+    "type": "on/off",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "response",
+    "type": "text",
     "is_list": false,
     "tooltip": ""
    }

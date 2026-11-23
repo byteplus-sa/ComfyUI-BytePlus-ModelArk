@@ -1,0 +1,8 @@
+flowchart LR
+    Load["Load Image<br/>byteplus_logo.png"]
+    Generate["BytePlus Seedream<br/>seedream 5.5<br/>2048 x 2048 / PNG / opaque"]
+    Save["Save Image<br/>BytePlus/Images/first-badge"]
+    Load -->|"IMAGE to model.images.image_1"| Generate
+    Generate -->|"IMAGE to images"| Save
+    classDef byteplus fill:#F6F7FB,stroke:#0066FC,color:#1D2129;
+    class Load,Generate,Save byteplus;

@@ -297,6 +297,17 @@ app.registerExtension({
             },
         ),
         setting(
+            "OmniHuman",
+            "OmniHuman Vision AI API key",
+            "Separate Vision AI key for OmniHuman 2.0. Saved as BYTEPLUS_CV_API_KEY. Saving does not validate account access, start generation or change the ModelArk region.",
+            {
+                credential: "omnihuman",
+                label: "OmniHuman Vision AI API key",
+                fields: [{ name: "value", placeholder: "Vision AI API key" }],
+                guideUrl: "https://docs.byteplus.com/en/docs/byteplus-vision/api-key-usage-instructions",
+            },
+        ),
+        setting(
             "AssetLibrary",
             "Asset library IAM AK/SK",
             "Only for the private asset library nodes and asset_N references. Use an IAM sub-user whose policy allows the asset library only. Saved as BYTEPLUS_ACCESS_KEY and BYTEPLUS_SECRET_KEY.",

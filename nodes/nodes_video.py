@@ -3,7 +3,6 @@ import time
 import random
 import datetime
 import asyncio
-import aiohttp
 import json
 import logging
 import base64
@@ -51,6 +50,7 @@ from .utils_download import (
     describe_download_error,
     download_video_to_temp,
     download_image_to_temp,
+    public_download_session,
 )
 
 from .executor import (
@@ -628,7 +628,7 @@ class BytePlusVideoBase:
         if not successful_tasks and ignore_errors:
             return self._ignored_failure_outputs(runner)
 
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
+        async with public_download_session(force_close=True) as session:
             ret_results = await self._handle_batch_success_async(successful_tasks, generation_count, session)
             await asyncio.sleep(0.25)
         return ret_results
@@ -710,7 +710,7 @@ class BytePlusVideoBase:
             if not successful_tasks and ignore_errors:
                 return self._ignored_failure_outputs(runner)
 
-            async with aiohttp.ClientSession() as session:
+            async with public_download_session() as session:
                 ret_results = await self._handle_batch_success_async(successful_tasks, generation_count, session)
                 await asyncio.sleep(0.25)
             return ret_results
