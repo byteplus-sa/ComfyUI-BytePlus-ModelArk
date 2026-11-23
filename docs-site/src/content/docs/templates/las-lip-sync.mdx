@@ -1,0 +1,52 @@
+---
+title: "LAS Lip Sync"
+description: "Synchronize a video's lips to external or source audio with LAS, without requesting standard translation or captions."
+template_file: LAS Lip Sync.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="LAS Lip Sync.json" />
+
+## What it makes
+
+Two lip-sync paths: one synchronizes your video to external speech, the other uses the video's original audio. Each has its own LAS node and video save. These modes skip standard translation and text-to-speech, so they do not provide translated captions. Use footage and audio you are authorized to process.
+
+## The workflow
+
+<Shot src="templates/las-lip-sync-workflow.webp" alt="LAS Lip Sync workflow with external-audio and source-audio LAS branches and separate video saves" caption="Two LAS nodes show external speech and source-audio lip sync separately." />
+
+1. Read the **MarkdownNote**. **Load Video** supplies the source and **Load Audio** supplies one external speech clip.
+2. The first **[LAS Video Translation](../../nodes/las-video-translation/)** node uses `lip_sync_external_audio`; the second uses `lip_sync_source_audio`.
+3. Two **Save Video** nodes keep the branch results separately. Preserve each accepted `task_id` for interrupted collection.
+
+## Run it
+
+1. Save your LAS API key in **Settings > BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Open **LAS Lip Sync**, choose your source video and fill your writable Johor `output_tos_path` on each branch you will run.
+3. Choose one external clip in **Load Audio** for the external branch. To use `dubbing_audio_url` instead, disconnect `dubbing_audio`.
+4. Set `audio_language` on the source-audio branch. The source video must have an audio track. To run only one branch, mute the unused LAS node and its save node before queueing.
+5. Log in to Comfy.org for connected-media uploads, then press **Run**. Inspect lip motion and timing in each saved video.
+
+## Settings worth changing
+
+- **`mode`:** external and source audio are alternatives. Switching modes changes the available inputs.
+- **`dubbing_language`:** in external mode, select the speech language or `auto` for service detection.
+- **`ignore_audio_video_duration_mismatch`:** leave off for matched media. The override may loop or trim video and affect billing.
+- **`dubbing_audio_url`:** use a persistent public or authorized TOS reference instead of connected audio when appropriate.
+- **Source duration and frame rate:** lip sync is limited to 10 minutes and 30 fps. Connected external audio normally must match within one second.
+
+## Example result
+
+No example output is published here. Inspect your own result for visible lip alignment, timing and any unintended trimming. Do not infer caption or clean-audio availability from a successful video result.
+
+## Time and cost
+
+Each active branch submits its own task and bills on your LAS account. Upload size, source duration and collection affect waiting time. These specified-audio modes cannot be combined with restoration or a separate subtitle picture source. Interrupting ComfyUI does not cancel remote work; recover each accepted task instead of submitting another one to retry collection.
+
+## Related
+
+- Node: [LAS Video Translation](../../nodes/las-video-translation/)
+- Recovery: [LAS Task Result](../las-task-result/)
+- Next step: [LAS Video Translation](../las-video-translation/) for translation and dubbed speech

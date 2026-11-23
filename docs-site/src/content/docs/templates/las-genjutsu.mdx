@@ -1,0 +1,52 @@
+---
+title: "LAS Genjutsu"
+description: "Edit your video with LAS Genjutsu and an image reference, then save the collected video and keep its task ID."
+template_file: LAS Genjutsu.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="LAS Genjutsu.json" />
+
+## What it makes
+
+An edited video from your source footage, prompt and image reference. LAS Genjutsu sends the edit to BytePlus and collects the completed video. Use media you own or are authorized to process; real-person references also need the appropriate LAS access.
+
+## The workflow
+
+<Shot src="templates/las-genjutsu-workflow.webp" alt="LAS Genjutsu workflow connecting source video and an image reference to the editing node and video saving" caption="Supply your footage and reference, describe the edit, and save the collected video." />
+
+1. Read the **MarkdownNote**, then load your source video and reference image with **Load Video** and **Load Image**.
+2. **[LAS Genjutsu](../../nodes/las-genjutsu/)** receives the media and your edit prompt, submits once and waits for the task.
+3. **Save Video** writes the collected video to your ComfyUI output folder. Keep `task_id` if collection is interrupted.
+
+## Run it
+
+1. Save your separate LAS API key in **Settings > BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Log in to Comfy.org for connected-media uploads. Alternatively, disconnect the source and use an accepted persistent reference in `video_url`.
+3. Open **LAS Genjutsu** in the template browser. Choose your own video and reference image.
+4. Write `user_prompt` and select the editing `template`. Reference-based replacement and general editing need an image.
+5. Press **Run**. Save the collected result and keep the accepted task ID if any download fails.
+
+## Settings worth changing
+
+- **`template` and `user_prompt`:** describe the intended edit. Template-specific controls that lack a confirmed contract are not exposed.
+- **`model`, `resolution` and `duration`:** use compatible choices. Server-default routing and Seedance 2.5 only accept auto duration when you specify it.
+- **`reference_images` and `image_urls`:** connected images come first, followed by text references. Repeated references preserve their positions.
+- **`use_asset_api`:** opt in only when you need LAS asset conversion and have rights and account access. ModelArk assets are separate.
+- **`return_last_frame`:** request a final image when you need one downstream; connect **Save Image** to keep it.
+
+## Example result
+
+No example output is published here. Inspect your collected video for the intended edit before using it downstream.
+
+## Time and cost
+
+Accepted editing work can bill your LAS account. Media uploads, remote processing and downloads all contribute to waiting time. Keep the local `seed` fixed while recovering an accepted task; it is not an API generation seed. Interrupting ComfyUI does not cancel remote work. Recover the existing task rather than submitting another edit to retry a download.
+
+## Related
+
+- Node: [LAS Genjutsu](../../nodes/las-genjutsu/)
+- Recovery: [LAS Task Result](../las-task-result/)
+- Next step: [LAS Video Translation](../las-video-translation/)

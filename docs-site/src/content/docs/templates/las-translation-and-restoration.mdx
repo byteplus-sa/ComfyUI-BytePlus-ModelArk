@@ -1,0 +1,53 @@
+---
+title: "LAS Translation and Restoration"
+description: "Remove existing subtitles before LAS translation, burn in translated captions and save the repaired source separately."
+template_file: LAS Translation and Restoration.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="LAS Translation and Restoration.json" />
+
+## What it makes
+
+A translated video with new captions and a separately collected repaired source. Integrated restoration can remove existing subtitles before translation so you do not overlay new text on the old text. Use only footage and markings you are authorized to modify.
+
+## The workflow
+
+<Shot src="templates/las-translation-and-restoration-workflow.webp" alt="LAS Translation and Restoration workflow with one source video and separate saves for translated and repaired videos" caption="Keep the translated-language result and the repaired source as separate videos." />
+
+1. Read the **MarkdownNote** setup instructions and load your source using **Load Video**.
+2. **[LAS Video Translation](../../nodes/las-video-translation/)** uses `translate` mode with restoration enabled and your caption choices.
+3. One **Save Video** receives `video`, the translated result. The other receives `repaired_video`, the repaired source rather than another translated-language result.
+
+## Run it
+
+1. Save your LAS API key in **Settings > BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Open **LAS Translation and Restoration** and choose your own speech video. Connected media requires a Comfy.org login.
+3. Fill `output_tos_path` with your writable Johor TOS directory and set source and target languages in `translate` mode.
+4. Select restoration `on`, choose the detection controls and enable `burn_translated_subtitles` when you want embedded translated captions.
+5. Press **Run**. Inspect both saved videos for unintended removals, caption placement and translation quality.
+
+## Settings worth changing
+
+- **`restoration`:** select `on` to expose the integrated repair controls. An empty nested `output_tos_path` inherits the translation output directory.
+- **`model_level` and `detection_mode`:** match the repair. `lite` does not support `precise`.
+- **`targets` and `fixed_bboxes`:** precise detection needs targets unless fixed boxes are supplied. Boxes use integer 0-1000 coordinates and override target detection.
+- **`subtitle_persistent`:** use cautiously; broader erasure can remove wanted picture content.
+- **`burn_translated_subtitles` and `subtitle_style`:** place new captions after repair. ASS and burned-in captions support styling; plain SRT does not.
+- **`maximum_resolution` and `maximum_output_fps`:** control repaired output. This combined path has the narrower 3-hour, 4K input limit.
+
+## Example result
+
+No example output is published here. Compare your repaired source with the original and inspect translated captions separately. A returned artifact does not establish that every intended subtitle or watermark was removed.
+
+## Time and cost
+
+Restoration adds LAS charges and processing to translation. Each target language can also incur charges, while repaired source collection remains distinct from translated-language outputs. This mode cannot combine with specified-audio lip sync or a separate subtitle picture source. Interrupting local execution does not cancel the remote task; recover its accepted ID to retry collection.
+
+## Related
+
+- Node: [LAS Video Translation](../../nodes/las-video-translation/)
+- Recovery: [LAS Task Result](../las-task-result/)
+- Next step: [LAS Multilingual Translation](../las-multilingual-translation/)

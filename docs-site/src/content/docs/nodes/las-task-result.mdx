@@ -1,0 +1,64 @@
+---
+title: "LAS Task Result"
+description: "Collect an existing BytePlus LAS Genjutsu or Video Translation task without submitting new generation work."
+node_id: BytePlusLASTaskResult
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusLASTaskResult" />
+
+## What it does
+
+Looks up an existing [LAS Genjutsu](../las-genjutsu/) or [LAS Video Translation](../las-video-translation/) task and collects its available results. You need the LAS key for the account that submitted the task and the correct operator selection. This node submits no new generation work, but the original task may still be running and billed. Connect **Save Video**, **Save Audio** or **Save Image** to keep the media you collect.
+
+## On the canvas
+
+<Shot src="nodes/las-task-result.png" alt="LAS Task Result node with operator, task ID and artifact collection controls" caption="Collect an existing LAS task without submitting new generation work." />
+
+## Inputs
+
+<NodeInputs id="BytePlusLASTaskResult" />
+
+### Notes on inputs
+
+- **Task ID:** copy the accepted LAS task ID, not a ModelArk task ID or a nested generation ID from an operator response.
+- **Operator:** select the operator that submitted the task. A Genjutsu ID cannot be collected as a Video Translation task.
+- **Waiting:** `wait_for_completion` chooses whether to wait for completion or inspect the task once. Requeue a pending task later instead of submitting a replacement.
+- **Collection controls:** audio, captions and repaired-video controls only select existing artifacts to collect. They do not add outputs that were not requested when the original task was submitted.
+- **Captions:** choose a primary format that the task produced. An external-audio or source-audio lip-sync task does not provide standard translation captions.
+
+## Outputs
+
+<NodeOutputs id="BytePlusLASTaskResult" />
+
+### Notes on outputs
+
+- Check task information and the artifact manifest even when media is not yet available. A pending task is not a failed generation.
+- Optional media depends on the operator and the original submission. Collection cannot create a missing caption, dubbed-audio file or last-frame result.
+- Keep the task ID while resolving a download failure. Temporary result links and the original task's retention window still apply when you collect later.
+
+## Limits and tips
+
+- LAS uses a separate key in Johor (`ap-southeast-1`). The ModelArk region selector does not change LAS routing.
+- Saving a key does not check its account access or start work. Follow the [official LAS key guide](https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key).
+- Task lookup is documented for three days. Genjutsu links are usually valid for 24 hours, and translation links for three days; save collected media promptly.
+- Use this node after an interrupted wait, server restart or result-download failure. Do not use **Video Query Tasks**, which looks up ModelArk tasks.
+- Interrupting collection stops local waiting; it does not cancel the original remote task or erase its billing.
+- Only collect authorized media. Do not share private task identifiers, TOS paths or provider responses publicly.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No LAS API key is set` | Set the original task account's LAS key in **Settings > BytePlus** or `BYTEPLUS_LAS_API_KEY` in your ComfyUI `user/.env`. |
+| `Invalid LAS input` | Check the task ID and operator. Use the accepted LAS task ID, not a ModelArk or nested generation ID. |
+| `Could not collect LAS artifact` | Check whether the result link has expired. Retry collection of the same task when it is still available. |
+
+## Used in templates
+
+<UsedIn id="BytePlusLASTaskResult" />

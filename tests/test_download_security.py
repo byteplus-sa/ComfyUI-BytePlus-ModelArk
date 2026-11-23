@@ -30,6 +30,7 @@ if COMFY_ROOT:
     nodes_shared = importlib.import_module(f"{PACKAGE_NAME}.nodes.nodes_shared")
     core_style = importlib.import_module(f"{PACKAGE_NAME}.nodes.core_style")
     constants = importlib.import_module(f"{PACKAGE_NAME}.nodes.constants")
+    las_api = importlib.import_module(f"{PACKAGE_NAME}.nodes.las_api")
 
 
 def setUpModule():
@@ -158,6 +159,27 @@ class PublicDownloadTests(unittest.IsolatedAsyncioTestCase):
             "POST", url, headers=headers, json={"prompt": "test"}, allow_redirects=False
         )
 
+    async def test_las_submit_and_poll_use_fixed_origin_without_following_redirects(self):
+        client = las_api.LASClient("test-only")
+        for path in ("/api/v1/submit", "/api/v1/poll"):
+            for status in (200, 302):
+                with self.subTest(path=path, status=status):
+                    session = mock.MagicMock()
+                    session.__aenter__.return_value = session
+                    session.request.return_value = Response(
+                        status, "https://other.example/private", body=b'{"task_id":"test-task"}'
+                    )
+                    with mock.patch.object(http_requests, "public_download_session", return_value=session):
+                        result = await las_api._send(client, "POST", path, {"test": True})
+                    self.assertEqual(result, (status, {"task_id": "test-task"}))
+                    session.request.assert_called_once_with(
+                        "POST",
+                        constants.LAS_REGION_BASE_URLS["ap-southeast-1"] + path,
+                        headers={"Authorization": "Bearer test-only", "Content-Type": "application/json"},
+                        json={"test": True},
+                        allow_redirects=False,
+                    )
+
     async def test_api_credentials_are_never_sent_outside_their_provider(self):
         cases = (
             ("https://evil.example/task", {"Authorization": "Bearer test-only"}),
@@ -166,6 +188,16 @@ class PublicDownloadTests(unittest.IsolatedAsyncioTestCase):
             ("https://ark.ap-southeast.bytepluses.com.evil.example/api/v3", {"authorization": "Bearer test-only"}),
             ("https://voice.ap-southeast-1.bytepluses.com/api/v3", {"Authorization": "Bearer test-only"}),
             ("https://ark.ap-southeast.bytepluses.com/api/v3", {"x-api-key": "test-only"}),
+            ("http://operator.las.ap-southeast-1.bytepluses.com/api/v1/submit", {"Authorization": "Bearer test-only"}),
+            (
+                "https://operator.las.ap-southeast-1.bytepluses.com:8443/api/v1/submit",
+                {"Authorization": "Bearer test-only"},
+            ),
+            (
+                "https://operator.las.ap-southeast-1.bytepluses.com.evil.example/api/v1/submit",
+                {"Authorization": "Bearer test-only"},
+            ),
+            ("https://operator.las.ap-southeast-1.bytepluses.com/api/v1/submit", {"X-Api-Key": "test-only"}),
         )
         fake = mock.MagicMock()
         fake.__aenter__.return_value = fake
@@ -180,7 +212,12 @@ class PublicDownloadTests(unittest.IsolatedAsyncioTestCase):
     async def test_valid_provider_credentials_and_unsigned_media_keep_working(self):
         cases = [
             (url, {"Authorization": "Bearer test-only"})
-            for url in (*constants.REGION_BASE_URLS.values(), *constants.MEDIAKIT_REGION_BASE_URLS.values())
+            for url in (
+                *constants.REGION_BASE_URLS.values(),
+                *constants.MEDIAKIT_REGION_BASE_URLS.values(),
+                *constants.LAS_REGION_BASE_URLS.values(),
+                constants.OMNIHUMAN_BASE_URL,
+            )
         ]
         cases.extend((url, {"X-Api-Key": "test-only"}) for url in constants.SPEECH_REGION_BASE_URLS.values())
         cases.append(("https://cdn.example/media?signature=test-only", {}))

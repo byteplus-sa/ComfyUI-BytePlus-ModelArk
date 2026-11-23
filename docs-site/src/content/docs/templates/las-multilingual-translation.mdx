@@ -1,0 +1,53 @@
+---
+title: "LAS Multilingual Translation"
+description: "Translate one video into several ordered languages with LAS and keep the video, audio and caption outputs aligned."
+template_file: LAS Multilingual Translation.json
+---
+
+import TemplateFacts from '../../../components/TemplateFacts.astro';
+import Shot from '../../../components/Shot.astro';
+
+<TemplateFacts file="LAS Multilingual Translation.json" />
+
+## What it makes
+
+Translated videos for several target languages from one source. LAS returns list outputs for videos, optional clean audio, selected caption text and languages. Keep each item's language alongside its media, and use `artifacts_json` to inspect the other requested caption formats.
+
+## The workflow
+
+<Shot src="templates/las-multilingual-translation-workflow.webp" alt="LAS Multilingual Translation workflow with ordered target languages and translated media saving" caption="One translation task collects results for several target languages." />
+
+1. Read the **MarkdownNote** and load your source speech video with **Load Video**.
+2. **[LAS Video Translation](../../nodes/las-video-translation/)** submits the ordered target list in `translate` mode.
+3. **Save Video** and **Save Audio** keep the video and requested clean speech results. Inspect `language`, `subtitle` and `artifacts_json` together before naming or routing files downstream.
+
+## Run it
+
+1. Add your LAS API key in **Settings > BytePlus** ([API keys](../../get-started/api-keys/)).
+2. Open **LAS Multilingual Translation** and supply your source video. Log in to Comfy.org if you use connected media.
+3. Set your source `audio_language` and writable Johor `output_tos_path`.
+4. Enter supported target codes in `output_languages`, one per line or comma-separated. Do not include the source language.
+5. Request your caption formats and, if needed, clean dubbed audio. Press **Run** and inspect the language order before saving or distributing results.
+
+## Settings worth changing
+
+- **`output_languages`:** ordering determines the media indexes. Begin with only the languages you need.
+- **`caption_formats`:** request `.ass`, `.txt`, `.srt`, `.xml` or `.vtt`; the manifest retains collected text for the requested formats.
+- **`primary_caption_format`:** selects the caption text list output, and must be among the requested formats.
+- **`subtitle_font_by_language`:** in custom style, supply supported font IDs in target order. `null` uses automatic fonts; do not add blank or duplicate target entries.
+- **`output_dubbing_audio`:** requests clean speech for each language. Enable it only when you need separate audio.
+- **`dubbing_mode`:** defaults to `high_quality`; select another supported voice treatment when needed. Fast translation requires `high_quality`.
+
+## Example result
+
+No example output is published here. For your own task, compare the language list with the collected videos, audio and captions. Missing or failed optional artifacts should be inspected in the manifest, not treated as another language's result.
+
+## Time and cost
+
+Each target language and added service can incur LAS charges. More targets also mean more files to collect, and long audio outputs can use substantial memory. An interrupted collection does not stop the original remote task. Keep `task_id` and collect the existing task instead of submitting the full language list again.
+
+## Related
+
+- Node: [LAS Video Translation](../../nodes/las-video-translation/)
+- Recovery: [LAS Task Result](../las-task-result/)
+- Next step: [LAS Translation and Restoration](../las-translation-and-restoration/)

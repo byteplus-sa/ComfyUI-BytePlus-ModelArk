@@ -3,7 +3,13 @@ from urllib.parse import urlsplit
 
 import aiohttp
 
-from .constants import MEDIAKIT_REGION_BASE_URLS, OMNIHUMAN_BASE_URL, REGION_BASE_URLS, SPEECH_REGION_BASE_URLS
+from .constants import (
+    LAS_REGION_BASE_URLS,
+    MEDIAKIT_REGION_BASE_URLS,
+    OMNIHUMAN_BASE_URL,
+    REGION_BASE_URLS,
+    SPEECH_REGION_BASE_URLS,
+)
 from .nodes_shared import BytePlusException, sleep_interruptible, wait_interruptible
 from .utils_download import public_download_session, validate_public_url
 
@@ -31,7 +37,12 @@ def _origin(url):
 
 def _validate_credential_destination(url, headers):
     providers = {
-        "authorization": (*REGION_BASE_URLS.values(), *MEDIAKIT_REGION_BASE_URLS.values(), OMNIHUMAN_BASE_URL),
+        "authorization": (
+            *REGION_BASE_URLS.values(),
+            *MEDIAKIT_REGION_BASE_URLS.values(),
+            *LAS_REGION_BASE_URLS.values(),
+            OMNIHUMAN_BASE_URL,
+        ),
         "x-api-key": tuple(SPEECH_REGION_BASE_URLS.values()),
     }
     for name, value in headers.items():

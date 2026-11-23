@@ -286,6 +286,17 @@ app.registerExtension({
             },
         ),
         setting(
+            "LAS",
+            "LAS API key",
+            "Separate LAS key for Genjutsu, Video Translation and Task Result in Johor (ap-southeast-1). Saved as BYTEPLUS_LAS_API_KEY. Saving does not validate the key or submit work; the ModelArk region is unchanged.",
+            {
+                credential: "las",
+                label: "LAS API key",
+                fields: [{ name: "value", placeholder: "LAS API key" }],
+                guideUrl: "https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key",
+            },
+        ),
+        setting(
             "OmniHuman",
             "OmniHuman Vision AI API key",
             "Separate Vision AI key for OmniHuman 2.0. Saved as BYTEPLUS_CV_API_KEY. Saving does not validate account access, start generation or change the ModelArk region.",

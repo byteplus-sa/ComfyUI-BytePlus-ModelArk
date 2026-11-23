@@ -1,0 +1,67 @@
+---
+title: "LAS Video Translation"
+description: "Translate and dub a video with BytePlus LAS, with mode-specific lip sync, captions and restoration controls."
+node_id: BytePlusLASVideoTranslation
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusLASVideoTranslation" />
+
+## What it does
+
+Sends video translation or lip-sync work to the BytePlus LAS Video Translation operator. You need a separate **LAS API key** in **Settings > BytePlus** and a writable TOS output directory in the same account and Johor region. Submitted work can be billed to your BytePlus account. Connect **Save Video** and, when needed, **Save Audio** to keep collected media.
+
+## On the canvas
+
+<Shot src="nodes/las-video-translation.png" alt="LAS Video Translation node with mode controls, TOS output directory and media outputs" caption="Select the mode and provide your own writable TOS output directory." />
+
+## Inputs
+
+<NodeInputs id="BytePlusLASVideoTranslation" />
+
+### Notes on inputs
+
+- **Source:** use connected `video` or `video_url`, not both. Connected media needs Comfy.org storage and a Comfy.org login; public links must remain accessible without extra authorization headers.
+- **Output directory:** supply your own writable `output_tos_path`. TOS inputs and outputs need the correct account, region and permissions; saving the LAS key does not configure bucket permissions.
+- **Mode:** standard translation uses target languages and dubbing controls. External-audio lip sync uses the common `dubbing_audio` socket or the mode's `dubbing_audio_url`, not both. Source-audio lip sync uses original speech. These modes skip translation and TTS and do not produce translated captions.
+- **Languages:** input and output language sets differ. Use the codes offered by the node, not codes copied from Seed Speech. Target ordering matters when choosing per-language fonts.
+- **Dubbing quality:** translation defaults to `high_quality`; select another supported dubbing mode when needed. Fast translation requires `high_quality`.
+- **Subtitles:** styling applies to ASS or burned-in subtitles, not plain SRT text. A separate picture source requires subtitle burn-in and cannot be combined with restoration or specified-audio lip sync.
+- **Advanced combinations:** fast translation requires high-quality dubbing; dynamic duration cannot be combined with lip sync. Restoration cannot be combined with specified-audio lip sync. Only the controls in the generated table are exposed by this pack.
+
+## Outputs
+
+<NodeOutputs id="BytePlusLASVideoTranslation" />
+
+### Notes on outputs
+
+- Clean dubbed audio and captions depend on the submitted task's options. Inspect `artifacts_json` for what the provider returned and what was collected; do not infer missing media from the selected mode alone.
+- A repaired source is distinct from each translated-language result. Keep optional outputs separate when saving or building downstream workflows.
+- Keep `task_id` for [LAS Task Result](../las-task-result/) if local collection is interrupted or a download fails. Recovering an existing task does not require another translation submission.
+
+## Limits and tips
+
+- LAS runs in Johor (`ap-southeast-1`), independently of the ModelArk region setting. Other product keys are not interchangeable with a LAS key.
+- The official translation contract permits sources from 2 seconds to 4 hours, at most 10 GB. Lip sync narrows this to 10 minutes and 30 fps; integrated restoration has a narrower 3-hour, 4K input limit.
+- LAS limits do not guarantee that Comfy.org uploads accept the same size or remain available for the whole task. Use persistent public or authorized TOS references for large sources.
+- Specified audio should match the video duration. The duration-mismatch override may loop or trim the video and affect billing.
+- Task lookup and translation result links are documented for three days. Collect results promptly and save them locally.
+- Interrupting local execution does not cancel remote work. An accepted task may continue and be billed.
+- See the [official Video Translation contract](https://docs.byteplus.com/en/docs/byteplus_las/Video_Translation_operator) and [LAS key guide](https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key). Do not assume support for standalone restoration fields absent from the translation wrapper.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No LAS API key is set` | Add a LAS key in **Settings > BytePlus**, or set `BYTEPLUS_LAS_API_KEY` in your ComfyUI `user/.env`. |
+| `Invalid LAS input` | Check source exclusivity, mode combinations, language codes and your writable TOS output directory. |
+| `Could not collect LAS artifact` | Recover the existing task with **LAS Task Result** before links expire; do not resubmit translation to retry collection. |
+
+## Used in templates
+
+<UsedIn id="BytePlusLASVideoTranslation" />

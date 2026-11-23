@@ -1,0 +1,64 @@
+---
+title: "LAS Genjutsu"
+description: "Edit a video with BytePlus LAS Video Edit Enhance 2.0 using a separate LAS key and collect its task result."
+node_id: BytePlusLASGenjutsu
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusLASGenjutsu" />
+
+## What it does
+
+Sends video editing work to BytePlus LAS Genjutsu, the Video Edit Enhance 2.0 operator. You need a separate **LAS API key** in **Settings > BytePlus**, not a ModelArk or AI MediaKit key. Submitted work can be billed to your BytePlus account. Connect **Save Video** to keep a collected video.
+
+## On the canvas
+
+<Shot src="nodes/las-genjutsu.png" alt="LAS Genjutsu node with video editing inputs and media and task outputs" caption="Configure the edit and keep the accepted task ID for recovery." />
+
+## Inputs
+
+<NodeInputs id="BytePlusLASGenjutsu" />
+
+### Notes on inputs
+
+- **Source:** connect `video` or supply `video_url`, not both. Connected media uses Comfy.org storage, which needs a Comfy.org login.
+- **References:** use persistent public HTTP(S) links, TOS references or existing LAS assets where the operator accepts them. LAS assets are separate from ModelArk's private asset library; do not look them up with ModelArk asset nodes.
+- **Editing templates:** the official operator describes basic editing, general editing, person replacement, subject replacement and style transfer. The generated controls above describe what this pack exposes.
+- **Real-person media:** use only media you are authorized to process and confirm your account's LAS allowlist access. Asset conversion does not grant access.
+- **Model-specific controls:** do not assume ModelArk's resolutions, duration rules or endpoint overrides apply to LAS. Some advanced operator fields remain unavailable until their constraints are confirmed.
+
+## Outputs
+
+<NodeOutputs id="BytePlusLASGenjutsu" />
+
+### Notes on outputs
+
+- Keep the accepted `task_id` if collection is interrupted or a result cannot be downloaded. Use [LAS Task Result](../las-task-result/) with the same LAS key and the Genjutsu operator.
+- Use **Save Video** and **Save Image** for permanent exports of the media outputs you need. Provider result links are temporary.
+- The `response` output is for task information, not credential storage. Do not publish private task identifiers or TOS paths.
+
+## Limits and tips
+
+- LAS uses Johor (`ap-southeast-1`), independently of the ModelArk region in Settings.
+- Saving a LAS key only stores it. It does not validate the key against ModelArk or submit generation work. Follow the [official LAS key guide](https://docs.byteplus.com/docs/Byteplus_LAS/Obtain_and_configure_the_API_Key).
+- Interrupting local execution does not promise remote cancellation. Accepted work may continue and be billed; collect the existing task before submitting again.
+- The operator documents task lookup for three days and result links that are usually valid for 24 hours. Collect and save results promptly.
+- Temporary Comfy.org uploads may have stricter size and lifetime limits than the operator. Prefer persistent public links or account-authorized TOS references for long-running work.
+- See the [official Video Edit Enhance 2.0 contract](https://docs.byteplus.com/en/docs/Byteplus_LAS/Enhanced_video_editing_2) for operator requirements. A documented API field is not evidence that every model or account accepts it.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No LAS API key is set` | Save a LAS key in **Settings > BytePlus**, or set `BYTEPLUS_LAS_API_KEY` in your ComfyUI `user/.env`. Other product keys do not work here. |
+| `Invalid LAS input` | Check the selected controls and source references. Fix the input before submitting again. |
+| `Could not collect LAS artifact` | Recover the accepted task with **LAS Task Result** before its result links expire. Do not start another edit just to retry a download. |
+
+## Used in templates
+
+<UsedIn id="BytePlusLASGenjutsu" />
