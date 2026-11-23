@@ -754,6 +754,7 @@ class WorkflowTemplateTests(unittest.TestCase):
             "watermark",
             "generation_count",
             "non_blocking",
+            "resolution",
         ],
     }
 
@@ -807,7 +808,7 @@ class WorkflowTemplateTests(unittest.TestCase):
                 for node in workflow["nodes"]:
                     if node["type"].startswith("BytePlus"):
                         self.assertEqual(node["properties"]["cnr_id"], "ComfyUI-BytePlus-ModelArk")
-                        self.assertEqual(node["properties"]["ver"], "0.11.0")
+                        self.assertEqual(node["properties"]["ver"], "0.12.0")
 
     def test_dynamic_combo_templates_use_v3_namespaced_inputs(self):
         combo_inputs = {
@@ -949,6 +950,7 @@ class WorkflowTemplateTests(unittest.TestCase):
         self.assertIn("fixed", draft["widgets_values"])
         self.assertEqual(draft["mode"], 0)
         self.assertEqual(final["mode"], 4)
+        self.assertEqual(final["widgets_values"], ["", False, 1, False, "1080p"])
         image_input = next(item for item in draft["inputs"] if item["name"] == "model.reference_images.image_1")
         image_link = next(link for link in workflow["links"] if link[0] == image_input["link"])
         self.assertEqual(nodes[image_link[1]]["type"], "LoadImage")

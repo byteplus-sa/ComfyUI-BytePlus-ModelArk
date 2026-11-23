@@ -1,0 +1,72 @@
+---
+title: "Seed Speech TTS 3"
+description: "Generate speech with Seed TTS 3 voices, native delivery instructions, optional word timings and sequential conversation context."
+node_id: BytePlusSeedTTS3
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedTTS3" />
+
+## What it does
+
+Turn your text into speech with the fixed `dola-seed-tts-3.0` model and its own preset voices or an authorized compatible custom voice. This is a separate node from [Seed Speech TTS](../seed-tts/), which keeps the TTS 1/2 and ICL models.
+
+You use the same Seed Speech API key in **Settings > BytePlus**, and each synthesis request bills your BytePlus account. Connect `audio` to **Preview Audio** to listen or **Save Audio** to keep the result; the node saves nothing itself.
+
+## On the canvas
+
+<Shot src="nodes/seed-tts-3.png" alt="The Seed Speech TTS 3 node with its preset voice selector, text input and speech controls" caption="Use the separate TTS 3 node for its own voices and native delivery instructions." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedTTS3" />
+
+### Notes on inputs
+
+- **Text or SSML:** enter up to 10,000 characters in `text`, or leave it empty and supply complete `ssml` in advanced inputs. Provide exactly one, never both. Supported SSML tags depend on the service version.
+- **Voice:** choose from this node's TTS 3 presets. `custom_speaker_id` overrides `voice` when filled; use an authorized TTS 3-compatible ID enabled for your account. Browse the official [TTS 3 voice list](https://docs.byteplus.com/en/docs/byteplusvoice/voicelist-3-0).
+- **Delivery:** put one instruction per line in `instructions`, such as "Warm and natural". Each non-empty line becomes a native instruction, not spoken text or the older node's `context_text`; support depends on the voice.
+- **Speech controls:** `speed` and `volume` are multipliers from 0.5 to 2.0, with 1.0 unchanged, not the older node's `speech_rate` and `loudness_rate` percentages. `pitch` takes whole numbers from -12 to 12, with 0 unchanged.
+- **Language and subtitles:** prefer an explicit `language_code` for your text. `enable_subtitle` requests word timings only for supported languages; with `auto`, an unsupported detected language can cause an API error. Check [Supported Languages](https://docs.byteplus.com/en/docs/byteplusvoice/seed-tts-3-0-language-support).
+- **Conversation:** leave `session_id` empty for independent speech. For a continuing conversation, pass the returned `session_id` into the next TTS 3 node's input and run requests sequentially. Use a different session for each independent conversation.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedTTS3" />
+
+### Notes on outputs
+
+- The service streams newline-delimited JSON (JSONL), but this node accumulates the full response before returning ComfyUI `AUDIO`. It does not play audio chunks as they arrive and returns no partial audio from an invalid or incomplete stream.
+- `subtitles_json` contains `raw` alignments with word timings and normalized `segments`. `srt` uses those segment timings, not a separate cue for every word. Without returned timings, both lists are empty and `srt` is empty.
+- `session_id` comes from the service and lets you link the next request to the conversation. It is not a task ID or a way to recover failed audio.
+
+## Limits and tips
+
+- The node always requests PCM at 8000, 16000, 22050, 24000, 32000, 44100 or 48000 Hz (8, 16, 22.05, 24, 32, 44.1 or 48 kHz). Choose the saved file format with **Save Audio**.
+- [Seed Voice Clone](../seed-voice-clone/) still trains voices for `seed-icl-2.0`. Its output is not automatically TTS 3-compatible: older voices may need upgrading and enabling in Seed Speech before you use them here. Use only voices you are authorized to use.
+- Advanced `similarity_boost` is for compatible cloned voices. `text_normalization` handles numbers and dates, `enable_markdown_filter` parses Markdown, and `silence_duration` adds silence after the final sentence only.
+- `pronunciation_dictionary` is not exposed because its dictionary-reference schema is still pending in the official API documentation.
+- The `seed` input controls local reruns only and is not sent to the API. Changing it can trigger another billed synthesis request; it does not make speech deterministic.
+- Submissions are never automatically retried. Before manually rerunning a failed request, remember that the first request may already have been billed.
+- Interrupting stops local waiting only. The node sends no remote cancellation request, so accepted work may continue and be billed.
+
+See the official [TTS 3 HTTP streaming API](https://docs.byteplus.com/en/docs/byteplusvoice/seed-tts-3-0-http-streaming) for the service contract. The node exposes the controls above, not every API field.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No Seed Speech API key is set.` | Save your Seed Speech key in **Settings > BytePlus**. A ModelArk key does not substitute for it. See [API keys](../../get-started/api-keys/). |
+| `Provide exactly one of text or ssml; text accepts up to 10000 characters.` | Fill one input and clear the other. Split longer plain text into separate requests. |
+| `This language does not support subtitle timestamps.` | Turn off `enable_subtitle` or choose a supported `language_code`. |
+| `Seed TTS 3 returned an invalid or incomplete stream; no partial audio was returned.` | Check your connection and the service status before choosing whether to submit again. A failed response does not guarantee that no billing occurred. |
+| `Seed TTS 3 failed (HTTP` | Read the reported code, message and parameter. Check your Seed Speech key and TTS 3 model/voice access; a custom voice may need upgrading. Keep the request and log IDs for support. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedTTS3" />

@@ -99,7 +99,7 @@ VIDEO_2_MODEL_REFERENCE_LIMITS = {
 
 SEEDANCE_DRAFT_RESOLUTION = "480p"
 SEEDANCE_DRAFT_FINAL_RESOLUTIONS = {
-    "dreamina-seedance-2-5": ["1080p"],
+    "dreamina-seedance-2-5": ["1080p", "4k"],
 }
 
 # Seedance 2.5 omni reference task types (omni_reference_task_type)
@@ -131,6 +131,8 @@ SEED_AUDIO_MODELS = ["seed-audio-1.0"]
 # resources are for cloned voices (speaker IDs starting with S_).
 SEED_TTS_MODELS = ["seed-tts-2.0", "seed-tts-1.0", "seed-icl-2.0", "seed-icl-1.0"]
 SEED_TTS_2_UI_MODEL = "seed-tts-2.0"
+SEED_TTS_3_MODEL_MAP = {"dola-seed-tts-3.0": "dola-seed-tts-3.0"}
+SEED_TTS_3_MODEL = SEED_TTS_3_MODEL_MAP["dola-seed-tts-3.0"]
 
 # ASR: UI name -> (mode, X-Api-Resource-Id). "fast" answers in one request
 # (audio up to 2 h / 100 MB); "standard" submits a task and polls for the

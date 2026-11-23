@@ -53,7 +53,7 @@ Each endpoint must serve exactly the named model in your key's region. Saving ch
 
 The Seedance 2.5 endpoint applies at every resolution, including `4k`, and also applies to **Seedance 2.5 Draft**. It does not override **Seedance 2.5 Flash**, which keeps its own built-in model ID. The Seedream Pro endpoint also applies to **Layer Separation** with Pro selected. Fast, Mini and other model variants keep their own built-in IDs.
 
-Changes take effect without restarting and invalidate cached outputs for the selected model on the next run. A pending non-blocking task keeps running when you change endpoints; find it with **Video Query Tasks** and `model` set to `all`. **Draft to Final** keeps the model or endpoint recorded on its draft. If the draft reports an endpoint ID, keep it configured until you render the final.
+Changes take effect without restarting and invalidate cached outputs for the selected model on the next run. A pending non-blocking task keeps running when you change endpoints; find it with **Video Query Tasks** and `model` set to `all`. **Draft to Final** reads the model from the draft, then applies its configured endpoint when it matches the current Seedance 2.5 model. Keep the same endpoint override used to create the draft, even if the draft response reports a model ID. Leave the override empty for drafts made directly with the model.
 
 ## Or edit `user/.env` by hand
 

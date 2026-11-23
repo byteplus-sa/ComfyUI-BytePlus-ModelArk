@@ -2,6 +2,14 @@
 
 Core ComfyUI ships its own ByteDance nodes in `comfy_api_nodes/nodes_bytedance.py` (+ `apis/bytedance.py` pydantic models). They call BytePlus **through the Comfy.org proxy** and bill Comfy credits; this pack calls ModelArk **directly** with the user's key. Core usually adds new Seedream/Seedance models quickly, so its code is a useful early signal for payload fields, limits and error codes. Read on 2026-10-18 from ComfyUI v0.41.0 (98cc0bf; last ByteDance change still 9f932548f, 2026-09-25; all parity tests pass). Deliberate gap: core's `seed-audio-1.0-multilingual` model option is not offered (the API ignores the model name, checked live 2026-10-18). Core has no BytePlus 3D nodes; the closest are its Rodin nodes (`nodes_rodin.py`, Deemos API via the Comfy.org proxy), whose File3D output convention the 3D nodes follow. Core's retired models are deleted outright; core's partner-proxy Idempotency-Key (a8686f2b3) has no ModelArk equivalent, which is why paid calls here never auto-retry (`nodes_shared.call_billed`).
 
+## Seedream 5.5 parity refresh
+
+Read on 2026-11-23 from ComfyUI v0.45.4 at `2aa4d535a76e4b6acf6a94f263bc482430c396dd`, including upstream Seedream 5.5 change `b40cca229d23cc1d0b16f4d5946cb14a35ba88f6`.
+
+The v0.12.0 candidate follows core's shared 5.5 input order, fixed presets, background selector and layer-count control. New 5.5 layer nodes default to cropped outputs; Pro/Flash remain full canvas. The primary model stays Pro and 5.5 keeps its BytePlus adaptive 2K, PNG/auto defaults, local-only seed, pixel limits and additional controls. Search aliases retain current and previous names.
+
+Parity tests now compare every shared field and complete option list, with explicit field-level BytePlus deviations. Mutation checks cover both upstream schema drift and incorrect local defaults, limits, options, references and input order. This is schema alignment, not new paid-API evidence.
+
 ## Seedance 2.5 unified 4K and Flash
 
 On 2026-11-12 the maintainer supplied a console screenshot of standard
@@ -29,9 +37,16 @@ Native Save Video, Save Image and Preview Any outputs and local Chrome
 playback passed. Provider JPEG last-frame previews matched the saved images,
 but were not pixel-identical to the last decoded MP4 frame.
 
-Draft previews remain 480p and Draft to Final remains 1080p. Direct-API 4K
-draft conversion, Flash explicit formats/Draft, maximum reference counts,
-live reference/audio generation, Europe and Nodes 2.0 were not verified.
+Draft previews remain 480p. On 2026-11-23, direct-API draft-to-4K conversion
+was verified in Singapore: an 854x480 draft rendered as 3840x2160 HEVC,
+97 frames at 24 fps. Draft to Final now offers optional `resolution`
+values `1080p` (default) and `4k`, matching core. Endpoint-backed drafts
+report the canonical model ID, so finals must use the same configured
+endpoint or the API rejects them with `draft_task endpoint mismatch`.
+Preserve older dated models and explicit endpoint IDs. Both renderers
+preserved the final resolution and draft link across workflow reloads.
+Maximum reference counts, live reference/audio generation, Europe and
+Flash Draft remain unverified.
 Upstream [fd7105477](https://github.com/Comfy-Org/ComfyUI/commit/fd7105477a348a5357f98d3a6b783027fa1ba3fe)
 adds enterprise-only 4K and an optional final-resolution selector to the
 Comfy.org proxy. Parity tests accept only the known older resolution list,

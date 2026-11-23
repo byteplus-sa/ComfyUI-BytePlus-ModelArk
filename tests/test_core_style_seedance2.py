@@ -332,7 +332,10 @@ class SchemaTests(unittest.TestCase):
                 ["first_frame", "last_frame", "first_frame_asset_id", "last_frame_asset_id", *EXTRAS],
             ),
             nodes_seedance2.BytePlusSeedance2Reference: (["model", "seed", "watermark", *EXTRAS], []),
-            nodes_seedance2.BytePlusSeedanceDraftToFinal: (["draft_task_id", "watermark", *EXTRAS], []),
+            nodes_seedance2.BytePlusSeedanceDraftToFinal: (
+                ["draft_task_id", "watermark", *EXTRAS],
+                ["resolution"],
+            ),
         }
         for node_cls, (required, optional) in cases.items():
             with self.subTest(node=node_cls.NODE_ID):
@@ -583,6 +586,7 @@ class SchemaTests(unittest.TestCase):
             ("ratio", "tooltip", "Changed ratio guidance"),
             ("duration", "default", 11),
             ("duration", "tooltip", "Changed duration guidance"),
+            ("task_type", "options", ["auto", "reference"]),
         ):
             with self.subTest(input=name, field=field), core_flash_schemas() as schemas:
                 schemas[core.ByteDance2ReferenceNodeV2]["required"][name][1][field] = value
@@ -656,6 +660,10 @@ class SchemaTests(unittest.TestCase):
                     b["options"] = ["480p", "720p", "1080p", "4k"]
                 if b.get("tooltip") == ("Resolution of the output video. 4k is available to enterprise accounts only."):
                     b["tooltip"] = "Resolution of the output video."
+            if where == "BytePlusSeedanceDraftToFinal.resolution":
+                b = dict(b)
+                if b.get("tooltip") == "Resolution of the final video. 4k is available to enterprise accounts only.":
+                    b["tooltip"] = "Resolution of the final video."
             if reference_node and where.startswith(("Seedance 2.5.", "Seedance 2.5 Draft.", "Seedance 2.5 Flash.")):
                 b = dict(b)
                 if name == "ratio" and b.get("default") == "16:9":
@@ -692,29 +700,8 @@ class SchemaTests(unittest.TestCase):
             core_info = core_cls.GET_NODE_INFO_V1()
             theirs_req = core_info["input"]["required"]
             theirs_opt = dict(core_info["input"].get("optional") or {})
-            if ours_cls is nodes_seedance2.BytePlusSeedanceDraftToFinal and "resolution" in theirs_opt:
-                final_resolution = theirs_opt.pop("resolution")
-                final_metadata = dict(final_resolution[1])
-                self.assertIn(
-                    final_metadata.pop("tooltip"),
-                    (
-                        "Resolution of the final video.",
-                        "Resolution of the final video. 4k is available to enterprise accounts only.",
-                    ),
-                    f"{ours_cls.NODE_ID}.resolution.tooltip",
-                )
-                self.assertEqual(
-                    (final_resolution[0], final_metadata),
-                    (
-                        "COMBO",
-                        {
-                            "options": ["1080p", "4k"],
-                            "default": "1080p",
-                            "multiselect": False,
-                        },
-                    ),
-                    f"{ours_cls.NODE_ID}.resolution",
-                )
+            if ours_cls is nodes_seedance2.BytePlusSeedanceDraftToFinal and "resolution" not in theirs_opt:
+                theirs_opt["resolution"] = ours["resolution"]
             theirs = {**theirs_req, **theirs_opt}
             self.assertEqual([n for n in req if n not in EXTRAS], list(theirs_req))
             self.assertEqual([n for n in opt if n not in EXTRAS], list(theirs_opt))
@@ -2074,6 +2061,69 @@ class DraftToFinalTests(_ExecutorHarness):
             self.assertNotIn(reused, request)
         self.assertEqual(len(result.args), 3)
 
+    def test_final_resolution_schema(self):
+        _info, required, optional = v1_inputs(self.D2F)
+        self.assertNotIn("resolution", required)
+        self.assertEqual(optional["resolution"][0], "COMBO")
+        self.assertEqual(optional["resolution"][1]["options"], ["1080p", "4k"])
+        self.assertEqual(optional["resolution"][1]["default"], "1080p")
+
+    async def test_seedance25_draft_renders_selected_final_resolution(self):
+        for resolution in ("1080p", "4k", None):
+            with self.subTest(resolution=resolution):
+                nodes_video.NON_BLOCKING_TASK_CACHE.clear()
+                self.draft("dreamina-seedance-2-5-260628", resolution="480p")
+                result = await self.run_node(
+                    self.D2F, draft_task_id="cgt-draft-1", resolution=resolution, watermark=True
+                )
+                request = self.submitted[-1]
+                self.assertEqual(request["resolution"], resolution or "1080p")
+                self.assertEqual(request["model"], "dreamina-seedance-2-5-260628")
+                self.assertEqual(request["content"], [{"type": "draft_task", "draft_task": {"id": "cgt-draft-1"}}])
+                self.assertTrue(request["watermark"])
+                for inherited in ("ratio", "duration", "seed", "generate_audio", "draft"):
+                    self.assertNotIn(inherited, request)
+                self.assertEqual(len(result.args), 3)
+
+    async def test_invalid_final_resolution_never_submits(self):
+        self.draft("dreamina-seedance-2-5-260628")
+        for resolution in ("", "480p", "720p", "4K", "2160p", "8k", 2160, [], {}):
+            with self.subTest(resolution=resolution):
+                with self.assertRaisesRegex(nodes_shared.BytePlusException, "1080p, 4k"):
+                    await self.run_node(self.D2F, draft_task_id="cgt-draft-1", resolution=resolution)
+        self.assertEqual(self.submitted, [])
+
+    async def test_4k_final_preserves_dated_model_and_mov(self):
+        self.draft("dreamina-seedance-2-5-260627", resolution="480p", output_format="mov")
+        await self.run_node(self.D2F, draft_task_id="cgt-draft-1", resolution="4k")
+        self.assertEqual(self.submitted[0]["model"], "dreamina-seedance-2-5-260627")
+        self.assertEqual(self.submitted[0]["output_format"], "mov")
+        self.assertEqual(self.submitted[0]["resolution"], "4k")
+
+    async def test_4k_final_preserves_draft_endpoint(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-draft"}):
+            self.draft("ep-draft", resolution="480p")
+            await self.run_node(self.D2F, draft_task_id="cgt-draft-1", resolution="4k")
+        self.assertEqual(self.submitted[0]["model"], "ep-draft")
+        self.assertEqual(self.submitted[0]["resolution"], "4k")
+
+    async def test_4k_final_batch_uses_selected_resolution_for_every_draft(self):
+        self.draft("dreamina-seedance-2-5-260628", "cgt-a", resolution="480p")
+        self.draft("dreamina-seedance-2-5-260628", "cgt-b", resolution="480p")
+        await self.run_node(self.D2F, draft_task_id="cgt-a,cgt-b", resolution="4k", generation_count=5)
+        self.assertEqual(len(self.submitted), 2)
+        self.assertTrue(all(request["resolution"] == "4k" for request in self.submitted))
+        self.assertCountEqual(
+            [request["content"][0]["draft_task"]["id"] for request in self.submitted], ["cgt-a", "cgt-b"]
+        )
+
+    async def test_pending_4k_final_is_collected_without_resubmission(self):
+        self.draft("dreamina-seedance-2-5-260628", resolution="480p")
+        await self.run_node(self.D2F, draft_task_id="cgt-draft-1", resolution="4k")
+        self.task_lookups["cgt-1"] = SimpleNamespace(id="cgt-1", status="running")
+        await self.run_node(self.D2F, draft_task_id="cgt-draft-1", resolution="4k")
+        self.assertEqual(len(self.submitted), 1)
+
     async def test_seedance25_draft_keeps_mov(self):
         self.draft("dreamina-seedance-2-5-260628", output_format="mov")
         await self.run_node(self.D2F, draft_task_id="cgt-draft-1", watermark=False)
@@ -2091,7 +2141,20 @@ class DraftToFinalTests(_ExecutorHarness):
             nodes_video.NON_BLOCKING_TASK_CACHE.clear()
             self.draft("dreamina-seedance-2-5-260628")
             await self.run_node(self.D2F, draft_task_id="cgt-draft-1")
-            self.assertEqual(self.submitted[-1]["model"], "dreamina-seedance-2-5-260628")
+            self.assertEqual(self.submitted[-1]["model"], "ep-draft")
+
+    async def test_canonical_draft_uses_configured_endpoint_for_4k_final(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-draft"}):
+            self.draft("dreamina-seedance-2-5-260628", resolution="480p")
+            await self.run_node(self.D2F, draft_task_id="cgt-draft-1", resolution="4k")
+        self.assertEqual(self.submitted[0]["model"], "ep-draft")
+        self.assertEqual(self.submitted[0]["resolution"], "4k")
+
+    async def test_older_draft_model_is_not_replaced_by_current_endpoint(self):
+        with mock.patch.dict(os.environ, {"BYTEPLUS_SEEDANCE_2_5_ENDPOINT": "ep-current"}):
+            self.draft("dreamina-seedance-2-5-260627", resolution="480p")
+            await self.run_node(self.D2F, draft_task_id="cgt-draft-1", resolution="4k")
+        self.assertEqual(self.submitted[0]["model"], "dreamina-seedance-2-5-260627")
 
     async def test_several_drafts_render_one_final_each(self):
         self.draft("dreamina-seedance-2-5-260628", "cgt-a")

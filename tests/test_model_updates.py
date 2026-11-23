@@ -560,6 +560,13 @@ class ApiErrorFormatTests(unittest.TestCase):
         error = {"code": "InvalidParameter", "message": "the task is determined as video editing, but ..."}
         self.assertEqual(self.code_of(error), "InvalidParameter.TaskTypeConstraint")
 
+    def test_draft_endpoint_mismatch_explains_how_to_reuse_the_draft(self):
+        error = {"code": "InvalidParameter", "message": "draft_task endpoint mismatch"}
+        self.assertEqual(self.code_of(error), "InvalidParameter.DraftEndpointMismatch")
+        text = nodes_shared.format_api_error(error)
+        self.assertIn("same Seedance 2.5 endpoint", text)
+        self.assertIn("Settings", text)
+
     def test_text_rule_fills_in_without_a_code(self):
         message = "Requests per minute (RPM) limit of the associated endpoint has been reached."
         self.assertEqual(self.code_of(message), "RateLimitExceeded.EndpointRPMExceeded")
