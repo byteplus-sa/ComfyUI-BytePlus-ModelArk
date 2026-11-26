@@ -1,0 +1,71 @@
+---
+title: "Seed Audio 1.5"
+description: "Generate full-scene audio, clone reference voices, dub or translate video, and separate audio into named tracks with ModelArk."
+node_id: BytePlusSeedAudio15
+---
+
+import NodeFacts from '../../../components/NodeFacts.astro';
+import NodeInputs from '../../../components/NodeInputs.astro';
+import NodeOutputs from '../../../components/NodeOutputs.astro';
+import UsedIn from '../../../components/UsedIn.astro';
+import Shot from '../../../components/Shot.astro';
+
+<NodeFacts id="BytePlusSeedAudio15" />
+
+## What it does
+
+Create speech, music and effects from a prompt, use reference voices or a character image, generate audio guided by a video, translate video, or separate audio into tracks. Select a mode to show its inputs.
+
+You use your **ModelArk API key** in **Settings > BytePlus**, with Singapore selected. Each run submits one billed synchronous request using `dola-seed-audio-1-5-261128`. This is separate from [Seed Audio 1.0](../seed-audio/), which uses a Seed Speech key.
+
+## On the canvas
+
+<Shot src="nodes/seed-audio-1-5.png" alt="Seed Audio 1.5 with a native mode selector, prompt, sample rate and audio track outputs" caption="Choose a mode for audio creation, video dubbing, translation or stem separation." />
+
+## Inputs
+
+<NodeInputs id="BytePlusSeedAudio15" />
+
+### Notes on inputs
+
+- **Voice references:** fill slots 1-6 in order without gaps. Each slot accepts one connected audio clip or its URL, not both. Use `@audio1` through `@audio6` in your prompt to identify voices. Speaker IDs and Files API IDs are not exposed by this node.
+- **Video-guided audio:** use your prompt to describe the exact script, delivery and timing. The video provides visual rhythm; reference audio can provide the voice. This mode uses `reference_video`, not the translation role.
+- **Translation:** use one Chinese or English source video and choose the target language. API-format workflows must supply `mode.target_language`; an absent or invalid target is rejected, never silently changed to English. Use `auto` for source-language detection. No text prompt is sent. A custom target-language SRT URL skips machine translation; do not combine it with `glossaries`.
+- **Separation:** describe the tracks you need in the prompt. A public WAV/MP3 URL avoids the Base64 overhead of connected audio, especially for long sources.
+- **Output options:** enable video output only in a video mode. Source subtitle output is translation-only. Set Ogg Opus to 48000 Hz; keep speed, loudness and pitch at zero for translation and separation.
+
+## Outputs
+
+<NodeOutputs id="BytePlusSeedAudio15" />
+
+### Notes on outputs
+
+- `audio`, `track_type`, `track_description`, `duration` and `audio_url` are aligned lists containing every returned track in provider order. Separation may return vocals, effects and music; the node does not assume their order.
+- Connect **Preview Audio** to listen, **Save Audio** to keep tracks, and **Save Video** for requested video output. The node does not save into your output folder.
+- Subtitle outputs contain the downloaded SRT and JSONL text, including source-language files when requested. Outputs not requested are empty, and an unrequested video skips downstream consumers.
+- `response` retains provider metadata, usage and temporary artifact URLs. A missing or malformed track blocks only that track, preserving the positions of other tracks. If a download fails, use its URL or the response to recover it before expiry, without another generation request.
+
+## Limits and tips
+
+- Reference audio must be WAV/MP3, 2-30 seconds and at most 15 MB per clip. You can use six clips, totaling at most 180 seconds. Connected audio is encoded as WAV; a batch or more than two channels is rejected.
+- One reference image: sides 300-6000 pixels, width/height 0.4-2.5, encoded size below 10 MB. Connected images are sent inline as PNG.
+- Video: MP4/MOV, 4-360 seconds, 12-60 FPS, 407696-2086876 total pixels, sides 300-6000 pixels and width/height 0.4-2.5. Public-URL sources can be up to 200 MB; authorized TOS video sources can be up to 1 GB.
+- Connected video uploads through Comfy.org, requiring a Comfy.org login. The exact MP4 bytes, including trims and crops, are checked against 200 MB before upload and reused through a content cache. A public `video_url` or authorized TOS video URI avoids that upload. URL media limits are checked by the provider; connected-media dimensions and durations are checked locally.
+- Separation takes one WAV/MP3 source, 2-360 seconds and at most 90 MB. The complete serialized request must stay within 64 MB, including Base64 and JSON escaping overhead. Local checks use decimal MB (1,000,000 bytes). Use URLs for large sources.
+- Custom SRT must be UTF-8, with each segment lasting at most 15 seconds. You are responsible for the supplied subtitle file; the provider validates URL content.
+- WAV and MP3 default to 44100 Hz; Ogg Opus requires 48000 Hz. Raw PCM is not exposed because its channel layout is undocumented. The seed triggers local reruns only and does not control provider randomness.
+- Submissions are never retried automatically. Cancel stops local waiting only, not accepted remote work or billing. Use only images, videos and voices you are authorized to process.
+
+## Common errors
+
+| Message | What to do |
+|---|---|
+| `No BytePlus API key is set.` | Save your ModelArk key in **Settings > BytePlus**. A Seed Speech key does not work here. |
+| `Fill audio reference slots in order, without gaps.` | Start at slot 1 and fill consecutive slots. Use one clip or one URL per slot. |
+| `Custom subtitles and glossaries are mutually exclusive.` | Clear the glossary when using your own target-language SRT. |
+| `Ogg Opus requires a 48000 Hz sample rate.` | Set `sample_rate` to 48000 or choose WAV/MP3. |
+| `Could not collect Seed Audio 1.5 generation` | Recover the returned artifact URLs before they expire. Do not regenerate only to download again. |
+
+## Used in templates
+
+<UsedIn id="BytePlusSeedAudio15" />

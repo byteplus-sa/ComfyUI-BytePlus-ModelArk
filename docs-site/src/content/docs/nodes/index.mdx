@@ -1,11 +1,11 @@
 ---
 title: "Nodes"
-description: "All 27 BytePlus nodes by group, with what each one does and which API key it needs."
+description: "All BytePlus nodes by group, with what each one does and which API key it needs."
 ---
 
 A node is one block on the ComfyUI canvas. Each node here calls a BytePlus service directly, billed to your own BytePlus account, with a key you save once in **Settings → BytePlus** (see [API keys](../get-started/api-keys/)). Generation nodes only run when something uses their output, such as **Save Image** or **Save Video**, and one with nothing connected is not run and not billed. The exceptions are the two lookup nodes, Video Query Tasks and Asset Library, which run on their own.
 
-All 27 nodes are listed below. Open a node's page for its inputs, outputs, limits and common errors.
+All BytePlus nodes are listed below. Open a node's page for its inputs, outputs, limits and common errors.
 
 ## Images
 
@@ -46,6 +46,12 @@ These nodes stay in the pack, but no template uses them.
 | Node | What it does | Key |
 |---|---|---|
 | [BytePlus LLM](./byteplus-llm/) | Answers in text with Seed 2.0, Seed 2.1 Turbo, DeepSeek V4.1 Flash or GLM 5.3 Flash. It can read images and videos, and audio on Seed 2.0 Lite and Mini. | ModelArk |
+
+## Audio
+
+| Node | What it does | Key |
+|---|---|---|
+| [Seed Audio 1.5](./seed-audio-1-5/) | Generates full-scene audio, uses six reference voices, dubs or translates video, and separates stems. | ModelArk |
 
 ## Speech
 

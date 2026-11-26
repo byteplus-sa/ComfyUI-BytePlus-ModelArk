@@ -40,6 +40,7 @@ NODES = [
     ("BytePlusSeedanceFirstLastFrame", "seedance-1-first-last-frame", "Video: Seedance 1.0"),
     ("BytePlusVideoQueryTasks", "video-query-tasks", "Video tools"),
     ("BytePlusSeed", "byteplus-llm", "Language"),
+    ("BytePlusSeedAudio15", "seed-audio-1-5", "Audio"),
     ("BytePlusSeedAudio", "seed-audio", "Speech"),
     ("BytePlusSeedTTS", "seed-tts", "Speech"),
     ("BytePlusSeedTTS3", "seed-tts-3", "Speech"),
@@ -114,6 +115,7 @@ TEMPLATE_GROUPS = [
 KEYS_BY_CATEGORY = {
     "BytePlus ModelArk": ["ModelArk API key"],
     "BytePlus ModelArk/3D": ["ModelArk API key"],
+    "BytePlus ModelArk/Audio": ["ModelArk API key"],
     "BytePlus ModelArk/Speech": ["Seed Speech API key"],
     "BytePlus ModelArk/MediaKit": ["AI MediaKit API key"],
     "BytePlus ModelArk/OmniHuman": ["Vision AI API key"],

@@ -159,6 +159,7 @@ if _dependencies_ready:
     from .nodes.nodes_seed import NODES as SEED_LLM_NODES
     from .nodes.nodes_assets import NODES as ASSET_NODES
     from .nodes.nodes_speech import NODES as SPEECH_NODES
+    from .nodes.nodes_seed_audio15 import NODES as AUDIO15_NODES
     from .nodes.nodes_seed_tts3 import NODES as TTS3_NODES
     from .nodes.nodes_mediakit import NODES as MEDIAKIT_NODES
     from .nodes.nodes_omnihuman import NODES as OMNIHUMAN_NODES
@@ -177,6 +178,7 @@ if _dependencies_ready:
         *ASSET_NODES,
         *SEED_LLM_NODES,
         *SPEECH_NODES,
+        *AUDIO15_NODES,
         *TTS3_NODES,
         *MEDIAKIT_NODES,
         *OMNIHUMAN_NODES,

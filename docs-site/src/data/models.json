@@ -10,6 +10,9 @@
    "seedream-5-0-lite": "seedream-5-0-260128",
    "dola-seedream-5-5": "dola-seedream-5-5-261028"
   },
+  "SEED_AUDIO_15_MODEL_MAP": {
+   "dola-seed-audio-1-5": "dola-seed-audio-1-5-261128"
+  },
   "SEED_LLM_MODEL_MAP": {
    "Seed 2.0 Pro": "seed-2-0-pro-260328",
    "Seed 2.0 Lite": "seed-2-0-lite-260428",

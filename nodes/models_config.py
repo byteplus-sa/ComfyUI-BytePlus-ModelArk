@@ -127,6 +127,9 @@ VISUAL_MODEL_MAP = {
 # Spanish and honours "[0.0s:2.0s]" timestamps. So the name is not a model switch and is not offered.
 SEED_AUDIO_MODELS = ["seed-audio-1.0"]
 
+# ModelArk bearer API, not the Seed Speech /tts/create endpoint above.
+SEED_AUDIO_15_MODEL_MAP = {"dola-seed-audio-1-5": "dola-seed-audio-1-5-261128"}
+
 # TTS: the UI name is the X-Api-Resource-Id header. Voice replication (ICL)
 # resources are for cloned voices (speaker IDs starting with S_).
 SEED_TTS_MODELS = ["seed-tts-2.0", "seed-tts-1.0", "seed-icl-2.0", "seed-icl-1.0"]

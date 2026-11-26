@@ -4824,6 +4824,621 @@
   ]
  },
  {
+  "id": "BytePlusSeedAudio15",
+  "slug": "seed-audio-1-5",
+  "group": "Audio",
+  "display_name": "BytePlus Seed Audio 1.5",
+  "category": "BytePlus ModelArk/Audio",
+  "description": "Generate full-scene audio, clone up to six reference voices, create audio for a video, translate Chinese or English video into 30 target languages, or separate audio tracks. Uses the ModelArk API key, not the Seed Speech key. Each run submits one billed synchronous request. Cancel stops local waiting only; accepted work may continue and be billed. Use only authorized media.",
+  "search_aliases": [
+   "Seed Audio 1.5",
+   "audio generation",
+   "video dubbing",
+   "stem separation"
+  ],
+  "keys": [
+   "ModelArk API key"
+  ],
+  "is_output_node": false,
+  "inputs": [
+   {
+    "name": "mode",
+    "type": "choice with options",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "options": [
+     "text to audio",
+     "audio reference",
+     "image reference",
+     "video to audio",
+     "video translation",
+     "stem separation"
+    ],
+    "variants": [
+     {
+      "key": "text to audio",
+      "inputs": [
+       {
+        "name": "text_prompt",
+        "type": "text",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Describe voices, language, delivery, music and effects, including the exact lines to speak. Use @audio1 through @audio6 for ordered references and [0.5s:3.0s] for timing.",
+        "default": "",
+        "multiline": true
+       }
+      ]
+     },
+     {
+      "key": "audio reference",
+      "inputs": [
+       {
+        "name": "text_prompt",
+        "type": "text",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Describe voices, language, delivery, music and effects, including the exact lines to speak. Use @audio1 through @audio6 for ordered references and [0.5s:3.0s] for timing.",
+        "default": "",
+        "multiline": true
+       },
+       {
+        "name": "reference_audio_1",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio1. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_1_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_1. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_2",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio2. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_2_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_2. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_3",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio3. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_3_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_3. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_4",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio4. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_4_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_4. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_5",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio5. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_5_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_5. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_6",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio6. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_6_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_6. Up to 15 MB.",
+        "default": ""
+       }
+      ]
+     },
+     {
+      "key": "image reference",
+      "inputs": [
+       {
+        "name": "text_prompt",
+        "type": "text",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Describe voices, language, delivery, music and effects, including the exact lines to speak. Use @audio1 through @audio6 for ordered references and [0.5s:3.0s] for timing.",
+        "default": "",
+        "multiline": true
+       },
+       {
+        "name": "reference_image",
+        "type": "IMAGE",
+        "required": false,
+        "advanced": false,
+        "tooltip": ""
+       },
+       {
+        "name": "ref_image_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public character image URL instead of reference_image.",
+        "default": ""
+       }
+      ]
+     },
+     {
+      "key": "video to audio",
+      "inputs": [
+       {
+        "name": "text_prompt",
+        "type": "text",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Describe voices, language, delivery, music and effects, including the exact lines to speak. Use @audio1 through @audio6 for ordered references and [0.5s:3.0s] for timing.",
+        "default": "",
+        "multiline": true
+       },
+       {
+        "name": "video",
+        "type": "VIDEO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 4-360 second video, uploaded through Comfy.org."
+       },
+       {
+        "name": "video_url",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "Public MP4/MOV URL (up to 200 MB) or an authorized tos://bucket/object URI instead of video.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_1",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio1. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_1_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_1. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_2",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio2. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_2_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_2. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_3",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio3. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_3_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_3. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_4",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio4. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_4_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_4. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_5",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio5. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_5_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_5. Up to 15 MB.",
+        "default": ""
+       },
+       {
+        "name": "reference_audio_6",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-30 second voice clip, tagged @audio6. Fill slots without gaps."
+       },
+       {
+        "name": "ref_audio_6_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public WAV/MP3 URL instead of reference_audio_6. Up to 15 MB.",
+        "default": ""
+       }
+      ]
+     },
+     {
+      "key": "video translation",
+      "inputs": [
+       {
+        "name": "target_language",
+        "type": "choice",
+        "required": true,
+        "advanced": false,
+        "tooltip": "",
+        "default": "en",
+        "options": [
+         "zh",
+         "en",
+         "ja",
+         "ko",
+         "de",
+         "fr",
+         "pt-BR",
+         "th",
+         "id",
+         "vi",
+         "ms",
+         "fil",
+         "it",
+         "ru",
+         "nl",
+         "pl",
+         "tr",
+         "sv",
+         "es-ES",
+         "es-MX",
+         "ar",
+         "pt-PT",
+         "fi",
+         "da",
+         "no",
+         "cs",
+         "hu",
+         "el",
+         "ro",
+         "hi"
+        ]
+       },
+       {
+        "name": "video",
+        "type": "VIDEO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 4-360 second video, uploaded through Comfy.org."
+       },
+       {
+        "name": "video_url",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "Public MP4/MOV URL (up to 200 MB) or an authorized tos://bucket/object URI instead of video.",
+        "default": ""
+       },
+       {
+        "name": "source_language",
+        "type": "choice",
+        "required": false,
+        "advanced": true,
+        "tooltip": "",
+        "default": "auto",
+        "options": [
+         "auto",
+         "zh",
+         "en"
+        ]
+       },
+       {
+        "name": "custom_subtitle_url",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "Public UTF-8 target-language SRT URL; skips translation. Each segment must be at most 15 seconds. Cannot combine with glossaries.",
+        "default": ""
+       },
+       {
+        "name": "glossaries",
+        "type": "text",
+        "required": false,
+        "advanced": true,
+        "tooltip": "JSON array of translation pairs, e.g. [{\"source\":\"brand\",\"target\":\"BytePlus\"}]. Cannot combine with custom subtitles.",
+        "default": "",
+        "multiline": true
+       },
+       {
+        "name": "dialogue_enhancement",
+        "type": "choice",
+        "required": false,
+        "advanced": true,
+        "tooltip": "",
+        "default": "off",
+        "options": [
+         "off",
+         "low",
+         "medium",
+         "high"
+        ]
+       }
+      ]
+     },
+     {
+      "key": "stem separation",
+      "inputs": [
+       {
+        "name": "text_prompt",
+        "type": "text",
+        "required": true,
+        "advanced": false,
+        "tooltip": "Describe voices, language, delivery, music and effects, including the exact lines to speak. Use @audio1 through @audio6 for ordered references and [0.5s:3.0s] for timing.",
+        "default": "Separate this audio into three tracks: all vocals, background music, and sound effects.",
+        "multiline": true
+       },
+       {
+        "name": "audio",
+        "type": "AUDIO",
+        "required": false,
+        "advanced": false,
+        "tooltip": "One 2-360 second audio clip, up to 90 MB before Base64 encoding."
+       },
+       {
+        "name": "audio_url",
+        "type": "text",
+        "required": false,
+        "advanced": false,
+        "tooltip": "Public WAV/MP3 URL instead of audio. Recommended for large sources.",
+        "default": ""
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "sample_rate",
+    "type": "choice",
+    "required": true,
+    "advanced": false,
+    "tooltip": "",
+    "default": "44100",
+    "options": [
+     "8000",
+     "16000",
+     "24000",
+     "32000",
+     "44100",
+     "48000"
+    ]
+   },
+   {
+    "name": "seed",
+    "type": "integer",
+    "required": true,
+    "advanced": false,
+    "tooltip": "Local ComfyUI rerun control only. Not sent to Seed Audio 1.5; it does not make audio deterministic.",
+    "default": 42,
+    "min": 0,
+    "max": 2147483647,
+    "step": 1
+   },
+   {
+    "name": "model",
+    "type": "choice",
+    "required": false,
+    "advanced": true,
+    "tooltip": "",
+    "default": "dola-seed-audio-1-5",
+    "options": [
+     "dola-seed-audio-1-5"
+    ]
+   },
+   {
+    "name": "output_format",
+    "type": "choice",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Self-describing audio format for decoding. Ogg Opus requires 48000 Hz. Raw PCM is not exposed because its channel layout is undocumented.",
+    "default": "wav",
+    "options": [
+     "wav",
+     "mp3",
+     "ogg_opus"
+    ]
+   },
+   {
+    "name": "speech_rate",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Audio generation only. Keep 0 for translation or separation.",
+    "default": 0,
+    "min": -50,
+    "max": 100
+   },
+   {
+    "name": "loudness_rate",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Audio generation only. Keep 0 for translation or separation.",
+    "default": 0,
+    "min": -50,
+    "max": 100
+   },
+   {
+    "name": "pitch_rate",
+    "type": "integer",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Audio generation only. Keep 0 for translation or separation.",
+    "default": 0,
+    "min": -12,
+    "max": 12
+   },
+   {
+    "name": "include_video",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Request the output video in video-to-audio or translation mode.",
+    "default": false
+   },
+   {
+    "name": "include_subtitles",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Request SRT and JSONL subtitle files.",
+    "default": false
+   },
+   {
+    "name": "include_source_subtitles",
+    "type": "on/off",
+    "required": false,
+    "advanced": true,
+    "tooltip": "Translation only: also request the source-language SRT and JSONL.",
+    "default": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "audio",
+    "type": "AUDIO",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "srt",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "subtitles_jsonl",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "source_srt",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "source_subtitles_jsonl",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "track_type",
+    "type": "text",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "track_description",
+    "type": "text",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "duration",
+    "type": "number",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "audio_url",
+    "type": "text",
+    "is_list": true,
+    "tooltip": ""
+   },
+   {
+    "name": "generation_id",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   },
+   {
+    "name": "response",
+    "type": "text",
+    "is_list": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
   "id": "BytePlusSeedAudio",
   "slug": "seed-audio",
   "group": "Speech",
