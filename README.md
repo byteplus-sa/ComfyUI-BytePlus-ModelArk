@@ -1,10 +1,12 @@
 # ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit
 
-Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, Seed Speech audio, OmniHuman avatar videos, and AI MediaKit video and image enhancement.
+Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream images, Seedance videos, Hyper3D and Hitem3D 3D models, Seed / DeepSeek / GLM language models, ModelArk and Seed Speech audio, OmniHuman avatar videos, and AI MediaKit video and image enhancement.
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
 > **Status: v0.12.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+
+**Seed Audio 1.5 is available in source.** The separate **BytePlus Seed Audio 1.5** node uses `dola-seed-audio-1-5-261128` and your **ModelArk API key** in Singapore. Generate audio, use up to six voice references, create video-guided audio, translate video or separate stems. Seed Audio 1.0 stays unchanged on the Seed Speech key. This addition is not yet published to the Registry.
 
 **New in v0.12.0:** render a reviewed 480p Seedance 2.5 draft at **1080p or 4K** with the Draft to Final node's `resolution` selector. The default remains 1080p. Endpoint-backed drafts now use the configured endpoint for final rendering, avoiding the canonical-model endpoint mismatch. Keep the same endpoint configuration between draft and final; no automatic paid retries were added.
 
@@ -80,6 +82,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 | **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 and Flash (3 shared nodes), Draft to Final | ModelArk API key |
 | **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
+| **ModelArk** – audio (source integration) | Seed Audio 1.5 | ModelArk API key |
 | **ModelArk** – asset library | Create Image / Video / Audio Asset, Asset Library | ModelArk API key + IAM AK/SK |
 | **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech TTS 3, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
 | **AI MediaKit** | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance | AI MediaKit API key |
@@ -91,7 +94,8 @@ The image, video, LLM and asset nodes match ComfyUI's built-in ByteDance nodes i
 
 - **Nodes only run when their output is used.** They save nothing themselves: connect `Save Image` / `Save Video`. A node with nothing connected doesn't run and isn't billed.
 - **Regions:** `ap-southeast-1` (default) or `eu-west-1` for ModelArk. Seedream 5.0 Lite isn't available in `eu-west-1`. Seed Speech and AI MediaKit run in `ap-southeast-1` only.
-- **Comfy.org login** is needed for a few features that upload local media to Comfy.org storage (BytePlus only accepts links there): Seedance reference videos, standard ASR, MediaKit sources, OmniHuman connected media and new private assets.
+- **Seed Audio 1.5 region:** this source integration supports `ap-southeast-1`, following the supplied Singapore contract.
+- **Comfy.org login** is needed for a few features that upload local media to Comfy.org storage (BytePlus only accepts links there): Seedance reference videos, Seed Audio 1.5 connected videos, standard ASR, MediaKit sources, OmniHuman connected media and new private assets.
 
 ## API Keys
 
@@ -99,7 +103,7 @@ Each BytePlus product has its own key; they are not interchangeable.
 
 | Key | Where to create it | Used by | `.env` variable |
 |---|---|---|---|
-| ModelArk API key | [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) | Image, video, LLM and asset nodes | `BYTEPLUS_API_KEY` (+ `BYTEPLUS_REGION`) |
+| ModelArk API key | [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) | Image, video, Seed Audio 1.5, LLM and asset nodes | `BYTEPLUS_API_KEY` (+ `BYTEPLUS_REGION`) |
 | Seed Speech API key | [Seed Speech console](https://console.byteplus.com/voice/new/overview?projectName=default) → Settings → API Keys (activate the services first) | Speech nodes | `BYTEPLUS_SEED_SPEECH_API_KEY` |
 | AI MediaKit API key | [AI MediaKit console](https://console.byteplus.com/vodpaas/region:vodpaas+ap-southeast-1/ai-mediakit/settings?tab=apiKey) → Settings → API key | Enhancement nodes | `BYTEPLUS_VOD_MEDIAKIT_API_KEY` |
 | Vision AI API key | [Vision AI key setup guide](https://docs.byteplus.com/en/docs/byteplus-vision/api-key-usage-instructions) | OmniHuman nodes | `BYTEPLUS_CV_API_KEY` |
@@ -238,6 +242,20 @@ Needs Dreamina Seedance Advanced Creation Rights and IAM AK/SK. See [Private Ass
 |---|---|
 | **Create Image Asset**, **Create Video Asset**, **Create Audio Asset** | Adds media (connected, or an HTTPS link) to an asset group and outputs `asset_id`, `group_id` and an `asset://` URI. |
 | **Asset Library** | Lists your assets (virtual portraits or verified real people) as `asset://` URIs. |
+
+### Audio (ModelArk)
+
+**Seed Audio 1.5** (`BytePlusSeedAudio15`) submits one synchronous request to `/api/v3/contents/generations` using `dola-seed-audio-1-5-261128`. Activate the model and select `ap-southeast-1` in **Settings > BytePlus**; this integration follows the supplied Singapore contract.
+
+- `mode`: text to audio, audio reference, image reference, video to audio, video translation or stem separation. Only the selected mode's media and configuration inputs are shown.
+- Voice references: fill slots 1-6 without gaps, using connected audio or each slot's public WAV/MP3 URL. Refer to them as `@audio1` through `@audio6`. Each clip must last 2-30 seconds and be at most 15 MB; connected clips go inline as Base64 WAV. Speaker IDs and Files API IDs are not exposed by this node.
+- Image reference: one character image, 300-6000 pixels per side, width/height 0.4-2.5 and under 10 MB. Connected images go inline as PNG.
+- Video modes: one MP4/MOV, 4-360 seconds, 12-60 FPS, 407696-2086876 pixels, sides 300-6000 and width/height 0.4-2.5. Public URLs are limited to 200 MB; an authorized `tos://bucket/object` video URI can reference up to 1 GB. Connected video uploads through Comfy.org, so sign in or use `video_url`.
+- Translation: source Chinese or English, automatic source detection, 30 target languages, optional glossary pairs and dialogue enhancement. A public UTF-8 target-language SRT URL skips machine translation; each segment must last at most 15 seconds. Custom subtitles and glossaries cannot be combined. Translation never sends a text prompt.
+- Separation: one WAV/MP3, 2-360 seconds and at most 90 MB. Use a URL for large sources; Base64 references still count toward the 64 MB JSON request limit. Local limits use decimal MB (1,000,000 bytes), including JSON escaping overhead.
+- WAV/MP3 default to 44100 Hz. Ogg Opus requires 48000 Hz. Raw PCM is not exposed because the contract does not define its channel layout. Use **Save Audio** to choose the saved format.
+- `audio`, `track_type`, `track_description`, `duration` and `audio_url` are aligned lists containing every returned track in provider order. A missing or malformed track blocks only that track; other results and the full response remain available. Advanced includes request video, SRT/JSONL subtitles and source subtitles. The response preserves track metadata, usage and temporary artifact URLs for recovery.
+- The seed is a local rerun control only. There is no automatic submission retry or task polling/cancellation. Cancel stops local waiting, not remote work or billing. Failed downloads block only the affected artifact and keep its URL in the response; recover that URL before it expires instead of regenerating. Use only authorized images, videos and voices.
 
 ### Speech (Seed Speech)
 

@@ -69,6 +69,15 @@ def assert_matches_sdk(method, kwargs):
 
 @requires_comfyui
 class ModelConfigurationTests(unittest.TestCase):
+    def test_seed_audio15_uses_modelark_without_changing_seed_speech(self):
+        self.assertEqual(
+            models_config.SEED_AUDIO_15_MODEL_MAP,
+            {"dola-seed-audio-1-5": "dola-seed-audio-1-5-261128"},
+        )
+        self.assertEqual(models_config.SEED_AUDIO_MODELS, ["seed-audio-1.0"])
+        # The supplied Singapore endpoint is not evidence of provider-wide Europe unavailability.
+        self.assertNotIn("dola-seed-audio-1-5-261128", models_config.MODEL_REGION_EXCLUSIONS)
+
     def test_byteplus_model_ids_and_defaults(self):
         self.assertEqual(
             models_config.SEEDREAM_5_MODEL_MAP["dola-seedream-5-0-pro"],
