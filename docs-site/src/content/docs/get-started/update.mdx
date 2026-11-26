@@ -11,6 +11,16 @@ Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-sepa
 
 Registry publication and security review are separate steps. A pending or flagged version may not be offered by Manager yet; check its version status rather than enabling unsafe installation overrides.
 
+## Seed Audio 1.5
+
+Version **0.13.0** adds [Seed Audio 1.5](../../nodes/seed-audio-1-5/) for audio generation, voice or image references, video-guided audio, video translation and stem separation.
+
+- Restart ComfyUI, reload the browser and add **BytePlus Seed Audio 1.5**. Use your **ModelArk API key** and select Singapore in **Settings > BytePlus**.
+- Seed Audio 1.0 remains a separate Seed Speech node. Existing workflows and saved keys do not need migration.
+- Every returned track is available through the list outputs. Enable the advanced video and subtitle options when needed, then connect **Save Audio** or **Save Video** to keep results.
+- Connected videos require Comfy.org storage. Their exact encoded size is checked before upload, including trimmed and cropped sources.
+- Pending cancellation prevents a new submission. Once accepted, remote work may continue and be billed after local cancellation. Submissions are never retried automatically.
+
 ## Seed TTS 3 and Seedream controls
 
 Version **0.12.0** adds the separate [Seed Speech TTS 3](../../nodes/seed-tts-3/) node with 520 preset voices, delivery instructions, optional word timings and conversation sessions. Use your existing Seed Speech API key. Older TTS nodes and workflows are unchanged.

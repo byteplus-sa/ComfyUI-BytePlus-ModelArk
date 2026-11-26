@@ -50,7 +50,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedream",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.12.0"
+        "ver": "0.13.0"
       },
       "widgets_values": [
         "A fictional adult presenter with a warm, natural expression, facing the camera. Chest-up portrait, one person, clear unobstructed face, relaxed shoulders, neutral contemporary clothing. Soft studio lighting, simple light gray background, photorealistic detail. No text, logos, props or other people.",
@@ -176,7 +176,7 @@
       "properties": {
         "Node name for S&R": "BytePlusSeedAudio",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.12.0"
+        "ver": "0.13.0"
       },
       "widgets_values": [
         "Speak in English with a warm, natural presenter voice. Read exactly these words: \"Hello, and welcome. Today we are bringing an idea to life with BytePlus. One portrait, one voice, and a new way to tell your story.\" Voice only, no music or sound effects.",
@@ -311,7 +311,7 @@
       "properties": {
         "Node name for S&R": "BytePlusOmniHuman",
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.12.0"
+        "ver": "0.13.0"
       },
       "widgets_values": [
         "The presenter speaks naturally to the camera with subtle expressions and small head movements. Keep the camera fixed.",

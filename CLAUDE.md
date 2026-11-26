@@ -4,7 +4,7 @@ ComfyUI custom node pack that calls **BytePlus ModelArk** directly with the user
 
 `AGENTS.md` is a symlink to this file — edit `CLAUDE.md` only.
 
-Seed Audio 1.5 is a separate ModelArk audio node (`BytePlusSeedAudio15`, `dola-seed-audio-1-5-261128`), using `BYTEPLUS_API_KEY` and the supplied Singapore `/contents/generations` contract. Seed Audio 1.0 stays on Seed Speech. The source addition is not a Registry release or live API validation.
+Seed Audio 1.5 is included in v0.13.0 as a separate ModelArk audio node (`BytePlusSeedAudio15`, `dola-seed-audio-1-5-261128`), using `BYTEPLUS_API_KEY` and the supplied Singapore `/contents/generations` contract. Seed Audio 1.0 stays on Seed Speech. Registry availability depends on the version's scan status; this integration has not been validated with paid provider calls.
 
 **Keep the Claude and agent files in sync with symlinks, in every PR.** `.claude/` is the source and `.agents/` only links to it: `AGENTS.md` → `CLAUDE.md`, `.agents/AGENTS.md` → `../CLAUDE.md`, `.agents/skills` → `../.claude/skills`. Add or edit skills only under `.claude/skills/`, never as real files under `.agents/`, and never copy a file between the two trees. `tests/test_agent_files.py` checks the links (CI runs it).
 

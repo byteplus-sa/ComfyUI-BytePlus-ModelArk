@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI-BytePlus-ModelArk"
-description = "ComfyUI nodes for BytePlus ModelArk (Seedream, Seedance, Seed/DeepSeek/GLM LLMs, Hyper3D and Hitem3D 3D models), Seed Speech (Seed Audio, TTS, ASR), Vision AI (OmniHuman avatar video) and AI MediaKit (video and image enhancement), billed to your own BytePlus account. Docs: https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/"
-version = "0.12.0"
+description = "ComfyUI nodes for BytePlus ModelArk (Seedream, Seedance, Seed Audio 1.5, Seed/DeepSeek/GLM LLMs, Hyper3D and Hitem3D), Seed Speech (Seed Audio 1.0, TTS, ASR), Vision AI (OmniHuman avatars) and AI MediaKit enhancement, billed to your BytePlus account. Docs: https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/"
+version = "0.13.0"
 license = {file = "LICENSE"}
 requires-python = ">=3.10"
 classifiers = ["Operating System :: OS Independent"]

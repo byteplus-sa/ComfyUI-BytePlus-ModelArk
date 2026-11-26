@@ -4,11 +4,11 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.12.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.13.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**Seed Audio 1.5 is available in source.** The separate **BytePlus Seed Audio 1.5** node uses `dola-seed-audio-1-5-261128` and your **ModelArk API key** in Singapore. Generate audio, use up to six voice references, create video-guided audio, translate video or separate stems. Seed Audio 1.0 stays unchanged on the Seed Speech key. This addition is not yet published to the Registry.
+**New in v0.13.0:** the separate **BytePlus Seed Audio 1.5** node uses `dola-seed-audio-1-5-261128` and your **ModelArk API key** in Singapore. Generate audio, use up to six voice references or one image, create video-guided audio, translate video or separate stems, with optional video and subtitle outputs. Seed Audio 1.0 stays unchanged on the Seed Speech key. Pending cancellation is checked before submission; connected videos are size-checked after encoding, including trims and crops. There are no automatic paid submission retries. Registry installation availability depends on the version's scan status.
 
-**New in v0.12.0:** render a reviewed 480p Seedance 2.5 draft at **1080p or 4K** with the Draft to Final node's `resolution` selector. The default remains 1080p. Endpoint-backed drafts now use the configured endpoint for final rendering, avoiding the canonical-model endpoint mismatch. Keep the same endpoint configuration between draft and final; no automatic paid retries were added.
+**Previously in v0.12.0:** render a reviewed 480p Seedance 2.5 draft at **1080p or 4K** with the Draft to Final node's `resolution` selector. The default remains 1080p. Endpoint-backed drafts now use the configured endpoint for final rendering, avoiding the canonical-model endpoint mismatch. Keep the same endpoint configuration between draft and final; no automatic paid retries were added.
 
 Also included: the separate **Seed Speech TTS 3** node with 520 preset voices, direct voice-ID input, delivery instructions, optional subtitles and conversation sessions, using your existing Seed Speech key. Seedream 5.5 shared controls and fixed presets now match current ComfyUI core while preserving BytePlus limits and the Pro-first model selection. New 5.5 layer-separation nodes default to minimal-size layers; Pro and Flash remain full-canvas. Reload and review saved 5.5 workflows before running.
 
@@ -82,7 +82,7 @@ For a manual install, run `git pull` in the pack folder and `pip install -r requ
 | **ModelArk** – video | Seedance 1.0 (3 nodes), Seedance 2.5 and Flash (3 shared nodes), Draft to Final | ModelArk API key |
 | **ModelArk** – 3D | Hyper3D Gen2, Hitem3D 2.0 | ModelArk API key |
 | **ModelArk** – language | BytePlus LLM (Seed 2.x, DeepSeek, GLM) | ModelArk API key |
-| **ModelArk** – audio (source integration) | Seed Audio 1.5 | ModelArk API key |
+| **ModelArk** – audio | Seed Audio 1.5 | ModelArk API key |
 | **ModelArk** – asset library | Create Image / Video / Audio Asset, Asset Library | ModelArk API key + IAM AK/SK |
 | **Seed Speech** | Seed Audio 1.0, Seed Speech TTS, Seed Speech TTS 3, Seed Speech ASR, Seed Voice Clone | Seed Speech API key |
 | **AI MediaKit** | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance | AI MediaKit API key |
@@ -94,7 +94,7 @@ The image, video, LLM and asset nodes match ComfyUI's built-in ByteDance nodes i
 
 - **Nodes only run when their output is used.** They save nothing themselves: connect `Save Image` / `Save Video`. A node with nothing connected doesn't run and isn't billed.
 - **Regions:** `ap-southeast-1` (default) or `eu-west-1` for ModelArk. Seedream 5.0 Lite isn't available in `eu-west-1`. Seed Speech and AI MediaKit run in `ap-southeast-1` only.
-- **Seed Audio 1.5 region:** this source integration supports `ap-southeast-1`, following the supplied Singapore contract.
+- **Seed Audio 1.5 region:** this integration supports `ap-southeast-1`, following the supplied Singapore contract.
 - **Comfy.org login** is needed for a few features that upload local media to Comfy.org storage (BytePlus only accepts links there): Seedance reference videos, Seed Audio 1.5 connected videos, standard ASR, MediaKit sources, OmniHuman connected media and new private assets.
 
 ## API Keys
