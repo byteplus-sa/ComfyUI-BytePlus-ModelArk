@@ -12,11 +12,12 @@ Every node page has a **Keys needed** row. This page explains how those keys rel
 | Nodes | Key | Region |
 |---|---|---|
 | Seedream, Seedance, Video Query Tasks, BytePlus LLM | ModelArk API key | `ap-southeast-1` or `eu-west-1` |
+| [Seed Audio 1.5](../../nodes/seed-audio-1-5/) | ModelArk API key | `ap-southeast-1` only in this integration |
 | Create Image, Video and Audio Asset, Asset Library | ModelArk API key and IAM access key and secret key | Follows the ModelArk region |
-| Seed Audio, Seed Speech TTS, ASR, Voice Clone | Seed Speech API key | `ap-southeast-1` only |
+| Seed Audio 1.0, Seed Speech TTS, Seed Speech TTS 3, ASR, Voice Clone | Seed Speech API key | `ap-southeast-1` only |
 | vCube Video Enhance, Video Smoothness Enhance, Image Quality Enhance | AI MediaKit API key | `ap-southeast-1` only |
 
-The keys are separate products and never interchangeable. Using a ModelArk API key on a speech node gives an *Invalid Seed Speech API key* error. How to create and save each key: [API keys](../../get-started/api-keys/).
+The keys belong to separate products and are not interchangeable. Seed Audio **1.5** uses ModelArk; Seed Audio **1.0** uses Seed Speech. Using a ModelArk key on a Seed Speech node gives an *Invalid Seed Speech API key* error. How to create and save each key: [API keys](../../get-started/api-keys/).
 
 ## Regions
 
@@ -38,6 +39,8 @@ The region picked in Settings is saved as `BYTEPLUS_REGION`. An environment vari
 Each model must be activated in the ModelArk console for the region you use. A model you have not activated fails with *has not activated the model*.
 
 Some models are not offered in every region. **Seedream 5.0 Lite is not available in `eu-west-1`.** If you pick it there, the node stops before sending anything and tells you to choose another model or region.
+
+**Seed Audio 1.5 supports the documented Singapore endpoint only in this pack.** Select `ap-southeast-1` before running it. This local restriction is not a claim about provider availability in other regions.
 
 ## Changing a key takes effect at once
 

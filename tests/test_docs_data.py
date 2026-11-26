@@ -78,6 +78,40 @@ class DocsDataTests(unittest.TestCase):
                 os.path.exists(os.path.join(PAGES, "templates", template["slug"] + ".mdx")), template["file"]
             )
 
+    def test_seed_audio_versions_keep_distinct_keys_and_first_run_guidance(self):
+        nodes = {node["id"]: node for node in load("nodes.json")}
+        self.assertEqual(nodes["BytePlusSeedAudio15"]["keys"], ["ModelArk API key"])
+        self.assertEqual(nodes["BytePlusSeedAudio"]["keys"], ["Seed Speech API key"])
+        with open(os.path.join(PAGES, "nodes", "seed-audio-1-5.mdx"), encoding="utf-8") as file:
+            guide = file.read()
+        for required in (
+            "0.13.0",
+            "dola-seed-audio-1-5-261128",
+            "ModelArk API key",
+            "Generate your first clip",
+            "ap-southeast-1",
+        ):
+            with self.subTest(contract=required):
+                self.assertIn(required, guide)
+        mode = next(item for item in nodes["BytePlusSeedAudio15"]["inputs"] if item["name"] == "mode")
+        for option in mode["options"]:
+            with self.subTest(mode=option):
+                self.assertIn(f"**{option}:**", guide.lower())
+
+    def test_seed_audio15_is_linked_from_shared_guides_and_existing_audio_pages(self):
+        for page in (
+            "concepts/keys-and-regions.mdx",
+            "concepts/billing-and-cost.mdx",
+            "concepts/reference-media.mdx",
+            "concepts/interrupts.mdx",
+            "troubleshooting.mdx",
+            "nodes/seed-audio.mdx",
+            "templates/seed-audio.mdx",
+        ):
+            with self.subTest(page=page):
+                with open(os.path.join(PAGES, page), encoding="utf-8") as file:
+                    self.assertIn("seed-audio-1-5/", file.read())
+
     def test_custom_apps_have_navigation_and_local_screenshots(self):
         site = os.path.join(ROOT, "docs-site")
         with open(os.path.join(site, "astro.config.mjs"), encoding="utf-8") as file:

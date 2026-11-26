@@ -1,6 +1,6 @@
 ---
 title: "Reference media, links and assets"
-description: "How images, videos and audio reach Seedance, and when to use an asset ID or a link instead."
+description: "How reference media reaches Seedance and Seed Audio 1.5, and when to use connected media, public links or supported assets."
 ---
 
 import { Aside } from '@astrojs/starlight/components';
@@ -27,6 +27,17 @@ Seedance only accepts reference videos as links. A video you connect to **[Seeda
 - To skip the upload, use a link or an asset instead (below).
 
 Local media is never added to your private asset library automatically.
+
+## Seed Audio 1.5 references
+
+[Seed Audio 1.5](../../nodes/seed-audio-1-5/) uses its own mode-specific inputs, not Seedance's `asset_N` slots.
+
+- Connected voice clips are sent inline as WAV; a connected reference image is sent inline as PNG. Their Base64 encoding counts toward the 64 MB request limit.
+- Fill voice slots 1-6 in order. Each accepts `reference_audio_N` or `ref_audio_N_url`, not both. In this node, the prompt tags are `@audio1` through `@audio6`.
+- Connect one `video` or use `video_url`. Connected video is encoded as MP4/H.264, including its trim and crop, checked against 200 MB, then uploaded through Comfy.org. Identical encoded content reuses the upload.
+- A public HTTP(S) URL avoids the local upload. Video also accepts an authorized `tos://bucket/object` URI. TOS access must already be authorized for the account and project.
+- For stem separation, use `audio` or `audio_url`. A public URL is useful for larger sources because it avoids Base64 overhead.
+- This node does not expose private `asset://` references, speaker IDs or Files API IDs. The [node guide](../../nodes/seed-audio-1-5/#limits-and-tips) lists its media limits.
 
 ## `asset_N` slots
 

@@ -14,19 +14,38 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Create speech, music and effects from a prompt, use reference voices or a character image, generate audio guided by a video, translate video, or separate audio into tracks. Select a mode to show its inputs.
+Create speech, music and effects from a prompt, use reference voices or a character image, generate audio guided by a video, translate video, or separate audio into tracks; select a mode to show its inputs.
 
-You use your **ModelArk API key** in **Settings > BytePlus**, with Singapore selected. Each run submits one billed synchronous request using `dola-seed-audio-1-5-261128`. This is separate from [Seed Audio 1.0](../seed-audio/), which uses a Seed Speech key.
+Available in node-pack version **0.13.0 and later**, this node uses your **ModelArk API key** in **Settings > BytePlus**, with Singapore selected. Each run submits one billed synchronous request using `dola-seed-audio-1-5-261128`. This is separate from [Seed Audio 1.0](../seed-audio/), which uses a Seed Speech key.
 
 ## On the canvas
 
 <Shot src="nodes/seed-audio-1-5.png" alt="Seed Audio 1.5 with a native mode selector, prompt, sample rate and audio track outputs" caption="Choose a mode for audio creation, video dubbing, translation or stem separation." />
+
+**Generate your first clip**
+
+1. [Update the pack](../../get-started/update/#seed-audio-15), restart ComfyUI and reload the browser.
+2. Save your ModelArk key in **Settings > BytePlus**, select `ap-southeast-1`, and activate the model in the ModelArk console for that region.
+3. Add **BytePlus Seed Audio 1.5**, leave `mode` on `text to audio`, and enter: `A warm English voice says: "Welcome to creative sound." Speak naturally and clearly, with no background music.`
+4. Connect `audio` to **Preview Audio** or **Save Audio**. Leave WAV at 44100 Hz and set **control after generate** to `fixed` to avoid changing the seed automatically.
+5. Press **Run**. To request another take, change the prompt or seed; that starts another billed request. Changing the seed does not make provider results deterministic.
 
 ## Inputs
 
 <NodeInputs id="BytePlusSeedAudio15" />
 
 ### Notes on inputs
+
+**Choose a mode**
+
+- **Text to audio:** describe the voices, exact dialogue, delivery, music and effects in the prompt.
+- **Audio reference:** connect authorized voice clips in slots 1-6, or use each slot's URL. Name the voices with `@audio1` through `@audio6`.
+- **Image reference:** connect one character image or use `ref_image_url`, then describe the voice and lines in the prompt.
+- **Video to audio:** connect `video` or set `video_url`, describe the script and timing, and optionally add reference voices. Enable `include_video` to request the video with generated audio.
+- **Video translation:** provide one Chinese or English video and choose `target_language`, such as `fr`. There is no prompt. Enable `include_video`, `include_subtitles` and, when needed, `include_source_subtitles`.
+- **Stem separation:** connect `audio` or set `audio_url`, then describe the tracks to extract, for example vocals, background music and sound effects.
+
+**Reference and output options**
 
 - **Voice references:** fill slots 1-6 in order without gaps. Each slot accepts one connected audio clip or its URL, not both. Use `@audio1` through `@audio6` in your prompt to identify voices. Speaker IDs and Files API IDs are not exposed by this node.
 - **Video-guided audio:** use your prompt to describe the exact script, delivery and timing. The video provides visual rhythm; reference audio can provide the voice. This mode uses `reference_video`, not the translation role.
@@ -69,3 +88,5 @@ You use your **ModelArk API key** in **Settings > BytePlus**, with Singapore sel
 ## Used in templates
 
 <UsedIn id="BytePlusSeedAudio15" />
+
+The existing [Seed Audio template](../../templates/seed-audio/) uses Seed Audio 1.0 and a Seed Speech key. It is not converted by updating the pack. Start with the steps above to build a Seed Audio 1.5 workflow.

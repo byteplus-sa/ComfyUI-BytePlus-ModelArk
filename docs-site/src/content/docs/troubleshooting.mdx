@@ -38,7 +38,7 @@ Errors from the nodes appear with a `[BytePlus]` prefix. The tables quote the te
 | `Account … has reached the set inference limit for model …` | A limit on your account is reached. | Adjust the limit, or disable Safe Experience Mode on the Model activation page. |
 | `Seed Speech concurrency limit reached.` | Too many speech requests at once. | Wait for running requests to finish. |
 
-Paid requests are not repeated after a failure (only a rate limit is retried), because a repeat could bill twice. See [Billing and cost](../concepts/billing-and-cost/).
+Paid requests are not repeated after an uncertain failure because a repeat could bill twice. Some nodes retry rate limits; Seed Audio 1.5 never retries submission, including on 429. See [Billing and cost](../concepts/billing-and-cost/).
 
 ## Video tasks
 
@@ -50,12 +50,24 @@ Paid requests are not repeated after a failure (only a rate limit is retried), b
 | `… With a reference video connected, set task_type to reference, edit or extend instead of auto.` | `auto` with a reference video can be rejected. | Set `task_type` to `reference`, `edit` or `extend`. |
 | `Task … is not a draft.` | The ID is not from a Draft model. | Use the `draft_task_id` of a Seedance 2.5 Draft run. |
 
+## Seed Audio 1.5
+
+Use the [Seed Audio 1.5 guide](../nodes/seed-audio-1-5/) for the first-run steps. This node uses a **ModelArk key**, unlike Seed Audio 1.0.
+
+| What you see | Why | What to do |
+|---|---|---|
+| The node is missing, or the template still shows Seed Audio 1.0 | The installed pack predates v0.13.0, ComfyUI has not restarted, or you opened the existing 1.0 template. | Follow [Update](../get-started/update/#seed-audio-15), restart and reload, then add **BytePlus Seed Audio 1.5**. The 1.0 template is not migrated. |
+| `This Seed Audio 1.5 integration supports the documented Singapore endpoint only.` | Another ModelArk region is selected. | Use a ModelArk key for `ap-southeast-1` and select that region in Settings. |
+| `Encoded video exceeds 200 MB.` or `Request exceeds 64 MB.` | The encoded video or serialized request exceeds its limit. | Shorten or reduce the media. Use public URLs for large inline sources, or an authorized TOS URI for a larger video within the documented TOS limit. |
+| `Custom subtitles and glossaries are mutually exclusive.` | Both translation options were supplied. | Keep your target-language SRT URL or the glossary, not both. |
+| `Could not collect Seed Audio 1.5 generation …` | A returned track, video or subtitle could not be collected. Other outputs remain available. | Recover available URLs from `audio_url` or `response` before expiry. Do not regenerate only to repeat a download, and do not send this ID to Video Query Tasks. |
+
 ## Speech
 
 | What you see | Why | What to do |
 |---|---|---|
 | `The voice is not available for this key or model.` | The speaker does not fit the model. | TTS 2.0 voices need `seed-tts-2.0`, cloned voices `seed-icl-*`. |
-| The Seed Audio `url` output has no file extension | Seed Speech links can omit the file extension. | Nothing to fix. When you pass this link to a standard ASR model, the node reads the format from the file. |
+| The Seed Audio 1.0 `url` output has no file extension | Seed Speech links can omit the file extension. | Nothing to fix. When you pass this link to a standard ASR model, the node reads the format from the file. |
 | `… takes audio as a URL: connected audio is uploaded to Comfy.org storage first.` | Standard ASR models only take URLs. | Log in to Comfy.org, use `seed-asr-fast`, or pass a public URL. |
 
 ## Assets and Comfy.org login

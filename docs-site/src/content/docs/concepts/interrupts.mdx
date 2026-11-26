@@ -46,6 +46,16 @@ To request remote cancellation, use [OmniHuman Cancel Task](../../nodes/omnihuma
 
 Do not start replacement work just because you interrupted a wait or cancellation was refused. For the connected avatar template, follow its [recovery guidance](../../templates/avatar-generation/#time-and-cost) to avoid running upstream image or audio generation again.
 
+## Seed Audio 1.5
+
+[Seed Audio 1.5](../../nodes/seed-audio-1-5/) uses a synchronous ModelArk request, not the Seedance task API.
+
+- The node checks for pending interruption before submitting new generation work.
+- Once the request is accepted, Interrupt stops local waiting only. The service may continue and bill the request; the node has no remote cancel or task-polling operation.
+- `generation_id` is not a Seedance task ID. **Video Query Tasks** cannot collect a Seed Audio 1.5 result.
+- If generation returned a response but an artifact download failed, use the temporary URLs in `audio_url` or `response` to recover it without regenerating.
+- If you interrupt before the response arrives, the node has no result URLs to return. Check your account before manually resubmitting; there is no automatic retry.
+
 ## Other nodes
 
 The Seedream, BytePlus LLM, Seed Speech and AI MediaKit nodes work differently. Interrupt stops the node's wait, but the pack sends no cancel request to BytePlus. A request or task that BytePlus already accepted may still finish and be billed.

@@ -36,7 +36,16 @@ The result for you: if a paid request fails with a timeout, the node reports the
 
 The Seedream and Seedance nodes have an advanced `generation_count`. Each generation is a separate paid request, run in parallel with `seed` + N. A count of 4 bills four times.
 
-The same holds for **Seed Audio**: each take is billed separately.
+The same holds for **Seed Audio 1.0**: each take is billed separately.
+
+## Seed Audio 1.5
+
+[Seed Audio 1.5](../../nodes/seed-audio-1-5/) uses your ModelArk account and sends **one synchronous request per execution**. It has no `generation_count` input. Several separation tracks in its outputs belong to that one request; they are not separate generation requests.
+
+- The seed is a local rerun control, not a provider seed. Changing it can trigger another billed request; it does not make generated audio repeatable.
+- Submissions are never retried automatically, including on HTTP 429. Check the error and your account before manually retrying.
+- A failed artifact download does not mean generation failed. When a response is available, recover its temporary URLs from `audio_url` or `response` before they expire, without running generation again.
+- Interrupt prevents submission when it is detected before the request starts. After acceptance, stopping local waiting does not stop remote processing or billing. See [Interrupts and cancelling](../interrupts/#seed-audio-15).
 
 ## Long-running tasks
 
