@@ -1,0 +1,32 @@
+---
+title: "Custom Apps"
+description: "Explore browser-based BytePlus apps that use your ComfyUI backend, and choose between Avatar Studio and a native avatar workflow."
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Custom apps give you a form-based interface alongside the ComfyUI node canvas.
+They use your existing ComfyUI backend and the ModelArk pack's BytePlus nodes,
+but you install each app as a **separate extension**.
+
+## Choose your avatar interface
+
+<CardGrid>
+	<LinkCard title="Avatar Studio" href="./avatar-studio/" description="Install the browser app, set up keys, prepare a portrait and narration, approve both, then create your avatar video." />
+	<LinkCard title="Native Avatar Generation workflow" href="../templates/avatar-generation/" description="Stay on the node canvas and run a connected Seedream, Seed Audio and OmniHuman workflow without a separate app." />
+</CardGrid>
+
+Avatar Studio opens in your browser, including when you launch it from Comfy
+Desktop. Desktop is recommended for its native upload login, not required.
+Installing the ModelArk node pack alone does not install Studio.
+
+## Before you install
+
+Use a trusted, single-owner ComfyUI installation. Avatar Studio needs ComfyUI
+**0.31.0 or later** and **ModelArk 0.10.0 or later**. The
+[installation guide](./avatar-studio/) covers both the Desktop launcher and
+browser-only setup, with screenshots for the separate provider and upload keys.
+
+You do not need Node.js or a second server to use Studio. BytePlus generation
+is billed to your own account; local uploads and asset review do not submit
+generation requests.

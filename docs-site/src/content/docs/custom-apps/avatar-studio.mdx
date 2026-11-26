@@ -1,0 +1,169 @@
+---
+title: "Avatar Studio"
+description: "Install the Avatar Studio custom app, open it from Comfy Desktop, configure your keys and create a talking avatar with reviewed image and audio."
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '../../../components/Shot.astro';
+
+Avatar Studio is a review-first avatar creator for ComfyUI. Generate a portrait
+with **Seedream 5.5**, narration with **Seed Audio**, and a talking video with
+**OmniHuman 2.0**, or bring your own image and audio.
+
+<Shot src="custom-apps/avatar-studio/avatar-studio.png" alt="Avatar Studio with script and character controls, separate generation buttons and the avatar video panel" caption="Prepare and approve your portrait and narration before creating the video." />
+
+Studio opens in your browser and uses your existing ComfyUI backend. It is a
+**separate extension**, not a replacement for the node canvas. You do not need
+Node.js or a second server to use it.
+
+Studio **v0.2.0** supports independent portrait and narration generation,
+including parallel preparation, per-button progress and recovery for unresolved
+jobs.
+
+## Install
+
+**Requires:** ComfyUI **0.31.0 or later** and
+**ComfyUI-BytePlus-ModelArk 0.10.0 or later**. Install the companion separately;
+see [Install ModelArk](../../get-started/install/).
+
+1. Download the Studio ZIP from
+   [Avatar Studio Releases](https://github.com/byteplus-sa/ComfyUI-BytePlus-Avatar-Studio/releases).
+2. Extract it into `ComfyUI/custom_nodes/`, keeping the
+   `ComfyUI-BytePlus-Avatar-Studio` folder and its bundled `studio_dist/`.
+3. Restart ComfyUI.
+
+<Aside type="note" title="Registry installation">
+Manager installation requires Active Registry versions for both packages.
+Pending or Flagged versions are not confirmed available through Manager.
+The manual ZIP installation uses the bundled app.
+</Aside>
+
+## Open in Comfy Desktop
+
+Comfy Desktop is **recommended, not required**. It provides native ComfyUI login
+for uploads; Studio also works with a manual ComfyUI installation.
+
+1. Start Desktop and wait for the ComfyUI editor. Install both extensions in
+   **Desktop's active ComfyUI installation**, not inside the Desktop app bundle.
+2. Click the **ComfyUI logo / Menu button in the top-left corner**, then
+   **BytePlus > Open BytePlus Avatar Studio**. This is the editor's menu, not
+   the macOS application menu.
+
+<Shot src="custom-apps/avatar-studio/desktop-menu.png" alt="ComfyUI menu with the menu button, BytePlus and Avatar Studio launcher highlighted" caption="Open Avatar Studio from the BytePlus submenu inside the ComfyUI editor." />
+
+Alternatively, **right-click an empty area of the node canvas** and choose
+**Open BytePlus Avatar Studio** directly:
+
+<Shot src="custom-apps/avatar-studio/desktop-context-menu.png" alt="Canvas right-click menu with Open BytePlus Avatar Studio highlighted" caption="The canvas context menu opens the same Studio app." />
+
+3. Continue in your **default external browser**. This is expected; Studio
+   does not replace the editor inside Desktop. Leave the originating ComfyUI
+   editor open. On first launch, click **Create your first project**.
+
+**Launcher missing?** Check the active installation, keep `web/extension.js`
+and `studio_dist/`, restart Desktop, and reload its editor. Check the backend
+startup log for extension import errors.
+
+For browser-only ComfyUI, use the same launcher or visit
+`http://127.0.0.1:8188/byteplus/avatar-studio/`.
+
+## Set up keys
+
+### BytePlus generation keys
+
+In the **ComfyUI editor**, open **Menu > Settings**, then select **BytePlus**
+in the settings sidebar. Enter each required key and click its adjacent
+**Save** button. Select your ModelArk region in the ModelArk row.
+
+| Settings field | Used for |
+| --- | --- |
+| ModelArk API key | Seedream portraits |
+| Seed Speech API key | Seed Audio narration |
+| OmniHuman Vision AI API key | OmniHuman video |
+
+<Shot src="custom-apps/avatar-studio/byteplus-api-keys.png" alt="ComfyUI Settings with BytePlus selected and the three generation key rows highlighted" caption="Save each generation key in its own BytePlus settings row." />
+
+These are **three separate provider keys**, not a Comfy.org key. The other
+MediaKit, IAM and endpoint fields are not required for Avatar Studio. See
+[API keys](../../get-started/api-keys/) for provider setup.
+
+### Video upload access
+
+In **Avatar Studio**, click bottom-right **Settings**, then **API keys**:
+
+<Shot src="custom-apps/avatar-studio/studio-settings-menu.png" alt="Studio bottom-right Settings button and API keys category highlighted" caption="Open the API keys category from Studio's own Settings menu." />
+
+This page manages upload access and shows provider connection status.
+**Manage in ComfyUI** returns to the editor for provider-key setup; afterward,
+click **Refresh connections** in Studio.
+
+- **Comfy Desktop:** launch Studio from ComfyUI and use **ComfyUI login**.
+  Choose **Sign in with ComfyUI** if needed and complete Desktop's native
+  login. No separate Comfy.org key is needed. Keep the originating editor
+  open; reopen Studio through its launcher after a reload or backend restart.
+  A direct URL does not link Desktop login. OAuth video submission requires
+  an idle ComfyUI queue.
+- **Browser-only ComfyUI:** click **Set API key** under **Comfy.org upload key**.
+  This is separate from all three BytePlus generation keys.
+
+<Shot src="custom-apps/avatar-studio/studio-api-keys.png" alt="Studio API keys page with Set API key and Manage in ComfyUI highlighted" caption="Use a linked Desktop login or an explicit Comfy.org upload key." />
+
+<details>
+<summary>Enter a Comfy.org upload key instead of using Desktop login</summary>
+
+Enter the key, then click **Use for this tab**. The key stays in tab memory and
+is cleared on reload or tab closure. To persist it, select **Remember on this
+ComfyUI server**, then **Save API key**. Remembered keys use a private,
+**plaintext file, not encrypted storage**.
+
+<Shot src="custom-apps/avatar-studio/studio-upload-key.png" alt="Empty Comfy.org upload-key field and Use for this tab button highlighted" caption="Keep upload access in this tab unless you explicitly choose server storage." />
+
+</details>
+
+The highlighted images show empty key fields and the shared ComfyUI editor.
+Desktop window borders and menu placement can vary by version. Never share
+images containing your keys.
+
+## Create an avatar
+
+1. Write or import your script and describe your character, optionally adding
+   a reference image. Alternatively, upload a finished portrait or narration.
+2. Generate any missing assets. Portrait and narration can run independently
+   or at the same time, with separate progress indicators.
+3. Review the portrait and listen to the narration, then **approve both**.
+4. Generate the avatar video and download the result.
+
+<Aside type="caution" title="Generate starts a paid request">
+Generate starts a paid BytePlus request immediately, without an extra
+confirmation. Local uploads and review do not submit generation requests.
+Uploaded media does not need the corresponding image or audio generation key.
+</Aside>
+
+| Upload | Accepted files | Main limits |
+| --- | --- | --- |
+| Portrait | PNG, JPEG, WebP | 10 MB; 300-6000 px per side; at most 24 MP; aspect ratio 0.4-2.5 |
+| Narration | WAV, MP3, FLAC | 64 MB; 4-300 seconds; non-silent |
+
+Audio is prepared before review. Video length follows the approved narration;
+clips are never truncated to fit. Replacing an asset requires approval again.
+
+## Recovery and privacy
+
+- Uncertain paid requests are never retried automatically. Use **Collect task**
+  for an existing video, or **Resolve preparation** after checking provider
+  usage. Resolving a job does not cancel remote work or create a replacement.
+- Remote cancellation works only for queued OmniHuman tasks. Stopping a local
+  wait does not stop remote processing or billing.
+- Use a **trusted, single-owner ComfyUI installation**; public or multi-user
+  hosting is unsupported. Projects and media persist under the ComfyUI user
+  directory. There is no automatic retention cleanup.
+
+## Related
+
+- [Custom Apps overview](../): choose between Studio and the node canvas.
+- [Native Avatar Generation workflow](../../templates/avatar-generation/):
+  create an avatar without installing a separate app.
+- [Avatar Studio README](https://github.com/byteplus-sa/ComfyUI-BytePlus-Avatar-Studio#readme):
+  the matching quick-start guide.
+- [Setup, uploads and troubleshooting](https://github.com/byteplus-sa/ComfyUI-BytePlus-Avatar-Studio/blob/main/docs/usage.md):
+  detailed credential and recovery guidance.

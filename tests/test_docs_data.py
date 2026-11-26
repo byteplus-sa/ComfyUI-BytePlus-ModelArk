@@ -78,6 +78,66 @@ class DocsDataTests(unittest.TestCase):
                 os.path.exists(os.path.join(PAGES, "templates", template["slug"] + ".mdx")), template["file"]
             )
 
+    def test_custom_apps_have_navigation_and_local_screenshots(self):
+        site = os.path.join(ROOT, "docs-site")
+        with open(os.path.join(site, "astro.config.mjs"), encoding="utf-8") as file:
+            sidebar = file.read()
+        self.assertIn("label: 'Custom Apps'", sidebar)
+        for slug in ("custom-apps", "custom-apps/avatar-studio"):
+            self.assertIn(f"slug: '{slug}'", sidebar)
+
+        for filename in ("index.mdx", "avatar-studio.mdx"):
+            with self.subTest(page=filename):
+                with open(os.path.join(PAGES, "custom-apps", filename), encoding="utf-8") as file:
+                    page = file.read()
+                self.assertRegex(page, r'^---\ntitle: "[^"\n]+"\ndescription: "[^"\n]{40,160}"\n---')
+
+        with open(os.path.join(PAGES, "custom-apps", "avatar-studio.mdx"), encoding="utf-8") as file:
+            guide = file.read()
+        shots = re.findall(r'<Shot\s+src="([^"]+)"', guide)
+        self.assertEqual(
+            {os.path.basename(shot) for shot in shots},
+            {
+                "avatar-studio.png",
+                "desktop-menu.png",
+                "desktop-context-menu.png",
+                "byteplus-api-keys.png",
+                "studio-settings-menu.png",
+                "studio-api-keys.png",
+                "studio-upload-key.png",
+            },
+        )
+        for shot in shots:
+            with self.subTest(image=shot):
+                with open(os.path.join(site, "src", "assets", shot), "rb") as file:
+                    header = file.read(24)
+                self.assertEqual(header[:8], b"\x89PNG\r\n\x1a\n")
+                self.assertGreaterEqual(int.from_bytes(header[16:20], "big"), 400)
+
+    def test_avatar_studio_guide_preserves_installation_and_key_boundaries(self):
+        with open(os.path.join(PAGES, "custom-apps", "avatar-studio.mdx"), encoding="utf-8") as file:
+            guide = file.read()
+        for required in (
+            "0.31.0",
+            "ComfyUI-BytePlus-ModelArk 0.10.0",
+            "separate extension",
+            "ComfyUI/custom_nodes/",
+            "studio_dist/",
+            "default external browser",
+            "ModelArk API key",
+            "Seed Speech API key",
+            "OmniHuman Vision AI API key",
+            "ComfyUI login",
+            "Comfy.org upload key",
+            "plaintext file, not encrypted storage",
+            "approve both",
+            "never retried automatically",
+        ):
+            with self.subTest(contract=required):
+                self.assertIn(required, guide)
+        self.assertNotIn("raw.githubusercontent.com", guide)
+        self.assertNotRegex(guide, r"\]\(/(?!/)")
+
     def test_a_removed_template_leaves_nothing_behind(self):
         slugs = {t["slug"] for t in load("templates.json")}
         site = os.path.join(ROOT, "docs-site")

@@ -69,6 +69,13 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Custom Apps',
+					items: [
+						{ slug: 'custom-apps', label: 'Overview' },
+						{ slug: 'custom-apps/avatar-studio', label: 'Avatar Studio' },
+					],
+				},
+				{
 					label: 'Tutorials',
 					items: [
 						{ slug: 'tutorials', label: 'Course overview' },
