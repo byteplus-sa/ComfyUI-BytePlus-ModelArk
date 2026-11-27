@@ -11,6 +11,14 @@ Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-sepa
 
 Registry publication and security review are separate steps. A pending or flagged version may not be offered by Manager yet; check its version status rather than enabling unsafe installation overrides.
 
+## Seedream 5.5 4K UHD
+
+Version **0.15.0** adds fixed UHD presets to [Seedream 5.5](../../nodes/seedream/). Registry installation availability depends on the version's scan status.
+
+- After updating, restart ComfyUI and reload the browser. Select `seedream 5.5`, then choose `(4K) 3840x2160 (16:9)` or `(4K) 2160x3840 (9:16)` in `size_preset`.
+- Custom sizes allow up to 8,294,400 pixels, with aspect ratios from 1:16 to 16:1. The fixed presets send explicit dimensions, not an adaptive `4K` API value.
+- Existing workflows retain their previous selections. The 2K-adaptive default, model ID, saved keys, other image models and layer-separation limits are unchanged.
+
 ## Seed Audio 1.5
 
 Version **0.13.0** adds [Seed Audio 1.5](../../nodes/seed-audio-1-5/) for audio generation, voice or image references, video-guided audio, video translation and stem separation.

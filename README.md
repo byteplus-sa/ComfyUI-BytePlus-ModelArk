@@ -4,9 +4,11 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.14.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.15.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.14.0:** shared media sockets stay on the left when you change modes or models on Seed Audio 1.0/1.5, Seedream, Layer Separation, Seedance Reference and BytePlus LLM. Saved canvas connections migrate automatically on load; conflicting and unsupported media is rejected before billing. Provider request formats and model limits are unchanged. The docs include refreshed node screenshots and reference-mode views in both renderers.
+**New in v0.15.0:** Seedream 5.5 offers fixed **4K UHD** presets at `3840x2160` and `2160x3840`, plus custom sizes up to **8,294,400 pixels**. The presets send explicit dimensions using the same model ID. The 2K-adaptive default, other models and layer-separation limits stay unchanged. Restart ComfyUI and reload the browser, select `seedream 5.5`, then choose a `(4K)` size preset after updating to this version. Registry installation availability depends on the version's scan status.
+
+**Previously in v0.14.0:** shared media sockets stay on the left when you change modes or models on Seed Audio 1.0/1.5, Seedream, Layer Separation, Seedance Reference and BytePlus LLM. Saved canvas connections migrate automatically on load; conflicting and unsupported media is rejected before billing. Provider request formats and model limits are unchanged. The docs include refreshed node screenshots and reference-mode views in both renderers.
 
 **Direct API workflow migration:** rename moved media keys before submitting to ComfyUI's `/prompt`, for example `model.images.image_1` to `images.image_1` and `mode.video` to `video`. Prompt, URL, asset and other control keys stay unchanged. See the [media input migration guide](https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/get-started/update/#media-input-layout). Restart ComfyUI and reload the browser after updating. Registry availability depends on the version's scan status.
 
