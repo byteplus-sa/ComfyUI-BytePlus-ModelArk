@@ -139,6 +139,9 @@ _PRESETS_SEEDREAM_5_5 = [
     ("(2K) 1680x2512 (2:3)", 1680, 2512),
     ("(2K) 2512x1680 (3:2)", 2512, 1680),
     ("(2K) 3136x1344 (21:9)", 3136, 1344),
+    # 5.5 UHD uses explicit dimensions, not the older models' ~16MP 4K tier.
+    ("(4K) 3840x2160 (16:9)", 3840, 2160),
+    ("(4K) 2160x3840 (9:16)", 2160, 3840),
 ]
 SEEDREAM_CUSTOM_SIZE = "Custom"
 SEEDREAM_PRESETS = {

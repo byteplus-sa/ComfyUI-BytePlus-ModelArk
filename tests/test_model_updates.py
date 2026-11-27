@@ -109,6 +109,23 @@ class ModelConfigurationTests(unittest.TestCase):
             ("dola-seed-2-1-turbo", "dola-seed-2-1-turbo-260628"),
         )
 
+    def test_seedream55_uhd_limits_leave_other_models_unchanged(self):
+        expected = {
+            models_config.SEEDREAM_5_5: (921_600, 8_294_400, 11520),
+            models_config.SEEDREAM_PRO: (921_600, 4_624_220, 8600),
+            models_config.SEEDREAM_FLASH: (921_600, 4_624_220, 8600),
+            models_config.SEEDREAM_LITE: (3_686_400, 16_777_216, 16384),
+            models_config.SEEDREAM_4_5: (3_686_400, 16_777_216, 16384),
+            models_config.SEEDREAM_4_0: (921_600, 16_777_216, 16384),
+        }
+        for model, limits in expected.items():
+            with self.subTest(model=model):
+                caps = models_config.SEEDREAM_MODEL_CAPS[model]
+                self.assertEqual((caps["min_pixels"], caps["max_pixels"], caps["max_side"]), limits)
+        caps = models_config.SEEDREAM_MODEL_CAPS[models_config.SEEDREAM_5_5]
+        self.assertEqual(caps["adaptive_sizes"], ["1K", "1.5K", "2K"])
+        self.assertEqual(caps["default_size_preset"], "2K (adaptive)")
+
     def test_no_volcengine_models_remain(self):
         all_ids = [
             *models_config.SEEDREAM_4_MODEL_MAP.items(),
