@@ -19,6 +19,7 @@ from comfy_api.latest import io as comfy_io
 
 from .audio_utils import audio_duration, audio_to_wav_bytes
 from .core_style import core_search_aliases, seed_input
+from .media_inputs import lift_media_inputs, merge_media_inputs
 from .executor import BytePlusVisualExecutor
 from .models_config import (
     SEED_LLM_AUDIO_MODELS,
@@ -348,10 +349,13 @@ class BytePlusSeed(comfy_io.ComfyNode):
                     default="",
                     tooltip="Text input to the model.",
                 ),
-                comfy_io.DynamicCombo.Input(
-                    "model",
-                    options=_model_options(),
-                    tooltip="The model used to generate the response.",
+                *lift_media_inputs(
+                    comfy_io.DynamicCombo.Input(
+                        "model",
+                        options=_model_options(),
+                        tooltip="The model used to generate the response.",
+                    ),
+                    {"images", "videos", "audios"},
                 ),
                 seed_input(),
                 comfy_io.String.Input(
@@ -387,10 +391,14 @@ class BytePlusSeed(comfy_io.ComfyNode):
         turns=1,
         stream=False,
         file_expire_seconds=FILE_EXPIRE_DEFAULT_SECONDS,
+        *,
+        images=None,
+        videos=None,
+        audios=None,
     ) -> comfy_io.NodeOutput:
         if not (prompt or "").strip():
             raise BytePlusException(get_text("seed_llm_prompt_empty"))
-        model = model or {}
+        model = merge_media_inputs(model or {}, images=images, videos=videos, audios=audios)
         label = model.get("model")
         model_id = SEED_LLM_MODEL_MAP.get(label)
         if model_id is None:
@@ -406,6 +414,8 @@ class BytePlusSeed(comfy_io.ComfyNode):
             raise BytePlusException(get_text("seed_llm_too_many_videos", max=SEED_LLM_MAX_VIDEOS, count=len(videos)))
 
         audios = [a for a in (model.get("audios") or {}).values() if a is not None]
+        if audios and label not in SEED_LLM_AUDIO_MODELS:
+            raise BytePlusException(get_text("err_media_input_mode", name="audios", mode=label))
         if len(audios) > SEED_LLM_MAX_AUDIOS:
             raise BytePlusException(get_text("seed_llm_too_many_audios", max=SEED_LLM_MAX_AUDIOS, count=len(audios)))
         total_audio_seconds = sum(audio_duration(a) for a in audios)

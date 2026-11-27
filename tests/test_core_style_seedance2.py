@@ -331,7 +331,10 @@ class SchemaTests(unittest.TestCase):
                 ["model", "seed", "watermark"],
                 ["first_frame", "last_frame", "first_frame_asset_id", "last_frame_asset_id", *EXTRAS],
             ),
-            nodes_seedance2.BytePlusSeedance2Reference: (["model", "seed", "watermark", *EXTRAS], []),
+            nodes_seedance2.BytePlusSeedance2Reference: (
+                ["model", "seed", "watermark", *EXTRAS],
+                ["reference_images", "reference_videos", "reference_audios"],
+            ),
             nodes_seedance2.BytePlusSeedanceDraftToFinal: (
                 ["draft_task_id", "watermark", *EXTRAS],
                 ["resolution"],
@@ -377,7 +380,7 @@ class SchemaTests(unittest.TestCase):
                     if is_25
                     else SEEDANCE20_TEXT
                 )
-                self.assertEqual(list(ref["required"]), text + REFERENCE_TAIL)
+                self.assertEqual(list(ref["required"]), text + ["reference_assets"])
                 self.assertEqual(list(ref["optional"]), ["auto_downscale", "auto_upscale"])
                 self.assertTrue(ref["optional"]["auto_upscale"][1]["advanced"])
                 self.assertFalse(ref["optional"]["auto_downscale"][1].get("advanced", False))
@@ -417,7 +420,10 @@ class SchemaTests(unittest.TestCase):
                 else (9, 3, 3, 15)
             )
             with self.subTest(label=label):
-                req = option_inputs(nodes_seedance2.BytePlusSeedance2Reference, label)["required"]
+                req = {
+                    **option_inputs(nodes_seedance2.BytePlusSeedance2Reference, label)["required"],
+                    **v1_inputs(nodes_seedance2.BytePlusSeedance2Reference)[2],
+                }
                 names = []
                 for key, prefix in (
                     ("reference_images", "image"),
@@ -429,7 +435,9 @@ class SchemaTests(unittest.TestCase):
                     self.assertEqual(template["names"][0], f"{prefix}_1")
                     self.assertEqual(template["min"], 0)
                     names.append(len(template["names"]))
-                self.assertEqual(tuple(names), caps)
+                self.assertEqual(tuple(names), (30, 10, 10, caps[3]))
+                actual_caps = models_config.VIDEO_2_MODEL_REFERENCE_LIMITS[nodes_seedance2._model_key(label)]
+                self.assertEqual(tuple(actual_caps[k] for k in ("images", "videos", "audios")), caps[:3])
 
     def test_outputs(self):
         for node_cls in (
@@ -696,6 +704,7 @@ class SchemaTests(unittest.TestCase):
 
         for ours_cls, core_cls in pairs:
             _i, req, opt = v1_inputs(ours_cls)
+            moved = set(REFERENCE_TAIL[:3]) if ours_cls is nodes_seedance2.BytePlusSeedance2Reference else set()
             ours = {**req, **opt}
             core_info = core_cls.GET_NODE_INFO_V1()
             theirs_req = core_info["input"]["required"]
@@ -704,15 +713,33 @@ class SchemaTests(unittest.TestCase):
                 theirs_opt["resolution"] = ours["resolution"]
             theirs = {**theirs_req, **theirs_opt}
             self.assertEqual([n for n in req if n not in EXTRAS], list(theirs_req))
-            self.assertEqual([n for n in opt if n not in EXTRAS], list(theirs_opt))
+            self.assertEqual([n for n in opt if n not in EXTRAS and n not in moved], list(theirs_opt))
             for name, spec in theirs.items():
                 if name == "model":
                     ours_options = {o["key"]: o["inputs"] for o in ours[name][1]["options"]}
                     for option in spec[1]["options"]:
                         key = option["key"]
                         mine = ours_options[key]
+                        if moved:
+                            original = nodes_seedance2.comfy_io.DynamicCombo.Option(
+                                key, nodes_seedance2._reference_option_inputs(key)
+                            ).as_dict()["inputs"]
+                            for section in ("required", "optional"):
+                                for child, child_spec in (option["inputs"].get(section) or {}).items():
+                                    if child in moved:
+                                        compare(
+                                            f"{key}.{child}",
+                                            child,
+                                            original[section][child],
+                                            child_spec,
+                                            reference_node=True,
+                                        )
                         for section in ("required", "optional"):
-                            core_children = option["inputs"].get(section) or {}
+                            core_children = {
+                                name: value
+                                for name, value in (option["inputs"].get(section) or {}).items()
+                                if name not in moved
+                            }
                             my_children = mine.get(section) or {}
                             self.assertEqual(list(my_children), list(core_children), f"{key} {section}")
                             for child, child_spec in core_children.items():
@@ -756,6 +783,8 @@ class TemplateSchemaTests(unittest.TestCase):
         names = []
         for section in ("required", "optional"):
             for name, spec in (info["input"].get(section) or {}).items():
+                if spec[0] == "COMFY_AUTOGROW_V3":
+                    continue
                 names.append((name, spec[0]))
                 if spec[0] == "COMFY_DYNAMICCOMBO_V3":
                     option = next(o for o in spec[1]["options"] if o["key"] == label)
@@ -858,7 +887,11 @@ class _ExecutorHarness(unittest.IsolatedAsyncioTestCase):
         self.set_hidden(node_cls, prompt=prompt)
         kwargs = dict(inputs)
         if model is not None:
-            kwargs["model"] = model
+            kwargs["model"] = dict(model)
+            if node_cls is nodes_seedance2.BytePlusSeedance2Reference:
+                for name in ("reference_images", "reference_videos", "reference_audios"):
+                    if name in kwargs["model"]:
+                        kwargs[name] = kwargs["model"].pop(name)
         kwargs.setdefault("non_blocking", non_blocking)
         return await node_cls.execute(self.client, **kwargs)
 

@@ -1,4 +1,5 @@
 import { app } from "../../../scripts/app.js";
+import { migrateMediaInputs } from "./byteplus_media_inputs.js";
 
 function isVueNodesEnabled() {
     try {
@@ -366,6 +367,10 @@ function onRendererChanged() {
 
 app.registerExtension({
     name: "ComfyUI.BytePlus.DynamicWidgets",
+
+    beforeConfigureGraph(graphData) {
+        migrateMediaInputs(graphData);
+    },
 
     async setup() {
         app.ui?.settings?.addEventListener?.(`${VUE_NODES_SETTING}.change`, onRendererChanged);

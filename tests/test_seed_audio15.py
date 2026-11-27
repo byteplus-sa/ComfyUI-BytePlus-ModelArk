@@ -74,7 +74,28 @@ class SeedAudio15Tests(unittest.IsolatedAsyncioTestCase):
         return self.api.build_request(mode["mode"], content, **kwargs)
 
     async def run_node(self, mode=None, **kwargs):
-        return await self.nodes.BytePlusSeedAudio15.execute(self.client, mode or self.default_mode, **kwargs)
+        mode = dict(mode or self.default_mode)
+        media = {
+            key: mode.pop(key)
+            for key in ("audio", "video", "reference_image", *(f"reference_audio_{n}" for n in range(1, 7)))
+            if key in mode
+        }
+        return await self.nodes.BytePlusSeedAudio15.execute(self.client, mode, **media, **kwargs)
+
+    async def test_top_level_audio_keeps_native_content_contract(self):
+        with (
+            mock.patch.object(self.api, "_send", new_callable=mock.AsyncMock, return_value=self.wire()) as send,
+            mock.patch.object(self.media, "download_artifact", new_callable=mock.AsyncMock, return_value=self.audio()),
+        ):
+            await self.run_node(
+                {"mode": "audio reference", "text_prompt": "Read with @audio1."},
+                reference_audio_1=self.audio(),
+            )
+        body = send.call_args.args[2]
+        self.assertEqual(body["content"][1]["role"], "reference_audio")
+        self.assertTrue(body["content"][1]["audio_url"]["url"].startswith("data:audio/wav;base64,"))
+        self.assertNotIn("reference_audio_1", body)
+        self.assertNotIn("mode", body)
 
     def test_catalog_schema_and_old_audio_are_independent(self):
         self.assertEqual(self.models.SEED_AUDIO_15_MODEL_MAP, {"dola-seed-audio-1-5": "dola-seed-audio-1-5-261128"})

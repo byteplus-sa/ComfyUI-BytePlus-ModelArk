@@ -156,7 +156,10 @@ class SeedSchemaTests(unittest.TestCase):
         # Core's inputs in core's order; this pack's extras after them.
         self.assertEqual(ours["input_order"]["required"], theirs["input_order"]["required"])
         core_optional = theirs["input_order"].get("optional", [])
-        self.assertEqual(ours["input_order"]["optional"][: len(core_optional)], core_optional)
+        ours_optional = ours["input_order"].get("optional", [])
+        self.assertEqual(ours_optional[:3], ["images", "videos", "audios"])
+        positions = [ours_optional.index(name) for name in core_optional]
+        self.assertEqual(positions, sorted(positions))
         our_inputs = {**ours["input"]["required"], **ours["input"].get("optional", {})}
         for section in ("required", "optional"):
             for name, spec in (theirs["input"].get(section) or {}).items():
@@ -174,7 +177,11 @@ class SeedSchemaTests(unittest.TestCase):
         self.assertEqual(list(our_options)[: len(core_options)], [o["key"] for o in core_options])
         for option in core_options:
             for section in ("required", "optional"):
-                core_children = option["inputs"].get(section) or {}
+                core_children = {
+                    name: spec
+                    for name, spec in (option["inputs"].get(section) or {}).items()
+                    if name not in {"images", "videos"}
+                }
                 mine = our_options[option["key"]].get(section) or {}
                 with self.subTest(model=option["key"], section=section):
                     # Core's children in core's order (this pack may add inputs after them).
@@ -204,6 +211,9 @@ class SeedSchemaTests(unittest.TestCase):
                 "prompt",
                 "model",
                 "seed",
+                "images",
+                "videos",
+                "audios",
                 "system_prompt",
                 "detail",
                 "fps",
@@ -221,20 +231,16 @@ class SeedSchemaTests(unittest.TestCase):
 
     def test_input_modalities_per_model(self):
         # Checked live: all six take text, images and videos; only Seed 2.0 Lite and Mini hear audio.
-        # DeepSeek V4.1 Flash and GLM 5.3 Flash accept an audio clip but ignore it, so offering the
-        # input there would silently drop the audio.
+        # Media sockets stay stable across models; execute rejects unsupported audio.
         self.assertEqual(models_config.SEED_LLM_AUDIO_MODELS, ("Seed 2.0 Lite", "Seed 2.0 Mini"))
         for option in self.inputs["model"].options:
             with self.subTest(model=option.key):
                 children = by_id(option.inputs)
-                self.assertIn("images", children)
-                self.assertIn("videos", children)
-                self.assertEqual("audios" in children, option.key in models_config.SEED_LLM_AUDIO_MODELS)
-                if "audios" in children:
-                    audios = children["audios"]
-                    self.assertEqual(audios.template.names, [f"audio_{i}" for i in range(1, 5)])
-                    self.assertEqual(audios.template.min, 0)
-                    self.assertIsInstance(audios.template.input, comfy_io.Audio.Input)
+                self.assertFalse({"images", "videos", "audios"} & children.keys())
+        audios = self.inputs["audios"]
+        self.assertEqual(audios.template.names, [f"audio_{i}" for i in range(1, 5)])
+        self.assertEqual(audios.template.min, 0)
+        self.assertIsInstance(audios.template.input, comfy_io.Audio.Input)
 
     def test_reasoning_effort_options_include_max(self):
         effort = self.inputs["reasoning_effort"]
@@ -245,6 +251,12 @@ class SeedSchemaTests(unittest.TestCase):
         prompt = self.inputs["prompt"]
         self.assertEqual((prompt.default, prompt.multiline, prompt.optional), ("", True, False))
         self.assertEqual(prompt.tooltip, "Text input to the model.")
+        images = self.inputs["images"]
+        self.assertTrue(images.optional)
+        self.assertEqual(images.template.names, [f"image_{i}" for i in range(1, 21)])
+        videos = self.inputs["videos"]
+        self.assertTrue(videos.optional)
+        self.assertEqual(videos.template.names, [f"video_{i}" for i in range(1, 5)])
         seed = self.inputs["seed"]
         self.assertEqual((seed.default, seed.min, seed.max), (0, 0, SEED_MAX))
         self.assertTrue(seed.control_after_generate)
@@ -273,12 +285,9 @@ class SeedSchemaTests(unittest.TestCase):
         for key in keys:
             with self.subTest(model=key):
                 option = next(o for o in model.options if o.key == key)
-                # Core's children first; the audio-capable models add this pack's `audios` after them.
-                expected = ["images", "videos", "temperature"]
-                if key in ("Seed 2.0 Lite", "Seed 2.0 Mini"):
-                    expected.append("audios")
-                self.assertEqual([i.id for i in option.inputs], expected)
-                images, videos, temperature = option.inputs[:3]
+                self.assertEqual([i.id for i in option.inputs], ["temperature"])
+                images, videos = self.inputs["images"], self.inputs["videos"]
+                temperature = option.inputs[0]
                 self.assertEqual(images.template.names, [f"image_{i}" for i in range(1, 21)])
                 self.assertEqual(images.template.min, 0)
                 self.assertEqual(videos.template.names, [f"video_{i}" for i in range(1, 5)])
@@ -374,8 +383,19 @@ class SeedRequestTests(unittest.IsolatedAsyncioTestCase):
         return SimpleNamespace(api_key=api_key, region=region, ark=SimpleNamespace(responses=responses)), responses
 
     async def run_node(self, client, prompt="Describe it.", model=None, **kwargs):
-        model = model or {"model": "Seed 2.0 Pro", "temperature": 1.0}
-        return (await nodes_seed.BytePlusSeed.execute(client, prompt, model, 0, **kwargs)).result
+        model = dict(model or {"model": "Seed 2.0 Pro", "temperature": 1.0})
+        media = {key: model.pop(key) for key in ("images", "videos", "audios") if key in model}
+        return (await nodes_seed.BytePlusSeed.execute(client, prompt, model, 0, **media, **kwargs)).result
+
+    async def test_unsupported_audio_fails_before_upload_or_billing(self):
+        client, responses = self.client(reply())
+        for label in models_config.SEED_LLM_MODEL_MAP:
+            if label in models_config.SEED_LLM_AUDIO_MODELS:
+                continue
+            with self.subTest(model=label), self.assertRaisesRegex(BytePlusException, "not supported"):
+                await self.run_node(client, model={"model": label}, audios={"audio_1": sine_audio()})
+        self.assertEqual(self.uploads, [])
+        self.assertEqual(responses.calls, [])
 
     async def test_request_matches_core_payload_with_media(self):
         import torch
@@ -748,6 +768,10 @@ class SeedAudioSchemaTests(unittest.TestCase):
                 "loudness_rate",
                 "pitch_rate",
                 "seed",
+                "reference_audio_1",
+                "reference_audio_2",
+                "reference_audio_3",
+                "reference_image",
                 "model",
                 "audio_format",
                 "enable_subtitle",
@@ -761,6 +785,10 @@ class SeedAudioSchemaTests(unittest.TestCase):
             ],
         )
         for name in (
+            "reference_audio_1",
+            "reference_audio_2",
+            "reference_audio_3",
+            "reference_image",
             "generation_count",
             "audio_format",
             "enable_subtitle",
@@ -773,7 +801,18 @@ class SeedAudioSchemaTests(unittest.TestCase):
         ):
             with self.subTest(extra=name):
                 self.assertTrue(self.inputs[name].optional)
-                self.assertTrue(self.inputs[name].advanced)
+                if name.startswith("ref_") or name in {
+                    "audio_format",
+                    "enable_subtitle",
+                    "aigc_watermark",
+                    "aigc_metadata",
+                    "content_producer",
+                    "produce_id",
+                    "content_propagator",
+                    "propagate_id",
+                    "generation_count",
+                }:
+                    self.assertTrue(self.inputs[name].advanced)
 
     def test_reference_mode_options(self):
         mode = self.inputs["reference_mode"]
@@ -785,23 +824,20 @@ class SeedAudioSchemaTests(unittest.TestCase):
         self.assertEqual(
             option_children(mode, "audio reference"),
             [
-                "reference_audio_1",
-                "reference_audio_2",
-                "reference_audio_3",
                 "ref_audio_1_source",
                 "ref_audio_2_source",
                 "ref_audio_3_source",
             ],
         )
-        self.assertEqual(option_children(mode, "image reference"), ["reference_image", "ref_image_url"])
+        self.assertEqual(option_children(mode, "image reference"), ["ref_image_url"])
         self.assertEqual(option_children(mode, "preset voice"), ["preset_voice"])
         audio_option = by_id(next(o for o in mode.options if o.key == "audio reference").inputs)
         for n in (1, 2, 3):
-            self.assertEqual(audio_option[f"reference_audio_{n}"].io_type, "AUDIO")
-            self.assertTrue(audio_option[f"reference_audio_{n}"].optional)
+            self.assertEqual(self.inputs[f"reference_audio_{n}"].io_type, "AUDIO")
+            self.assertTrue(self.inputs[f"reference_audio_{n}"].optional)
             self.assertTrue(audio_option[f"ref_audio_{n}_source"].advanced)
         image_option = by_id(next(o for o in mode.options if o.key == "image reference").inputs)
-        self.assertTrue(image_option["reference_image"].optional)
+        self.assertTrue(self.inputs["reference_image"].optional)
         self.assertTrue(image_option["ref_image_url"].advanced)
 
     def test_preset_voices_use_byteplus_list(self):
@@ -873,7 +909,19 @@ class SeedAudioRequestTests(unittest.IsolatedAsyncioTestCase):
         return fake
 
     async def run_node(self, reference_mode, text_prompt="Hello there", **kwargs):
-        return await nodes_speech.BytePlusSeedAudio.execute(self.client, text_prompt, reference_mode, **kwargs)
+        reference_mode = dict(reference_mode)
+        media = {
+            key: reference_mode.pop(key)
+            for key in ("reference_image", "reference_audio_1", "reference_audio_2", "reference_audio_3")
+            if key in reference_mode
+        }
+        return await nodes_speech.BytePlusSeedAudio.execute(self.client, text_prompt, reference_mode, **media, **kwargs)
+
+    async def test_inactive_media_is_not_silently_ignored(self):
+        fake = self.serve()
+        with self.assertRaisesRegex(BytePlusException, "not supported"):
+            await self.run_node({"reference_mode": "text only"}, reference_audio_1=sine_audio())
+        self.assertEqual(fake.calls, [])
 
     async def test_interrupt_cancels_every_parallel_request(self):
         import comfy.model_management as mm
@@ -1068,7 +1116,29 @@ class TemplateTests(unittest.TestCase):
                 values = list(node["widgets_values"])
                 selections = {combo: values[1]}
                 names = [item["name"] for item in node["inputs"]]
-                self.assertEqual(names, workflow_input_names(schema.inputs, selections))
+                shared = (
+                    {"images", "videos", "audios"}
+                    if node_type == "BytePlusSeed"
+                    else {
+                        "reference_image",
+                        "reference_audio_1",
+                        "reference_audio_2",
+                        "reference_audio_3",
+                    }
+                )
+                migrated = [
+                    name.removeprefix(combo + ".")
+                    if name.startswith(combo + ".") and name.split(".")[1] in shared
+                    else name
+                    for name in names
+                ]
+                current = workflow_input_names(schema.inputs, selections)
+                # Old templates may omit newly available, unconnected media ports.
+                self.assertTrue(set(migrated) <= set(current), set(migrated) - set(current))
+                old_widgets = [item["name"] for item in node["inputs"] if "widget" in item]
+                current_widgets = list(flat_inputs(schema.inputs, selections))
+                current_widgets = [name for name in current_widgets if name.split(".")[0] not in shared]
+                self.assertEqual(old_widgets, current_widgets)
                 self.assertEqual(names, WorkflowTemplateTests.CURRENT_INPUT_ORDERS[node_type])
                 combo_input = next(item for item in node["inputs"] if item["name"] == combo)
                 self.assertEqual(combo_input["type"], "COMFY_DYNAMICCOMBO_V3")
