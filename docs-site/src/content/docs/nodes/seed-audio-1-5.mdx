@@ -14,13 +14,23 @@ import Shot from '../../../components/Shot.astro';
 
 ## What it does
 
-Create speech, music and effects from a prompt, use reference voices or a character image, generate audio guided by a video, translate video, or separate audio into tracks; select a mode to show its inputs.
+Create speech-led audio with accompanying music and effects, use reference voices or a character image, generate audio guided by a video, translate video, or separate audio into tracks; pure music or sound-effect generation is not supported by the supplied early-test contract.
 
 Available in node-pack version **0.13.0 and later**, this node uses your **ModelArk API key** in **Settings > BytePlus**, with Singapore selected. Each run submits one billed synchronous request using `dola-seed-audio-1-5-261128`. This is separate from [Seed Audio 1.0](../seed-audio/), which uses a Seed Speech key.
 
 ## On the canvas
 
-<Shot src="nodes/seed-audio-1-5.png" alt="Seed Audio 1.5 with a native mode selector, prompt, sample rate and audio track outputs" caption="Choose a mode for audio creation, video dubbing, translation or stem separation." />
+<Shot src="nodes/seed-audio-1-5.png" alt="Seed Audio 1.5 in text-to-audio mode with source media sockets on the left and generated outputs on the right" caption="The default mode uses your prompt; the visible media sockets are for reference and separation modes." />
+
+Connect source media to the sockets on the **left**; generated audio, video and subtitles leave on the **right**. Media sockets stay visible when you change modes, while prompts, URLs and translation controls follow the selected mode. Disconnect media that does not belong to that mode.
+
+<Shot src="nodes/seed-audio-1-5-video-reference.png" alt="Seed Audio 1.5 in video-to-audio mode on Classic Canvas, with left-side video and voice inputs and video output enabled" caption="Classic Canvas: connect your source to video on the left and optional voice clips to reference_audio_1 through reference_audio_6." />
+
+<Shot src="nodes/seed-audio-1-5-nodes-2.png" alt="Seed Audio 1.5 in video-to-audio mode in Nodes 2.0, with source sockets on the left and audio, video and subtitle outputs on the right" caption="Nodes 2.0 uses the same connection direction; the right-side audio and video sockets send generated results to preview or save nodes." />
+
+Use the left-side `video` socket or the mode's `video_url`, not both. Voice references are optional in `video to audio`; fill them in order when used. `include_video` requests generated video output and does not add a source-video input.
+
+The supplied guide describes restricted early-test access and a planned December 2 release. Confirm your access and the provider's release terms before public use.
 
 **Generate your first clip**
 

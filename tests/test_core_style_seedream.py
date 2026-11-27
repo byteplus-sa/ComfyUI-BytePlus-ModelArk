@@ -276,8 +276,9 @@ class SeedreamSchemaTests(unittest.TestCase):
         schema = nodes_seedream.BytePlusSeedream.define_schema()
         self.assertEqual(schema.node_id, "BytePlusSeedream")
         self.assertEqual(schema.display_name, "BytePlus Seedream")
-        self.assertEqual([item.id for item in schema.inputs], ["prompt", "model"])
+        self.assertEqual([item.id for item in schema.inputs], ["prompt", "model", "images", "reference_mask"])
         self.assertEqual(schema.inputs[1].io_type, "COMFY_DYNAMICCOMBO_V3")
+        self.assertTrue(schema.inputs[2].optional)
         self.assertEqual(
             [option.key for option in schema.inputs[1].options], [PRO, FLASH, LITE, V45, V40, V55]
         )
@@ -292,7 +293,7 @@ class SeedreamSchemaTests(unittest.TestCase):
         for model, expected in EXPECTED_OPTION_INPUTS.items():
             with self.subTest(model=model):
                 inputs, ids = option_inputs(schema, model)
-                self.assertEqual(ids, expected)
+                self.assertEqual(ids, [name for name in expected if name not in {"images", "reference_mask"}])
                 for name in ("generation_count", "output_format"):
                     if name in inputs:
                         self.assertTrue(inputs[name].advanced, name)
@@ -347,9 +348,10 @@ class SeedreamSchemaTests(unittest.TestCase):
         for model, (max_refs, min_side, max_side, max_images) in caps.items():
             with self.subTest(model=model):
                 inputs, _ids = option_inputs(schema, model)
-                names = inputs["images"].template.names
-                self.assertEqual(names, [f"image_{i}" for i in range(1, max_refs + 1)])
-                self.assertEqual(inputs["images"].template.min, 0)
+                images = next(i for i in schema.inputs if i.id == "images")
+                self.assertEqual(images.template.names, [f"image_{i}" for i in range(1, 15)])
+                self.assertEqual(images.template.min, 0)
+                self.assertEqual(nodes_seedream.SEEDREAM_MODEL_CAPS[model]["max_refs"], max_refs)
                 self.assertEqual((inputs["width"].min, inputs["width"].max, inputs["width"].step), (min_side, max_side, 2))
                 self.assertEqual((inputs["height"].min, inputs["height"].max), (min_side, max_side))
                 self.assertEqual(inputs["width"].default, 2048)
@@ -407,7 +409,8 @@ class SeedreamSchemaTests(unittest.TestCase):
         self.assertNotIn("4K (adaptive)", inputs["size_preset"].options)
         for side in ("width", "height"):
             self.assertEqual((inputs[side].min, inputs[side].max, inputs[side].step), (240, 11520, 2))
-        self.assertEqual(len(inputs["images"].template.names), 10)
+        self.assertNotIn("images", inputs)
+        self.assertEqual(nodes_seedream.SEEDREAM_MODEL_CAPS[V55]["max_refs"], 10)
         self.assertEqual(inputs["output_format"].options, ["png", "jpeg"])
         self.assertEqual(inputs["output_format"].default, "png")
         self.assertEqual(inputs["background"].options, ["auto", "opaque", "transparent"])
@@ -438,11 +441,11 @@ class SeedreamSchemaTests(unittest.TestCase):
         schema = nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema()
         self.assertEqual(schema.node_id, "BytePlusSeedreamLayerSeparation")
         self.assertEqual(schema.display_name, "BytePlus Seedream Layer Separation")
-        self.assertEqual([item.id for item in schema.inputs], ["model"])
+        self.assertEqual([item.id for item in schema.inputs], ["model", "image"])
         for model, expected in LAYER_OPTION_INPUTS.items():
             with self.subTest(model=model):
                 inputs, ids = option_inputs(schema, model)
-                self.assertEqual(ids, expected)
+                self.assertEqual(ids, [name for name in expected if name != "image"])
                 self.assertEqual(inputs["size"].options, ["auto", "1K", "1.5K", "2K"])
                 self.assertEqual(inputs["seed"].default, 42)
                 self.assertTrue(inputs["seed"].control_after_generate)
@@ -472,13 +475,13 @@ class SeedreamSchemaTests(unittest.TestCase):
         options = {o.key: o for o in schema.inputs[1].options}
         for key, refs in ((LITE, 14), (V45, 14), (V40, 14), (PRO, 10), (FLASH, 10)):
             inputs = {i.id: i for i in options[key].inputs}
-            self.assertEqual(len(inputs["images"].template.names), refs, key)
+            self.assertEqual(nodes_seedream.SEEDREAM_MODEL_CAPS[key]["max_refs"], refs, key)
             if "max_images" in inputs:
                 self.assertEqual(inputs["max_images"].max, 15, key)
         layers = nodes_seedream.BytePlusSeedreamLayerSeparation.define_schema()
+        self.assertIn("262,144 pixels", layers.inputs[1].tooltip)
         for option in layers.inputs[0].options:
             inputs = {i.id: i for i in option.inputs}
-            self.assertIn("262,144 pixels", inputs["image"].tooltip)
             self.assertIn("0-999", inputs["prompt"].tooltip)
 
     def core_node_pairs(self):
@@ -523,8 +526,24 @@ class SeedreamSchemaTests(unittest.TestCase):
     def assert_schema_matches_core(self, core_schema, our_schema):
         self.assertEqual(core_schema.description, our_schema.description)
         self.assertEqual(core_schema.is_output_node, our_schema.is_output_node)
-        self.assertEqual([item.id for item in core_schema.inputs], [item.id for item in our_schema.inputs])
-        for core_input, our_input in zip(core_schema.inputs, our_schema.inputs, strict=True):
+        extras = {
+            "BytePlusSeedream": ["images", "reference_mask"],
+            "BytePlusSeedreamLayerSeparation": ["image"],
+        }.get(our_schema.node_id, [])
+        self.assertEqual([item.id for item in our_schema.inputs if item.id not in extras], [item.id for item in core_schema.inputs])
+        for extra in extras:
+            self.assertIn(extra, [item.id for item in our_schema.inputs], extra)
+            item = next(item for item in our_schema.inputs if item.id == extra)
+            self.assertTrue(item.optional)
+            if extra == "images":
+                self.assertEqual(item.io_type, "COMFY_AUTOGROW_V3")
+                self.assertEqual(item.template.names, [f"image_{n}" for n in range(1, 15)])
+                self.assertEqual(item.template.min, 0)
+                self.assertEqual(item.template.input.io_type, "IMAGE")
+            else:
+                self.assertEqual(item.io_type, "MASK" if extra == "reference_mask" else "IMAGE")
+        comparable_inputs = [item for item in our_schema.inputs if item.id not in extras]
+        for core_input, our_input in zip(core_schema.inputs, comparable_inputs, strict=True):
             self.assert_shared_input_matches_core(core_input, our_input, our_schema.node_id)
             if core_input.io_type != "COMFY_DYNAMICCOMBO_V3":
                 continue
@@ -537,8 +556,18 @@ class SeedreamSchemaTests(unittest.TestCase):
             our_options = {option.key: option for option in our_input.options}
             for core_option in core_input.options:
                 our_option = our_options[core_option.key]
+                builder = (
+                    nodes_seedream._seedream_model_inputs if our_schema.node_id == "BytePlusSeedream"
+                    else nodes_seedream._layer_separation_inputs
+                )
+                source_media = {item.id: item for item in builder(core_option.key)}
+                for item in core_option.inputs:
+                    if item.id in {"images", "image"}:
+                        self.assert_shared_input_matches_core(
+                            item, source_media[item.id], our_schema.node_id, core_option.key
+                        )
                 if our_schema.node_id == "BytePlusSeedream":
-                    extras = EXTRAS if core_option.key != V55 else {
+                    extras = EXTRAS - {"reference_mask"} if core_option.key != V55 else {
                         "prompt_optimization", "generation_count", "output_format", "safety_identifier",
                     }
                     if core_option.key not in (PRO, FLASH, V55):
@@ -547,7 +576,10 @@ class SeedreamSchemaTests(unittest.TestCase):
                     extras = {"output_format", "save_layers", "filename_prefix"}
                     if core_option.key == V55:
                         extras |= {"prompt_optimization", "text_recognition", "safety_identifier"}
-                core_ids = [item.id for item in core_option.inputs]
+                # Media intentionally lives at the top level; core keeps it per option.
+                moved = {"images", "image"}
+                core_children = [item for item in core_option.inputs if item.id not in moved]
+                core_ids = [item.id for item in core_children]
                 self.assertFalse(set(core_ids) & extras)
                 self.assertEqual(
                     [item.id for item in our_option.inputs[:len(core_ids)]], core_ids, core_option.key
@@ -555,7 +587,7 @@ class SeedreamSchemaTests(unittest.TestCase):
                 extra_ids = [item.id for item in our_option.inputs[len(core_ids):]]
                 self.assertEqual(set(extra_ids), extras)
                 self.assertEqual(len(extra_ids), len(extras))
-                for core_item, our_item in zip(core_option.inputs, our_option.inputs, strict=False):
+                for core_item, our_item in zip(core_children, our_option.inputs, strict=False):
                     self.assert_shared_input_matches_core(
                         core_item, our_item, our_schema.node_id, core_option.key
                     )
@@ -644,7 +676,7 @@ class SeedreamSchemaTests(unittest.TestCase):
                 ("background", "options", ["auto", "opaque", "transparent", "invalid"]),
                 ("background", "default", "opaque"), ("background", "advanced", True),
                 ("seed", "max", 100), ("seed", "default", 43),
-                ("images", "optional", True), ("watermark", "default", True),
+                ("images", "optional", False), ("watermark", "default", True),
             ],
             "BytePlusSeedreamLayerSeparation": [
                 ("max_images", "min", 1), ("max_images", "max", 99),
@@ -655,7 +687,7 @@ class SeedreamSchemaTests(unittest.TestCase):
                 ("crop_layers", "default", False), ("size", "default", "1K"),
                 ("size", "options", ["auto", "1K", "2K"]),
                 ("size", "options", ["auto", "1K", "1.5K", "2K", "4K"]),
-                ("image", "optional", True), ("prompt", "default", "split"),
+                ("image", "optional", False), ("prompt", "default", "split"),
                 ("seed", "max", 100), ("seed", "control_after_generate", False),
             ],
         }
@@ -665,7 +697,8 @@ class SeedreamSchemaTests(unittest.TestCase):
             for name, field, value in mutations[our_node.__name__]:
                 with self.subTest(node=our_node.__name__, input=name, field=field, value=value):
                     mutated = our_node.define_schema()
-                    setattr(option_inputs(mutated, V55)[0][name], field, value)
+                    target = next(i for i in mutated.inputs if i.id == name) if name in {"images", "image"} else option_inputs(mutated, V55)[0][name]
+                    setattr(target, field, value)
                     with self.assertRaises(AssertionError):
                         self.assert_schema_matches_core(core_schema, mutated)
 
@@ -698,9 +731,10 @@ class SeedreamSchemaTests(unittest.TestCase):
         for field, value in (("names", ["image_1"]), ("min", 1)):
             with self.subTest(field=field):
                 mutated = our_node.define_schema()
-                template = deepcopy(option_inputs(mutated, V55)[0]["images"].template)
+                images = next(i for i in mutated.inputs if i.id == "images")
+                template = deepcopy(images.template)
                 setattr(template, field, value)
-                option_inputs(mutated, V55)[0]["images"].template = template
+                images.template = template
                 with self.assertRaises(AssertionError):
                     self.assert_schema_matches_core(core_schema, mutated)
 
@@ -742,13 +776,49 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
         else:
             nodes_seedream.BytePlusSeedream.hidden = self._old[3]
 
-    async def run_node(self, model, prompt="a red apple", fake=None, **options):
+    async def run_node(self, model, prompt="a red apple", fake=None, _top_level=True, **options):
         fake = fake or FakeImages()
         client = FakeClient(fake)
+        media = {key: options.pop(key) for key in ("images", "reference_mask") if key in options} if _top_level else {}
         result = await nodes_seedream.BytePlusSeedream.execute(
-            client, prompt, {"model": model, **options}
+            client, prompt, {"model": model, **options}, **media
         )
         return fake, client, result
+
+    async def test_lifted_media_preserves_wire_contract(self):
+        import torch
+        images = {"image_1": torch.ones((1, 600, 600, 3))}
+        current, _, _ = await self.run_node(V55, images=images)
+        legacy, _, _ = await self.run_node(V55, images=images, _top_level=False)
+        for key in ("model", "image", "size", "output_format", "extra_body"):
+            self.assertEqual(current.calls[0].get(key), legacy.calls[0].get(key), key)
+
+    async def test_unsupported_reference_masks_stop_before_billing(self):
+        import torch
+
+        for model in (V55, LITE, V45, V40):
+            for fill in (0, 1):
+                with self.subTest(model=model, mask=fill):
+                    fake = FakeImages()
+                    with self.assertRaisesRegex(nodes_seedream.BytePlusException, "reference_mask is not supported"):
+                        await self.run_node(
+                            model, fake=fake,
+                            images={"image_1": torch.ones((1, 600, 600, 3))},
+                            reference_mask=torch.full((1, 600, 600), fill, dtype=torch.float32),
+                        )
+                    self.assertEqual(fake.calls, [])
+
+    async def test_pro_flash_opaque_mask_behavior_is_unchanged(self):
+        import torch
+
+        for model in (PRO, FLASH):
+            with self.subTest(model=model):
+                request, _, _ = await self.run_node(
+                    model, background="opaque",
+                    images={"image_1": torch.ones((1, 600, 600, 3))},
+                    reference_mask=torch.ones((1, 600, 600)),
+                )
+                self.assertEqual(len(request.calls), 1)
 
     async def test_omitted_size_presets_keep_effective_defaults(self):
         for model, size in (
@@ -1276,8 +1346,8 @@ class LayerSeparationTests(unittest.IsolatedAsyncioTestCase):
         if image is None:
             image = torch.ones((1, 600, 600, 3))
         result = await nodes_seedream.BytePlusSeedreamLayerSeparation.execute(
-            client, {"model": model, "image": image, "prompt": "  split  ", "size": "auto",
-                     "seed": 42, "watermark": False, **options}
+            client, {"model": model, "prompt": "  split  ", "size": "auto",
+                     "seed": 42, "watermark": False, **options}, image=image
         )
         return calls, client, result
 

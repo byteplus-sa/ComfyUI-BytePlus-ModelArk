@@ -4,6 +4,7 @@ import json
 from comfy_api.latest import io as comfy_io
 
 from .core_style import seed_input
+from .media_inputs import lift_media_inputs, merge_media_inputs
 from .models_config import SEED_AUDIO_15_MODEL_MAP
 from .nodes_shared import GLOBAL_CATEGORY, get_client, get_text, send_node_text, wait_interruptible, with_client
 from .seed_audio15_api import (
@@ -50,6 +51,19 @@ def audio_references():
     ]
 
 
+def image_reference_inputs():
+    return [
+        comfy_io.Image.Input("reference_image", optional=True),
+        comfy_io.String.Input(
+            "ref_image_url",
+            default="",
+            optional=True,
+            advanced=True,
+            tooltip="Public character image URL instead of reference_image.",
+        ),
+    ]
+
+
 def video_inputs():
     return [
         comfy_io.Video.Input("video", optional=True, tooltip="One 4-360 second video, uploaded through Comfy.org."),
@@ -62,6 +76,20 @@ def video_inputs():
     ]
 
 
+def separation_audio_inputs():
+    return [
+        comfy_io.Audio.Input(
+            "audio", optional=True, tooltip="One 2-360 second audio clip, up to 90 MB before Base64 encoding."
+        ),
+        comfy_io.String.Input(
+            "audio_url",
+            default="",
+            optional=True,
+            tooltip="Public WAV/MP3 URL instead of audio. Recommended for large sources.",
+        ),
+    ]
+
+
 def mode_options():
     return [
         comfy_io.DynamicCombo.Option("text to audio", [prompt_input()]),
@@ -70,14 +98,7 @@ def mode_options():
             "image reference",
             [
                 prompt_input(),
-                comfy_io.Image.Input("reference_image", optional=True),
-                comfy_io.String.Input(
-                    "ref_image_url",
-                    default="",
-                    optional=True,
-                    advanced=True,
-                    tooltip="Public character image URL instead of reference_image.",
-                ),
+                *image_reference_inputs(),
             ],
         ),
         comfy_io.DynamicCombo.Option("video to audio", [prompt_input(), *video_inputs(), *audio_references()]),
@@ -117,15 +138,7 @@ def mode_options():
             "stem separation",
             [
                 prompt_input("Separate this audio into three tracks: all vocals, background music, and sound effects."),
-                comfy_io.Audio.Input(
-                    "audio", optional=True, tooltip="One 2-360 second audio clip, up to 90 MB before Base64 encoding."
-                ),
-                comfy_io.String.Input(
-                    "audio_url",
-                    default="",
-                    optional=True,
-                    tooltip="Public WAV/MP3 URL instead of audio. Recommended for large sources.",
-                ),
+                *separation_audio_inputs(),
             ],
         ),
     ]
@@ -144,7 +157,10 @@ class BytePlusSeedAudio15(comfy_io.ComfyNode):
             "Cancel stops local waiting only; accepted work may continue and be billed. Use only authorized media.",
             search_aliases=["Seed Audio 1.5", "audio generation", "video dubbing", "stem separation"],
             inputs=[
-                comfy_io.DynamicCombo.Input("mode", options=mode_options()),
+                *lift_media_inputs(
+                    comfy_io.DynamicCombo.Input("mode", options=mode_options()),
+                    {"reference_image", "video", "audio", *(f"reference_audio_{n}" for n in range(1, 7))},
+                ),
                 comfy_io.Combo.Input("sample_rate", options=list(SAMPLE_RATES), default="44100"),
                 seed_input(
                     default=42,
@@ -247,10 +263,31 @@ class BytePlusSeedAudio15(comfy_io.ComfyNode):
         include_video=False,
         include_subtitles=False,
         include_source_subtitles=False,
+        *,
+        reference_audio_1=None,
+        reference_audio_2=None,
+        reference_audio_3=None,
+        reference_audio_4=None,
+        reference_audio_5=None,
+        reference_audio_6=None,
+        reference_image=None,
+        video=None,
+        audio=None,
     ):
         # The seed is only a ComfyUI rerun control, not a provider parameter.
         require_supported_region(client)
-        options = mode if isinstance(mode, dict) else {}
+        options = merge_media_inputs(
+            mode if isinstance(mode, dict) else {},
+            reference_audio_1=reference_audio_1,
+            reference_audio_2=reference_audio_2,
+            reference_audio_3=reference_audio_3,
+            reference_audio_4=reference_audio_4,
+            reference_audio_5=reference_audio_5,
+            reference_audio_6=reference_audio_6,
+            reference_image=reference_image,
+            video=video,
+            audio=audio,
+        )
         content, video = await wait_interruptible(asyncio.to_thread(prepare_content, options))
         body = build_request(
             options.get("mode"),

@@ -247,7 +247,8 @@ Needs Dreamina Seedance Advanced Creation Rights and IAM AK/SK. See [Private Ass
 
 **Seed Audio 1.5** (`BytePlusSeedAudio15`) submits one synchronous request to `/api/v3/contents/generations` using `dola-seed-audio-1-5-261128`. Activate the model and select `ap-southeast-1` in **Settings > BytePlus**; this integration follows the supplied Singapore contract.
 
-- `mode`: text to audio, audio reference, image reference, video to audio, video translation or stem separation. Only the selected mode's media and configuration inputs are shown.
+- `mode`: text to audio, audio reference, image reference, video to audio, video translation or stem separation. Media sockets stay on the left; prompts, URLs and configuration controls follow the selected mode. Disconnect media that the selected mode does not use.
+- The supplied guide restricts this model to early testing, with a planned December 2 release, and excludes pure music/SFX generation. Confirm access and release terms before public use.
 - Voice references: fill slots 1-6 without gaps, using connected audio or each slot's public WAV/MP3 URL. Refer to them as `@audio1` through `@audio6`. Each clip must last 2-30 seconds and be at most 15 MB; connected clips go inline as Base64 WAV. Speaker IDs and Files API IDs are not exposed by this node.
 - Image reference: one character image, 300-6000 pixels per side, width/height 0.4-2.5 and under 10 MB. Connected images go inline as PNG.
 - Video modes: one MP4/MOV, 4-360 seconds, 12-60 FPS, 407696-2086876 pixels, sides 300-6000 and width/height 0.4-2.5. Public URLs are limited to 200 MB; an authorized `tos://bucket/object` video URI can reference up to 1 GB. Connected video uploads through Comfy.org, so sign in or use `video_url`.

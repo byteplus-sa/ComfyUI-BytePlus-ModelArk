@@ -105,27 +105,6 @@
         "step": 2
        },
        {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 10 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10"
-        ],
-        "min": 0
-       },
-       {
         "name": "prompt_optimization",
         "type": "choice",
         "required": true,
@@ -197,13 +176,6 @@
          "opaque",
          "transparent"
         ]
-       },
-       {
-        "name": "reference_mask",
-        "type": "MASK",
-        "required": false,
-        "advanced": false,
-        "tooltip": "Alpha of the reference image for a transparent background (connect the MASK output of Load Image)."
        }
       ]
      },
@@ -271,27 +243,6 @@
         "step": 2
        },
        {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 10 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10"
-        ],
-        "min": 0
-       },
-       {
         "name": "seed",
         "type": "integer",
         "required": true,
@@ -343,13 +294,6 @@
          "opaque",
          "transparent"
         ]
-       },
-       {
-        "name": "reference_mask",
-        "type": "MASK",
-        "required": false,
-        "advanced": false,
-        "tooltip": "Alpha of the reference image for a transparent background (connect the MASK output of Load Image)."
        }
       ]
      },
@@ -426,31 +370,6 @@
         "min": 1,
         "max": 15,
         "step": 1
-       },
-       {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 14 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14"
-        ],
-        "min": 0
        },
        {
         "name": "fail_on_partial",
@@ -563,31 +482,6 @@
         "min": 1,
         "max": 15,
         "step": 1
-       },
-       {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 14 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14"
-        ],
-        "min": 0
        },
        {
         "name": "fail_on_partial",
@@ -709,31 +603,6 @@
         "min": 1,
         "max": 15,
         "step": 1
-       },
-       {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 14 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14"
-        ],
-        "min": 0
        },
        {
         "name": "fail_on_partial",
@@ -861,27 +730,6 @@
         ]
        },
        {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 10 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10"
-        ],
-        "min": 0
-       },
-       {
         "name": "seed",
         "type": "integer",
         "required": true,
@@ -944,6 +792,38 @@
       ]
      }
     ]
+   },
+   {
+    "name": "images",
+    "type": "group of inputs",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Optional reference image(s) for image-to-image or multi-reference generation. Up to 14 images. The selected model's limits still apply.",
+    "item_type": "IMAGE",
+    "slots": [
+     "image_1",
+     "image_2",
+     "image_3",
+     "image_4",
+     "image_5",
+     "image_6",
+     "image_7",
+     "image_8",
+     "image_9",
+     "image_10",
+     "image_11",
+     "image_12",
+     "image_13",
+     "image_14"
+    ],
+    "min": 0
+   },
+   {
+    "name": "reference_mask",
+    "type": "MASK",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Alpha of the reference image for a transparent background (connect the MASK output of Load Image)."
    }
   ],
   "outputs": [
@@ -1005,13 +885,6 @@
      {
       "key": "seedream 5.0 pro",
       "inputs": [
-       {
-        "name": "image",
-        "type": "IMAGE",
-        "required": true,
-        "advanced": false,
-        "tooltip": "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload."
-       },
        {
         "name": "prompt",
         "type": "text",
@@ -1108,13 +981,6 @@
       "key": "seedream 5.0 flash",
       "inputs": [
        {
-        "name": "image",
-        "type": "IMAGE",
-        "required": true,
-        "advanced": false,
-        "tooltip": "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload."
-       },
-       {
         "name": "prompt",
         "type": "text",
         "required": true,
@@ -1197,13 +1063,6 @@
      {
       "key": "seedream 5.5",
       "inputs": [
-       {
-        "name": "image",
-        "type": "IMAGE",
-        "required": true,
-        "advanced": false,
-        "tooltip": "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload."
-       },
        {
         "name": "prompt",
         "type": "text",
@@ -1323,6 +1182,13 @@
       ]
      }
     ]
+   },
+   {
+    "name": "image",
+    "type": "IMAGE",
+    "required": false,
+    "advanced": false,
+    "tooltip": "The image to separate. Exactly one image, at least 262,144 pixels (e.g. 512x512), aspect ratio between 1:16 and 16:1. Inputs larger than about 4MP are downscaled before upload."
    }
   ],
   "outputs": [
@@ -2478,89 +2344,6 @@
         ]
        },
        {
-        "name": "reference_images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20",
-         "image_21",
-         "image_22",
-         "image_23",
-         "image_24",
-         "image_25",
-         "image_26",
-         "image_27",
-         "image_28",
-         "image_29",
-         "image_30"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4",
-         "video_5",
-         "video_6",
-         "video_7",
-         "video_8",
-         "video_9",
-         "video_10"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3",
-         "audio_4",
-         "audio_5",
-         "audio_6",
-         "audio_7",
-         "audio_8",
-         "audio_9",
-         "audio_10"
-        ],
-        "min": 0
-       },
-       {
         "name": "reference_assets",
         "type": "group of inputs",
         "required": true,
@@ -2723,89 +2506,6 @@
          "mp4",
          "mov"
         ]
-       },
-       {
-        "name": "reference_images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20",
-         "image_21",
-         "image_22",
-         "image_23",
-         "image_24",
-         "image_25",
-         "image_26",
-         "image_27",
-         "image_28",
-         "image_29",
-         "image_30"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4",
-         "video_5",
-         "video_6",
-         "video_7",
-         "video_8",
-         "video_9",
-         "video_10"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3",
-         "audio_4",
-         "audio_5",
-         "audio_6",
-         "audio_7",
-         "audio_8",
-         "audio_9",
-         "audio_10"
-        ],
-        "min": 0
        },
        {
         "name": "reference_assets",
@@ -2973,59 +2673,6 @@
         ]
        },
        {
-        "name": "reference_images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4",
-         "video_5"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3",
-         "audio_4",
-         "audio_5"
-        ],
-        "min": 0
-       },
-       {
         "name": "reference_assets",
         "type": "group of inputs",
         "required": true,
@@ -3136,54 +2783,6 @@
         "default": true
        },
        {
-        "name": "reference_images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3"
-        ],
-        "min": 0
-       },
-       {
         "name": "reference_assets",
         "type": "group of inputs",
         "required": true,
@@ -3285,54 +2884,6 @@
         "advanced": false,
         "tooltip": "Enable audio generation for the output video.",
         "default": true
-       },
-       {
-        "name": "reference_images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3"
-        ],
-        "min": 0
        },
        {
         "name": "reference_assets",
@@ -3438,54 +2989,6 @@
         "default": true
        },
        {
-        "name": "reference_images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3"
-        ],
-        "min": 0
-       },
-       {
-        "name": "reference_audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3"
-        ],
-        "min": 0
-       },
-       {
         "name": "reference_assets",
         "type": "group of inputs",
         "required": true,
@@ -3567,6 +3070,89 @@
     "advanced": true,
     "tooltip": "Submit the task and return at once; run the node again to collect the finished video.",
     "default": false
+   },
+   {
+    "name": "reference_images",
+    "type": "group of inputs",
+    "required": false,
+    "advanced": false,
+    "tooltip": " The selected model's limits still apply.",
+    "item_type": "IMAGE",
+    "slots": [
+     "image_1",
+     "image_2",
+     "image_3",
+     "image_4",
+     "image_5",
+     "image_6",
+     "image_7",
+     "image_8",
+     "image_9",
+     "image_10",
+     "image_11",
+     "image_12",
+     "image_13",
+     "image_14",
+     "image_15",
+     "image_16",
+     "image_17",
+     "image_18",
+     "image_19",
+     "image_20",
+     "image_21",
+     "image_22",
+     "image_23",
+     "image_24",
+     "image_25",
+     "image_26",
+     "image_27",
+     "image_28",
+     "image_29",
+     "image_30"
+    ],
+    "min": 0
+   },
+   {
+    "name": "reference_videos",
+    "type": "group of inputs",
+    "required": false,
+    "advanced": false,
+    "tooltip": " The selected model's limits still apply.",
+    "item_type": "VIDEO",
+    "slots": [
+     "video_1",
+     "video_2",
+     "video_3",
+     "video_4",
+     "video_5",
+     "video_6",
+     "video_7",
+     "video_8",
+     "video_9",
+     "video_10"
+    ],
+    "min": 0
+   },
+   {
+    "name": "reference_audios",
+    "type": "group of inputs",
+    "required": false,
+    "advanced": false,
+    "tooltip": " The selected model's limits still apply.",
+    "item_type": "AUDIO",
+    "slots": [
+     "audio_1",
+     "audio_2",
+     "audio_3",
+     "audio_4",
+     "audio_5",
+     "audio_6",
+     "audio_7",
+     "audio_8",
+     "audio_9",
+     "audio_10"
+    ],
+    "min": 0
    }
   ],
   "outputs": [
@@ -4309,52 +3895,6 @@
       "key": "Seed 2.0 Pro",
       "inputs": [
        {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional image(s) to use as context for the model. Up to 20 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20"
-        ],
-        "min": 0
-       },
-       {
-        "name": "videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional video(s) to use as context for the model. Up to 4 videos.",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4"
-        ],
-        "min": 0
-       },
-       {
         "name": "temperature",
         "type": "number",
         "required": true,
@@ -4371,52 +3911,6 @@
       "key": "Seed 2.0 Lite",
       "inputs": [
        {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional image(s) to use as context for the model. Up to 20 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20"
-        ],
-        "min": 0
-       },
-       {
-        "name": "videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional video(s) to use as context for the model. Up to 4 videos.",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4"
-        ],
-        "min": 0
-       },
-       {
         "name": "temperature",
         "type": "number",
         "required": true,
@@ -4426,21 +3920,6 @@
         "min": 0.0,
         "max": 2.0,
         "step": 0.01
-       },
-       {
-        "name": "audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional audio clip(s) to use as context for the model (speech, music, sounds). Up to 4 clips, 120 minutes in total.",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3",
-         "audio_4"
-        ],
-        "min": 0
        }
       ]
      },
@@ -4448,52 +3927,6 @@
       "key": "Seed 2.0 Mini",
       "inputs": [
        {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional image(s) to use as context for the model. Up to 20 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20"
-        ],
-        "min": 0
-       },
-       {
-        "name": "videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional video(s) to use as context for the model. Up to 4 videos.",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4"
-        ],
-        "min": 0
-       },
-       {
         "name": "temperature",
         "type": "number",
         "required": true,
@@ -4503,73 +3936,12 @@
         "min": 0.0,
         "max": 2.0,
         "step": 0.01
-       },
-       {
-        "name": "audios",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional audio clip(s) to use as context for the model (speech, music, sounds). Up to 4 clips, 120 minutes in total.",
-        "item_type": "AUDIO",
-        "slots": [
-         "audio_1",
-         "audio_2",
-         "audio_3",
-         "audio_4"
-        ],
-        "min": 0
        }
       ]
      },
      {
       "key": "Seed 2.1 Turbo",
       "inputs": [
-       {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional image(s) to use as context for the model. Up to 20 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20"
-        ],
-        "min": 0
-       },
-       {
-        "name": "videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional video(s) to use as context for the model. Up to 4 videos.",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4"
-        ],
-        "min": 0
-       },
        {
         "name": "temperature",
         "type": "number",
@@ -4587,52 +3959,6 @@
       "key": "DeepSeek V4.1 Flash",
       "inputs": [
        {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional image(s) to use as context for the model. Up to 20 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20"
-        ],
-        "min": 0
-       },
-       {
-        "name": "videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional video(s) to use as context for the model. Up to 4 videos.",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4"
-        ],
-        "min": 0
-       },
-       {
         "name": "temperature",
         "type": "number",
         "required": true,
@@ -4648,52 +3974,6 @@
      {
       "key": "GLM 5.3 Flash",
       "inputs": [
-       {
-        "name": "images",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional image(s) to use as context for the model. Up to 20 images.",
-        "item_type": "IMAGE",
-        "slots": [
-         "image_1",
-         "image_2",
-         "image_3",
-         "image_4",
-         "image_5",
-         "image_6",
-         "image_7",
-         "image_8",
-         "image_9",
-         "image_10",
-         "image_11",
-         "image_12",
-         "image_13",
-         "image_14",
-         "image_15",
-         "image_16",
-         "image_17",
-         "image_18",
-         "image_19",
-         "image_20"
-        ],
-        "min": 0
-       },
-       {
-        "name": "videos",
-        "type": "group of inputs",
-        "required": true,
-        "advanced": false,
-        "tooltip": "Optional video(s) to use as context for the model. Up to 4 videos.",
-        "item_type": "VIDEO",
-        "slots": [
-         "video_1",
-         "video_2",
-         "video_3",
-         "video_4"
-        ],
-        "min": 0
-       },
        {
         "name": "temperature",
         "type": "number",
@@ -4719,6 +3999,67 @@
     "min": 0,
     "max": 2147483647,
     "step": 1
+   },
+   {
+    "name": "images",
+    "type": "group of inputs",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Optional image(s) to use as context for the model. Up to 20 images. The selected model's limits still apply.",
+    "item_type": "IMAGE",
+    "slots": [
+     "image_1",
+     "image_2",
+     "image_3",
+     "image_4",
+     "image_5",
+     "image_6",
+     "image_7",
+     "image_8",
+     "image_9",
+     "image_10",
+     "image_11",
+     "image_12",
+     "image_13",
+     "image_14",
+     "image_15",
+     "image_16",
+     "image_17",
+     "image_18",
+     "image_19",
+     "image_20"
+    ],
+    "min": 0
+   },
+   {
+    "name": "videos",
+    "type": "group of inputs",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Optional video(s) to use as context for the model. Up to 4 videos. The selected model's limits still apply.",
+    "item_type": "VIDEO",
+    "slots": [
+     "video_1",
+     "video_2",
+     "video_3",
+     "video_4"
+    ],
+    "min": 0
+   },
+   {
+    "name": "audios",
+    "type": "group of inputs",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Optional audio clip(s) to use as context for the model (speech, music, sounds). Up to 4 clips, 120 minutes in total. The selected model's limits still apply.",
+    "item_type": "AUDIO",
+    "slots": [
+     "audio_1",
+     "audio_2",
+     "audio_3",
+     "audio_4"
+    ],
+    "min": 0
    },
    {
     "name": "system_prompt",
@@ -4885,26 +4226,12 @@
         "multiline": true
        },
        {
-        "name": "reference_audio_1",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio1. Fill slots without gaps."
-       },
-       {
         "name": "ref_audio_1_url",
         "type": "text",
         "required": false,
         "advanced": true,
         "tooltip": "Public WAV/MP3 URL instead of reference_audio_1. Up to 15 MB.",
         "default": ""
-       },
-       {
-        "name": "reference_audio_2",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio2. Fill slots without gaps."
        },
        {
         "name": "ref_audio_2_url",
@@ -4915,26 +4242,12 @@
         "default": ""
        },
        {
-        "name": "reference_audio_3",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio3. Fill slots without gaps."
-       },
-       {
         "name": "ref_audio_3_url",
         "type": "text",
         "required": false,
         "advanced": true,
         "tooltip": "Public WAV/MP3 URL instead of reference_audio_3. Up to 15 MB.",
         "default": ""
-       },
-       {
-        "name": "reference_audio_4",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio4. Fill slots without gaps."
        },
        {
         "name": "ref_audio_4_url",
@@ -4945,26 +4258,12 @@
         "default": ""
        },
        {
-        "name": "reference_audio_5",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio5. Fill slots without gaps."
-       },
-       {
         "name": "ref_audio_5_url",
         "type": "text",
         "required": false,
         "advanced": true,
         "tooltip": "Public WAV/MP3 URL instead of reference_audio_5. Up to 15 MB.",
         "default": ""
-       },
-       {
-        "name": "reference_audio_6",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio6. Fill slots without gaps."
        },
        {
         "name": "ref_audio_6_url",
@@ -4989,13 +4288,6 @@
         "multiline": true
        },
        {
-        "name": "reference_image",
-        "type": "IMAGE",
-        "required": false,
-        "advanced": false,
-        "tooltip": ""
-       },
-       {
         "name": "ref_image_url",
         "type": "text",
         "required": false,
@@ -5018,26 +4310,12 @@
         "multiline": true
        },
        {
-        "name": "video",
-        "type": "VIDEO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 4-360 second video, uploaded through Comfy.org."
-       },
-       {
         "name": "video_url",
         "type": "text",
         "required": false,
         "advanced": false,
         "tooltip": "Public MP4/MOV URL (up to 200 MB) or an authorized tos://bucket/object URI instead of video.",
         "default": ""
-       },
-       {
-        "name": "reference_audio_1",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio1. Fill slots without gaps."
        },
        {
         "name": "ref_audio_1_url",
@@ -5048,26 +4326,12 @@
         "default": ""
        },
        {
-        "name": "reference_audio_2",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio2. Fill slots without gaps."
-       },
-       {
         "name": "ref_audio_2_url",
         "type": "text",
         "required": false,
         "advanced": true,
         "tooltip": "Public WAV/MP3 URL instead of reference_audio_2. Up to 15 MB.",
         "default": ""
-       },
-       {
-        "name": "reference_audio_3",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio3. Fill slots without gaps."
        },
        {
         "name": "ref_audio_3_url",
@@ -5078,13 +4342,6 @@
         "default": ""
        },
        {
-        "name": "reference_audio_4",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio4. Fill slots without gaps."
-       },
-       {
         "name": "ref_audio_4_url",
         "type": "text",
         "required": false,
@@ -5093,26 +4350,12 @@
         "default": ""
        },
        {
-        "name": "reference_audio_5",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio5. Fill slots without gaps."
-       },
-       {
         "name": "ref_audio_5_url",
         "type": "text",
         "required": false,
         "advanced": true,
         "tooltip": "Public WAV/MP3 URL instead of reference_audio_5. Up to 15 MB.",
         "default": ""
-       },
-       {
-        "name": "reference_audio_6",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-30 second voice clip, tagged @audio6. Fill slots without gaps."
        },
        {
         "name": "ref_audio_6_url",
@@ -5166,13 +4409,6 @@
          "ro",
          "hi"
         ]
-       },
-       {
-        "name": "video",
-        "type": "VIDEO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 4-360 second video, uploaded through Comfy.org."
        },
        {
         "name": "video_url",
@@ -5241,13 +4477,6 @@
         "multiline": true
        },
        {
-        "name": "audio",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "One 2-360 second audio clip, up to 90 MB before Base64 encoding."
-       },
-       {
         "name": "audio_url",
         "type": "text",
         "required": false,
@@ -5285,6 +4514,69 @@
     "min": 0,
     "max": 2147483647,
     "step": 1
+   },
+   {
+    "name": "reference_audio_1",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 2-30 second voice clip, tagged @audio1. Fill slots without gaps."
+   },
+   {
+    "name": "reference_audio_2",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 2-30 second voice clip, tagged @audio2. Fill slots without gaps."
+   },
+   {
+    "name": "reference_audio_3",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 2-30 second voice clip, tagged @audio3. Fill slots without gaps."
+   },
+   {
+    "name": "reference_audio_4",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 2-30 second voice clip, tagged @audio4. Fill slots without gaps."
+   },
+   {
+    "name": "reference_audio_5",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 2-30 second voice clip, tagged @audio5. Fill slots without gaps."
+   },
+   {
+    "name": "reference_audio_6",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 2-30 second voice clip, tagged @audio6. Fill slots without gaps."
+   },
+   {
+    "name": "reference_image",
+    "type": "IMAGE",
+    "required": false,
+    "advanced": false,
+    "tooltip": ""
+   },
+   {
+    "name": "video",
+    "type": "VIDEO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 4-360 second video, uploaded through Comfy.org."
+   },
+   {
+    "name": "audio",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "One 2-360 second audio clip, up to 90 MB before Base64 encoding."
    },
    {
     "name": "model",
@@ -5485,27 +4777,6 @@
       "key": "audio reference",
       "inputs": [
        {
-        "name": "reference_audio_1",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "Reference clip for voice cloning, tagged @Audio1 in the prompt. Up to 30s."
-       },
-       {
-        "name": "reference_audio_2",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "Reference clip tagged @Audio2 in the prompt. Up to 30s."
-       },
-       {
-        "name": "reference_audio_3",
-        "type": "AUDIO",
-        "required": false,
-        "advanced": false,
-        "tooltip": "Reference clip tagged @Audio3 in the prompt. Up to 30s."
-       },
-       {
         "name": "ref_audio_1_source",
         "type": "text",
         "required": false,
@@ -5534,13 +4805,6 @@
      {
       "key": "image reference",
       "inputs": [
-       {
-        "name": "reference_image",
-        "type": "IMAGE",
-        "required": false,
-        "advanced": false,
-        "tooltip": "A single character image; the model derives a voice from it. Cannot be combined with reference audio."
-       },
        {
         "name": "ref_image_url",
         "type": "text",
@@ -5801,6 +5065,34 @@
     "min": 0,
     "max": 2147483647,
     "step": 1
+   },
+   {
+    "name": "reference_audio_1",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Reference clip for voice cloning, tagged @Audio1 in the prompt. Up to 30s."
+   },
+   {
+    "name": "reference_audio_2",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Reference clip tagged @Audio2 in the prompt. Up to 30s."
+   },
+   {
+    "name": "reference_audio_3",
+    "type": "AUDIO",
+    "required": false,
+    "advanced": false,
+    "tooltip": "Reference clip tagged @Audio3 in the prompt. Up to 30s."
+   },
+   {
+    "name": "reference_image",
+    "type": "IMAGE",
+    "required": false,
+    "advanced": false,
+    "tooltip": "A single character image; the model derives a voice from it. Cannot be combined with reference audio."
    },
    {
     "name": "model",

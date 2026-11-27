@@ -124,3 +124,20 @@ If the BytePlus nodes do not appear after an update, the BytePlus SDK may be too
 - Reload the browser page, not only the server, so the new Settings page and node definitions load.
 - Node IDs do not change, but a removed model choice must be replaced manually as described above. Saved workflows keep their own node settings; open a template again from the template browser to get the newest one.
 - Before reporting a problem, check the version you run in ComfyUI-Manager and compare it with the latest one on the Registry page.
+
+## Media input layout
+
+The source checkout moves media sockets out of mode/model groups on Seed Audio 1.0 and 1.5,
+Seedream, Layer Separation, Seedance Reference and BytePlus LLM. Media connects on the left;
+outputs remain on the right. This source change does not by itself indicate a new Registry release.
+
+Saved canvas workflows are upgraded when opened: existing media links are renamed without
+changing prompt or widget values. Save the workflow again after checking its connections.
+Models and modes still enforce their own media limits.
+
+For API-format workflows submitted directly without opening the canvas, update media keys yourself:
+`mode.video` becomes `video`, `reference_mode.reference_audio_1` becomes `reference_audio_1`,
+`model.image` becomes `image`, and `model.images.image_1` becomes `images.image_1`.
+The same rule applies to video/audio Autogrow groups, Seedream's `reference_mask`, and
+Seedance's `reference_images`, `reference_videos` and `reference_audios`.
+Leave prompt, URL, asset and other mode/model control keys unchanged.

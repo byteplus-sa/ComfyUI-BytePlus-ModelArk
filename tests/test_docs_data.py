@@ -10,6 +10,7 @@ import importlib.util
 import json
 import os
 import re
+import struct
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -111,6 +112,31 @@ class DocsDataTests(unittest.TestCase):
             with self.subTest(page=page):
                 with open(os.path.join(PAGES, page), encoding="utf-8") as file:
                     self.assertIn("seed-audio-1-5/", file.read())
+
+    def test_media_input_pages_include_current_node_views(self):
+        views = {
+            "byteplus-llm": ("byteplus-llm",),
+            "seed-audio": ("seed-audio",),
+            "seed-audio-1-5": ("seed-audio-1-5", "seed-audio-1-5-video-reference", "seed-audio-1-5-nodes-2"),
+            "seedream": ("seedream", "seedream-5-5"),
+            "seedream-layer-separation": ("seedream-layer-separation", "seedream-layer-separation-5-5"),
+            "seedance-2-5-reference": ("seedance-2-5-reference",),
+        }
+        for page, screenshots in views.items():
+            with open(os.path.join(PAGES, "nodes", page + ".mdx"), encoding="utf-8") as file:
+                content = file.read()
+            self.assertIn("left", content, page)
+            for name in screenshots:
+                with self.subTest(page=page, screenshot=name):
+                    self.assertIn(f'<Shot src="nodes/{name}.png"', content)
+                    path = os.path.join(ROOT, "docs-site", "src", "assets", "nodes", name + ".png")
+                    with open(path, "rb") as image:
+                        header = image.read(24)
+                    self.assertEqual(header[:8], b"\x89PNG\r\n\x1a\n")
+                    self.assertEqual(header[12:16], b"IHDR")
+                    width, height = struct.unpack(">II", header[16:24])
+                    self.assertGreaterEqual(width, 400)
+                    self.assertGreaterEqual(height, 300)
 
     def test_custom_apps_have_navigation_and_local_screenshots(self):
         site = os.path.join(ROOT, "docs-site")

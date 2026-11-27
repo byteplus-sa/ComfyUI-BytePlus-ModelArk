@@ -22,7 +22,7 @@ The node bills for every run and does not save anything itself unless you turn o
 
 ## On the canvas
 
-<Shot src="nodes/seedream-layer-separation.png" alt="The Seedream 5.0 Layer Separation node with one image input, seven outputs, the model set to seedream 5.0 pro and an empty prompt" caption="Seedream 5.0 Pro selected. Seedream 5.0 Flash has the same inputs except prompt_optimization." />
+<Shot src="nodes/seedream-layer-separation.png" alt="Seedream 5.0 Pro Layer Separation with one left-side image input, seven right-side outputs and an empty prompt" caption="The shared image input stays on the left when you change models; layer results leave on the right." />
 
 <Shot src="nodes/seedream-layer-separation-5-5.png" alt="Seedream 5.5 Layer Separation with a maximum of 30 images and minimal-size layers selected" caption="Seedream 5.5 exposes the layer-count limit beside size and defaults to minimal-size layers." />
 
@@ -33,7 +33,7 @@ The node bills for every run and does not save anything itself unless you turn o
 ### Notes on inputs
 
 - **Prompt:** an empty prompt separates all major elements. To target one area, add a tag such as `<bbox>left top right bottom</bbox>`. The coordinates run from 0 to 999 and are relative to the image.
-- **Model:** 5.0 Pro offers `standard` and `fast` prompt optimization; 5.5 supports only `standard`. 5.0 Flash has no such setting. On 5.5, `seed` is a local rerun control, not a generation parameter.
+- **Model:** connect one image to the left-side `image` socket; it stays connected across model changes. 5.0 Pro offers `standard` and `fast` prompt optimization; 5.5 supports only `standard`. 5.0 Flash has no such setting. On 5.5, `seed` is a local rerun control, not a generation parameter.
 - **crop_layers:** `full canvas` puts every layer on a canvas the size of the base image, ready for **ImageCompositeMasked**. `minimal size` crops each layer to its bounding box, which makes much smaller tensors. New 5.5 nodes default to `minimal size`; Pro and Flash default to `full canvas`. Rebuild the placement from the `bboxes` output with **Layers From Bounding Boxes**.
 - **Saving files:** `save_layers` writes the base image and the original layer PNGs to the ComfyUI output folder under `filename_prefix`. `output_format` sets the format of the base image; layers are always PNG. It is the only setting in the pack that writes files by itself.
 - **Layer count** (5.5): `max_images` includes the base image, with a range of 2-100 and default 30. Larger values permit finer decomposition; the model may return fewer images. Leaving text recognition unset disables it.
