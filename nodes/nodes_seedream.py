@@ -32,6 +32,7 @@ from .core_style import (
     watermark_input,
 )
 from .executor import BytePlusGenerationExecutor
+from .media_inputs import lift_media_inputs, merge_media_inputs
 from .model_endpoints import EndpointDefaultsRerun, request_model_id
 from .models_config import (
     SEEDREAM_PRO as SEEDREAM_PRO,
@@ -375,6 +376,8 @@ def build_seedream_plan(model_config, prompt):
         raise BytePlusException(get_text("seedream_err_prompt_empty"))
     caps = SEEDREAM_MODEL_CAPS[model]
     is_url_model = model in URL_MODELS
+    if model_config.get("reference_mask") is not None and model not in (SEEDREAM_PRO, SEEDREAM_FLASH):
+        raise BytePlusException(get_text("err_media_input_mode", name="reference_mask", mode=model))
 
     size = resolve_seedream_size(
         model,
@@ -522,12 +525,15 @@ class BytePlusSeedream(EndpointDefaultsRerun, comfy_io.ComfyNode):
                     default="",
                     tooltip="Text prompt for creating or editing an image.",
                 ),
-                comfy_io.DynamicCombo.Input(
-                    "model",
-                    options=[
-                        comfy_io.DynamicCombo.Option(model, _seedream_model_inputs(model))
-                        for model in SEEDREAM_MODELS
-                    ],
+                *lift_media_inputs(
+                    comfy_io.DynamicCombo.Input(
+                        "model",
+                        options=[
+                            comfy_io.DynamicCombo.Option(model, _seedream_model_inputs(model))
+                            for model in SEEDREAM_MODELS
+                        ],
+                    ),
+                    {"images", "reference_mask"},
                 ),
             ],
             outputs=[
@@ -549,8 +555,11 @@ class BytePlusSeedream(EndpointDefaultsRerun, comfy_io.ComfyNode):
 
     @classmethod
     @with_client("client", get_client)
-    async def execute(cls, client, prompt, model) -> comfy_io.NodeOutput:
-        plan = build_seedream_plan(model if isinstance(model, dict) else {"model": model}, prompt)
+    async def execute(cls, client, prompt, model, *, images=None, reference_mask=None) -> comfy_io.NodeOutput:
+        options = merge_media_inputs(
+            model if isinstance(model, dict) else {"model": model}, images=images, reference_mask=reference_mask
+        )
+        plan = build_seedream_plan(options, prompt)
         model_id = plan["model_id"]
         raise_if_model_unavailable_in_region(client, model_id)
         plan["model_id"] = request_model_id(model_id)
@@ -1083,12 +1092,15 @@ class BytePlusSeedreamLayerSeparation(EndpointDefaultsRerun, comfy_io.ComfyNode)
             ),
             description=LAYER_SEPARATION_DESCRIPTION,
             inputs=[
-                comfy_io.DynamicCombo.Input(
-                    "model",
-                    options=[
-                        comfy_io.DynamicCombo.Option(model, _layer_separation_inputs(model))
-                        for model in SEEDREAM_LAYER_SEPARATION_MODELS
-                    ],
+                *lift_media_inputs(
+                    comfy_io.DynamicCombo.Input(
+                        "model",
+                        options=[
+                            comfy_io.DynamicCombo.Option(model, _layer_separation_inputs(model))
+                            for model in SEEDREAM_LAYER_SEPARATION_MODELS
+                        ],
+                    ),
+                    {"image"},
                 ),
             ],
             outputs=_layer_separation_outputs(),
@@ -1097,7 +1109,8 @@ class BytePlusSeedreamLayerSeparation(EndpointDefaultsRerun, comfy_io.ComfyNode)
 
     @classmethod
     @with_client("client", get_client)
-    async def execute(cls, client, model) -> comfy_io.NodeOutput:
+    async def execute(cls, client, model, *, image=None) -> comfy_io.NodeOutput:
+        model = merge_media_inputs(model, image=image)
         label = model.get("model")
         model_id = SEEDREAM_LAYER_SEPARATION_MODELS.get(label)
         if not model_id:

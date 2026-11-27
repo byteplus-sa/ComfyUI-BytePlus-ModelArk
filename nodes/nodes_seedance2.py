@@ -20,6 +20,7 @@ import comfy.model_management
 from comfy_api.latest import io as comfy_io
 
 from .model_endpoints import canonical_model_id, request_model_id
+from .media_inputs import lift_media_inputs, merge_media_inputs
 from .constants import (
     IMAGE_MAX_EDGE,
     IMAGE_MAX_RATIO,
@@ -1032,7 +1033,10 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
             "uploaded to Comfy.org storage (needs a Comfy.org login), or pass links / asset IDs in "
             "reference_assets.",
             inputs=[
-                _model_input(_reference_option_inputs),
+                *lift_media_inputs(
+                    _model_input(_reference_option_inputs),
+                    {"reference_images", "reference_videos", "reference_audios"},
+                ),
                 seed_input(),
                 watermark_input(),
                 *video_extra_inputs(),
@@ -1056,7 +1060,17 @@ class BytePlusSeedance2Reference(NonBlockingRerun, comfy_io.ComfyNode):
         watermark=False,
         generation_count=1,
         non_blocking=False,
+        *,
+        reference_images=None,
+        reference_videos=None,
+        reference_audios=None,
     ) -> comfy_io.NodeOutput:
+        model = merge_media_inputs(
+            model,
+            reference_images=reference_images,
+            reference_videos=reference_videos,
+            reference_audios=reference_audios,
+        )
         label = _selected_label(model)
         prompt = _require_prompt(model)
         validate_draft_output(cls, label)

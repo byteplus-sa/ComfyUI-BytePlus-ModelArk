@@ -8,6 +8,7 @@ import uuid
 
 from comfy_api.latest import io as comfy_io
 
+from .media_inputs import has_media, lift_media_inputs, merge_media_inputs
 from .audio_utils import (
     audio_duration,
     audio_waveform,
@@ -501,15 +502,18 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
                         "same language as the lines to speak. Maximum 3000 characters."
                     ),
                 ),
-                comfy_io.DynamicCombo.Input(
-                    "reference_mode",
-                    options=_seed_audio_reference_options(),
-                    tooltip=(
-                        "How to condition the voice: 'text only' (describe everything in the prompt), "
-                        "'audio reference' (clone up to 3 voices, tagged @Audio1-3), 'image reference' "
-                        "(derive a voice from one character image), or 'preset voice' (pick a built-in "
-                        "named voice that reads the prompt)."
+                *lift_media_inputs(
+                    comfy_io.DynamicCombo.Input(
+                        "reference_mode",
+                        options=_seed_audio_reference_options(),
+                        tooltip=(
+                            "How to condition the voice: 'text only' (describe everything in the prompt), "
+                            "'audio reference' (clone up to 3 voices, tagged @Audio1-3), 'image reference' "
+                            "(derive a voice from one character image), or 'preset voice' (pick a built-in "
+                            "named voice that reads the prompt)."
+                        ),
                     ),
+                    {"reference_image", "reference_audio_1", "reference_audio_2", "reference_audio_3"},
                 ),
                 comfy_io.Combo.Input(
                     "sample_rate",
@@ -654,9 +658,26 @@ class BytePlusSeedAudio(comfy_io.ComfyNode):
         content_propagator="",
         propagate_id="",
         generation_count=1,
+        *,
+        reference_audio_1=None,
+        reference_audio_2=None,
+        reference_audio_3=None,
+        reference_image=None,
     ) -> comfy_io.NodeOutput:
-        reference_mode = reference_mode or {}
+        reference_mode = merge_media_inputs(
+            reference_mode or {},
+            reference_audio_1=reference_audio_1,
+            reference_audio_2=reference_audio_2,
+            reference_audio_3=reference_audio_3,
+            reference_image=reference_image,
+        )
         mode = reference_mode.get("reference_mode")
+        for name, value in reference_mode.items():
+            if (
+                (name.startswith(("reference_audio_", "ref_audio_")) and mode != SEED_AUDIO_MODE_AUDIO)
+                or (name in ("reference_image", "ref_image_url") and mode != SEED_AUDIO_MODE_IMAGE)
+            ) and has_media(value):
+                raise BytePlusException(get_text("err_media_input_mode", name=name, mode=mode))
         audio_slots = seed_audio_slots(reference_mode) if mode == SEED_AUDIO_MODE_AUDIO else {}
         image = image_url = preset_voice = None
         if mode == SEED_AUDIO_MODE_IMAGE:

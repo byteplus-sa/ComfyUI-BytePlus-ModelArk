@@ -314,6 +314,8 @@ REF_AUDIO_MAX_SIZE_MB = 15.0
 REF_AUDIO_MAX_TOTAL_REQUEST_MB = 64.0
 
 MESSAGES = {
+    "err_media_input_conflict": "Media input {name} is supplied both at the top level and inside a mode/model. Connect only one source.",
+    "err_media_input_mode": "Media input {name} is not supported in {mode}. Disconnect it or select a compatible mode/model.",
     "init_credentials_routes_failed": "Could not register the BytePlus credentials routes ({e}); Settings > BytePlus will not work. The nodes still load.",
     "init_sdk_ver_low": "BytePlus SDK {current} is older than the required {min}; the BytePlus nodes are disabled. Update it, then restart ComfyUI:\n  {cmd}",
     "init_sdk_not_found": "BytePlus SDK is not installed; the BytePlus nodes are disabled. Install the requirements, then restart ComfyUI:\n  {cmd}",

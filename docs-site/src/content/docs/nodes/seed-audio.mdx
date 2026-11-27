@@ -22,7 +22,7 @@ For six voice references, video-guided audio, translation and stem separation, u
 
 ## On the canvas
 
-<Shot src="nodes/seed-audio.png" alt="The Seed Audio 1.0 node with reference_mode set to text only, a prompt for a warm narrator and the five list outputs" caption="Default settings with a sample prompt. The other modes add their reference inputs below reference_mode." />
+<Shot src="nodes/seed-audio.png" alt="The Seed Audio 1.0 node with reference_mode set to text only, left-side reference sockets and five list outputs" caption="Media connects on the left; URL and preset controls follow reference_mode." />
 
 ## Inputs
 
@@ -31,7 +31,7 @@ For six voice references, video-guided audio, translation and stem separation, u
 ### Notes on inputs
 
 - **Reference mode:** `text only` uses the prompt alone. `audio reference` clones up to three voices, which you call `@Audio1`, `@Audio2` and `@Audio3` in the prompt. `image reference` derives a voice from one character image (`reference_image`, or an http(s) link in `ref_image_url`). `preset voice` reads the whole prompt in the voice you pick in `preset_voice`. Only `audio reference` uses `@AudioN` tags: the node rejects them in `text only` and `image reference`.
-- **Audio references:** each slot takes either a connected clip (up to 30 seconds) or a text source in `ref_audio_N_source`: a TTS 2.0 or cloned speaker ID, or an audio URL. Use one or the other per slot, and fill the slots in order without gaps. A cloned voice from [Seed Voice Clone](../seed-voice-clone/) fits here.
+- **Audio references:** each left-side slot takes either a connected clip (up to 30 seconds) or a text source in `ref_audio_N_source`: a TTS 2.0 or cloned speaker ID, or an audio URL. Use one or the other per slot, and fill the slots in order without gaps. Disconnect reference media when changing to a mode that does not use it. A cloned voice from [Seed Voice Clone](../seed-voice-clone/) fits here.
 - **Timing:** start a quoted line with a time range, such as `[5.5s:8.0s] Wait for me!`, to control when and how long it is spoken.
 - **Subtitles:** turn on `enable_subtitle` to fill `subtitles_json` (the timing data the service returns, plus a normalized `segments` list) and `srt` (one entry per sentence).
 - **Several takes:** raise `generation_count` (1 to 16). The API has no seed, so every take is a fresh result of the same prompt. `seed` only makes ComfyUI run the node again.
