@@ -686,6 +686,8 @@
          "(2K) 1680x2512 (2:3)",
          "(2K) 2512x1680 (3:2)",
          "(2K) 3136x1344 (21:9)",
+         "(4K) 3840x2160 (16:9)",
+         "(4K) 2160x3840 (9:16)",
          "1K (adaptive)",
          "1.5K (adaptive)",
          "2K (adaptive)",
@@ -700,7 +702,7 @@
         "tooltip": "Custom width for image. Value is working only if `size_preset` is set to `Custom`",
         "default": 2048,
         "min": 240,
-        "max": 8600,
+        "max": 11520,
         "step": 2
        },
        {
@@ -711,7 +713,7 @@
         "tooltip": "Custom height for image. Value is working only if `size_preset` is set to `Custom`",
         "default": 2048,
         "min": 240,
-        "max": 8600,
+        "max": 11520,
         "step": 2
        },
        {

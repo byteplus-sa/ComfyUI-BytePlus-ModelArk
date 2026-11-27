@@ -234,9 +234,10 @@ SEEDREAM_MODEL_CAPS = {
         "min_ref_side": 15,
         "max_ref_pixels": 36_000_000,
         "min_side": 240,
-        "max_side": 8600,
+        "max_side": 11520,
         "min_pixels": 921_600,
-        "max_pixels": 4_624_220,
+        # Supplied 2026-11-27 high-resolution update: explicit WxH up to UHD 4K.
+        "max_pixels": 8_294_400,
         "batch": False,
         "fast": False,
         "thinking": False,

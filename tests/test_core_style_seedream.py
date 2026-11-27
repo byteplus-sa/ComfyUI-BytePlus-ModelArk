@@ -212,7 +212,7 @@ BYTEPLUS_FIELD_DEVIATIONS = {
         for side in ("width", "height")
     },
     **{
-        ("BytePlusSeedream", V55, side): {"max": 8600}
+        ("BytePlusSeedream", V55, side): {"max": 11520}
         for side in ("width", "height")
     },
     **{
@@ -262,6 +262,11 @@ PRO_EXTRA_PRESETS = [
     "(1.5K) 1792x1344 (4:3)", "(1.5K) 2048x1152 (16:9)",
     "(1.5K) 1152x2048 (9:16)", "(1.5K) 1248x1872 (2:3)",
     "(1.5K) 1872x1248 (3:2)", "(1.5K) 2352x1008 (21:9)",
+]
+# BytePlus 5.5 high-resolution update supplied 2026-11-27, beyond core's presets.
+V55_EXTRA_PRESETS = [
+    ("(4K) 3840x2160 (16:9)", 3840, 2160),
+    ("(4K) 2160x3840 (9:16)", 2160, 3840),
 ]
 
 
@@ -399,7 +404,11 @@ class SeedreamSchemaTests(unittest.TestCase):
         for size in ("1K (adaptive)", "1.5K (adaptive)", "2K (adaptive)", "Custom",
                      "(1K) 1360x768 (16:9)", "(2K) 2368x1776 (4:3)"):
             self.assertIn(size, inputs["size_preset"].options)
-        self.assertEqual((inputs["width"].min, inputs["width"].max), (240, 8600))
+        for label, _, _ in V55_EXTRA_PRESETS:
+            self.assertIn(label, inputs["size_preset"].options)
+        self.assertNotIn("4K (adaptive)", inputs["size_preset"].options)
+        for side in ("width", "height"):
+            self.assertEqual((inputs[side].min, inputs[side].max, inputs[side].step), (240, 11520, 2))
         self.assertNotIn("images", inputs)
         self.assertEqual(nodes_seedream.SEEDREAM_MODEL_CAPS[V55]["max_refs"], 10)
         self.assertEqual(inputs["output_format"].options, ["png", "jpeg"])
@@ -503,6 +512,8 @@ class SeedreamSchemaTests(unittest.TestCase):
                 self.assertEqual(options[-1], "Custom")
                 if model == PRO:
                     options[8:8] = PRO_EXTRA_PRESETS
+                elif model == V55:
+                    options[-1:-1] = [label for label, _, _ in V55_EXTRA_PRESETS]
                 expected["options"] = options[:-1] + ADAPTIVE_PRESETS[model] + options[-1:]
             if core_item.id == "images" and model in (V45, V40):
                 expected["template"]["names"] = [f"image_{index}" for index in range(1, 15)]
@@ -644,11 +655,11 @@ class SeedreamSchemaTests(unittest.TestCase):
             with self.subTest(node=our_node.__name__), self.assertRaises(AssertionError):
                 self.assert_schema_matches_core(changed, our_node.define_schema())
 
-    def test_55_fixed_presets_match_core_and_resolve_to_exact_pixels(self):
+    def test_55_fixed_presets_match_core_plus_uhd_and_resolve_to_exact_pixels(self):
         core_api = importlib.import_module("comfy_api_nodes.apis.bytedance")
-        presets = core_api.RECOMMENDED_PRESETS_SEEDREAM_5_5
-        self.assertEqual(seedream_utils.SEEDREAM_PRESETS[V55], presets[:-1])
-        for label, width, height in presets[:-1]:
+        presets = core_api.RECOMMENDED_PRESETS_SEEDREAM_5_5[:-1] + V55_EXTRA_PRESETS
+        self.assertEqual(seedream_utils.SEEDREAM_PRESETS[V55], presets)
+        for label, width, height in presets:
             with self.subTest(preset=label):
                 self.assertEqual(
                     nodes_seedream.resolve_seedream_size(V55, label, 0, 0), f"{width}x{height}"
@@ -884,7 +895,7 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
             ({"prompt": ""}, "Prompt cannot be empty"),
             ({"prompt": None}, "Prompt cannot be empty"),
             ({"size_preset": "4K (adaptive)"}, "size preset"),
-            ({"size_preset": "Custom", "width": 2880, "height": 2880}, "Maximum image resolution"),
+            ({"size_preset": "Custom", "width": 2882, "height": 2880}, "Maximum image resolution"),
             ({"size_preset": "Custom", "width": 512, "height": 512}, "Minimum image resolution"),
             ({"size_preset": "Custom", "width": 0, "height": 2048}, "aspect ratio"),
             ({"size_preset": "Custom", "width": -2048, "height": -2048}, "aspect ratio"),
@@ -985,6 +996,64 @@ class SeedreamRequestTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(images), count)
             self.assertTrue(all(decode_data_uri(image)[1].mode == "RGB" for image in images))
             self.assertAlmostEqual(float(result[2].mean()), 0.75)
+
+    async def test_55_uhd_presets_submit_explicit_dimensions(self):
+        import torch
+
+        for label, width, height in V55_EXTRA_PRESETS:
+            for editing in (False, True):
+                with self.subTest(preset=label, editing=editing):
+                    refs = {"image_1": torch.ones((1, 16, 16, 3))} if editing else {}
+                    fake, _, _ = await self.run_node(
+                        V55, size_preset=label, width=0, height=0, images=refs,
+                    )
+                    self.assertEqual(len(fake.calls), 1)
+                    request = fake.calls[0]
+                    self.assertEqual(request["model"], "dola-seedream-5-5-261028")
+                    self.assertEqual(request["size"], f"{width}x{height}")
+                    self.assertEqual(request["response_format"], "url")
+                    self.assertEqual(bool(request.get("image")), editing)
+
+    async def test_55_custom_sizes_accept_new_pixel_and_aspect_boundaries(self):
+        for width, height in (
+            (3840, 2160), (2160, 3840), (2880, 2880),
+            (11520, 720), (720, 11520),
+        ):
+            with self.subTest(width=width, height=height):
+                self.assertEqual(width * height, 8_294_400)
+                fake, _, _ = await self.run_node(
+                    V55, size_preset="Custom", width=width, height=height,
+                )
+                self.assertEqual(fake.calls[0]["size"], f"{width}x{height}")
+
+    async def test_55_custom_sizes_reject_excess_pixels_or_aspect_before_submission(self):
+        for width, height, message in (
+            (3840, 2162, "Maximum image resolution"),
+            (2162, 3840, "Maximum image resolution"),
+            (4096, 4096, "Maximum image resolution"),
+            (11520, 722, "Maximum image resolution"),
+            (11520, 718, "aspect ratio"),
+            (718, 11520, "aspect ratio"),
+        ):
+            with self.subTest(width=width, height=height):
+                fake = FakeImages()
+                with self.assertRaisesRegex(nodes_seedream.BytePlusException, message):
+                    await self.run_node(
+                        V55, fake=fake, size_preset="Custom", width=width, height=height,
+                    )
+                self.assertEqual(fake.calls, [])
+
+    async def test_55_uhd_does_not_expand_pro_or_flash_sizes(self):
+        for model in (PRO, FLASH):
+            for options in (
+                {"size_preset": V55_EXTRA_PRESETS[0][0]},
+                {"size_preset": "Custom", "width": 3840, "height": 2160},
+            ):
+                with self.subTest(model=model, options=options):
+                    fake = FakeImages()
+                    with self.assertRaises(nodes_seedream.BytePlusException):
+                        await self.run_node(model, fake=fake, **options)
+                    self.assertEqual(fake.calls, [])
 
     async def test_55_jpeg_auto_and_opaque_png_return_opaque_masks(self):
         for options in ({"output_format": "jpeg"}, {"background": "opaque"}):
