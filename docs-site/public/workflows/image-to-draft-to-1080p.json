@@ -262,7 +262,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.13.0",
+        "ver": "0.14.0",
         "Node name for S&R": "BytePlusSeedance2Reference"
       },
       "widgets_values": [
@@ -420,7 +420,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.13.0",
+        "ver": "0.14.0",
         "Node name for S&R": "BytePlusSeedanceDraftToFinal"
       },
       "widgets_values": [

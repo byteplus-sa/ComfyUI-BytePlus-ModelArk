@@ -127,13 +127,15 @@ If the BytePlus nodes do not appear after an update, the BytePlus SDK may be too
 
 ## Media input layout
 
-The source checkout moves media sockets out of mode/model groups on Seed Audio 1.0 and 1.5,
+Version **0.14.0** moves media sockets out of mode/model groups on Seed Audio 1.0 and 1.5,
 Seedream, Layer Separation, Seedance Reference and BytePlus LLM. Media connects on the left;
-outputs remain on the right. This source change does not by itself indicate a new Registry release.
+outputs remain on the right. Restart ComfyUI and reload the browser after updating.
+Registry availability depends on the version's scan status.
 
 Saved canvas workflows are upgraded when opened: existing media links are renamed without
 changing prompt or widget values. Save the workflow again after checking its connections.
-Models and modes still enforce their own media limits.
+Models and modes still enforce their own media limits. Disconnect media that the selected
+mode or model does not support; conflicting sources are rejected rather than silently replaced.
 
 For API-format workflows submitted directly without opening the canvas, update media keys yourself:
 `mode.video` becomes `video`, `reference_mode.reference_audio_1` becomes `reference_audio_1`,

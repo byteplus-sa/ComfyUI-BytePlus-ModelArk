@@ -4,9 +4,13 @@ Use BytePlus models in ComfyUI with **your own BytePlus API keys**: Seedream ima
 
 Calls go straight to BytePlus and are billed to your BytePlus account (contract pricing and resource packs apply). No Comfy credits are used.
 
-> **Status: v0.13.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
+> **Status: v0.14.0.** Requires ComfyUI 0.31.0 or later. Works in Classic Canvas and Nodes 2.0.
 
-**New in v0.13.0:** the separate **BytePlus Seed Audio 1.5** node uses `dola-seed-audio-1-5-261128` and your **ModelArk API key** in Singapore. Generate audio, use up to six voice references or one image, create video-guided audio, translate video or separate stems, with optional video and subtitle outputs. Seed Audio 1.0 stays unchanged on the Seed Speech key. Pending cancellation is checked before submission; connected videos are size-checked after encoding, including trims and crops. There are no automatic paid submission retries. Registry installation availability depends on the version's scan status.
+**New in v0.14.0:** shared media sockets stay on the left when you change modes or models on Seed Audio 1.0/1.5, Seedream, Layer Separation, Seedance Reference and BytePlus LLM. Saved canvas connections migrate automatically on load; conflicting and unsupported media is rejected before billing. Provider request formats and model limits are unchanged. The docs include refreshed node screenshots and reference-mode views in both renderers.
+
+**Direct API workflow migration:** rename moved media keys before submitting to ComfyUI's `/prompt`, for example `model.images.image_1` to `images.image_1` and `mode.video` to `video`. Prompt, URL, asset and other control keys stay unchanged. See the [media input migration guide](https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/get-started/update/#media-input-layout). Restart ComfyUI and reload the browser after updating. Registry availability depends on the version's scan status.
+
+**Previously in v0.13.0:** the separate **BytePlus Seed Audio 1.5** node uses `dola-seed-audio-1-5-261128` and your **ModelArk API key** in Singapore. Generate audio, use up to six voice references or one image, create video-guided audio, translate video or separate stems, with optional video and subtitle outputs. Seed Audio 1.0 stays unchanged on the Seed Speech key. Pending cancellation is checked before submission; connected videos are size-checked after encoding, including trims and crops. There are no automatic paid submission retries. Registry installation availability depends on the version's scan status.
 
 **Previously in v0.12.0:** render a reviewed 480p Seedance 2.5 draft at **1080p or 4K** with the Draft to Final node's `resolution` selector. The default remains 1080p. Endpoint-backed drafts now use the configured endpoint for final rendering, avoiding the canonical-model endpoint mismatch. Keep the same endpoint configuration between draft and final; no automatic paid retries were added.
 

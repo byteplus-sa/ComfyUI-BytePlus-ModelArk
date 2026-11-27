@@ -154,7 +154,7 @@
       ],
       "properties": {
         "cnr_id": "ComfyUI-BytePlus-ModelArk",
-        "ver": "0.13.0",
+        "ver": "0.14.0",
         "Node name for S&R": "BytePlusVideoSmoothness"
       },
       "widgets_values": ["repair", false, "", "remove", "", true]
