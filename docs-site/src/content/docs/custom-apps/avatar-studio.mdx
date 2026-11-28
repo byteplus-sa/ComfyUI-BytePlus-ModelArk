@@ -26,17 +26,74 @@ jobs.
 **ComfyUI-BytePlus-ModelArk 0.10.0 or later**. Install the companion separately;
 see [Install ModelArk](../../get-started/install/).
 
-1. Download the Studio ZIP from
-   [Avatar Studio Releases](https://github.com/byteplus-sa/ComfyUI-BytePlus-Avatar-Studio/releases).
-2. Extract it into `ComfyUI/custom_nodes/`, keeping the
-   `ComfyUI-BytePlus-Avatar-Studio` folder and its bundled `studio_dist/`.
-3. Restart ComfyUI.
+### Nodes Manager (recommended)
 
-<Aside type="note" title="Registry installation">
-Manager installation requires Active Registry versions for both packages.
-Pending or Flagged versions are not confirmed available through Manager.
-The manual ZIP installation uses the bundled app.
+Use **top-left dropdown > Extensions > Nodes Manager > search `byteplus` >
+Install**. No separate ZIP download is needed.
+
+1. Open the dropdown beside the **ComfyUI logo** at the top left of the editor.
+   Choose **Extensions** to open **Nodes Manager**.
+2. Keep **Node Pack** selected and search for **byteplus**.
+3. Install **ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit**
+   (`ComfyUI-BytePlus-ModelArk`) and **BytePlus Avatar Studio**
+   (`ComfyUI-BytePlus-Avatar-Studio`), both from **byteplus-sa**.
+4. If either package is already installed, open its card and choose **Update**
+   when a newer release is available. Do not install a duplicate copy.
+5. Wait for completion, then click **Apply Changes** if prompted, or restart
+   ComfyUI. Reload the editor after the restart.
+
+<Shot src="guides/nodes-manager-menu.webp" alt="ComfyUI top-left dropdown with Extensions visible" caption="Choose Extensions from the editor's dropdown to open Nodes Manager." />
+
+<Shot src="guides/nodes-manager-byteplus.webp" alt="Nodes Manager results for byteplus showing the ModelArk and Avatar Studio packages" caption="Install both packages from byteplus-sa, or open an installed card to update it." />
+
+Use the same route to update both packages later. Older ComfyUI layouts use
+**Manager > Custom Nodes Manager**.
+
+<Aside type="note" title="No release is available for the selected update option">
+Check the update dropdown and Registry versions; this message does not
+necessarily mean you are up to date. A listing marked Active does not guarantee
+that each version is approved. Pending or flagged versions may be unavailable
+through both Manager and the CLI.
 </Aside>
+
+### Comfy CLI (second option)
+
+Configure [comfy-cli](https://github.com/Comfy-Org/comfy-cli) for the same ComfyUI
+installation you open, then install the companion and Studio:
+
+```bash
+comfy node install ComfyUI-BytePlus-ModelArk
+comfy node install ComfyUI-BytePlus-Avatar-Studio
+```
+
+For packages already installed, update instead:
+
+```bash
+comfy node update ComfyUI-BytePlus-ModelArk
+comfy node update ComfyUI-BytePlus-Avatar-Studio
+```
+
+Restart ComfyUI and reload the editor afterwards. CLI and Manager share the
+Registry; the CLI does not bypass release availability.
+
+### Release ZIP (last resort)
+
+1. Use a ZIP only when Manager and the CLI cannot install the required release.
+   Install the [ModelArk companion](../../get-started/install/) first, then
+   download the Studio ZIP from
+   [Avatar Studio Releases](https://github.com/byteplus-sa/ComfyUI-BytePlus-Avatar-Studio/releases).
+2. Close ComfyUI. Move any old Studio folder to a backup **outside
+   `custom_nodes`**. Extract the new ZIP into
+   `ComfyUI/custom_nodes/ComfyUI-BytePlus-Avatar-Studio/`, with `__init__.py`
+   and the bundled `studio_dist/` directly inside it, not another nested folder.
+3. Restart ComfyUI and reload the editor. Preserve `user/`, including your
+   Studio projects and `user/.env` credentials.
+
+ZIP extraction does not create Manager's `.tracking` metadata. If Manager
+shows **Install** but reports **Install path already exists**, close ComfyUI,
+back up the affected extension outside `custom_nodes`, then reopen ComfyUI
+and install through Nodes Manager. Do not remove your user data or create an
+empty `.tracking` file.
 
 ## Open in Comfy Desktop
 

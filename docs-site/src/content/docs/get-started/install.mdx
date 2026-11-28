@@ -1,59 +1,81 @@
 ---
 title: "Install"
-description: "Install the BytePlus ModelArk node pack from the Comfy Registry with ComfyUI-Manager or the Comfy CLI, or by hand, and fix the missing SDK message."
+description: "Install BytePlus through Nodes Manager first, use the Comfy CLI as an alternative, or install a release ZIP as a last resort."
 ---
 
-import { Steps, Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '../../../components/Shot.astro';
 
 This pack adds BytePlus nodes to ComfyUI. It needs ComfyUI **0.31.0 or later** and works in both **Classic Canvas** and **Nodes 2.0** (Vue nodes).
 
-The pack is published on the Comfy Registry: **[ComfyUI-BytePlus-ModelArk on registry.comfy.org](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. ComfyUI-Manager and the Comfy CLI both install from there. To get a newer version later, see [Update](../update/).
+Use **Nodes Manager** first. It downloads the pack from the [Comfy Registry](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk) and normally installs its Python requirements. The **Comfy CLI** is the second option; a **release ZIP** is the last resort. To get a newer version later, see [Update](../update/).
 
-## Install with ComfyUI-Manager
+## Install with Nodes Manager (recommended)
+
+**Top-left dropdown > Extensions > Nodes Manager > search `byteplus` > Install**.
 
 <Steps>
 
-1. Open **ComfyUI-Manager** and choose **Custom Nodes Manager**.
-2. Search for *BytePlus ModelArk*. The pack is listed as *ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit*.
-3. Press **Install**. The Manager normally installs the pack's Python requirements as well.
-4. Restart ComfyUI and reload the browser page.
+1. In the ComfyUI editor, open the **top-left dropdown** beside the ComfyUI logo. Choose **Extensions** to open **Nodes Manager**.
+2. Keep **Node Pack** selected and search for **byteplus**.
+3. Choose **ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit** from **byteplus-sa** (package ID: `ComfyUI-BytePlus-ModelArk`), then click **Install**. No separate ZIP download is needed.
+4. If the pack is already installed, open its card and use **Update** when a newer release is available. Do not install a second copy.
+5. Wait for installation to finish. Click **Apply Changes** if prompted, or restart ComfyUI. Reload the editor after the restart.
 
 </Steps>
 
+<Shot src="guides/nodes-manager-menu.webp" alt="ComfyUI top-left dropdown with the Extensions item visible" caption="Choose Extensions from the editor's dropdown, not the operating system's application menu." />
+
+<Shot src="guides/nodes-manager-byteplus.webp" alt="Nodes Manager search results for byteplus with the BytePlus packages and their publisher labels" caption="Search byteplus and choose the package published by byteplus-sa." />
+
+The **OmniHuman nodes** use this same pack and installation method. For the separate [BytePlus Avatar Studio app](../../custom-apps/avatar-studio/), also install `ComfyUI-BytePlus-Avatar-Studio` from **byteplus-sa** in the same search results; it requires the ModelArk companion.
+
+In older ComfyUI layouts, **Manager > Custom Nodes Manager** opens the equivalent installer.
+
+<Aside type="note" title="If a release is unavailable">
+A Registry listing does not guarantee that every version is installable. If Manager reports no release for the selected option, check the package's versions and try another available release. Pending or flagged Registry versions may be unavailable; the CLI uses the same Registry and does not bypass that restriction.
+</Aside>
+
 ## Install with the Comfy CLI
 
-If you use [comfy-cli](https://github.com/Comfy-Org/comfy-cli), run this from your ComfyUI folder (or with `--workspace` pointing at it):
+Use this second option if you prefer a terminal or cannot access Nodes Manager. With [comfy-cli](https://github.com/Comfy-Org/comfy-cli) configured for the **same ComfyUI installation you open**, run:
 
 ```bash
 comfy node install ComfyUI-BytePlus-ModelArk
 ```
 
-The command downloads the latest version from the Registry and installs its requirements. Restart ComfyUI and reload the browser page afterwards.
+The command installs an available Registry release and its requirements. For an existing installation, use `comfy node update ComfyUI-BytePlus-ModelArk`. Restart ComfyUI and reload the editor afterwards.
 
-## Install by hand
+## Install a release ZIP (last resort)
+
+Use a ZIP only when Nodes Manager and the CLI cannot install the release you need.
 
 <Steps>
 
-1. Open a terminal in your ComfyUI folder and clone the pack into `custom_nodes`:
+1. Download the ZIP for the required version from [GitHub Releases](https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/releases).
+2. Close ComfyUI. If a copy already exists, move it to a backup **outside `custom_nodes`**. Do not overwrite it or leave a second enabled copy.
+3. Extract the pack to `ComfyUI/custom_nodes/ComfyUI-BytePlus-ModelArk/` in your active installation. The folder must directly contain `__init__.py`, `pyproject.toml` and `nodes/`, not another nested pack folder.
+4. From your ComfyUI folder, install the requirements with **the same Python that runs ComfyUI**:
 
    ```bash
-   cd ComfyUI/custom_nodes
-   git clone https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk
+   python -m pip install -r custom_nodes/ComfyUI-BytePlus-ModelArk/requirements.txt
    ```
 
-2. Install the requirements with **the same Python that runs ComfyUI**:
-
-   ```bash
-   pip install -r ComfyUI-BytePlus-ModelArk/requirements.txt
-   ```
-
-3. Restart ComfyUI and reload the browser page.
+5. Start ComfyUI again and reload the editor. Keep your existing `user/` folder, workflows and `user/.env` credentials.
 
 </Steps>
 
 <Aside type="caution">
 If you use a virtual environment or the portable build of ComfyUI, run `pip` from that environment. A `pip` from another Python installs the packages where ComfyUI cannot see them.
 </Aside>
+
+Manual ZIP extraction does not create Manager's `.tracking` metadata. The nodes can load while Manager still shows **Install**, and installing over that folder can fail. Use the recovery steps below to switch back to Manager.
+
+## If the install path already exists
+
+If Manager shows **Install** but reports `Install path already exists`, it has not recognized the existing folder as that Registry package. Missing `.tracking` metadata is one possible cause.
+
+Close ComfyUI, move only the affected extension folder to a backup **outside `custom_nodes`**, then reopen ComfyUI and install it through **Nodes Manager**. Restart after installation. Do not remove `user/` or `user/.env`, and do not create an empty `.tracking` file as a workaround.
 
 ## If the BytePlus SDK is missing
 

@@ -52,29 +52,33 @@ Full documentation, with a page for every node and template: **https://byteplus-
 
 ## Quick Start
 
-**1. Install.** The pack is on the Comfy Registry: **[registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. In ComfyUI-Manager, search for *BytePlus ModelArk* (listed as *ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit*), or use the [Comfy CLI](https://github.com/Comfy-Org/comfy-cli):
+**1. Install with Nodes Manager (recommended).** In the ComfyUI editor, open the **top-left dropdown > Extensions > Nodes Manager**, keep **Node Pack** selected and search for **byteplus**. Choose **ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit** from **byteplus-sa** (`ComfyUI-BytePlus-ModelArk`) and click **Install**. Manager downloads the pack and normally installs its requirements; you do not need a ZIP.
+
+Already installed? Open the package card and click **Update** when a newer release is available. Wait for completion, then **Apply Changes** if prompted or restart ComfyUI, and reload the editor.
+
+The OmniHuman nodes use this same pack. For the separate **BytePlus Avatar Studio** app, also install or update `ComfyUI-BytePlus-Avatar-Studio` from **byteplus-sa** in the same search results. See the [Avatar Studio setup guide](https://github.com/byteplus-sa/ComfyUI-BytePlus-Avatar-Studio#install).
+
+**Second option: Comfy CLI.** Configure the [Comfy CLI](https://github.com/Comfy-Org/comfy-cli) for the same ComfyUI installation you open, then install:
 
 ```bash
 comfy node install ComfyUI-BytePlus-ModelArk
 ```
 
-Or by hand:
-
-```bash
-cd ComfyUI/custom_nodes
-git clone https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk
-pip install -r ComfyUI-BytePlus-ModelArk/requirements.txt
-```
-
-Run `pip` with the Python that runs ComfyUI, then restart ComfyUI. If the BytePlus SDK is missing or too old, the nodes don't load and the console prints the install command.
-
-**Update.** In ComfyUI-Manager press **Update** on the pack, or run:
+For an existing installation, update instead:
 
 ```bash
 comfy node update ComfyUI-BytePlus-ModelArk
 ```
 
-For a manual install, run `git pull` in the pack folder and `pip install -r requirements.txt` again. Restart ComfyUI afterwards. Your saved keys stay in `user/.env`. See the [Update page](https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/get-started/update/).
+Restart ComfyUI and reload the editor afterwards. Manager and the CLI both use the [Comfy Registry](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk). If an update reports **No release is available for the selected update option**, check the selected option and available Registry versions; this does not necessarily mean you are up to date. Pending or flagged versions may be unavailable through either method.
+
+**Last resort: release ZIP.** Download the required version from [GitHub Releases](https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/releases). Close ComfyUI and move any old pack folder to a backup **outside `custom_nodes`**. Extract the new pack into `ComfyUI/custom_nodes/ComfyUI-BytePlus-ModelArk/`, with `__init__.py` directly inside it. From the ComfyUI folder, install requirements with the Python that runs ComfyUI:
+
+```bash
+python -m pip install -r custom_nodes/ComfyUI-BytePlus-ModelArk/requirements.txt
+```
+
+Restart ComfyUI afterwards. Your saved keys stay in `user/.env`; do not remove the `user/` folder. ZIP installs may not be recognized by Manager because they lack its `.tracking` metadata. If **Install** fails with **Install path already exists**, back up the affected extension outside `custom_nodes` with ComfyUI closed, then install through Manager. See the illustrated [Install](https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/get-started/install/) and [Update](https://byteplus-sa.github.io/ComfyUI-BytePlus-ModelArk/get-started/update/) guides.
 
 **2. Add your key.** Create a key in the [ModelArk console](https://ai.byteplus.com/ark/region:ap-southeast-1/apikey) and activate the models you want (keys and models are per region). In ComfyUI open **Settings → BytePlus**, paste the key, pick its region and press **Save**. No restart needed.
 
@@ -183,7 +187,7 @@ Change the prompt or seed between test runs: ComfyUI reuses the cached result of
 
 | Symptom | Fix |
 |---|---|
-| No BytePlus page in Settings | Update the pack (ComfyUI-Manager → Update), restart ComfyUI and reload the page. |
+| No BytePlus page in Settings | Open the top-left dropdown > Extensions > Nodes Manager, search `byteplus`, open the pack and choose Update. Restart ComfyUI and reload the page. |
 | *Invalid API Key (401)* | The key and region don't match. Pick the key's region in Settings (or set `BYTEPLUS_REGION`). |
 | *No BytePlus API key is set…* | No key is set. Save one in Settings or `.env`. |
 | *Invalid X-Api-Key* on speech nodes | You used a ModelArk key. Seed Speech needs its own key. |

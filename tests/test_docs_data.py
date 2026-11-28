@@ -158,6 +158,8 @@ class DocsDataTests(unittest.TestCase):
         self.assertEqual(
             {os.path.basename(shot) for shot in shots},
             {
+                "nodes-manager-menu.webp",
+                "nodes-manager-byteplus.webp",
                 "avatar-studio.png",
                 "desktop-menu.png",
                 "desktop-context-menu.png",
@@ -171,8 +173,12 @@ class DocsDataTests(unittest.TestCase):
             with self.subTest(image=shot):
                 with open(os.path.join(site, "src", "assets", shot), "rb") as file:
                     header = file.read(24)
-                self.assertEqual(header[:8], b"\x89PNG\r\n\x1a\n")
-                self.assertGreaterEqual(int.from_bytes(header[16:20], "big"), 400)
+                if shot.endswith(".webp"):
+                    self.assertEqual(header[:4], b"RIFF")
+                    self.assertEqual(header[8:12], b"WEBP")
+                else:
+                    self.assertEqual(header[:8], b"\x89PNG\r\n\x1a\n")
+                    self.assertGreaterEqual(int.from_bytes(header[16:20], "big"), 400)
 
     def test_avatar_studio_guide_preserves_installation_and_key_boundaries(self):
         with open(os.path.join(PAGES, "custom-apps", "avatar-studio.mdx"), encoding="utf-8") as file:
@@ -197,6 +203,10 @@ class DocsDataTests(unittest.TestCase):
                 self.assertIn(required, guide)
         self.assertNotIn("raw.githubusercontent.com", guide)
         self.assertNotRegex(guide, r"\]\(/(?!/)")
+        self.assertLess(guide.index("### Nodes Manager (recommended)"), guide.index("### Comfy CLI (second option)"))
+        self.assertLess(guide.index("### Comfy CLI (second option)"), guide.index("### Release ZIP (last resort)"))
+        self.assertIn("search `byteplus`", guide)
+        self.assertIn("**Update**", guide)
 
     def test_a_removed_template_leaves_nothing_behind(self):
         slugs = {t["slug"] for t in load("templates.json")}

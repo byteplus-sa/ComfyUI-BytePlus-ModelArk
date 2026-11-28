@@ -1,11 +1,12 @@
 ---
 title: "Update"
-description: "Update the BytePlus ModelArk node pack to the latest version with ComfyUI-Manager, the Comfy CLI or git."
+description: "Update BytePlus through Nodes Manager first, use the Comfy CLI second, and replace a manual ZIP installation only as a last resort."
 ---
 
 import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '../../../components/Shot.astro';
 
-New versions are published on the Comfy Registry: **[ComfyUI-BytePlus-ModelArk on registry.comfy.org](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk)**. Its **Versions** tab lists every release. Use the method that matches how you [installed](../install/) the pack. Your saved keys and settings stay where they are: they live in `user/.env`, not in the pack folder.
+Start with **top-left dropdown > Extensions > Nodes Manager > search `byteplus` > Update**. Use [Nodes Manager first](#update-with-nodes-manager-recommended), the [Comfy CLI second](#update-with-the-comfy-cli), and a [release ZIP only as a last resort](#update-a-manual-zip-last-resort). The [Comfy Registry](https://registry.comfy.org/nodes/ComfyUI-BytePlus-ModelArk) lists package versions. Your saved keys stay in `user/.env`, outside the pack folder.
 
 Version **0.8.0** adds [Seedream 5.5](../../nodes/seedream/) and its [layer-separation options](../../nodes/seedream-layer-separation/). After updating, select `seedream 5.5` on either node; existing workflows keep their previous model. Your account needs early-access entitlement. Media URLs must resolve to public addresses; local and private-network download URLs are rejected.
 
@@ -76,52 +77,58 @@ After updating to v0.9.0:
 - Select **Seedance 2.5 Flash** in the same [Text to Video](../../nodes/seedance-2-5-text-to-video/), [First-Last-Frame](../../nodes/seedance-2-5-first-last-frame/) or [Reference to Video](../../nodes/seedance-2-5-reference/) node. Flash supports 480p/720p and 4-30 seconds, uses the API's default output format and has no Draft option. Your account needs private-model access and activation.
 - The standard Seedance 2.5 endpoint applies at every standard resolution, including 4K. It does not override Flash. Your saved keys stay unchanged.
 
-## Update with ComfyUI-Manager
+## Update with Nodes Manager (recommended)
 
 <Steps>
 
-1. Open **ComfyUI-Manager** and choose **Custom Nodes Manager**.
-2. Find *ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit*. When a newer version exists, the entry shows an **Update** button.
-3. Press **Update**, then restart ComfyUI and reload the browser page.
+1. Open the ComfyUI editor's **top-left dropdown**, then choose **Extensions** to open **Nodes Manager**.
+2. Search for **byteplus** and select **ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit** from **byteplus-sa**. You can also check **Updates Available** in the sidebar.
+3. Open the installed package's card and choose **Update**. Use the adjacent dropdown to review the available update options if needed.
+4. Wait for the update to finish, then click **Apply Changes** if prompted, or restart ComfyUI. Reload the editor after the restart.
 
 </Steps>
 
+<Shot src="guides/nodes-manager-update.webp" alt="Installed BytePlus ModelArk package in Nodes Manager with Update in its details panel" caption="Open the installed package's card to find Update and its option dropdown." />
+
+The **OmniHuman nodes** update with ModelArk. If you use the separate **BytePlus Avatar Studio** app, update both `ComfyUI-BytePlus-ModelArk` and `ComfyUI-BytePlus-Avatar-Studio` through the same search results.
+
+<Aside type="note" title="No release is available for the selected update option">
+This message is not proof that you have the newest version. Check the update dropdown and compare your installed version with the Registry's versions. You may already have the selected release, or no eligible release may be available for that option. A listing marked Active does not guarantee that each version is approved; pending or flagged versions may be unavailable. The CLI uses the same Registry.
+</Aside>
+
+If Manager shows **Install** for a folder that already exists, follow [If the install path already exists](../install/#if-the-install-path-already-exists). Do not keep retrying Install over the same folder.
+
 ## Update with the Comfy CLI
 
-Update the pack on its own:
+Use this second option with the CLI configured for the **same ComfyUI installation you open**:
 
 ```bash
 comfy node update ComfyUI-BytePlus-ModelArk
 ```
 
-Or update every installed custom node at once:
-
-```bash
-comfy node update all
-```
-
 To see what is installed, run `comfy node show installed`. Restart ComfyUI and reload the browser page afterwards. To update ComfyUI itself, use `comfy update`.
 
-## Update a manual install
+If you use Avatar Studio, also run `comfy node update ComfyUI-BytePlus-Avatar-Studio`.
+
+## Update a manual ZIP (last resort)
+
+Prefer switching to Nodes Manager using the [existing-folder recovery steps](../install/#if-the-install-path-already-exists). If you must stay with ZIP installation:
 
 <Steps>
 
-1. Pull the latest code in the pack folder:
+1. Download the required release ZIP from [GitHub Releases](https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/releases), then close ComfyUI.
+2. Move the old pack folder to a backup **outside `custom_nodes`**. Extract the new version into `custom_nodes/ComfyUI-BytePlus-ModelArk/`, without nesting another pack folder inside it.
+3. From your ComfyUI folder, install requirements with **the same Python that runs ComfyUI**:
 
    ```bash
-   cd ComfyUI/custom_nodes/ComfyUI-BytePlus-ModelArk
-   git pull
+   python -m pip install -r custom_nodes/ComfyUI-BytePlus-ModelArk/requirements.txt
    ```
 
-2. Install the requirements with **the same Python that runs ComfyUI**, in case a new version needs a newer BytePlus SDK:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Restart ComfyUI and reload the browser page.
+4. Restart ComfyUI and reload the editor. Leave `user/`, workflows and `user/.env` untouched.
 
 </Steps>
+
+For an existing developer Git checkout, continue using `git pull` and install its requirements with ComfyUI's Python. A ZIP extraction is not a Git checkout and cannot be updated with `git pull`.
 
 <Aside type="note">
 If the BytePlus nodes do not appear after an update, the BytePlus SDK may be too old. ComfyUI prints the exact `pip install` command in its console. See [If the BytePlus SDK is missing](../install/#if-the-byteplus-sdk-is-missing).
@@ -131,7 +138,7 @@ If the BytePlus nodes do not appear after an update, the BytePlus SDK may be too
 
 - Reload the browser page, not only the server, so the new Settings page and node definitions load.
 - Node IDs do not change, but a removed model choice must be replaced manually as described above. Saved workflows keep their own node settings; open a template again from the template browser to get the newest one.
-- Before reporting a problem, check the version you run in ComfyUI-Manager and compare it with the latest one on the Registry page.
+- Before reporting a problem, check the installed version in Nodes Manager and compare it with the available versions on the Registry page.
 
 ## Media input layout
 

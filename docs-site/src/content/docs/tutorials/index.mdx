@@ -18,9 +18,15 @@ Start with installation and API keys, build an image workflow with **Seedream 5.
 
 Save your ModelArk API key in **Settings > BytePlus**, not in a workflow. Generations use your BytePlus account balance and send your inputs to the cloud; avoid confidential material.
 
+## Install or update the pack
+
+In the ComfyUI editor, use **top-left dropdown > Extensions > Nodes Manager > search `byteplus`**. Choose **ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit** from **byteplus-sa**, then **Install**, or open the installed package's card and choose **Update** when a newer release is available. Wait for completion, then **Apply Changes** if prompted or restart ComfyUI and reload the editor.
+
+Use **Nodes Manager first**, **Comfy CLI second**, and a **release ZIP only as a last resort**. [Module 1](./install-comfyui/) shows the menu, search results and Update controls. The [installation guide](../get-started/install/) covers the alternatives and recovery steps.
+
 ## Start learning
 
-<LinkCard title="Module 1: Install ComfyUI" description="Install ComfyUI and the BytePlus pack, then find the nodes and templates you will use throughout the course." href="./install-comfyui/" />
+<LinkCard title="Module 1: Install ComfyUI" description="Install ComfyUI, install or update BytePlus through Nodes Manager, then find your course nodes and templates." href="./install-comfyui/" />
 
 Follow all six lessons in order. Skip to [Module 3: Understand and build a workflow](./build-your-first-workflow/) only if you already have BytePlus nodes installed, a working ModelArk key, one saved Seedream image, and a reference image with a one-sentence brief. Otherwise, complete Modules 1 and 2 first.
 
@@ -51,7 +57,7 @@ The actual UI screenshots show one ComfyUI layout. Your version may place tools 
 
 The **Seedream** and **Image to Draft to 1080p** workflows are included with the node pack installed from **Comfy Registry**. Open **Templates** in ComfyUI and look under **ComfyUI-BytePlus-ModelArk**.
 
-The included Seedream template still opens with **Pro** selected. Override it with `seedream 5.5`, upload the course reference, and replace the prompt before running. If `seedream 5.5` is missing, update the BytePlus pack and restart ComfyUI; do not run the template unchanged. The image lessons use `(2K) 2048x2048 (1:1)`, `png`, `opaque`, one image and `standard` prompt optimization.
+The included Seedream template still opens with **Pro** selected. Override it with `seedream 5.5`, upload the course reference, and replace the prompt before running. If `seedream 5.5` is missing, [update the BytePlus pack through Nodes Manager](./install-comfyui/#update-before-later-lessons) and restart ComfyUI; do not run the template unchanged. The image lessons use `(2K) 2048x2048 (1:1)`, `png`, `opaque`, one image and `standard` prompt optimization.
 
 In **Module 3**, you build your own graph, export it and reopen that saved workflow. Keep these exports so you can reuse and share your work.
 

@@ -33,23 +33,33 @@ For a computer or environment that needs another installation method, follow the
 
 ## Install the BytePlus pack
 
-Open the **ComfyUI menu** at the **top left** of the workspace: click the ComfyUI logo beside the small down arrow, just left of **Graph**. Choose **Extensions** to open **Nodes Manager**. You can also press **Extensions** in the top toolbar, near **Run**.
+Use **Nodes Manager** as your first choice: **top-left dropdown > Extensions > Nodes Manager > search `byteplus` > Install**. Click the ComfyUI logo beside the small down arrow to open the dropdown, then choose **Extensions**.
 
-<Shot src="tutorials/extensions-entry.webp" alt="ComfyUI menu at the top left with Extensions highlighted and callouts showing the menu route and toolbar shortcut" caption="Open the ComfyUI logo menu, then choose Extensions; the toolbar button opens the same manager." />
+<Shot src="guides/nodes-manager-menu.webp" alt="ComfyUI top-left dropdown with Extensions visible" caption="Open the dropdown beside the ComfyUI logo, then choose Extensions." />
 
 In older layouts with a **Manager** button, open **ComfyUI-Manager > Custom Nodes Manager** instead.
 
-<Shot src="tutorials/extensions-manager.webp" alt="Nodes Manager header with Node Pack selected and BytePlus entered in its search box" caption="In Nodes Manager, keep Node Pack selected and use the search field beside it." />
+<Shot src="guides/nodes-manager-byteplus.webp" alt="Nodes Manager with byteplus search results and byteplus-sa publisher labels" caption="Search byteplus and choose the ModelArk package from byteplus-sa." />
 
 <Steps>
 
-1. In **Nodes Manager**, keep **Node Pack** selected in the dropdown. Click the search field beside it and search for **BytePlus ModelArk**. Check that the package is **ComfyUI-BytePlus-ModelArk** from BytePlus.
-2. Press **Install** and wait for the package and its requirements to finish installing.
-3. Restart ComfyUI. In Desktop, close and reopen the application. For a manual server, stop and restart the server process, then reload the browser tab. Reloading a tab alone does not load a newly installed Python node pack.
+1. In **Nodes Manager**, keep **Node Pack** selected and search for **byteplus**. Choose **ComfyUI BytePlus ModelArk, Speech, OmniHuman & MediaKit** from **byteplus-sa** (package ID: `ComfyUI-BytePlus-ModelArk`).
+2. Press **Install** and wait for the package and its requirements to finish installing. If it is already installed, open the card and use **Update** when a newer release is available.
+3. Click **Apply Changes** if prompted, or restart ComfyUI. In Desktop, close and reopen the application. For a manual server, stop and restart the server process, then reload the browser tab. Reloading a tab alone does not load a newly installed Python node pack.
 
 </Steps>
 
-If Manager is unavailable or the pack is not listed, use the [pack installation guide](../../get-started/install/) for the Comfy CLI or manual installation method.
+The OmniHuman nodes use this same installation. For the separate **BytePlus Avatar Studio** app, install its package from **byteplus-sa** in the same results as well; Studio is not needed for this course.
+
+Use the **Comfy CLI** as your second option and a **release ZIP** only as a last resort. The [pack installation guide](../../get-started/install/) covers both alternatives and the **Install path already exists** error. If an update reports that no release is available for the selected option, follow the [update guide](../../get-started/update/) instead of assuming the pack is current.
+
+## Update before later lessons
+
+When a lesson asks you to update the pack, return to **top-left dropdown > Extensions > Nodes Manager > search `byteplus`**. Open the **ComfyUI-BytePlus-ModelArk** card from **byteplus-sa** and choose **Update** when a newer release is available. Wait for completion, then **Apply Changes** if prompted or restart ComfyUI and reload the editor. Do not install another copy.
+
+<Shot src="guides/nodes-manager-update.webp" alt="BytePlus ModelArk selected in Nodes Manager with the Update button and update-options dropdown visible" caption="An installed pack has Update in its details panel; the adjacent dropdown shows update options." />
+
+If no release is available for the selected option, check the [update guide](../../get-started/update/). If Manager shows **Install** but reports that the folder already exists, use the [installation recovery steps](../../get-started/install/#if-the-install-path-already-exists). Keep your workflows and `user/.env` credentials.
 
 ## Find your course tools
 
@@ -75,6 +85,7 @@ Find the Seedream node, open the Seedream template, and locate the ModelArk key 
 - You can find BytePlus Seedream in node search.
 - The course's Seedream template opens with BytePlus nodes.
 - Settings includes the ModelArk API key row.
+- You can reopen Nodes Manager and find the installed BytePlus pack's Update control.
 
 ## Next lesson
 

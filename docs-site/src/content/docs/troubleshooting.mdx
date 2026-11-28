@@ -7,8 +7,12 @@ Errors from the nodes appear with a `[BytePlus]` prefix. The tables quote the te
 
 ## Keys and setup
 
+For installation and updates, start with **top-left dropdown > Extensions > Nodes Manager > search `byteplus`**. Choose the package from **byteplus-sa**, then **Install** or **Update**. Use the [Comfy CLI second and a release ZIP only as a last resort](../get-started/install/).
+
 | What you see | Why | What to do |
 |---|---|---|
+| `Install path already exists` | An existing extension folder is not recognized as that Registry installation, for example because its `.tracking` metadata is missing. | Close ComfyUI, back up the affected extension outside `custom_nodes`, then install through Nodes Manager and restart. Preserve `user/` and `user/.env`. See [installation recovery](../get-started/install/#if-the-install-path-already-exists). |
+| `No release is available for the selected update option` | No eligible release was found for the selected option; this is not proof that you have the newest version. | Check the update dropdown and the Registry versions. Pending or flagged versions may be unavailable through Manager and the CLI. See [Update](../get-started/update/). |
 | `No BytePlus API key is set. Add it in Settings > BytePlus` | No ModelArk API key is saved. | Save it in **Settings → BytePlus**. See [API keys](../get-started/api-keys/). |
 | `No Seed Speech API key is set.` or `No AI MediaKit API key is set.` | These nodes use their own keys. | Save that key in **Settings → BytePlus**. |
 | `Invalid API Key (401). Check the key in Settings > BytePlus, and that the region there matches the region the key was created in.` | Wrong key, or the region does not match it. | Pick the key's region and save again. See [Keys and regions](../concepts/keys-and-regions/). |
@@ -86,7 +90,7 @@ These messages appear in the Settings page, next to the key row.
 
 | What you see | Why | What to do |
 |---|---|---|
-| No **BytePlus** page in Settings | An old version of the pack is installed, or ComfyUI was not restarted and the page not reloaded after the install. | Update the pack (ComfyUI-Manager → Update), restart ComfyUI and reload the page. See [Install](../get-started/install/). |
+| No **BytePlus** page in Settings | An old version of the pack is installed, or ComfyUI was not restarted and the page not reloaded after the install. | Open **Extensions > Nodes Manager**, search `byteplus`, open the pack and choose **Update**, then restart ComfyUI and reload the page. See [Install](../get-started/install/). |
 | `BytePlus rejected this API key for the selected region, so it was not saved.` | The key is wrong, or you picked another region than the key's. | Pick the key's region and save again. |
 | `Saved, but the key could not be checked …` | BytePlus was unreachable, rate-limited or returned a server error, so the key was saved unchecked. | If the nodes report 401, check the key and the region. |
 | `The BYTEPLUS_REGION environment variable is set to … and it overrides the region picked here. …` | An environment variable fixes the region. | Pick the region it names, or change or remove the variable and restart ComfyUI. |

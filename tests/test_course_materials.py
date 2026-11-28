@@ -177,15 +177,60 @@ class CourseMaterialsTests(unittest.TestCase):
     def test_installation_shows_how_to_reach_the_node_pack_manager(self):
         text = (COURSE / "install-comfyui.mdx").read_text()
         section = text.split("## Install the BytePlus pack", 1)[1].split("\n## ", 1)[0]
-        self.assertIn("**ComfyUI menu**", section)
-        self.assertIn("top left", section)
+        self.assertIn("top-left dropdown > Extensions > Nodes Manager", section)
         self.assertIn("**Extensions**", section)
         self.assertIn("**Nodes Manager**", section)
         self.assertIn("**Node Pack**", section)
+        self.assertIn("**byteplus**", section)
+        self.assertIn("**byteplus-sa**", section)
+        self.assertIn("**Update**", section)
         self.assertLess(
-            section.index('src="tutorials/extensions-entry.webp"'),
-            section.index('src="tutorials/extensions-manager.webp"'),
+            section.index('src="guides/nodes-manager-menu.webp"'),
+            section.index('src="guides/nodes-manager-byteplus.webp"'),
         )
+
+    def test_setup_guides_prioritize_manager_then_cli_then_zip(self):
+        for guide, action in (("install", "Install"), ("update", "Update")):
+            text = (DOCS / f"src/content/docs/get-started/{guide}.mdx").read_text()
+            with self.subTest(guide=guide):
+                manager = text.index(f"## {action} with Nodes Manager (recommended)")
+                cli = text.index(f"## {action} with the Comfy CLI")
+                zip_section = text.index(
+                    f"## {action} a {'release' if guide == 'install' else 'manual'} ZIP (last resort)"
+                )
+                self.assertLess(manager, cli)
+                self.assertLess(cli, zip_section)
+                self.assertIn("top-left dropdown", text)
+                self.assertIn("**byteplus-sa**", text)
+                self.assertIn("ComfyUI-BytePlus-Avatar-Studio", text)
+                self.assertIn("user/.env", text)
+                for source in re.findall(r'<Shot\s+src="([^"]+)"', text):
+                    self.assertTrue((DOCS / "src/assets" / source).is_file())
+
+    def test_docs_and_course_overviews_explain_install_and_update_priority(self):
+        for page in (DOCS / "src/content/docs/index.mdx", COURSE / "index.mdx"):
+            text = page.read_text()
+            with self.subTest(page=page):
+                self.assertIn("top-left dropdown > Extensions > Nodes Manager > search `byteplus`", text)
+                self.assertIn("**byteplus-sa**", text)
+                self.assertIn("**Install**", text)
+                self.assertIn("**Update**", text)
+                manager = text.index("**Nodes Manager first**")
+                cli = text.index("**Comfy CLI second**")
+                zip_section = text.index("**release ZIP only as a last resort**")
+                self.assertLess(manager, cli)
+                self.assertLess(cli, zip_section)
+
+    def test_installation_teaches_updating_before_later_lessons(self):
+        text = (COURSE / "install-comfyui.mdx").read_text()
+        section = text.split("## Update before later lessons", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("top-left dropdown > Extensions > Nodes Manager", section)
+        self.assertIn('src="guides/nodes-manager-update.webp"', section)
+        self.assertIn("**Update**", section)
+        self.assertIn("restart ComfyUI", section)
+        self.assertIn("user/.env", section)
+        self.assertIn("../../get-started/update/", section)
+        self.assertIn("#if-the-install-path-already-exists", section)
 
 
 if __name__ == "__main__":
